@@ -23,6 +23,7 @@
 #include "supervisor.h"
 #include "error_screen.h"
 #include "diagnostics.h"
+#include "path_security.h"
 
 #include <dirent.h>
 #include <errno.h>
@@ -77,33 +78,54 @@ struct wayland_socket {
     int lock_fd;
 };
 
-static bool create_socket(const char *runtime_dir, struct wayland_socket *s)
+static bool create_socket(int runtime_fd, struct wayland_socket *s)
 {
     struct sockaddr_un address = { .sun_family = AF_UNIX };
     for (int n = 0; n < 32; ++n) {
         snprintf(s->name, sizeof(s->name), "wayland-%d", n);
-        int length = snprintf(s->lock_path, sizeof(s->lock_path), "%s/%s.lock", runtime_dir, s->name);
-        if (length < 0 || (size_t)length >= sizeof(s->lock_path) || length - 5 >= (int)sizeof(address.sun_path)) {
+        int length = snprintf(s->lock_path, sizeof(s->lock_path), "%s.lock", s->name);
+        if (length < 0 || (size_t)length >= sizeof(s->lock_path)) {
             return false;
         }
-        memcpy(s->path, s->lock_path, (size_t)length - 5);
-        s->path[length - 5] = '\0';
-        s->lock_fd = open(s->lock_path, O_CREAT | O_CLOEXEC | O_RDWR, S_IRUSR | S_IWUSR);
+        snprintf(s->path, sizeof(s->path), "%s", s->name);
+        s->lock_fd = openat(runtime_fd, s->lock_path,
+            O_CREAT | O_CLOEXEC | O_RDWR | O_NOFOLLOW | O_NONBLOCK, S_IRUSR | S_IWUSR);
         if (s->lock_fd < 0) {
+            continue;
+        }
+        // The lock must be an ordinary file owned by this session's UID;
+        // O_NOFOLLOW also rejects pre-existing symlink lock files.
+        struct stat lock_info;
+        if (fstat(s->lock_fd, &lock_info) != 0 || !S_ISREG(lock_info.st_mode)
+            || lock_info.st_uid != geteuid()) {
+            close(s->lock_fd);
             continue;
         }
         if (flock(s->lock_fd, LOCK_EX | LOCK_NB) != 0) {
             close(s->lock_fd); // there is already a compositor on this number
             continue;
         }
-        unlink(s->path); // left by a dead compositor
+        // Reclaim only a stale socket owned by us. Never unlink a regular
+        // file, directory or symlink just because it has a Wayland name.
+        struct stat previous;
+        if (fstatat(runtime_fd, s->path, &previous, AT_SYMLINK_NOFOLLOW) == 0) {
+            if (!S_ISSOCK(previous.st_mode) || previous.st_uid != geteuid()
+                || unlinkat(runtime_fd, s->path, 0) != 0) {
+                close(s->lock_fd);
+                continue;
+            }
+        } else if (errno != ENOENT) {
+            close(s->lock_fd);
+            continue;
+        }
         s->fd = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
         if (s->fd < 0) {
             close(s->lock_fd);
             return false;
         }
         // A bounded copy even if the runtime directory was supplied externally.
-        int copied = snprintf(address.sun_path, sizeof(address.sun_path), "%s", s->path);
+        int copied = snprintf(address.sun_path, sizeof(address.sun_path),
+            "/proc/self/fd/%d/%s", runtime_fd, s->path);
         if (copied < 0 || (size_t)copied >= sizeof(address.sun_path)) {
             close(s->fd);
             close(s->lock_fd);
@@ -205,16 +227,6 @@ static double now_seconds(void)
     return (double)t.tv_sec + (double)t.tv_nsec / 1e9;
 }
 
-bool vela_lock_flag_path(const char *wayland_display, char *out, size_t size)
-{
-    const char *runtime_dir = getenv("XDG_RUNTIME_DIR");
-    if (!runtime_dir || !wayland_display) {
-        return false;
-    }
-    int n = snprintf(out, size, "%s/vela-locked-%s", runtime_dir, wayland_display);
-    return n > 0 && (size_t)n < size;
-}
-
 bool vela_session_hook_path(char *out, size_t size)
 {
     char self[PATH_MAX] = { 0 };
@@ -249,13 +261,15 @@ static void run_and_wait(const char *program, const char *argument)
 int vela_supervise(int argc, char **argv)
 {
     const char *runtime_dir = getenv("XDG_RUNTIME_DIR");
-    if (!runtime_dir) {
-        say("XDG_RUNTIME_DIR is not set");
+    int runtime_fd = vela_runtime_dir_open(runtime_dir);
+    if (runtime_fd < 0) {
+        say("XDG_RUNTIME_DIR must be an absolute, private directory owned by this user");
         return 1;
     }
     struct wayland_socket socket = { 0 };
-    if (!create_socket(runtime_dir, &socket)) {
+    if (!create_socket(runtime_fd, &socket)) {
         say("can't create the Wayland socket");
+        close(runtime_fd);
         return 1;
     }
     say("socket %s; starting the compositor", socket.name);
@@ -287,8 +301,6 @@ int vela_supervise(int argc, char **argv)
     sigaction(SIGINT, &action, NULL);
     sigaction(SIGHUP, &action, NULL);
 
-    char lock_flag[PATH_MAX];
-    bool has_lock_flag = vela_lock_flag_path(socket.name, lock_flag, sizeof(lock_flag));
     double crashes[MAX_CRASHES];
     int crash_count = 0;
     int exit_code = 0;
@@ -303,15 +315,24 @@ int vela_supervise(int argc, char **argv)
             signal(SIGTERM, SIG_DFL);
             signal(SIGINT, SIG_DFL);
             signal(SIGHUP, SIG_DFL);
-            fcntl(socket.fd, F_SETFD, 0); // the compositor inherits it
+            // The compositor inherits the Wayland socket and the exact
+            // runtime-directory descriptor. It restores CLOEXEC on the latter
+            // before launching any applications.
+            if (fcntl(socket.fd, F_SETFD, 0) != 0
+                || fcntl(runtime_fd, F_SETFD, 0) != 0) {
+                _exit(127);
+            }
             char fd[16];
             snprintf(fd, sizeof(fd), "%d", socket.fd);
             setenv("VELA_WAYLAND_SOCKET_FD", fd, 1);
             setenv("VELA_WAYLAND_DISPLAY", socket.name, 1);
+            snprintf(fd, sizeof(fd), "%d", runtime_fd);
+            setenv("VELA_RUNTIME_DIR_FD", fd, 1);
             if (restarted) {
                 setenv("VELA_RESTARTED", "1", 1);
             }
-            if (has_lock_flag && access(lock_flag, F_OK) == 0) {
+            unsetenv("VELA_START_LOCKED");
+            if (vela_lock_marker_present_at(runtime_fd, socket.name)) {
                 setenv("VELA_START_LOCKED", "1", 1);
             }
             execv(self, arguments);
@@ -390,12 +411,11 @@ int vela_supervise(int argc, char **argv)
         setenv("WAYLAND_DISPLAY", socket.name, 1);
         run_and_wait(hook, "stop");
     }
-    if (has_lock_flag) {
-        unlink(lock_flag);
-    }
-    unlink(socket.path);
+    vela_lock_marker_remove_at(runtime_fd, socket.name);
+    unlinkat(runtime_fd, socket.path, 0);
     close(socket.fd);
-    unlink(socket.lock_path);
+    unlinkat(runtime_fd, socket.lock_path, 0);
     close(socket.lock_fd);
+    close(runtime_fd);
     return exit_code;
 }

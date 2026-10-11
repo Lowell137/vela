@@ -14,8 +14,9 @@
 #include "scene/scene.h"
 #include "scene/surface.h"
 #include "server.h"
-#include "supervisor.h"
+#include "path_security.h"
 #include "util.h"
+#include "view.h"
 
 #include <fcntl.h>
 #include <limits.h>
@@ -123,9 +124,9 @@ static void handle_unlock(struct wl_listener *listener, void *data)
     struct vela_server *server = lock->server;
     // Really unlocked: the desktop is back as it was.
     server->locked = false;
-    char flag[PATH_MAX];
-    if (vela_lock_flag_path(getenv("WAYLAND_DISPLAY"), flag, sizeof(flag))) {
-        unlink(flag);
+    if (server->runtime_dir_fd >= 0
+        && !vela_lock_marker_remove_at(server->runtime_dir_fd, server->socket_name)) {
+        wlr_log(WLR_ERROR, "Could not remove secure screen-lock marker");
     }
     set_desktop_enabled(server, true);
     vela_node_set_enabled(&server->layers.lock->node, false);
@@ -361,6 +362,7 @@ void vela_lock_destroy(struct vela_lock *lock)
 
 // ------------------------------------------------------------------- lock --
 
+/** Engage the screen lock and revoke any previously issued window-source captures. */
 void vela_lock_engage(struct vela_lock *lock)
 {
     struct vela_server *server = lock->server;
@@ -368,14 +370,14 @@ void vela_lock_engage(struct vela_lock *lock)
         return;
     }
     server->locked = true;
+    // Invalidate old isolated window sources; output capture still shows the
+    // composed lock screen, but window capture could bypass occlusion.
+    vela_views_revoke_capture_on_lock(server);
     // For the supervisor: if the compositor crashes now, the next one starts
     // locked (supervisor.c).
-    char flag[PATH_MAX];
-    if (vela_lock_flag_path(getenv("WAYLAND_DISPLAY"), flag, sizeof(flag))) {
-        int fd = open(flag, O_CREAT | O_WRONLY | O_CLOEXEC, S_IRUSR | S_IWUSR);
-        if (fd >= 0) {
-            close(fd);
-        }
+    if (server->runtime_dir_fd >= 0
+        && !vela_lock_marker_create_at(server->runtime_dir_fd, server->socket_name)) {
+        wlr_log(WLR_ERROR, "Could not create secure screen-lock marker");
     }
     set_desktop_enabled(server, false);
     vela_node_set_enabled(&server->layers.lock->node, true);
