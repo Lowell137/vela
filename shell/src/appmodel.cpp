@@ -171,6 +171,120 @@ bool parseDesktopFile(const QString& path, const QStringList& localeKeys, AppMod
 AppModel::AppModel(QObject* parent)
     : QAbstractListModel(parent)
 {
+    m_reloadTimer.setSingleShot(true);
+    m_reloadTimer.setInterval(250);
+    connect(&m_reloadTimer, &QTimer::timeout, this, &AppModel::reload);
+    m_watchRetryTimer.setSingleShot(true);
+    m_watchRetryTimer.setInterval(10000);
+    connect(&m_watchRetryTimer, &QTimer::timeout, this, &AppModel::reload);
+    // Watch the .desktop files themselves too: changing Name= or Hidden=
+    // in place need not generate a directoryChanged event on Linux.
+    const auto changed = [this] { m_reloadTimer.start(); };
+    connect(&m_watcher, &QFileSystemWatcher::directoryChanged, this, changed);
+    connect(&m_watcher, &QFileSystemWatcher::fileChanged, this, changed);
+}
+
+void AppModel::updateWatchPaths(const QStringList& directories, const QSet<QString>& desktopFiles)
+{
+    QSet<QString> wanted;
+    QHash<QString, QString> symlinkTargets;
+    QSet<QString> reattachRoots;
+    for (const QString& directory : directories) {
+        const QString root = QDir::cleanPath(directory);
+        const QFileInfo rootInfo(root);
+        if (rootInfo.isSymLink()) {
+            // Linux inotify follows symlinks. The lexical path can remain
+            // unchanged while the watched inode switches to a new target.
+            // Watch the link's parent to receive the replacement event.
+            wanted.insert(rootInfo.absolutePath());
+            const QString target = rootInfo.canonicalFilePath();
+            symlinkTargets.insert(root, target);
+            const auto previous = m_symlinkTargets.constFind(root);
+            if (previous != m_symlinkTargets.cend() && *previous != target) {
+                reattachRoots.insert(root);
+            }
+        }
+        QString existing = root;
+        // Some XDG application directories don't exist until the first app
+        // is installed (notably per-user apps and Flatpak exports). Watching
+        // the closest existing ancestor detects their creation.
+        while (!QFileInfo(existing).isDir()) {
+            const QString parent = QFileInfo(existing).absolutePath();
+            if (parent == existing) {
+                break;
+            }
+            existing = parent;
+        }
+        if (!QFileInfo(existing).isDir()) {
+            continue;
+        }
+        wanted.insert(existing);
+        if (existing != root) {
+            continue;
+        }
+        // QFileSystemWatcher isn't recursive. Watch every subdirectory so
+        // that new desktop files in nested application folders are detected.
+        QDirIterator subdirs(root, QDir::Dirs | QDir::NoDotAndDotDot | QDir::NoSymLinks,
+            QDirIterator::Subdirectories);
+        while (subdirs.hasNext()) {
+            wanted.insert(subdirs.next());
+        }
+    }
+    m_symlinkTargets = std::move(symlinkTargets);
+
+    // Directory watches cover creations, removals and atomic replacements;
+    // per-file watches cover edits that don't change directory metadata.
+    wanted.unite(desktopFiles);
+
+    // Reattach every watcher below a replaced symlink root. The paths of
+    // nested directories and files are also unchanged, yet Qt may still be
+    // watching inodes in the old target tree.
+    const auto needsReattach = [&reattachRoots](const QString& path) {
+        for (const QString& root : reattachRoots) {
+            if (path == root || path.startsWith(root + u'/')) {
+                return true;
+            }
+        }
+        return false;
+    };
+    const QStringList watchedPaths = m_watcher.directories() + m_watcher.files();
+    QSet<QString> watched;
+    for (const QString& path : watchedPaths) {
+        watched.insert(path);
+    }
+    QStringList remove;
+    for (const QString& path : watchedPaths) {
+        if (!wanted.contains(path) || needsReattach(path)) {
+            remove.append(path);
+        }
+    }
+    if (!remove.isEmpty()) {
+        m_watcher.removePaths(remove);
+    }
+    QStringList add;
+    for (const QString& path : std::as_const(wanted)) {
+        if (!watched.contains(path) || needsReattach(path)) {
+            add.append(path);
+        }
+    }
+    // addPaths() reports rejected paths rather than throwing. A retry reload
+    // also discovers installs that occurred while a required watch was absent.
+    const QStringList failed = add.isEmpty() ? QStringList() : m_watcher.addPaths(add);
+    QSet<QString> failedPaths;
+    for (const QString& path : failed) {
+        failedPaths.insert(path);
+    }
+    if (failedPaths != m_failedWatchPaths) {
+        if (!failed.isEmpty()) {
+            qWarning().noquote() << "vela-shell: cannot watch application paths:" << failed.join(", ");
+        }
+        m_failedWatchPaths = std::move(failedPaths);
+    }
+    if (m_failedWatchPaths.isEmpty()) {
+        m_watchRetryTimer.stop();
+    } else {
+        m_watchRetryTimer.start();
+    }
 }
 
 void AppModel::reload()
@@ -188,11 +302,13 @@ void AppModel::reload()
     // wins (such as ~/.local/share/applications overriding /usr/share/...).
     QList<Entry> entries;
     QSet<QString> seen;
+    QSet<QString> desktopFiles;
     const QStringList dirs = QStandardPaths::standardLocations(QStandardPaths::ApplicationsLocation);
     for (const QString& dir : dirs) {
         QDirIterator it(dir, { QStringLiteral("*.desktop") }, QDir::Files, QDirIterator::Subdirectories);
         while (it.hasNext()) {
             const QString path = it.next();
+            desktopFiles.insert(path);
             // The id includes the subdirectories joined by '-' (Desktop Entry
             // spec).
             QString id = QDir(dir).relativeFilePath(path);
@@ -209,6 +325,8 @@ void AppModel::reload()
         }
     }
 
+    updateWatchPaths(dirs, desktopFiles);
+
     QCollator collator;
     collator.setCaseSensitivity(Qt::CaseInsensitive);
     collator.setNumericMode(true);
@@ -216,11 +334,16 @@ void AppModel::reload()
         return collator.compare(a.name, b.name) < 0;
     });
 
+    const int previousCount = count();
     beginResetModel();
     m_all = std::move(entries);
-    m_visible.clear();
+    m_visible = filteredIndices();
     endResetModel();
-    applyFilter();
+    if (previousCount != count()) {
+        emit countChanged();
+    }
+    ++m_catalogRevision;
+    emit catalogRevisionChanged();
 
     qInfo("vela-shell: %lld applicazioni caricate in %lld ms",
         static_cast<long long>(m_all.size()), static_cast<long long>(timer.elapsed()));
@@ -236,7 +359,7 @@ void AppModel::setQuery(const QString& query)
     applyFilter();
 }
 
-void AppModel::applyFilter()
+QList<int> AppModel::filteredIndices() const
 {
     const QString q = m_query.trimmed();
     QList<int> visible;
@@ -280,6 +403,12 @@ void AppModel::applyFilter()
         }
     }
 
+    return visible;
+}
+
+void AppModel::applyFilter()
+{
+    QList<int> visible = filteredIndices();
     if (visible == m_visible) {
         return;
     }
