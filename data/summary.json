@@ -1,0 +1,108 @@
+{
+  "generated_at": "2026-10-11T09:59:38+00:00",
+  "popular_paths": null,
+  "releases": {
+    "asset_count": 10,
+    "by_release": [
+      {
+        "assets": [
+          {
+            "downloads": 0,
+            "id": "629246006",
+            "name": "SHA256SUMS"
+          },
+          {
+            "downloads": 0,
+            "id": "629246003",
+            "name": "vela-git-0.1.0.r82.g0864650-1-x86_64.pkg.tar.zst"
+          }
+        ],
+        "downloads_current_assets": 0,
+        "tag": "alpha-0864650f05f35f91e38ecc745104eb3958841f52"
+      },
+      {
+        "assets": [
+          {
+            "downloads": 0,
+            "id": "629283570",
+            "name": "SHA256SUMS"
+          },
+          {
+            "downloads": 0,
+            "id": "629283572",
+            "name": "vela-git-0.1.0.r83.g64f05dd-1-x86_64.pkg.tar.zst"
+          }
+        ],
+        "downloads_current_assets": 0,
+        "tag": "alpha-64f05dd031d06bb8f8c0f89147dcf2e56e1c81fa"
+      },
+      {
+        "assets": [
+          {
+            "downloads": 0,
+            "id": "629461450",
+            "name": "SHA256SUMS"
+          },
+          {
+            "downloads": 0,
+            "id": "629461447",
+            "name": "vela-git-0.1.0.r85.g69d4331-1-x86_64.pkg.tar.zst"
+          }
+        ],
+        "downloads_current_assets": 0,
+        "tag": "alpha-69d4331b5356a23c5b170b519c7286674fcfe159"
+      },
+      {
+        "assets": [
+          {
+            "downloads": 0,
+            "id": "629354623",
+            "name": "SHA256SUMS"
+          },
+          {
+            "downloads": 0,
+            "id": "629354624",
+            "name": "vela-git-0.1.0.r84.g9003957-1-x86_64.pkg.tar.zst"
+          }
+        ],
+        "downloads_current_assets": 0,
+        "tag": "alpha-9003957a0c0b8e6c03362905ee07a7137eec49e4"
+      },
+      {
+        "assets": [
+          {
+            "downloads": 1,
+            "id": "629471879",
+            "name": "SHA256SUMS"
+          },
+          {
+            "downloads": 1,
+            "id": "629471878",
+            "name": "vela-git-0.1.0.r86.g9d53701-1-x86_64.pkg.tar.zst"
+          }
+        ],
+        "downloads_current_assets": 2,
+        "tag": "alpha-9d537011a9f0384418ebb1ce787d32dd62ffddef"
+      }
+    ],
+    "downloads_current_assets": 2,
+    "downloads_observed_maxima": 2,
+    "downloads_since_previous_daily_snapshot": null,
+    "previous_snapshot_date": null,
+    "release_count": 5
+  },
+  "repository": "vela-desktop/vela",
+  "schema_version": 1,
+  "sources": {
+    "releases": {
+      "last_collected_at": "2026-10-11T09:59:38+00:00",
+      "status": "ok"
+    },
+    "traffic": {
+      "last_collected_at": null,
+      "status": "not_configured"
+    }
+  },
+  "top_referrers": null,
+  "traffic": null
+}
