@@ -4,12 +4,17 @@
 
 """Offline updater contracts with real Git and simulated package/CI tools."""
 
+import fcntl
 import json
 import os
+import pty
 from pathlib import Path
 import shutil
+import signal
 import subprocess
 import tempfile
+import termios
+import time
 import unittest
 
 
@@ -46,6 +51,13 @@ if url is not None:
 rewrite = "url." + pathlib.Path(os.environ["TEST_SOURCE"]).as_uri() + ".insteadOf=" + os.environ["TEST_HTTPS_SOURCE"]
 sys.exit(subprocess.call([real_git, *(["-c", rewrite] if url is not None else []), *args]))
 '''
+MV_STUB = r'''#!/usr/bin/env python3
+import os, sys
+if (os.environ.get("TEST_FAIL_CONFIG_MV") == "1" and
+        sys.argv[-1] == os.environ["TEST_CONFIG_DEST"]):
+    sys.exit(1)
+os.execv(os.environ["TEST_REAL_MV"], [os.environ["TEST_REAL_MV"], *sys.argv[1:]])
+'''
 STUB = r'''#!/usr/bin/env python3
 import json, os, pathlib, subprocess, sys
 name = pathlib.Path(sys.argv[0]).name
@@ -58,6 +70,42 @@ if name == "pacman":
         sys.exit(1)
     print("vela-git 0.1.0.r1.g" + os.environ["TEST_INSTALLED"] + "-1")
 elif name == "makepkg":
+    if os.environ.get("TEST_REQUIRE_TTY"):
+        # sudo authenticates through /dev/tty, not necessarily stdin.
+        fd = os.open("/dev/tty", os.O_RDONLY | os.O_NONBLOCK)
+        os.close(fd)
+    if os.environ.get("TEST_PAUSE_BUILD"):
+        import time
+        marker = pathlib.Path(os.environ["TEST_BUILD_MARKER"])
+        release = pathlib.Path(os.environ["TEST_BUILD_RELEASE"])
+        if os.environ.get("TEST_SPAWN_BUILD_CHILD"):
+            # Model a long-running compiler spawned by makepkg. A signal
+            # delivered only to makepkg will never reach this process.
+            child_code = """
+import os, pathlib, signal, time
+ready = pathlib.Path(os.environ["TEST_BUILD_CHILD_READY"])
+signalled = pathlib.Path(os.environ["TEST_BUILD_CHILD_SIGNALLED"])
+def stop(_signum, _frame):
+    signalled.touch()
+    raise SystemExit(0)
+signal.signal(signal.SIGTERM, stop)
+ready.write_text(str(os.getpid()))
+while True:
+    time.sleep(0.025)
+"""
+            subprocess.Popen([sys.executable, "-c", child_code])
+            child_ready = pathlib.Path(os.environ["TEST_BUILD_CHILD_READY"])
+            until = time.monotonic() + 5
+            while not child_ready.exists() and time.monotonic() < until:
+                time.sleep(0.025)
+            if not child_ready.exists():
+                sys.exit("Build child failed to start")
+        marker.touch()
+        end = time.monotonic() + 15
+        while not release.exists() and time.monotonic() < end:
+            time.sleep(0.025)
+        if not release.exists():
+            sys.exit("Timed out waiting for test build release")
     if os.environ.get("TEST_FAIL_BUILD"):
         record()
         sys.exit(1)
@@ -79,7 +127,28 @@ elif name == "makepkg":
         sys.exit(1)
 elif name == "gh":
     record()
-    if args[:2] == ["auth", "status"]:
+    if args[:2] == ["attestation", "verify"]:
+        # Simulate the GitHub CLI's verified identity + source commit policy,
+        # NOT the underlying Sigstore cryptography. A failure must fail closed.
+        if os.environ.get("TEST_REJECT_ATTEST"):
+            sys.exit(1)
+        if args[args.index("--repo") + 1] != "vela-desktop/vela":
+            sys.exit("Unexpected attestation repository")
+        if args[args.index("--signer-workflow") + 1] != "vela-desktop/vela/.github/workflows/build.yml":
+            sys.exit("Unexpected signer workflow")
+        sha = args[args.index("--source-digest") + 1]
+        if ".g" + sha[:7] + "-" not in pathlib.Path(args[2]).name:
+            sys.exit("Attestation source does not match the artifact")
+        if os.environ.get("TEST_WRONG_ATTEST_SHA"):
+            sys.exit(1)
+        if "--deny-self-hosted-runners" not in args:
+            sys.exit("Self-hosted runners must not be trusted")
+        if os.environ.get("TEST_REQUIRE_MAIN_REF") and (
+            "--source-ref" not in args or
+            args[args.index("--source-ref") + 1] != "refs/heads/main"
+        ):
+            sys.exit("Expected main source ref")
+    elif args[:2] == ["auth", "status"]:
         sys.exit(0 if os.environ.get("TEST_CI_RUN") else 1)
     if args[:2] == ["run", "list"]:
         print(os.environ["TEST_CI_RUN"])
@@ -89,7 +158,7 @@ elif name == "gh":
         if os.environ.get("TEST_FAIL_DOWNLOAD"):
             sys.exit(1)
         dest = pathlib.Path(args[args.index("-D") + 1])
-        dest.mkdir(parents=True)
+        dest.mkdir(parents=True, exist_ok=True)
         sha = os.environ["TEST_DOWNLOAD_SHA"]
         (dest / ("vela-git-0.1.0.r1.g" + sha + "-1-x86_64.pkg.tar.zst")).touch()
 elif name == "curl":
@@ -132,9 +201,9 @@ class UpdateFixture(unittest.TestCase):
         self.source.mkdir()
         bin_dir = self.directory / "bin"
         bin_dir.mkdir()
-        for name in ("pacman", "makepkg", "gh", "sudo", "curl", "git"):
+        for name in ("pacman", "makepkg", "gh", "sudo", "curl", "git", "mv"):
             stub = bin_dir / name
-            stub.write_text(GIT_STUB if name == "git" else STUB)
+            stub.write_text(GIT_STUB if name == "git" else MV_STUB if name == "mv" else STUB)
             stub.chmod(0o755)
         # Installed/updater entry point is outside a checkout: only the
         # explicit bootstrap test below runs the updater from a Git checkout.
@@ -153,7 +222,9 @@ class UpdateFixture(unittest.TestCase):
                         GIT_ALLOW_PROTOCOL="file", GIT_TERMINAL_PROMPT="0",
                         TEST_CALLS=str(self.calls_file), TEST_REAL_GIT=shutil.which("git"),
                         TEST_SOURCE=str(self.source), TEST_DIRECTORY=str(self.directory),
-                        TEST_HTTPS_SOURCE=HTTPS_SOURCE)
+                        TEST_HTTPS_SOURCE=HTTPS_SOURCE,
+                        TEST_REAL_MV=shutil.which("mv"),
+                        TEST_CONFIG_DEST=str(self.directory / "config/vela/updates.conf"))
         self.config = self.directory / "config/vela/updates.conf"
         self.mirror = self.directory / "cache/vela-update/vela.git"
         self.git("init", "--quiet", "--initial-branch=main")
@@ -197,6 +268,40 @@ class UpdateFixture(unittest.TestCase):
             return []
         return [call for line in self.calls_file.read_text().splitlines()
                 if (call := json.loads(line))["tool"] == tool]
+
+    def start_paused_build(self, interactive=False):
+        self.env["TEST_PAUSE_BUILD"] = "1"
+        marker = self.directory / "build-started"
+        release = self.directory / "build-release"
+        self.env["TEST_BUILD_MARKER"] = str(marker)
+        self.env["TEST_BUILD_RELEASE"] = str(release)
+        stdin = subprocess.DEVNULL
+        preexec_fn = None
+        if interactive:
+            master, slave = pty.openpty()
+            stdin = slave
+
+            def attach_terminal():
+                os.setsid()
+                fcntl.ioctl(slave, termios.TIOCSCTTY, 0)
+
+            preexec_fn = attach_terminal
+        try:
+            proc = subprocess.Popen(
+                ["sh", str(self.update_script), "--source", str(self.source), "--build"],
+                env=self.env, stdin=stdin, preexec_fn=preexec_fn,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        finally:
+            if interactive:
+                os.close(slave)
+        if interactive:
+            self.addCleanup(lambda: os.close(master))
+        self.addCleanup(lambda: proc.kill() if proc.poll() is None else None)
+        limit = time.monotonic() + 12
+        while not marker.exists() and proc.poll() is None and time.monotonic() < limit:
+            time.sleep(0.025)
+        self.assertTrue(marker.exists(), "Updater did not reach makepkg")
+        return proc, release
 
 
 class UpdateRevision(UpdateFixture):
@@ -267,6 +372,25 @@ class UpdateRevision(UpdateFixture):
         self.assertIn(".g" + self.nvidia[:7] + "-", self.calls("sudo")[0]["args"][-1])
         self.assertEqual(self.calls("makepkg"), [])
 
+    def test_workflow_artifact_with_invalid_attestation_is_never_installed(self):
+        self.env.update(TEST_CI_RUN="123", TEST_DOWNLOAD_SHA=self.nvidia[:7],
+                        TEST_REJECT_ATTEST="1")
+        result = self.run_update("--branch", "fix/nvidia", "--download")
+        self.assertIn("provenance verification failed", result.stderr)
+        self.assertEqual(self.calls("sudo"), [])
+        self.assertEqual(self.calls("makepkg")[0]["sha"], self.nvidia)
+        self.assertEqual(list((self.mirror.parent / "packages").glob("*.pkg.tar.zst")), [])
+
+    def test_workflow_artifact_attestation_is_tied_to_selected_sha(self):
+        self.env.update(TEST_CI_RUN="123", TEST_DOWNLOAD_SHA=self.nvidia[:7])
+        self.run_update("--branch", "fix/nvidia", "--download")
+        verification = next(call for call in self.calls("gh")
+                            if call["args"][:2] == ["attestation", "verify"])
+        args = verification["args"]
+        self.assertEqual(args[args.index("--source-digest") + 1], self.nvidia)
+        self.assertNotIn("--source-ref", args)  # manual branch packages
+        self.assertEqual(self.calls("makepkg"), [])
+
     def test_failed_download_builds_selected_commit(self):
         self.env.update(TEST_CI_RUN="123", TEST_FAIL_DOWNLOAD="1")
         self.run_update("--commit", self.nvidia, "--download")
@@ -289,7 +413,8 @@ class UpdateRevision(UpdateFixture):
     def test_invalid_options_never_installed(self):
         for args in (("--branch",), ("--commit",), ("--branch=",), ("--commit=",),
                      ("--branch", "../main"), ("--commit", "HEAD"),
-                     ("--branch", "main", "--commit", self.main)):
+                     ("--branch", "main", "--commit", self.main),
+                     ("--jobs",), ("--jobs=",), ("--source",), ("--source=",)):
             with self.subTest(args=args):
                 self.run_update(*args, status=2)
         self.assertEqual(self.calls("makepkg") + self.calls("sudo"), [])
@@ -433,6 +558,63 @@ class UpdateSources(UpdateFixture):
                                  ["clone"] + ["update"] * index)
                 self.assert_https_transport()
 
+    def test_failed_source_switch_preserves_mirror_and_config(self):
+        self.run_update("--check")
+        original = subprocess.check_output(
+            ["git", "-C", str(self.mirror), "config", "remote.origin.url"],
+            env=self.env, text=True).strip()
+        self.run_update("--source", str(self.directory / "nonexistent"),
+                        "--check", source=False, status=1)
+        self.assertEqual(self.config.read_text(), f"source={self.source}\n")
+        self.assertEqual(subprocess.check_output(
+            ["git", "-C", str(self.mirror), "config", "remote.origin.url"],
+            env=self.env, text=True).strip(), original)
+        self.run_update("--check", source=False)
+
+    def test_missing_branch_on_new_source_preserves_old_mirror(self):
+        self.run_update("--check")
+        alternate = self.directory / "alternate"
+        shutil.copytree(self.source, alternate)
+        self.run_update("--source", str(alternate), "--branch", "nonexistent",
+                        "--check", source=False, status=1)
+        self.assertEqual(self.config.read_text(), f"source={self.source}\n")
+        origin = subprocess.check_output(
+            ["git", "-C", str(self.mirror), "config", "remote.origin.url"],
+            env=self.env, text=True).strip()
+        self.assertEqual(origin, str(self.source))
+
+    def test_config_failure_restores_previous_mirror(self):
+        self.run_update("--check")
+        original_origin = subprocess.check_output(
+            ["git", "-C", str(self.mirror), "config", "remote.origin.url"],
+            env=self.env, text=True).strip()
+        alternate = self.directory / "alternate"
+        shutil.copytree(self.source, alternate)
+        self.env["TEST_FAIL_CONFIG_MV"] = "1"
+        try:
+            self.run_update("--source", str(alternate), "--check",
+                            source=False, status=1)
+        finally:
+            self.env.pop("TEST_FAIL_CONFIG_MV")
+        self.assertEqual(self.config.read_text(), f"source={self.source}\n")
+        restored_origin = subprocess.check_output(
+            ["git", "-C", str(self.mirror), "config", "remote.origin.url"],
+            env=self.env, text=True).strip()
+        self.assertEqual(restored_origin, original_origin)
+        self.assertFalse(list(self.mirror.parent.glob("vela-backup.*")))
+        self.assertFalse(list(self.mirror.parent.glob("vela-mirror.*")))
+        self.run_update("--check", source=False)
+
+    def test_initial_config_failure_removes_uncommitted_mirror(self):
+        self.env["TEST_FAIL_CONFIG_MV"] = "1"
+        try:
+            self.run_update("--source", str(self.source), "--check", source=False, status=1)
+        finally:
+            self.env.pop("TEST_FAIL_CONFIG_MV")
+        self.assertFalse(self.mirror.exists())
+        self.assertFalse(self.config.exists())
+        self.assertFalse(list(self.mirror.parent.glob("vela-mirror.*")))
+
     def test_old_origin_uses_org_for_ci_artifacts(self):
         self.git("remote", "set-url", "origin", "git@github.com:BrandoDev/vela.git")
         self.env.update(TEST_CI_RUN="123", TEST_DOWNLOAD_SHA=self.main[:7])
@@ -485,12 +667,15 @@ class UpdateSources(UpdateFixture):
 
 class UpdatePublicReleases(UpdateFixture):
     def test_public_package_installs_without_gh_login_or_build(self):
-        self.env["TEST_RELEASE_SHA"] = self.main
+        self.env.update(TEST_RELEASE_SHA=self.main, TEST_REQUIRE_MAIN_REF="1")
         self.run_update("--download", source=False)
         self.assertEqual(len(self.calls("curl")), 2)
         self.assertTrue(all("/alpha-" + self.main + "/" in c["args"][-1]
                             for c in self.calls("curl")))
-        self.assertEqual(self.calls("gh"), [])
+        verification = next(call for call in self.calls("gh")
+                            if call["args"][:2] == ["attestation", "verify"])
+        self.assertEqual(verification["args"][verification["args"].index("--source-digest") + 1],
+                         self.main)
         self.assertEqual(self.calls("makepkg"), [])
         self.assertEqual(len(self.calls("sudo")), 1)
         self.assertIn(".g" + self.main[:7] + "-", self.calls("sudo")[0]["args"][-1])
@@ -498,7 +683,7 @@ class UpdatePublicReleases(UpdateFixture):
     def test_check_only_fetches_manifest(self):
         self.env["TEST_RELEASE_SHA"] = self.main
         result = self.run_update("--check", source=False)
-        self.assertIn("Public alpha package available", result.stdout)
+        self.assertIn("Public alpha package found", result.stdout)
         self.assertEqual(len(self.calls("curl")), 1)
         self.assertEqual(self.calls("makepkg") + self.calls("sudo"), [])
 
@@ -518,13 +703,41 @@ class UpdatePublicReleases(UpdateFixture):
     def test_bad_digest_falls_back_to_local_build(self):
         self.env.update(TEST_RELEASE_SHA=self.main, TEST_BAD_RELEASE_DIGEST="1")
         result = self.run_update("--download", source=False)
-        self.assertIn("failed checksum verification", result.stderr)
+        self.assertIn("unverified or corrupt", result.stderr)
         self.assertEqual(self.calls("sudo"), [])
         self.assertEqual(self.calls("makepkg")[0]["sha"], self.main)
 
     def test_corrupted_download_falls_back_to_local_build(self):
         self.env.update(TEST_RELEASE_SHA=self.main, TEST_CORRUPT_RELEASE="1")
         self.run_update("--download", source=False)
+        self.assertEqual(self.calls("sudo"), [])
+        self.assertEqual(self.calls("makepkg")[0]["sha"], self.main)
+
+    def test_public_release_without_attestation_falls_back_to_source(self):
+        self.env.update(TEST_RELEASE_SHA=self.main, TEST_REJECT_ATTEST="1")
+        result = self.run_update("--download", source=False)
+        self.assertIn("provenance verification failed", result.stderr)
+        self.assertEqual(self.calls("sudo"), [])
+        self.assertEqual(self.calls("makepkg")[0]["sha"], self.main)
+        self.assertFalse(list((self.mirror.parent / "packages").glob("*.pkg.tar.zst")))
+
+    def test_public_release_with_wrong_source_provenance_falls_back(self):
+        self.env.update(TEST_RELEASE_SHA=self.main, TEST_WRONG_ATTEST_SHA="1")
+        self.run_update("--download", source=False)
+        self.assertEqual(self.calls("sudo"), [])
+        self.assertEqual(self.calls("makepkg")[0]["sha"], self.main)
+
+    def test_unavailable_or_unusable_gh_never_installs_unattested_binary(self):
+        self.env["TEST_RELEASE_SHA"] = self.main
+        # The real GitHub CLI may already be installed on the CI runner.
+        # Removing our fixture stub therefore means either no CLI or an
+        # unauthenticated/unusable CLI, both of which must fail closed.
+        gh_path = self.directory / "bin/gh"
+        gh_path.rename(self.directory / "bin/gh.unavailable")
+        result = self.run_update("--download", source=False)
+        self.assertTrue("gh) is required" in result.stderr or
+                        "provenance verification failed" in result.stderr,
+                        result.stderr)
         self.assertEqual(self.calls("sudo"), [])
         self.assertEqual(self.calls("makepkg")[0]["sha"], self.main)
 
@@ -553,6 +766,81 @@ class UpdateFailures(UpdateFixture):
         self.assertIn("downloaded but not installed", result.stderr)
         self.assertEqual(self.calls("makepkg"), [])
         self.assertEqual(len(list((self.mirror.parent / "packages").glob("*.pkg.tar.zst"))), 1)
+
+
+class UpdateConcurrency(UpdateFixture):
+    def test_second_invocation_is_rejected_without_touching_build(self):
+        proc, release = self.start_paused_build()
+        try:
+            result = self.run_update("--check", status=1)
+            self.assertIn("another update is already running", result.stderr)
+            self.assertEqual(self.calls("sudo"), [])
+            self.assertTrue(list(self.mirror.parent.glob("build.*")))
+        finally:
+            release.touch()
+            stdout, stderr = proc.communicate(timeout=30)
+        self.assertEqual(proc.returncode, 0, stdout + stderr)
+        self.assertFalse(list(self.mirror.parent.glob("build.*")))
+
+    def test_interruption_signals_makepkg_descendants(self):
+        self.env["TEST_SPAWN_BUILD_CHILD"] = "1"
+        child_ready = self.directory / "build-child-ready"
+        child_signalled = self.directory / "build-child-signalled"
+        self.env["TEST_BUILD_CHILD_READY"] = str(child_ready)
+        self.env["TEST_BUILD_CHILD_SIGNALLED"] = str(child_signalled)
+        proc, release = self.start_paused_build()
+        self.assertTrue(child_ready.exists(), "Expected a real build child")
+        try:
+            proc.send_signal(signal.SIGTERM)
+            stdout, stderr = proc.communicate(timeout=8)
+        finally:
+            release.touch()
+        self.assertEqual(proc.returncode, 143, stdout + stderr)
+        self.assertTrue(child_signalled.exists(),
+                        "The SIGTERM handler did not reach the compiler child")
+        self.assertFalse(list(self.mirror.parent.glob("build.*")))
+        self.env.pop("TEST_PAUSE_BUILD", None)
+        self.run_update("--check")
+
+    def test_interactive_build_preserves_tty_and_stops_descendants(self):
+        # Simulate launching vela-update from a real terminal, with sudo
+        # opening /dev/tty and a compiler grandchild running underneath makepkg.
+        self.env["TEST_REQUIRE_TTY"] = "1"
+        self.env["TEST_SPAWN_BUILD_CHILD"] = "1"
+        ready = self.directory / "interactive-child-ready"
+        signalled = self.directory / "interactive-child-signalled"
+        self.env["TEST_BUILD_CHILD_READY"] = str(ready)
+        self.env["TEST_BUILD_CHILD_SIGNALLED"] = str(signalled)
+        proc, release = self.start_paused_build(interactive=True)
+        self.assertTrue(ready.exists())
+        try:
+            proc.send_signal(signal.SIGTERM)
+            stdout, stderr = proc.communicate(timeout=8)
+        finally:
+            release.touch()
+        self.assertEqual(proc.returncode, 143, stdout + stderr)
+        self.assertTrue(signalled.exists(),
+                        "The interactive build's compiler child did not stop")
+        self.assertFalse(list(self.mirror.parent.glob("build.*")))
+        self.env.pop("TEST_PAUSE_BUILD", None)
+        self.run_update("--check")
+
+    def test_interrupted_build_cleans_temp_directories_and_keeps_mirror(self):
+        proc, release = self.start_paused_build()
+        proc.send_signal(signal.SIGTERM)
+        try:
+            # A hung makepkg never releases its marker: SIGTERM must still
+            # terminate the updater promptly without waiting for it.
+            stdout, stderr = proc.communicate(timeout=8)
+        finally:
+            release.touch()
+        self.assertEqual(proc.returncode, 143, stdout + stderr)
+        self.assertTrue(self.mirror.is_dir())
+        self.assertFalse(list(self.mirror.parent.glob("build.*")))
+        self.assertFalse(list(self.mirror.parent.glob("download.*")))
+        self.assertFalse(list(self.mirror.parent.glob("vela-mirror.*")))
+        self.env.pop("TEST_PAUSE_BUILD", None)
+        self.run_update("--check")
 
 
 class PackageSources(unittest.TestCase):
