@@ -10,6 +10,7 @@
 #include "audio.h"
 #include "core.h"
 #include "harness.h"
+#include "levelmeter.h"
 
 #include <QDBusConnection>
 #include <QDBusMessage>
@@ -22,12 +23,26 @@ using namespace harness;
 using vela::audio::AppIdentity;
 using vela::audio::AppInfo;
 using vela::audio::Audio;
+using vela::audio::LevelMeter;
 
 namespace {
 
 bool near(double a, double b)
 {
     return std::abs(a - b) < 0.006;
+}
+
+bool near(const QList<double>& a, const QList<double>& b)
+{
+    if (a.size() != b.size()) {
+        return false;
+    }
+    for (qsizetype i = 0; i < a.size(); i++) {
+        if (!near(a[i], b[i])) {
+            return false;
+        }
+    }
+    return true;
 }
 
 QVariantMap find(const QVariantList& list, const QString& field, const QString& value)
@@ -80,6 +95,20 @@ class ViewTest : public QObject {
     QVariantMap output(const QString& name) const { return find(audio->outputs(), QStringLiteral("name"), name); }
     QVariantMap input(const QString& name) const { return find(audio->inputs(), QStringLiteral("name"), name); }
     QVariantMap app(const QString& key) const { return find(audio->apps(), QStringLiteral("key"), key); }
+    QVariantMap device(const QString& name) const { return find(audio->devices(), QStringLiteral("name"), name); }
+    QStringList profileNames(const QString& name) const
+    {
+        QStringList out;
+        for (const QVariant& p : device(name).value(QStringLiteral("profiles")).toList()) {
+            out.append(p.toMap().value(QStringLiteral("name")).toString());
+        }
+        return out;
+    }
+    QList<double> serverChannels(const QString& name) const
+    {
+        const auto* e = audio->core()->snapshot().endpoint(name);
+        return e ? e->channelVolumes : QList<double>();
+    }
     quint32 id(const QString& name) const
     {
         const auto* e = audio->core()->snapshot().endpoint(name);
@@ -90,6 +119,15 @@ class ViewTest : public QObject {
     {
         const auto* e = audio->core()->snapshot().endpoint(name);
         return e ? e->volume() : -1.0;
+    }
+
+    QStringList microphoneKeys() const
+    {
+        QStringList out;
+        for (const QVariant& user : audio->microphoneUsers()) {
+            out.append(user.toMap().value(QStringLiteral("key")).toString());
+        }
+        return out;
     }
 
 private slots:
@@ -143,6 +181,148 @@ private slots:
         QCOMPARE(scaledChannels({ 0.5, 0.5 }, 1.7), QList<double>({ 1.0, 1.0 })); // the cap
         QCOMPARE(balanceOf({ 0.8, 0.4 }), QList<double>({ 1.0, 0.5 }));
         QVERIFY(balanceOf({ 0.0, 0.0 }).isEmpty());
+
+        // Left and right (PulseAudio's balance).
+        using vela::audio::hasStereo;
+        using vela::audio::stereoBalance;
+        using vela::audio::withStereoBalance;
+        const QStringList lr { QStringLiteral("FL"), QStringLiteral("FR") };
+        QVERIFY(near(stereoBalance(lr, { 1.0, 0.5 }), -0.5));
+        QVERIFY(near(stereoBalance(lr, { 0.5, 1.0 }), 0.5));
+        QVERIFY(near(stereoBalance(lr, { 0.7, 0.7 }), 0.0));
+        QVERIFY(near(stereoBalance(lr, { 0.0, 0.0 }), 0.0));
+        QVERIFY(near(withStereoBalance(lr, { 0.8, 0.8 }, 0.5), { 0.4, 0.8 }));
+        QVERIFY(near(withStereoBalance(lr, { 0.8, 0.4 }, 0.0), { 0.8, 0.8 }));
+        QVERIFY(near(withStereoBalance(lr, { 0.8, 0.8 }, -1.0), { 0.8, 0.0 }));
+        // Center and LFE are left alone; rear channels follow their side.
+        const QStringList surround { QStringLiteral("FL"), QStringLiteral("FR"), QStringLiteral("FC"),
+            QStringLiteral("LFE"), QStringLiteral("RL"), QStringLiteral("RR") };
+        QVERIFY(near(withStereoBalance(surround, { 1, 1, 0.5, 0.5, 1, 1 }, -1.0), { 1, 0, 0.5, 0.5, 1, 0 }));
+        QVERIFY(near(stereoBalance(surround, { 1, 0.5, 0.2, 0.2, 1, 0.5 }), -0.5));
+        QVERIFY(hasStereo(lr));
+        QVERIFY(!hasStereo({ QStringLiteral("MONO") }));
+        QVERIFY(!hasStereo({ QStringLiteral("FC"), QStringLiteral("LFE") }));
+    }
+
+    void balanceKeepsTheVolume()
+    {
+        QVERIFY(output(speakers).value("stereo").toBool());
+        QVERIFY(!input(microphone).value("stereo").toBool());
+        audio->setBalance(QStringLiteral("output"), speakers, 0.5);
+        QVERIFY(near(output(speakers).value("balance").toDouble(), 0.5)); // at once
+        QTRY_VERIFY(near(serverChannels(speakers), { 0.5, 1.0 }));
+        QVERIFY(near(audio->volume(), 1.0));
+
+        audio->setVolume(QStringLiteral("output"), speakers, 0.5);
+        QTRY_VERIFY(near(serverChannels(speakers), { 0.25, 0.5 }));
+        QTest::qWait(600); // past the optimistic window: the server's value
+        QVERIFY(near(output(speakers).value("balance").toDouble(), 0.5));
+
+        // Both at once, before either reaches the server: neither is lost.
+        audio->setBalance(QStringLiteral("output"), speakers, -0.5);
+        audio->setVolume(QStringLiteral("output"), speakers, 0.8);
+        QTRY_VERIFY(near(serverChannels(speakers), { 0.8, 0.4 }));
+
+        // From silence, the balance comes back.
+        audio->setVolume(QStringLiteral("output"), speakers, 0.0);
+        QTRY_VERIFY(near(serverChannels(speakers), { 0.0, 0.0 }));
+        QTest::qWait(600);
+        QVERIFY(near(output(speakers).value("balance").toDouble(), -0.5));
+        audio->setVolume(QStringLiteral("output"), speakers, 0.6);
+        QTRY_VERIFY(near(serverChannels(speakers), { 0.6, 0.3 }));
+
+        // A mono input has no balance.
+        const QList<double> before = serverChannels(microphone);
+        audio->setBalance(QStringLiteral("input"), microphone, 0.5);
+        QVERIFY(near(input(microphone).value("balance").toDouble(), 0.0));
+        QTest::qWait(100);
+        QVERIFY(near(serverChannels(microphone), before));
+    }
+
+    void devicesAndProfiles()
+    {
+        FakeDevice card;
+        const quint32 cardId = card.waitReady();
+        QVERIFY(cardId);
+        QTRY_VERIFY(!device(QStringLiteral("vela-test-card")).isEmpty());
+        const QVariantMap d = device(QStringLiteral("vela-test-card"));
+        QCOMPARE(d.value("description").toString(), QStringLiteral("Test Card"));
+        QCOMPARE(d.value("profile").toInt(), 1);
+        QVERIFY(!d.value("off").toBool());
+        QVERIFY(!d.value("bluetooth").toBool());
+        // HDMI: nothing plugged in, not offered.
+        QCOMPARE(profileNames(QStringLiteral("vela-test-card")),
+            QStringList({ QStringLiteral("off"), QStringLiteral("output:analog-stereo"), QStringLiteral("a2dp-sink-ldac") }));
+        card.send(QStringLiteral("available 2 yes"));
+        QTRY_COMPARE(profileNames(QStringLiteral("vela-test-card")).size(), 4);
+
+        // An output of the card says so, and the card lists it.
+        QVERIFY(control(QStringLiteral("add-sink vela-test-card-output FL FR device.id=%1").arg(cardId)).startsWith(QLatin1String("ok")));
+        QTRY_COMPARE(output(QStringLiteral("vela-test-card-output")).value("device").toString(), QStringLiteral("vela-test-card"));
+        QCOMPARE(device(QStringLiteral("vela-test-card")).value("outputs").toStringList(), QStringList({ QStringLiteral("vela-test-card-output") }));
+        QVERIFY(output(speakers).value("device").toString().isEmpty());
+        QCOMPARE(control(QStringLiteral("remove vela-test-card-output")), QStringLiteral("ok"));
+        QCOMPARE(card.close(), 0);
+        QTRY_VERIFY(device(QStringLiteral("vela-test-card")).isEmpty());
+    }
+
+    void profileChosenAndRemembered()
+    {
+        FakeDevice card;
+        QVERIFY(card.waitReady());
+        QTRY_VERIFY(!device(QStringLiteral("vela-test-card")).isEmpty());
+
+        audio->setProfile(QStringLiteral("vela-test-card"), 3);
+        QCOMPARE(device(QStringLiteral("vela-test-card")).value("profile").toInt(), 3); // at once
+        QVERIFY(device(QStringLiteral("vela-test-card")).value("profilePending").toBool());
+        // Saved: the user chose it.
+        QTRY_VERIFY(card.sets().contains(qMakePair(3, true)));
+        QTRY_VERIFY(!device(QStringLiteral("vela-test-card")).value("profilePending").toBool());
+        QCOMPARE(audio->core()->snapshot().device(QStringLiteral("vela-test-card"))->profile, 3);
+
+        // Off, and on again.
+        audio->setProfile(QStringLiteral("vela-test-card"), 0);
+        QVERIFY(device(QStringLiteral("vela-test-card")).value("off").toBool());
+        QTRY_VERIFY(audio->core()->snapshot().device(QStringLiteral("vela-test-card"))->off());
+        audio->setProfile(QStringLiteral("vela-test-card"), 3);
+        QTRY_COMPARE(audio->core()->snapshot().device(QStringLiteral("vela-test-card"))->profile, 3);
+
+        // WirePlumber keeps the choice across a restart.
+        QTest::qWait(wireplumberSaveDelayMs);
+        QCOMPARE(control(QStringLiteral("restart-wireplumber")), QStringLiteral("ok"));
+        QTRY_VERIFY_WITH_TIMEOUT(audio->core()->snapshot().defaultsKnown, 5000);
+        QTest::qWait(500);
+        QCOMPARE(device(QStringLiteral("vela-test-card")).value("profile").toInt(), 3);
+
+        // An index the card doesn't have.
+        audio->setProfile(QStringLiteral("vela-test-card"), 99);
+        QVERIFY(device(QStringLiteral("vela-test-card")).value("profileError").toBool());
+        QCOMPARE(card.close(), 0);
+    }
+
+    void optimisticProfileTimeoutReportsError()
+    {
+        FakeDevice card;
+        QVERIFY(card.waitReady());
+        QTRY_VERIFY(!device(QStringLiteral("vela-test-card")).isEmpty());
+        // WirePlumber may restore the previous test's saved profile. Always
+        // choose a different one, or the request needs no server update.
+        const int original = device(QStringLiteral("vela-test-card")).value("profile").toInt();
+        const int requested = original == 3 ? 1 : 3;
+        QVERIFY(card.ignoreProfileChanges(true));
+        audio->setProfile(QStringLiteral("vela-test-card"), requested);
+        QCOMPARE(device(QStringLiteral("vela-test-card")).value("profile").toInt(), requested); // optimistic
+        QVERIFY(device(QStringLiteral("vela-test-card")).value("profilePending").toBool());
+        QTRY_VERIFY_WITH_TIMEOUT(device(QStringLiteral("vela-test-card")).value("profileError").toBool(), 5000);
+        QCOMPARE(device(QStringLiteral("vela-test-card")).value("profile").toInt(), original); // server won
+
+        // A subsequent, confirmed request clears the previous timeout error.
+        QVERIFY(card.ignoreProfileChanges(false));
+        audio->setProfile(QStringLiteral("vela-test-card"), requested);
+        QTRY_COMPARE(device(QStringLiteral("vela-test-card")).value("profile").toInt(), requested);
+        QTRY_VERIFY(!device(QStringLiteral("vela-test-card")).value("profilePending").toBool());
+        QVERIFY(!device(QStringLiteral("vela-test-card")).value("profileError").toBool());
+        QCOMPARE(card.close(), 0);
     }
 
     void lists()
@@ -365,6 +545,118 @@ private slots:
         QTRY_COMPARE(audio->core()->snapshot().stream(s)->endpoint, id(microphone));
         QCOMPARE(voice->close(), 0);
         QCOMPARE(control(QStringLiteral("remove vela-test-usb-mic")), QStringLiteral("ok"));
+    }
+
+    void microphoneInUse()
+    {
+        audio->setAppResolver([](const AppIdentity& id) {
+            return id.binary == QLatin1String("vela-caller")
+                ? AppInfo { QStringLiteral("org.vela.Caller.desktop"), QStringLiteral("Vela Caller"), QStringLiteral("vela-caller-icon") }
+                : AppInfo {};
+        });
+        QVERIFY(audio->microphoneUsers().isEmpty());
+        auto caller = recorder(QStringLiteral("vela-caller"));
+        QVERIFY(caller->waitStreaming());
+        QTRY_COMPARE(microphoneKeys(), QStringList({ QStringLiteral("vela-caller") }));
+        const QVariantMap user = audio->microphoneUsers().first().toMap();
+        QCOMPARE(user.value("name").toString(), QStringLiteral("Vela Caller"));
+        QCOMPARE(user.value("icon").toString(), QStringLiteral("vela-caller-icon"));
+        QCOMPARE(user.value("desktopId").toString(), QStringLiteral("org.vela.Caller.desktop"));
+
+        // Paused, it stops counting, but only after a moment: a pause
+        // doesn't make the icon blink.
+        caller->send(QStringLiteral("pause"));
+        QTRY_VERIFY(audio->core()->snapshot().stream(caller->node()) && !audio->core()->snapshot().stream(caller->node())->running);
+        QCOMPARE(microphoneKeys(), QStringList({ QStringLiteral("vela-caller") }));
+        QTRY_VERIFY_WITH_TIMEOUT(audio->microphoneUsers().isEmpty(), 2000);
+        caller->send(QStringLiteral("resume"));
+        QTRY_COMPARE(microphoneKeys(), QStringList({ QStringLiteral("vela-caller") }));
+        // Gone for good: the same.
+        QCOMPARE(caller->close(), 0);
+        QTest::qWait(200);
+        QCOMPARE(microphoneKeys(), QStringList({ QStringLiteral("vela-caller") }));
+        QTRY_VERIFY_WITH_TIMEOUT(audio->microphoneUsers().isEmpty(), 2000);
+    }
+
+    void whatIsNotTheMicrophone()
+    {
+        // A screen recorder taking the desktop's sound, and meters on
+        // outputs or apps: none of them listen to a microphone source.
+        auto screen = std::make_unique<FakeStream>(QStringList { "--record", "--prop", "stream.capture.sink=true", "--prop",
+            "target.object=" + speakers, "--prop", "application.process.binary=vela-screen-recorder" });
+        auto music = player(QStringLiteral("vela-player"), { QStringLiteral("--amplitude"), QStringLiteral("0.2") });
+        for (auto* s : { screen.get(), music.get() }) {
+            QVERIFY(s->waitStreaming());
+        }
+        LevelMeter outputMeter;
+        outputMeter.setAudio(audio.get());
+        outputMeter.setKind(QStringLiteral("output"));
+        outputMeter.setName(speakers);
+        outputMeter.setActive(true);
+        LevelMeter appMeter;
+        appMeter.setAudio(audio.get());
+        appMeter.setKind(QStringLiteral("app"));
+        appMeter.setName(QStringLiteral("vela-player"));
+        appMeter.setActive(true);
+        QTRY_VERIFY(!outputMeter.monitored().isEmpty() && !appMeter.monitored().isEmpty());
+        QTRY_VERIFY(std::count_if(audio->core()->snapshot().streams.begin(), audio->core()->snapshot().streams.end(),
+                        [](const vela::audio::Stream& s) { return s.monitor && s.running; })
+            == 2);
+        QTest::qWait(300);
+        QVERIFY2(audio->microphoneUsers().isEmpty(), qPrintable(microphoneKeys().join(u' ')));
+
+        // An input's meter (Settings' Sound page) does listen: it counts.
+        LevelMeter inputMeter;
+        inputMeter.setAudio(audio.get());
+        inputMeter.setKind(QStringLiteral("input"));
+        inputMeter.setName(microphone);
+        inputMeter.setActive(true);
+        QTRY_COMPARE(microphoneKeys(), QStringList({ QCoreApplication::applicationName() }));
+        inputMeter.setActive(false);
+        QTRY_VERIFY_WITH_TIMEOUT(audio->microphoneUsers().isEmpty(), 2000);
+    }
+
+    void clientPropertiesCannotHideMicrophoneRecording()
+    {
+        // These flags are supplied by the client, not by a trusted
+        // authority. A recording stream with an actual source link must
+        // remain visible even when it claims to be an internal stream
+        // or a monitor.
+        const QStringList spoofed {
+            QStringLiteral("node.link-group=vela-test-internal"),
+            QStringLiteral("node.virtual=true"),
+            QStringLiteral("stream.monitor=true"),
+        };
+        for (qsizetype i = 0; i < spoofed.size(); ++i) {
+            const QString key = QStringLiteral("vela-spoof-%1").arg(i);
+            auto client = recorder(key, {
+                QStringLiteral("--prop"), spoofed[i],
+                QStringLiteral("--prop"), QStringLiteral("target.object=") + microphone,
+            });
+            const quint32 node = client->waitStreaming();
+            QVERIFY2(node != 0, qPrintable(spoofed[i]));
+            QTRY_VERIFY_WITH_TIMEOUT(audio->core()->snapshot().stream(node)
+                && audio->core()->snapshot().stream(node)->endpoint == id(microphone), 5000);
+            QTRY_VERIFY_WITH_TIMEOUT(microphoneKeys().contains(key), 5000);
+            QCOMPARE(client->close(), 0);
+            QTRY_VERIFY_WITH_TIMEOUT(!microphoneKeys().contains(key), 2000);
+        }
+    }
+
+    void aVirtualSourceIsAMicrophone()
+    {
+        // Like an echo canceller's: what records it uses the microphone.
+        QVERIFY(control(QStringLiteral("add-source vela-test-echo-cancel")).startsWith(QLatin1String("ok")));
+        QTRY_VERIFY(!input(QStringLiteral("vela-test-echo-cancel")).isEmpty());
+        auto caller = recorder(QStringLiteral("vela-caller"),
+            { QStringLiteral("--prop"), QStringLiteral("target.object=vela-test-echo-cancel") });
+        const quint32 s = caller->waitStreaming();
+        QVERIFY(s);
+        QTRY_VERIFY(audio->core()->snapshot().stream(s)
+            && audio->core()->snapshot().stream(s)->endpoint == id(QStringLiteral("vela-test-echo-cancel")));
+        QTRY_COMPARE(microphoneKeys(), QStringList({ QStringLiteral("vela-caller") }));
+        QCOMPARE(caller->close(), 0);
+        QCOMPARE(control(QStringLiteral("remove vela-test-echo-cancel")), QStringLiteral("ok"));
     }
 
     void bluetoothBattery()

@@ -20,7 +20,7 @@ CTest includes both CPU-only and GPU-dependent suites.
 |---|---|---:|
 | **Compositor / GoogleTest** | FrameClock, vblank grid, late latching, adaptive margin, learned host latency, animation curves, output scale selection, pixel geometry, night light, color filters, sunrise/sunset, `vela.conf` parsing and `outputs.conf` persistence. | No |
 | **Files** (`files-copies`) | Copy/move behavior, atomic replacement across file/directory types, failed or unsupported exchanges, processes killed immediately before/after exchange, removal errors, and a simulated full disk with `RLIMIT_FSIZE`. | No |
-| **Shell** (`shell-*`) | `.desktop` `Exec=` parsing, default-app resolution, volume steps, and asynchronous audio/network models with slow, failed or missing services. | No |
+| **Shell** (`shell-*`) | `.desktop` `Exec=` parsing, default-app resolution, volume steps, and the asynchronous network model with slow, failed or missing services. | No |
 | **Settings** (`settings-displays`) | Native Wayland inventory and hotplug, modes, scale, rotation, confirmation-only persistence, explicit revert, compositor deadlines with the GUI thread blocked, client disconnection and SIGKILL, competing clients, failed commits and hotplug during preview. Uses real wlroots headless outputs and Vela’s output manager/preview; rendering and window rearrangement are stubbed. | No |
 | **Vela Report** (`reporting`, `reporting-gui`) | Guided CLI without a display, shared Qt worker and ZIP export, explicit collection boundaries, redaction, review exclusion, process identity, resource recording, bounded commands and archive failures. | No |
 | **Package updater** (`packaging-update`) | Public HTTPS defaults in both the updater and PKGBUILD, first run and cached fetches, migration of saved SSH URLs and old mirrors, local sources, branch/commit selection, exact CI artifacts, download fallback and failed fetch/build/install handling. Uses real Git repositories with simulated package tools. | No |
@@ -56,13 +56,13 @@ source. A process killed before that cleanup may leave a hidden
 tests kill a separate process at the syscall boundary; they do not simulate
 power loss. Directory-to-directory replacements still merge file by file.
 
-The `shell-service-models` suite starts fake `pactl`, `pw-metadata` and `nmcli`
-clients and a delayed BlueZ service on a private D-Bus bus (`dbus-daemon` is
-required). It verifies that refresh calls return while services are waiting,
-GUI-thread timers continue firing, cached models survive errors and timeouts,
-refresh bursts coalesce, old reads cannot undo newer volume commands, the first
-taskbar wheel step waits for streams, and destroying a model terminates its
-clients without waiting. No real audio, network or Bluetooth service is used.
+The `shell-service-models` suite starts fake `nmcli` clients, with a private
+D-Bus bus (`dbus-daemon` is required). It verifies that refresh calls return
+while the service is waiting, GUI-thread timers continue firing, cached
+networks survive errors, timeouts and slow Wi-Fi scans, saved networks reuse
+their profile with friendly errors, a missing program completes and recovers,
+and destroying a model terminates its clients without waiting. No real network
+service is used; sound has its own tests, below.
 
 Audio tests:
 

@@ -1,0 +1,115 @@
+// SPDX-FileCopyrightText: 2026 Brando Giuffrida
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+#pragma once
+
+// Vela's files in WirePlumber's and PipeWire's configuration, and the
+// restarts that apply them (docs/audio.md §8). Each file is Vela's own:
+// regenerated whole and read back, never any other file next to it.
+
+#include <QElapsedTimer>
+#include <QFileSystemWatcher>
+#include <QList>
+#include <QObject>
+#include <QString>
+#include <QStringList>
+#include <QTimer>
+
+#include <functional>
+
+namespace vela::audio {
+
+// One device's rule in WirePlumber's file, matched on node.name.
+struct DeviceRule {
+    QString node;
+    bool bluetooth = false; // monitor.bluez.rules, else monitor.alsa.rules
+    QString description; // node.description; empty: the device's own name
+    // The device's own name, kept with a new one: until WirePlumber makes
+    // the node again it still carries the old name (vela.audio.description).
+    QString ownDescription;
+    QList<quint32> allowedRates; // audio.allowed-rates; empty: follow the system
+    QString format; // audio.format; empty: the best
+    // What the device offered before being restricted (EnumFormat then
+    // lists only what is allowed): vela.audio.rates, vela.audio.formats.
+    QList<quint32> offeredRates;
+    QStringList offeredFormats;
+
+    bool restricts() const { return !allowedRates.isEmpty() || !format.isEmpty(); }
+    bool isEmpty() const { return description.isEmpty() && !restricts(); }
+    bool operator==(const DeviceRule&) const = default;
+};
+
+class Config : public QObject {
+    Q_OBJECT
+
+public:
+    // Restarts a systemd user unit ("wireplumber.service"...). The default
+    // asks systemd's user manager over D-Bus.
+    using Restarter = std::function<void(const QString& unit)>;
+
+    explicit Config(QObject* parent = nullptr);
+
+    // ~/.config/wireplumber/wireplumber.conf.d/90-vela.conf
+    static QString wireplumberFile();
+    // ~/.config/pipewire/pipewire.conf.d/90-vela.conf
+    static QString pipewireFile();
+
+    // WirePlumber's file.
+    QList<DeviceRule> rules() const;
+    DeviceRule rule(const QString& node) const;
+    // Replaces the node's rule (an empty one goes away) and writes the file.
+    // A new name needs no restart: Vela shows the rule's, other programs see
+    // it once WirePlumber starts again. New rates or a new format restart
+    // WirePlumber (restartWireplumber). False if it can't be written.
+    bool setRule(const DeviceRule& rule);
+    // rulesChanged when WirePlumber's file changes, from this or another
+    // process (Settings renames, the shell shows it).
+    void watchRules();
+
+    // PipeWire's file: the graph's allowed rates, and its default rate when
+    // there is only one (docs/audio.md §8.1); empty when there is no file.
+    bool hasPipewireFile() const;
+    QList<quint32> pipewireRates() const;
+    // Apply to PipeWire after persisting; restore the previous file if applying fails.
+    bool setPipewireRates(const QList<quint32>& rates, const std::function<bool()>& applyNow = {});
+
+    // Vela changed WirePlumber's state (a volume, a default...): WirePlumber
+    // saves it about a second later and not when it exits, so a restart
+    // waits 1.5 s from here.
+    void noteChange();
+    // WirePlumber, once 1.5 s have passed since the last change; requests
+    // in between become one restart.
+    void restartWireplumber();
+    // PipeWire, WirePlumber and pipewire-pulse (bound to PipeWire), with
+    // the same wait.
+    void restartAudio();
+    // A restart is waiting for its time.
+    bool restartPending() const { return m_restart.isActive(); }
+    bool restartError() const { return m_restartError; }
+
+    void setRestarter(Restarter restarter) { m_restarter = std::move(restarter); }
+
+    // SPA-JSON as PipeWire's and WirePlumber's files are written, as
+    // QVariant (objects, arrays, numbers, strings); for tests too.
+    static QVariant parse(const QByteArray& text);
+
+signals:
+    void restartPendingChanged();
+    void restartErrorChanged();
+    void rulesChanged();
+
+private:
+    void schedule(const QString& unit);
+    void restartNow();
+    void restartWithSystemd(const QString& unit);
+    void rewatch();
+
+    Restarter m_restarter;
+    QElapsedTimer m_lastChange;
+    QTimer m_restart;
+    QString m_unit; // what the pending restart restarts
+    bool m_restartError = false;
+    QFileSystemWatcher* m_watcher = nullptr;
+};
+
+} // namespace vela::audio
