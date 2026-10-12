@@ -2,7 +2,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 # vela-audio (docs/audio.md): the audio backend the shell and Settings
-# share, on libwireplumber. GLib and WirePlumber stay inside core.cpp.
+# share, on libwireplumber. GLib and WirePlumber stay inside core.cpp;
+# SPA-JSON (Vela's files) inside config.cpp;
+# libpipewire's streams inside levelmeter.cpp and testsound.cpp.
 
 find_package(Qt6 6.5 REQUIRED COMPONENTS Core DBus)
 find_package(PkgConfig REQUIRED)
@@ -11,9 +13,15 @@ pkg_check_modules(AUDIO_WIREPLUMBER REQUIRED IMPORTED_TARGET wireplumber-0.5 lib
 add_library(vela-audio STATIC
     audio.cpp
     audio.h
+    config.cpp
+    config.h
     core.cpp
     core.h
+    levelmeter.cpp
+    levelmeter.h
     model.h
+    testsound.cpp
+    testsound.h
     volumesteps.h)
 set_target_properties(vela-audio PROPERTIES AUTOMOC ON)
 target_include_directories(vela-audio PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

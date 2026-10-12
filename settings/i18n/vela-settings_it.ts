@@ -728,12 +728,16 @@ Specifiche sistema
         <translation>Verticale (capovolto)</translation>
     </message>
     <message>
-        <source>Changing displays needs wlr-randr</source>
-        <translation>Per cambiare gli schermi serve wlr-randr</translation>
+        <source>Display settings are unavailable</source>
+        <translation>Le impostazioni degli schermi non sono disponibili</translation>
     </message>
     <message>
-        <source>Install the wlr-randr package and open this page again.</source>
-        <translation>Installa il pacchetto wlr-randr e riapri questa pagina.</translation>
+        <source>This session does not support safe display changes.</source>
+        <translation>Questa sessione non supporta modifiche sicure agli schermi.</translation>
+    </message>
+    <message>
+        <source>Could not change display settings</source>
+        <translation>Impossibile modificare le impostazioni degli schermi</translation>
     </message>
     <message>
         <source>Brightness &amp; color</source>
@@ -884,6 +888,33 @@ Specifiche sistema
     <message>
         <source> seconds.</source>
         <translation> secondi.</translation>
+    </message>
+</context>
+<context>
+    <name>Displays</name>
+    <message>
+        <source>The display connection was lost. Reopen Settings to try again.</source>
+        <translation>La connessione agli schermi è stata interrotta. Riapri Impostazioni per riprovare.</translation>
+    </message>
+    <message>
+        <source>Another display change is awaiting confirmation.</source>
+        <translation>Un’altra modifica agli schermi è in attesa di conferma.</translation>
+    </message>
+    <message>
+        <source>The display settings could not be applied. Try again.</source>
+        <translation>Impossibile applicare le impostazioni degli schermi. Riprova.</translation>
+    </message>
+    <message>
+        <source>The previous display settings could not be fully restored.</source>
+        <translation>Impossibile ripristinare completamente le impostazioni precedenti degli schermi.</translation>
+    </message>
+    <message>
+        <source>The display settings are active but could not be saved. They may be lost after restarting Vela.</source>
+        <translation>Le impostazioni degli schermi sono attive ma non è stato possibile salvarle. Potrebbero andare perse dopo il riavvio di Vela.</translation>
+    </message>
+    <message>
+        <source>The connected displays changed. Try again.</source>
+        <translation>Gli schermi collegati sono cambiati. Riprova.</translation>
     </message>
 </context>
 <context>
@@ -1090,6 +1121,14 @@ Specifiche sistema
         <translation>Audio</translation>
     </message>
     <message>
+        <source>Properties</source>
+        <translation>Proprietà</translation>
+    </message>
+    <message>
+        <source>Volume mixer</source>
+        <translation>Mixer volume</translation>
+    </message>
+    <message>
         <source>Notifications</source>
         <translation>Notifiche</translation>
     </message>
@@ -1214,8 +1253,28 @@ Specifiche sistema
         <translation>Microfono</translation>
     </message>
     <message>
-        <source>input recording</source>
-        <translation>ingresso input registrazione</translation>
+        <source>input recording level test</source>
+        <translation>ingresso input registrazione livello prova test</translation>
+    </message>
+    <message>
+        <source>app volume apps sound output input per app mixer reset</source>
+        <translation>app volume applicazioni audio uscita ingresso output input per app mixer ripristina reimposta</translation>
+    </message>
+    <message>
+        <source>Sample rate</source>
+        <translation>Frequenza di campionamento</translation>
+    </message>
+    <message>
+        <source>sample rate hz khz format bit depth quality resampling bit-perfect</source>
+        <translation>frequenza campionamento hz khz formato bit profondità qualità ricampionamento conversione bit-perfect</translation>
+    </message>
+    <message>
+        <source>Restart audio</source>
+        <translation>Riavvia l&apos;audio</translation>
+    </message>
+    <message>
+        <source>restart audio sound stuck pipewire wireplumber reset</source>
+        <translation>riavvia audio suono bloccato pipewire wireplumber ripristina</translation>
     </message>
     <message>
         <source>do not disturb alerts</source>
@@ -1496,8 +1555,20 @@ Specifiche sistema
 <context>
     <name>Network</name>
     <message>
-        <source>Couldn&apos;t connect to this network</source>
-        <translation>Impossibile connettersi a questa rete</translation>
+        <source>Password required or incorrect. Enter the Wi-Fi password again.</source>
+        <translation>Password richiesta o errata. Inserisci di nuovo la password del Wi-Fi.</translation>
+    </message>
+    <message>
+        <source>Connection timed out. Please try again.</source>
+        <translation>Tempo di connessione scaduto. Riprova.</translation>
+    </message>
+    <message>
+        <source>Couldn&apos;t reconnect. Re-enter the Wi-Fi password or try again.</source>
+        <translation>Impossibile riconnettersi. Inserisci di nuovo la password del Wi-Fi o riprova.</translation>
+    </message>
+    <message>
+        <source>Couldn&apos;t connect to this network. Please try again.</source>
+        <translation>Impossibile connettersi a questa rete. Riprova.</translation>
     </message>
 </context>
 <context>
@@ -1815,6 +1886,221 @@ Specifiche sistema
     </message>
 </context>
 <context>
+    <name>SoundDevicePage</name>
+    <message>
+        <source>Default output device</source>
+        <translation>Dispositivo di output predefinito</translation>
+    </message>
+    <message>
+        <source>Default input device</source>
+        <translation>Dispositivo di input predefinito</translation>
+    </message>
+    <message>
+        <source>Rename</source>
+        <translation>Rinomina</translation>
+    </message>
+    <message>
+        <source>Set as default</source>
+        <translation>Imposta come predefinito</translation>
+    </message>
+    <message>
+        <source>This device isn&apos;t available</source>
+        <translation>Questo dispositivo non è disponibile</translation>
+    </message>
+    <message>
+        <source>Turned off. Turn it on to use it again.</source>
+        <translation>Spento. Accendilo per usarlo di nuovo.</translation>
+    </message>
+    <message>
+        <source>It may have been unplugged or turned off.</source>
+        <translation>Potrebbe essere stato scollegato o spento.</translation>
+    </message>
+    <message>
+        <source>Headset</source>
+        <translation>Cuffie con microfono</translation>
+    </message>
+    <message>
+        <source>Sound card</source>
+        <translation>Scheda audio</translation>
+    </message>
+    <message>
+        <source>Use this device</source>
+        <translation>Usa questo dispositivo</translation>
+    </message>
+    <message>
+        <source>Couldn&apos;t change it. The device may be busy.</source>
+        <translation>Impossibile modificarlo. Il dispositivo potrebbe essere occupato.</translation>
+    </message>
+    <message>
+        <source>Profile and codec</source>
+        <translation>Profilo e codec</translation>
+    </message>
+    <message>
+        <source>Profile</source>
+        <translation>Profilo</translation>
+    </message>
+    <message>
+        <source>High quality for listening, or calls with the headset&apos;s microphone</source>
+        <translation>Alta qualità per l&apos;ascolto, o chiamate con il microfono delle cuffie</translation>
+    </message>
+    <message>
+        <source>Which outputs and inputs the sound card offers</source>
+        <translation>Quali output e input offre la scheda audio</translation>
+    </message>
+    <message>
+        <source>Output settings</source>
+        <translation>Impostazioni di output</translation>
+    </message>
+    <message>
+        <source>Input settings</source>
+        <translation>Impostazioni di input</translation>
+    </message>
+    <message>
+        <source>Volume</source>
+        <translation>Volume</translation>
+    </message>
+    <message>
+        <source>Unmute</source>
+        <translation>Riattiva audio</translation>
+    </message>
+    <message>
+        <source>Mute</source>
+        <translation>Disattiva audio</translation>
+    </message>
+    <message>
+        <source>Balance</source>
+        <translation>Bilanciamento</translation>
+    </message>
+    <message>
+        <source>Turn the volume up to change the balance.</source>
+        <translation>Alza il volume per modificare il bilanciamento.</translation>
+    </message>
+    <message>
+        <source>Left</source>
+        <translation>Sinistra</translation>
+    </message>
+    <message>
+        <source>Right</source>
+        <translation>Destra</translation>
+    </message>
+    <message>
+        <source>Test sound</source>
+        <translation>Suono di prova</translation>
+    </message>
+    <message>
+        <source>A chime on the left, then on the right</source>
+        <translation>Un suono a sinistra, poi a destra</translation>
+    </message>
+    <message>
+        <source>Stop</source>
+        <translation>Interrompi</translation>
+    </message>
+    <message>
+        <source>Test</source>
+        <translation>Prova</translation>
+    </message>
+    <message>
+        <source>Input level</source>
+        <translation>Livello di input</translation>
+    </message>
+    <message>
+        <source>The microphone is muted</source>
+        <translation>Il microfono è disattivato</translation>
+    </message>
+    <message>
+        <source>Speak to test your microphone</source>
+        <translation>Parla per provare il microfono</translation>
+    </message>
+    <message>
+        <source>Follow the system</source>
+        <translation>Segui il sistema</translation>
+    </message>
+    <message>
+        <source>Always %1 Hz</source>
+        <translation>Sempre %1 Hz</translation>
+    </message>
+    <message>
+        <source>Best</source>
+        <translation>Il migliore</translation>
+    </message>
+    <message>
+        <source>%1 bit</source>
+        <translation>%1 bit</translation>
+    </message>
+    <message>
+        <source>Format</source>
+        <translation>Formato</translation>
+    </message>
+    <message>
+        <source>Changing the sample rate or format stops sound for about a second.</source>
+        <translation>Cambiare la frequenza o il formato interrompe l&apos;audio per circa un secondo.</translation>
+    </message>
+    <message>
+        <source>Now</source>
+        <translation>Adesso</translation>
+    </message>
+    <message>
+        <source>Not playing</source>
+        <translation>Non sta riproducendo</translation>
+    </message>
+    <message>
+        <source>Not recording</source>
+        <translation>Non sta registrando</translation>
+    </message>
+    <message>
+        <source>%1 Hz, %2 bit</source>
+        <translation>%1 Hz, %2 bit</translation>
+    </message>
+    <message>
+        <source>%1 Hz</source>
+        <translation>%1 Hz</translation>
+    </message>
+    <message>
+        <source>No conversion</source>
+        <translation>Nessuna conversione</translation>
+    </message>
+    <message>
+        <source>%1 (%2 Hz)</source>
+        <translation>%1 (%2 Hz)</translation>
+    </message>
+    <message>
+        <source>Converted: %1</source>
+        <translation>Convertiti: %1</translation>
+    </message>
+    <message>
+        <source>Sample rate</source>
+        <translation>Frequenza di campionamento</translation>
+    </message>
+    <message>
+        <source>Following the system, it changes with what plays</source>
+        <translation>Seguendo il sistema, cambia in base a cosa suona</translation>
+    </message>
+    <message>
+        <source>Couldn&apos;t apply the sample rate. Please try again.</source>
+        <translation>Impossibile applicare la frequenza di campionamento. Riprova.</translation>
+    </message>
+    <message>
+        <source>Sample format</source>
+        <translation>Formato dei campioni</translation>
+    </message>
+    <message>
+        <source>Choose another one only if the device has trouble with the best</source>
+        <translation>Scegline un altro solo se il dispositivo ha problemi con il migliore</translation>
+    </message>
+    <message>
+        <source>Couldn&apos;t apply the sample format. Please try again.</source>
+        <translation>Impossibile applicare il formato dei campioni. Riprova.</translation>
+    </message>
+    <message>
+        <source>Rename device</source>
+        <translation>Rinomina il dispositivo</translation>
+    </message>
+    <message>
+        <source>Leave it empty to use the device&apos;s own name. Other apps show the new name after you sign in again.</source>
+        <translation>Lascialo vuoto per usare il nome del dispositivo. Le altre app mostrano il nuovo nome dopo il prossimo accesso.</translation>
+    </message>
+</context>
+<context>
     <name>SoundPage</name>
     <message>
         <source>Default device</source>
@@ -1829,8 +2115,32 @@ Specifiche sistema
         <translation>Audio non disponibile</translation>
     </message>
     <message>
-        <source>pactl is needed (PipeWire or PulseAudio).</source>
-        <translation>Serve pactl (PipeWire o PulseAudio).</translation>
+        <source>Couldn&apos;t verify the selected device. Controls are disabled.</source>
+        <translation>Impossibile verificare il dispositivo selezionato. I controlli sono disattivati.</translation>
+    </message>
+    <message>
+        <source>Battery %1%</source>
+        <translation>Batteria %1%</translation>
+    </message>
+    <message>
+        <source>Properties</source>
+        <translation>Proprietà</translation>
+    </message>
+    <message>
+        <source>Couldn&apos;t change mute. Check the device state.</source>
+        <translation>Impossibile attivare o disattivare l&apos;audio. Controlla lo stato del dispositivo.</translation>
+    </message>
+    <message>
+        <source>Unmute</source>
+        <translation>Riattiva audio</translation>
+    </message>
+    <message>
+        <source>Mute</source>
+        <translation>Disattiva audio</translation>
+    </message>
+    <message>
+        <source>PipeWire isn&apos;t running. Vela keeps trying to reach it.</source>
+        <translation>PipeWire non è in esecuzione. Vela continua a provare a raggiungerlo.</translation>
     </message>
     <message>
         <source>Output</source>
@@ -1849,16 +2159,80 @@ Specifiche sistema
         <translation>Scegli un dispositivo per parlare o registrare</translation>
     </message>
     <message>
+        <source>Input level</source>
+        <translation>Livello di input</translation>
+    </message>
+    <message>
+        <source>The microphone is muted</source>
+        <translation>Il microfono è disattivato</translation>
+    </message>
+    <message>
+        <source>Speak to test your microphone</source>
+        <translation>Parla per provare il microfono</translation>
+    </message>
+    <message>
         <source>Advanced</source>
         <translation>Avanzate</translation>
+    </message>
+    <message>
+        <source>Turned off</source>
+        <translation>Spento</translation>
     </message>
     <message>
         <source>Volume mixer</source>
         <translation>Mixer volume</translation>
     </message>
     <message>
-        <source>Each app&apos;s volume, and the output it uses</source>
-        <translation>Il volume di ogni app, e l&apos;uscita che usa</translation>
+        <source>Each app&apos;s volume, and the devices it uses</source>
+        <translation>Il volume di ogni app e i dispositivi che usa</translation>
+    </message>
+    <message>
+        <source>Automatic</source>
+        <translation>Automatica</translation>
+    </message>
+    <message>
+        <source>%1 Hz</source>
+        <translation>%1 Hz</translation>
+    </message>
+    <message>
+        <source>Custom</source>
+        <translation>Personalizzata</translation>
+    </message>
+    <message>
+        <source>Sample rate</source>
+        <translation>Frequenza di campionamento</translation>
+    </message>
+    <message>
+        <source>Sound plays at its own rate, without conversion</source>
+        <translation>L&apos;audio suona alla sua frequenza, senza conversioni</translation>
+    </message>
+    <message>
+        <source>All sound is converted to %1 Hz</source>
+        <translation>Tutto l&apos;audio viene convertito a %1 Hz</translation>
+    </message>
+    <message>
+        <source>Couldn&apos;t apply the sample rate. Please try again.</source>
+        <translation>Impossibile applicare la frequenza di campionamento. Riprova.</translation>
+    </message>
+    <message>
+        <source>Set elsewhere: %1 Hz</source>
+        <translation>Impostata altrove: %1 Hz</translation>
+    </message>
+    <message>
+        <source>Restart audio</source>
+        <translation>Riavvia l&apos;audio</translation>
+    </message>
+    <message>
+        <source>If sound is stuck. Sound stops for a few seconds, and apps reconnect.</source>
+        <translation>Se l&apos;audio è bloccato. L&apos;audio si interrompe per qualche secondo e le app si ricollegano.</translation>
+    </message>
+    <message>
+        <source>Couldn&apos;t restart audio. Check your systemd user services.</source>
+        <translation>Impossibile riavviare l&apos;audio. Controlla i servizi systemd dell&apos;utente.</translation>
+    </message>
+    <message>
+        <source>Restart</source>
+        <translation>Riavvia</translation>
     </message>
 </context>
 <context>
@@ -2089,6 +2463,69 @@ Specifiche sistema
     <message>
         <source>Four-finger gestures</source>
         <translation>Gesti con quattro dita</translation>
+    </message>
+</context>
+<context>
+    <name>VolumeMixerPage</name>
+    <message>
+        <source>Default</source>
+        <translation>Predefinito</translation>
+    </message>
+    <message>
+        <source>Output device</source>
+        <translation>Dispositivo di output</translation>
+    </message>
+    <message>
+        <source>Input device</source>
+        <translation>Dispositivo di input</translation>
+    </message>
+    <message>
+        <source>Unmute</source>
+        <translation>Riattiva audio</translation>
+    </message>
+    <message>
+        <source>Mute</source>
+        <translation>Disattiva audio</translation>
+    </message>
+    <message>
+        <source>Sound isn&apos;t available</source>
+        <translation>Audio non disponibile</translation>
+    </message>
+    <message>
+        <source>PipeWire isn&apos;t running. Vela keeps trying to reach it.</source>
+        <translation>PipeWire non è in esecuzione. Vela continua a provare a raggiungerlo.</translation>
+    </message>
+    <message>
+        <source>System</source>
+        <translation>Sistema</translation>
+    </message>
+    <message>
+        <source>Apps</source>
+        <translation>App</translation>
+    </message>
+    <message>
+        <source>No apps are playing or recording sound</source>
+        <translation>Nessuna app sta riproducendo o registrando audio</translation>
+    </message>
+    <message>
+        <source>Apps appear here while they use sound.</source>
+        <translation>Le app compaiono qui mentre usano l&apos;audio.</translation>
+    </message>
+    <message>
+        <source>Playing and recording</source>
+        <translation>In riproduzione e registrazione</translation>
+    </message>
+    <message>
+        <source>Recording</source>
+        <translation>In registrazione</translation>
+    </message>
+    <message>
+        <source>Reset</source>
+        <translation>Reimposta</translation>
+    </message>
+    <message>
+        <source>Every app uses the default output and input again</source>
+        <translation>Ogni app torna a usare l&apos;output e l&apos;input predefiniti</translation>
     </message>
 </context>
 </TS>

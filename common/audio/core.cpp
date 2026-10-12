@@ -79,7 +79,8 @@ QString iconFor(Direction direction, const QString& formFactor, const QString& b
 }
 
 // get-volume's answer: {mute, step, channelVolumes: {"0": {volume, channel}...}}
-void readVolume(GVariant* volume, QList<double>& channels, QStringList& positions, bool& muted, double* step)
+void readVolume(GVariant* volume, QList<double>& channels, QStringList& positions, QStringList& volumePositions,
+    bool& muted, double* step)
 {
     gboolean mute = FALSE;
     if (g_variant_lookup(volume, "mute", "b", &mute)) {
@@ -119,11 +120,164 @@ void readVolume(GVariant* volume, QList<double>& channels, QStringList& position
     }
     g_variant_unref(perChannel);
     channels = volumes;
+    volumePositions = names;
     // A suspended node may report fewer volumes than it has channels (two,
     // until its format is set): its audio.position is then the layout.
     if (positions.isEmpty() && !names.contains(QString())) {
         positions = names;
     }
+}
+
+// A device's profiles (EnumProfile) and the active one (Profile).
+void readProfiles(gpointer device, Device& out)
+{
+    WpIterator* it = wp_pipewire_object_enum_params_sync(WP_PIPEWIRE_OBJECT(device), "EnumProfile", nullptr);
+    GValue value = G_VALUE_INIT;
+    while (it && wp_iterator_next(it, &value)) {
+        gint32 index = -1;
+        const gchar* name = nullptr;
+        const gchar* description = nullptr;
+        guint32 available = SPA_PARAM_AVAILABILITY_unknown;
+        gint32 priority = 0;
+        if (wp_spa_pod_get_object(static_cast<WpSpaPod*>(g_value_get_boxed(&value)), nullptr, "index", "i", &index,
+                "name", "s", &name, "description", "?s", &description, "available", "?I", &available, "priority",
+                "?i", &priority, nullptr)
+            && index >= 0) {
+            Profile p;
+            p.index = quint32(index);
+            p.name = QString::fromUtf8(name);
+            p.description = description ? QString::fromUtf8(description) : p.name;
+            p.available = available != SPA_PARAM_AVAILABILITY_no;
+            p.priority = quint32(std::max(priority, 0));
+            out.profiles.append(p);
+        }
+        g_value_unset(&value);
+    }
+    if (it) {
+        wp_iterator_unref(it);
+    }
+    it = wp_pipewire_object_enum_params_sync(WP_PIPEWIRE_OBJECT(device), "Profile", nullptr);
+    while (it && wp_iterator_next(it, &value)) {
+        gint32 index = -1;
+        if (wp_spa_pod_get_object(static_cast<WpSpaPod*>(g_value_get_boxed(&value)), nullptr, "index", "i", &index,
+                nullptr)) {
+            out.profile = index;
+        }
+        g_value_unset(&value);
+    }
+    if (it) {
+        wp_iterator_unref(it);
+    }
+}
+
+// The values of a pod that may be a choice (a rate's range, a list of
+// formats): ints and ids alike. kind: "None", "Range", "Enum"...
+QList<quint32> choiceValues(WpSpaPod* pod, QString& kind)
+{
+    QList<quint32> out;
+    if (!wp_spa_pod_is_choice(pod)) {
+        gint32 number = 0;
+        guint32 id = 0;
+        if (wp_spa_pod_get_int(pod, &number)) {
+            out.append(quint32(number));
+        } else if (wp_spa_pod_get_id(pod, &id)) {
+            out.append(id);
+        }
+        kind = QStringLiteral("None");
+        return out;
+    }
+    kind = QString::fromUtf8(wp_spa_id_value_short_name(wp_spa_pod_get_choice_type(pod)));
+    // A choice's items are its raw values; ints and ids are both 32 bits.
+    WpIterator* it = wp_spa_pod_new_iterator(pod);
+    GValue value = G_VALUE_INIT;
+    while (it && wp_iterator_next(it, &value)) {
+        if (const auto* raw = static_cast<const guint32*>(g_value_get_pointer(&value))) {
+            out.append(*raw);
+        }
+        g_value_unset(&value);
+    }
+    if (it) {
+        wp_iterator_unref(it);
+    }
+    return out;
+}
+
+QString formatName(guint32 id)
+{
+    return QString::fromUtf8(wp_spa_id_value_short_name(wp_spa_id_value_from_number("Spa:Enum:AudioFormat", id)));
+}
+
+// The node's rate and sample format now (Format); 0 when not negotiated.
+quint32 readFormat(gpointer node, QString* format = nullptr)
+{
+    quint32 rate = 0;
+    WpIterator* it = wp_pipewire_object_enum_params_sync(WP_PIPEWIRE_OBJECT(node), "Format", nullptr);
+    GValue value = G_VALUE_INIT;
+    while (it && wp_iterator_next(it, &value)) {
+        gint32 r = 0;
+        guint32 f = 0;
+        if (rate == 0
+            && wp_spa_pod_get_object(static_cast<WpSpaPod*>(g_value_get_boxed(&value)), nullptr, "rate", "?i", &r,
+                "format", "?I", &f, nullptr)
+            && r > 0) {
+            rate = quint32(r);
+            if (format && f != 0) {
+                *format = formatName(f);
+            }
+        }
+        g_value_unset(&value);
+    }
+    if (it) {
+        wp_iterator_unref(it);
+    }
+    return rate;
+}
+
+// What an endpoint can run at (EnumFormat): the standard rates in its range
+// or list, and its sample formats, best first.
+void readCapabilities(gpointer node, Endpoint& e)
+{
+    WpIterator* it = wp_pipewire_object_enum_params_sync(WP_PIPEWIRE_OBJECT(node), "EnumFormat", nullptr);
+    GValue value = G_VALUE_INIT;
+    while (it && wp_iterator_next(it, &value)) {
+        WpIterator* props = wp_spa_pod_new_iterator(static_cast<WpSpaPod*>(g_value_get_boxed(&value)));
+        GValue item = G_VALUE_INIT;
+        while (props && wp_iterator_next(props, &item)) {
+            const char* key = nullptr;
+            WpSpaPod* pod = nullptr;
+            if (wp_spa_pod_get_property(static_cast<WpSpaPod*>(g_value_get_boxed(&item)), &key, &pod) && pod) {
+                QString kind;
+                const QList<quint32> values = choiceValues(pod, kind);
+                if (g_strcmp0(key, "rate") == 0 && !values.isEmpty()) {
+                    for (quint32 rate : standardRates()) {
+                        const bool can = kind == QLatin1String("Range") || kind == QLatin1String("Step")
+                            ? values.size() >= 3 && rate >= values[1] && rate <= values[2]
+                            : values.contains(rate);
+                        if (can && !e.rates.contains(rate)) {
+                            e.rates.append(rate);
+                        }
+                    }
+                } else if (g_strcmp0(key, "format") == 0) {
+                    for (quint32 id : values) {
+                        const QString name = formatName(id);
+                        if (!name.isEmpty() && !e.formats.contains(name)) {
+                            e.formats.append(name);
+                        }
+                    }
+                }
+                wp_spa_pod_unref(pod);
+            }
+            g_value_unset(&item);
+        }
+        if (props) {
+            wp_iterator_unref(props);
+        }
+        g_value_unset(&value);
+    }
+    if (it) {
+        wp_iterator_unref(it);
+    }
+    std::sort(e.rates.begin(), e.rates.end());
 }
 
 } // namespace
@@ -139,9 +293,9 @@ struct Core::Private {
     // Callbacks of asynchronous calls carry the token of the connection that
     // made them: one from a connection already torn down finds nothing.
     quintptr token = 0;
-    // Each endpoint's balance while its volume was up (by node.name): from
-    // silence the volume comes back with the same shape.
-    QHash<QString, QList<double>> balances;
+    // Each endpoint's shape while its volume was up (by node.name): from
+    // silence the volume comes back with the same balance.
+    QHash<QString, QList<double>> shapes;
 
     static QHash<quintptr, Private*>& live()
     {
@@ -152,9 +306,12 @@ struct Core::Private {
 
     void schedule() { q->m_rebuild.start(); }
 
-    WpMetadata* metadata() const
+    // WirePlumber's "default" metadata, or PipeWire's "settings".
+    WpMetadata* metadata(const char* name = "default") const
     {
-        return om ? static_cast<WpMetadata*>(wp_object_manager_lookup(om, WP_TYPE_METADATA, nullptr)) : nullptr;
+        return om ? static_cast<WpMetadata*>(wp_object_manager_lookup(om, WP_TYPE_METADATA,
+                        WP_CONSTRAINT_TYPE_PW_GLOBAL_PROPERTY, "metadata.name", "=s", name, nullptr))
+                  : nullptr;
     }
 
     // GLib callbacks: d is alive while they are connected (teardown
@@ -249,6 +406,8 @@ struct Core::Private {
         wp_object_manager_add_interest(om, WP_TYPE_LINK, nullptr);
         wp_object_manager_add_interest(om, WP_TYPE_METADATA, WP_CONSTRAINT_TYPE_PW_GLOBAL_PROPERTY, "metadata.name",
             "=s", "default", nullptr);
+        wp_object_manager_add_interest(om, WP_TYPE_METADATA, WP_CONSTRAINT_TYPE_PW_GLOBAL_PROPERTY, "metadata.name",
+            "=s", "settings", nullptr);
         wp_object_manager_request_object_features(om, WP_TYPE_GLOBAL_PROXY, WP_OBJECT_FEATURES_ALL);
         g_signal_connect(om, "object-added", G_CALLBACK(onObjectAdded), this);
         g_signal_connect(om, "object-removed", G_CALLBACK(onObjectRemoved), this);
@@ -281,6 +440,11 @@ Core::Core(QObject* parent)
 
 Core::~Core()
 {
+    // Streams made on the connection go first, whoever owns them (the test
+    // sound is our sibling and may outlive us).
+    if (d->core) {
+        emit aboutToDisconnect();
+    }
     blockSignals(true); // nobody hears about a model going away with us
     teardown();
 }
@@ -316,6 +480,11 @@ void Core::connectNow()
 
 void Core::teardown()
 {
+    // Also when PipeWire went away: the streams still point to the
+    // connection, which is freed below.
+    if (d->core) {
+        emit aboutToDisconnect();
+    }
     Private::live().remove(d->token);
     m_rebuild.stop();
     if (d->om) {
@@ -352,6 +521,11 @@ void Core::teardown()
     if (wasConnected) {
         emit connectedChanged();
     }
+}
+
+pw_core* Core::pipewire() const
+{
+    return d->core && m_snapshot.connected ? wp_core_get_pw_core(d->core) : nullptr;
 }
 
 void Core::scheduleReconnect()
@@ -399,6 +573,34 @@ void Core::rebuild()
         wp_iterator_unref(it);
     }
 
+    {
+        WpIterator* it = wp_object_manager_new_filtered_iterator(d->om, WP_TYPE_DEVICE, nullptr);
+        GValue value = G_VALUE_INIT;
+        while (wp_iterator_next(it, &value)) {
+            gpointer device = g_value_get_object(&value);
+            Device dev;
+            dev.id = boundId(device);
+            dev.name = prop(device, PW_KEY_DEVICE_NAME);
+            dev.description = prop(device, PW_KEY_DEVICE_DESCRIPTION);
+            if (dev.description.isEmpty()) {
+                dev.description = prop(device, PW_KEY_DEVICE_NICK);
+            }
+            if (dev.description.isEmpty()) {
+                dev.description = dev.name;
+            }
+            const QString bus = prop(device, PW_KEY_DEVICE_BUS);
+            dev.bluetooth = bus == QLatin1String("bluetooth") || !prop(device, "api.bluez5.address").isEmpty();
+            dev.icon = prop(device, "device.icon-name");
+            if (dev.icon.isEmpty()) {
+                dev.icon = iconFor(Direction::Output, prop(device, PW_KEY_DEVICE_FORM_FACTOR), bus, dev.name);
+            }
+            readProfiles(device, dev);
+            s.devices.append(dev);
+            g_value_unset(&value);
+        }
+        wp_iterator_unref(it);
+    }
+
     QHash<quint32, QString> nodeClasses;
     WpIterator* it = wp_object_manager_new_filtered_iterator(d->om, WP_TYPE_NODE, nullptr);
     GValue value = G_VALUE_INIT;
@@ -410,12 +612,13 @@ void Core::rebuild()
 
         QList<double> channels;
         QStringList positions = parsePositions(prop(node, "audio.position"));
+        QStringList volumePositions;
         bool muted = false;
         double step = 0.0;
         GVariant* volume = nullptr;
         g_signal_emit_by_name(d->mixer, "get-volume", id, &volume);
         if (volume) {
-            readVolume(volume, channels, positions, muted, &step);
+            readVolume(volume, channels, positions, volumePositions, muted, &step);
             g_variant_unref(volume);
         }
 
@@ -436,10 +639,27 @@ void Core::rebuild()
             e.direction = output ? Direction::Output : Direction::Input;
             e.channelVolumes = channels;
             e.positions = positions;
+            e.volumePositions = volumePositions.contains(QString()) ? QStringList() : volumePositions;
             e.muted = muted;
             e.step = step;
             e.isDefault = id == (output ? defaultSink : defaultSource);
             e.bluetoothAddress = prop(node, "api.bluez5.address");
+            e.alsa = prop(node, PW_KEY_DEVICE_API) == QLatin1String("alsa");
+            // What it runs at, only while it runs: an idle node keeps its
+            // last format.
+            if (wp_node_get_state(WP_NODE(node), nullptr) == WP_NODE_STATE_RUNNING) {
+                e.rate = readFormat(node, &e.format);
+            }
+            readCapabilities(node, e);
+            // Restricted by Vela: what it offered before (docs/audio.md §8.1).
+            if (const QList<quint32> before = parseRates(prop(node, "vela.audio.rates")); !before.isEmpty()) {
+                e.rates = before;
+            }
+            if (const QStringList before = parseList(prop(node, "vela.audio.formats")); !before.isEmpty()) {
+                e.formats = before;
+            }
+            e.allowedRates = parseRates(prop(node, "audio.allowed-rates"));
+            e.fixedFormat = prop(node, "audio.format");
 
             QString icon = prop(node, "device.icon-name");
             QString formFactor = prop(node, PW_KEY_DEVICE_FORM_FACTOR);
@@ -486,8 +706,9 @@ void Core::rebuild()
             }
             e.icon = !icon.isEmpty() ? icon : iconFor(e.direction, formFactor, bus, e.name);
             if (e.volume() > 0.0) {
-                d->balances.insert(e.name, balanceOf(e.channelVolumes));
+                d->shapes.insert(e.name, balanceOf(e.channelVolumes));
             }
+            e.shape = d->shapes.value(e.name);
             s.endpoints.append(e);
         } else if (mediaClass == QLatin1String("Stream/Output/Audio")
             || mediaClass == QLatin1String("Stream/Input/Audio")) {
@@ -506,6 +727,7 @@ void Core::rebuild()
             st.channelVolumes = channels;
             st.muted = muted;
             st.running = wp_node_get_state(WP_NODE(node), nullptr) == WP_NODE_STATE_RUNNING;
+            st.rate = readFormat(node);
             st.monitor = flag(node, PW_KEY_STREAM_MONITOR);
             st.capturesOutput = flag(node, PW_KEY_STREAM_CAPTURE_SINK);
             st.internal = !prop(node, PW_KEY_NODE_LINK_GROUP).isEmpty() || flag(node, PW_KEY_NODE_VIRTUAL);
@@ -546,6 +768,13 @@ void Core::rebuild()
                 st.target = e.name;
             }
         }
+    }
+
+    if (WpMetadata* settings = d->metadata("settings")) {
+        s.settingsKnown = true;
+        s.clockRate = QByteArray(wp_metadata_find(settings, 0, "clock.rate", nullptr)).toUInt();
+        s.allowedRates = parseRates(QString::fromUtf8(wp_metadata_find(settings, 0, "clock.allowed-rates", nullptr)));
+        g_object_unref(settings);
     }
 
     for (const Endpoint& e : std::as_const(s.endpoints)) {
@@ -623,7 +852,7 @@ bool Core::setVolume(quint32 node, double volume)
 {
     volume = std::clamp(volume, 0.0, 1.0);
     if (const Endpoint* e = m_snapshot.endpoint(node)) {
-        return setChannelVolumes(node, scaledChannels(e->channelVolumes, volume, d->balances.value(e->name)));
+        return setChannelVolumes(node, scaledChannels(e->channelVolumes, volume, e->shape));
     }
     if (const Stream* s = m_snapshot.stream(node)) {
         return setChannelVolumes(node, QList<double>(qMax<qsizetype>(1, s->channelVolumes.size()), volume));
@@ -659,6 +888,46 @@ bool Core::setTarget(quint32 stream, const QString& endpoint)
     wp_metadata_set(metadata, stream, "target.node", nullptr, nullptr);
     wp_metadata_set(metadata, stream, "target.object", "Spa:Id", value.constData());
     g_object_unref(metadata);
+    return true;
+}
+
+bool Core::setProfile(quint32 device, quint32 index)
+{
+    const Device* dev = m_snapshot.device(device);
+    if (!dev || !d->om) {
+        return false;
+    }
+    const bool known = std::any_of(dev->profiles.begin(), dev->profiles.end(), [index](const Profile& p) { return p.index == index; });
+    gpointer proxy = known ? wp_object_manager_lookup(d->om, WP_TYPE_DEVICE, WP_CONSTRAINT_TYPE_G_PROPERTY, "bound-id",
+                                 "=u", device, nullptr)
+                           : nullptr;
+    if (!proxy) {
+        return false;
+    }
+    // save: chosen by the user, so WirePlumber keeps it (state-profile).
+    WpSpaPod* profile = wp_spa_pod_new_object("Spa:Pod:Object:Param:Profile", "Profile", "index", "i", gint32(index),
+        "save", "b", TRUE, nullptr);
+    const gboolean ok = wp_pipewire_object_set_param(WP_PIPEWIRE_OBJECT(proxy), "Profile", 0, profile);
+    g_object_unref(proxy);
+    return ok;
+}
+
+bool Core::setAllowedRates(const QList<quint32>& rates)
+{
+    WpMetadata* settings = rates.isEmpty() ? nullptr : d->metadata("settings");
+    if (!settings) {
+        return false;
+    }
+    QStringList list;
+    for (quint32 rate : rates) {
+        list.append(QString::number(rate));
+    }
+    const QByteArray value = (QStringLiteral("[ ") + list.join(u' ') + QStringLiteral(" ]")).toUtf8();
+    // The default rate first: PipeWire checks the allowed ones against it.
+    const QByteArray rate = QByteArray::number(defaultRateFor(rates));
+    wp_metadata_set(settings, 0, "clock.rate", nullptr, rate.constData());
+    wp_metadata_set(settings, 0, "clock.allowed-rates", nullptr, value.constData());
+    g_object_unref(settings);
     return true;
 }
 
