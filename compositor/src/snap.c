@@ -217,19 +217,9 @@ void vela_snapping_destroy(struct vela_snapping *snapping)
     free(snapping);
 }
 
-bool vela_snap_preview_shown(const struct vela_server *server)
+// Grows from the center of the area and lights up.
+static void apply_preview(struct vela_snapping *snapping, double p)
 {
-    return server->snapping->rect != NULL;
-}
-
-bool vela_snap_tick_preview(struct vela_server *server, double now_ms)
-{
-    struct vela_snapping *snapping = server->snapping;
-    if (!snapping->rect) {
-        return false;
-    }
-    // Grows from the center of the area and lights up.
-    double p = now_ms > 0.0 ? vela_tween_progress(&snapping->tween, now_ms) : 0.0;
     double scale = 0.9 + 0.1 * p;
     double width = snapping->target_width * scale;
     double height = snapping->target_height * scale;
@@ -244,6 +234,15 @@ bool vela_snap_tick_preview(struct vela_server *server, double now_ms)
         alpha,
     };
     vela_rect_node_set_color(snapping->rect, &color);
+}
+
+bool vela_snap_tick_preview(struct vela_server *server, double now_ms)
+{
+    struct vela_snapping *snapping = server->snapping;
+    if (!snapping->rect) {
+        return false;
+    }
+    apply_preview(snapping, vela_tween_progress(&snapping->tween, now_ms));
     return !vela_tween_finished(&snapping->tween, now_ms);
 }
 
@@ -311,8 +310,8 @@ void vela_snap_update_zone(struct vela_server *server)
     }
     // Below the dragged window, like Windows.
     vela_node_place_below(&snapping->rect->node, &grabbed->tree->node);
-    vela_tween_start(&snapping->tween, VELA_SNAP_PREVIEW_MS, &vela_decelerate);
-    vela_snap_tick_preview(server, 0.0);
+    vela_tween_start(&snapping->tween, "snap-preview", VELA_SNAP_PREVIEW_MS, &vela_decelerate);
+    apply_preview(snapping, 0.0);
     vela_server_schedule_frames(server);
 }
 

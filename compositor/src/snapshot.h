@@ -41,8 +41,8 @@ bool vela_snapshot_animate(struct vela_server *server, struct vela_view *view, e
 // and fades while the real window appears there.
 bool vela_snapshot_morph(struct vela_server *server, struct vela_view *view, struct wlr_box to);
 void vela_snapshot_cancel(struct vela_server *server, struct vela_view *view);
-// Advances the animations to `now_ms`; true while some remain.
-bool vela_snapshots_tick(struct vela_server *server, double now_ms);
-bool vela_snapshots_running(const struct vela_server *server);
+// The animations at `now_ms` (the frame's time), destroyed at `wall_ms`; true
+// while some remain.
+bool vela_snapshots_tick(struct vela_server *server, double now_ms, double wall_ms);
 
 #endif

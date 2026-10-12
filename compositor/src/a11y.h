@@ -47,6 +47,7 @@ struct vela_a11y {
     double level_from;
     struct vela_tween level_tween;
     bool level_animating;
+    bool loaded; // vela.conf read once: what it says at startup is shown at once
 
     bool color_filter;
     char color_filter_kind[32]; // grayscale, deuteranopia, protanopia, tritanopia
@@ -91,10 +92,9 @@ void vela_a11y_zoom(struct vela_a11y *a11y, int direction); // +1 Win+plus, -1 W
 
 // The zoomed area follows the cursor (after each movement).
 void vela_a11y_update_magnifier(struct vela_a11y *a11y);
-// Animations (night light fading, magnifier opening) at `now_ms`: false when
-// nothing is left to animate.
-bool vela_a11y_tick(struct vela_a11y *a11y, double now_ms);
-bool vela_a11y_animating(const struct vela_a11y *a11y);
+// Animations (night light fading, magnifier opening) at `now_ms` (the frame's
+// time), ended at `wall_ms`: false when nothing is left to animate.
+bool vela_a11y_tick(struct vela_a11y *a11y, double now_ms, double wall_ms);
 void vela_a11y_output_destroyed(struct vela_a11y *a11y, struct vela_output *output);
 
 // Sticky keys: every key goes through here before the shortcuts. true if Win

@@ -6,7 +6,7 @@
 
 // Vela's motion design: curves and durations in one place, so the whole
 // desktop moves the same way. The QML shell uses the same values (see
-// shell/qml/Theme.qml).
+// common/controls/Theme.qml).
 
 #include <stdbool.h>
 
@@ -21,15 +21,34 @@ double vela_curve_eval(const struct vela_curve *curve, double x);
 // A fixed-duration interpolation. Its start time is fixed by the first frame
 // that reads it, so the first frame drawn is always exactly the initial state,
 // however long passes between the request and the frame.
+//
+// Two clocks (docs/visual-coherence.md §6.2). Each output's frame shows the
+// state at its own predicted presentation time (vela_tween_progress), which
+// may go back from one output to the next. What can't be undone (destroying a
+// snapshot, giving windows back to their layer) waits for the wall clock
+// (vela_tween_retired): every frame still to come, on any output, is presented
+// after it, so from then on all of them would show the final state anyway.
 struct vela_tween {
     double start_ms; // < 0: not read yet
     double duration_ms;
     const struct vela_curve *curve; // NULL: linear
+    const char *name; // for VELA_DEBUG_ANIMATION
+    unsigned serial;
+    bool retired;
 };
 
-void vela_tween_start(struct vela_tween *tween, double duration_ms, const struct vela_curve *curve);
+void vela_tween_start(struct vela_tween *tween, const char *name, double duration_ms, const struct vela_curve *curve);
+// The state at `now_ms`, a frame's presentation time: idempotent.
 double vela_tween_progress(struct vela_tween *tween, double now_ms);
 bool vela_tween_finished(const struct vela_tween *tween, double now_ms);
+// Whether the wall clock (vela_now_ns(), in ms) has passed the end: the moment
+// for what can't be undone.
+bool vela_tween_retired(struct vela_tween *tween, double wall_ms);
+
+// VELA_DEBUG_ANIMATION=1: every tween's progress on every frame, and a line
+// when it retires, go to the compositor's log (the tests read it); NULL:
+// nowhere.
+extern void (*vela_motion_logger)(const char *line);
 
 // Deceleration: starts decisively and settles gently. This curve, more than
 // the duration, is what feels "modern". Beware of more extreme curves such as

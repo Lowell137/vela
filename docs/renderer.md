@@ -221,6 +221,27 @@ real vblank + period, from the backend's presentation feedback). This way motion
 is correct to the frame, even at 360 Hz, even with VRR, even when a frame arrives
 late.
 
+**Each output samples its own time; the wall clock retires**
+([visual coherence](visual-coherence.md) §6.2). Every frame is "tick, then
+flatten", synchronously: the tick writes the animated state at *that output's*
+predicted presentation time into the shared scene, and the output reads it at
+once. Outputs have different leads over the wall clock (frame budget plus
+learned latency), so the state may go back from one output's frame to the
+next: that is correct, each shows its own moment. What can't be undone
+(destroying a closing window's snapshot, giving the outgoing desktop's windows
+back to their layer, ending a window's open animation) happens only once the
+wall clock has passed the animation's end: every frame still to come, on any
+output, is presented after it. Until then the ticks keep writing the final
+state. A single clock that never went back would make a fast output draw a
+slower one's future and then repeat the same state: a stutter on the fastest
+monitor.
+
+**Frames without changes wait for their vblank.** While an animation runs,
+every output is asked for frames, also those where nothing changes. Such a
+frame delivers nothing; the next one is planned from the vblank it stood for,
+not at once. A frame asked for while an output is drawing (the ticks ask every
+output, that one too) is planned by that frame's vblank.
+
 **Output latency is learned** (discovered in S0). Several vblanks can pass
 between handing over a frame and its appearance: 1 or 2 in a window nested in
 KWin, depending on how KWin is working; on some drivers or with some planes, on

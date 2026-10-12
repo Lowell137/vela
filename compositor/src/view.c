@@ -625,7 +625,7 @@ static void apply_open_frame(struct vela_view *view, double progress)
 
 static void start_open_animation(struct vela_view *view)
 {
-    vela_tween_start(&view->open_tween, VELA_WINDOW_OPEN_MS, &vela_decelerate);
+    vela_tween_start(&view->open_tween, "open", VELA_WINDOW_OPEN_MS, &vela_decelerate);
     view->animating = true;
     view->open_frames = 0;
     apply_open_frame(view, 0.0);
@@ -641,7 +641,7 @@ void vela_view_finish_open_animation(struct vela_view *view)
     apply_open_frame(view, 1.0);
 }
 
-bool vela_views_tick(struct vela_server *server, double now_ms)
+bool vela_views_tick(struct vela_server *server, double now_ms, double wall_ms)
 {
     bool running = false;
     struct vela_view *view, *next;
@@ -651,7 +651,7 @@ bool vela_views_tick(struct vela_server *server, double now_ms)
         }
         apply_open_frame(view, vela_tween_progress(&view->open_tween, now_ms));
         ++view->open_frames;
-        if (vela_tween_finished(&view->open_tween, now_ms)) {
+        if (vela_tween_retired(&view->open_tween, wall_ms)) {
             wlr_log(WLR_DEBUG, "Open animation: %d frames", view->open_frames);
             vela_view_finish_open_animation(view);
         } else {
@@ -659,17 +659,6 @@ bool vela_views_tick(struct vela_server *server, double now_ms)
         }
     }
     return running;
-}
-
-bool vela_views_animating(struct vela_server *server)
-{
-    struct vela_view *view;
-    wl_list_for_each (view, &server->views, link) {
-        if (view->animating) {
-            return true;
-        }
-    }
-    return false;
 }
 
 void vela_view_update_shape(struct vela_view *view)

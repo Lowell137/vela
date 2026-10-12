@@ -143,11 +143,10 @@ struct vela_server {
     struct vela_text *text;
     bool text_loaded;
     struct vela_icons *icons;
-    // Animation time: the moment the frame being prepared will become light
-    // (docs/renderer.md §4.2). It never goes back, even when different outputs
-    // predict different moments; 0 before the first.
-    double animation_now_ms;
     struct wl_list snapshot_animations; // the snapshot animations (snapshot.h)
+    // In vela_server_animate's ticks: the frames they ask for are the
+    // animations', one per vblank (output.c), not those of a change.
+    bool ticking;
 
     // The windows (view.h): in order of recent use, the first is the active
     // one; the protocols that bring them.
@@ -212,8 +211,8 @@ void vela_server_destroy(struct vela_server *server);
 // longer waits for its frame.
 void vela_server_output_destroyed(struct vela_server *server, struct vela_output *output);
 
-// Before every frame: animations advance to the moment the frame will become
-// light (docs/renderer.md §4.2).
+// Before every frame: animations show the moment the frame will become light
+// (docs/renderer.md §4.2), and retire on the wall clock.
 void vela_server_animate(struct vela_server *server, int64_t present_ns);
 
 // On every delivered frame (the lock waits for black on every output).

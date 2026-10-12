@@ -7,7 +7,7 @@ purpose, the invariants the code must keep, and the changes, in the order
 they are made and with how each is verified.
 
 > **Status:** approved design, implemented in the order of §8; done: PR 1
-> (§6.1). Each change has one explanation, in §6; the plan in §8 only says
+> (§6.1), PR 2 (§6.2). Each change has one explanation, in §6; the plan in §8 only says
 > which pull request carries it.
 
 ## 1. Goals
@@ -357,7 +357,7 @@ D3. The smallest rule that keeps both properties:
   with `now` = the drawing output's predicted presentation time. Applying is
   idempotent and may go back in time from one output to the next.
 - **Retirement on the wall clock.** The irreversible part runs on
-  `vela_tween_finished(&t, wall)` with `wall` = `vela_now_ns()`; both are
+  `vela_tween_retired(&t, wall)` with `wall` = `vela_now_ns()`; both are
   `CLOCK_MONOTONIC` (`util.c`). Any frame still to be drawn, on any output, is
   presented after `wall` (`vela_frame_clock_plan()` only picks vblanks after
   now), so once `wall` passes the end every remaining frame would show the final
@@ -393,19 +393,27 @@ void vela_server_animate(struct vela_server *server, int64_t present_ns)
 With it go `animation_now_ms`, the early return and its four queries (an idle
 tick checks one flag), `workspace.c`'s inline tween (a `vela_tween`), `snap.c`'s
 `0.0` (the preview's first state is applied directly, as
-`start_open_animation()` does) and `a11y.c`'s startup test (a `started` flag).
+`start_open_animation()` does) and `a11y.c`'s startup test (a `loaded` flag).
 
 Consequences, all bounded by the largest lead (frame budget plus learned
 latency: about 1 ms on DRM with late latching, a few periods nested):
 
 - frames keep being planned until the wall clock passes the end; they carry no
-  damage, and `vela_output_frame_render()` commits nothing without damage;
+  damage, and `vela_output_frame_render()` commits nothing without damage. Such
+  an empty frame stands for its vblank: the next one is planned from there.
+  Found while implementing: before, an output with nothing to draw planned
+  frame after frame at the event loop's speed while an animation ran elsewhere
+  (without late latching, or before its first vblank: a hot-plugged output), and
+  the frame the ticks ask of the output that is drawing drew the same vblank a
+  second time. A request made while drawing is now planned by that frame's
+  vblank;
 - on an output with a shorter lead, an animation starts when the first output to
   read it says so: a small delay, never a jump;
 - hit testing (`vela_scene_at()`) reads the positions last written: a click during
   an animation lands where one of the outputs shows the window, as today;
 - with every output off nothing ticks, as today; the first frame after waking
-  retires everything, the wall clock being long past.
+  retires what was under way, the wall clock being long past, and starts what
+  was asked for meanwhile (start on first read).
 
 One diagnostic stays, in the family of `VELA_DEBUG_DAMAGE` and
 `VELA_DEBUG_SCANOUT`: `VELA_DEBUG_ANIMATION=1` logs, per output and frame, the
@@ -415,10 +423,12 @@ line when an animation retires. The tests read it.
 **Verified by** a functional test with two headless outputs at 75 and 180 Hz,
 with and without `VELA_LATCH=0`, running close, minimize, restore and a desktop
 switch: on each output every logged progress equals the curve at that output's
-own time (1e-6) and doesn't decrease (except across a mode change, which resets
-the grid); no retirement is logged before the wall clock passes the end; every
-started animation retires; one second after the last one, the outputs' frame
-counters in the test state stop.
+own time (the time within 1e-6, the curve within 1e-5: it is solved to 1e-6)
+and doesn't decrease (except across a mode change, which resets the grid);
+both outputs draw every animation, at most one frame per vblank; no retirement
+is logged before the wall clock passes the end; every started animation
+retires; one second after the last one, the outputs' frame counters in the test
+state stop.
 
 ### 6.3 Corners follow the morph (D5)
 

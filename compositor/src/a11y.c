@@ -209,7 +209,7 @@ void vela_a11y_destroy(struct vela_a11y *a11y)
 static void start_night_transition(struct vela_a11y *a11y)
 {
     a11y->level_from = a11y->night_level;
-    vela_tween_start(&a11y->level_tween, 1000.0, &vela_decelerate);
+    vela_tween_start(&a11y->level_tween, "night-light", 1000.0, &vela_decelerate);
     a11y->level_animating = true;
     vela_server_schedule_frames(a11y->server);
 }
@@ -249,10 +249,10 @@ void vela_a11y_load(struct vela_a11y *a11y)
     }
     check_night_schedule(a11y);
     // No gradual change at startup: as it was.
-    if (a11y->night_level == 0.0 && a11y->night_light && !a11y->level_animating
-        && a11y->server->animation_now_ms == 0.0) {
+    if (a11y->night_level == 0.0 && a11y->night_light && !a11y->level_animating && !a11y->loaded) {
         a11y->night_level = 1.0;
     }
+    a11y->loaded = true;
     if (a11y->night_light != (a11y->night_level > 0.5) && !a11y->level_animating) {
         start_night_transition(a11y);
     }
@@ -321,7 +321,7 @@ void vela_a11y_set_magnifier(struct vela_a11y *a11y, bool on)
     // Like Windows: it starts at double.
     a11y->zoom_target = on ? 1.0 + a11y->zoom_step / 100.0 : 1.0;
     a11y->zoom_from = a11y->zoom;
-    vela_tween_start(&a11y->zoom_tween, VELA_MAGNIFIER_MS, &vela_decelerate);
+    vela_tween_start(&a11y->zoom_tween, "magnifier", VELA_MAGNIFIER_MS, &vela_decelerate);
     a11y->zoom_animating = true;
     struct wlr_cursor *cursor = a11y->server->cursor;
     if (on && !a11y->zoom_output) {
@@ -351,7 +351,7 @@ void vela_a11y_zoom(struct vela_a11y *a11y, int direction)
     }
     a11y->zoom_target = target;
     a11y->zoom_from = a11y->zoom;
-    vela_tween_start(&a11y->zoom_tween, VELA_MAGNIFIER_MS, &vela_decelerate);
+    vela_tween_start(&a11y->zoom_tween, "magnifier", VELA_MAGNIFIER_MS, &vela_decelerate);
     a11y->zoom_animating = true;
     vela_server_schedule_frames(a11y->server);
 }
@@ -417,19 +417,14 @@ void vela_a11y_update_magnifier(struct vela_a11y *a11y)
     }
 }
 
-bool vela_a11y_animating(const struct vela_a11y *a11y)
-{
-    return a11y->level_animating || a11y->zoom_animating;
-}
-
-bool vela_a11y_tick(struct vela_a11y *a11y, double now_ms)
+bool vela_a11y_tick(struct vela_a11y *a11y, double now_ms, double wall_ms)
 {
     bool running = false;
     if (a11y->level_animating) {
         double p = vela_tween_progress(&a11y->level_tween, now_ms);
         double target = a11y->night_light ? 1.0 : 0.0;
         a11y->night_level = a11y->level_from + (target - a11y->level_from) * p;
-        if (vela_tween_finished(&a11y->level_tween, now_ms)) {
+        if (vela_tween_retired(&a11y->level_tween, wall_ms)) {
             a11y->night_level = target;
             a11y->level_animating = false;
         }
@@ -439,7 +434,7 @@ bool vela_a11y_tick(struct vela_a11y *a11y, double now_ms)
     if (a11y->zoom_animating) {
         double p = vela_tween_progress(&a11y->zoom_tween, now_ms);
         a11y->zoom = a11y->zoom_from + (a11y->zoom_target - a11y->zoom_from) * p;
-        if (vela_tween_finished(&a11y->zoom_tween, now_ms)) {
+        if (vela_tween_retired(&a11y->zoom_tween, wall_ms)) {
             a11y->zoom = a11y->zoom_target;
             a11y->zoom_animating = false;
         }

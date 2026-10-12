@@ -187,9 +187,9 @@ void vela_view_set_activated(struct vela_view *view, bool on); // for the app an
 // Maximized, snapped or fullscreen: realigns it to its output.
 void vela_view_keep_in_place(struct vela_view *view);
 void vela_view_finish_open_animation(struct vela_view *view);
-// The open animations at `now_ms`: true while some remain.
-bool vela_views_tick(struct vela_server *server, double now_ms);
-bool vela_views_animating(struct vela_server *server);
+// The open animations at `now_ms` (the frame's time), retired at `wall_ms`:
+// true while some remain.
+bool vela_views_tick(struct vela_server *server, double now_ms, double wall_ms);
 // Rounded corners and shadow (docs/renderer.md §8), like Windows 11: not when
 // maximized, fullscreen or snapped, nor for apps that draw their own shadow
 // and borders (margins outside the geometry, such as GTK).

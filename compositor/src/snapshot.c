@@ -215,11 +215,6 @@ void vela_snapshots_finish(struct vela_server *server)
     }
 }
 
-bool vela_snapshots_running(const struct vela_server *server)
-{
-    return !wl_list_empty(&server->snapshot_animations);
-}
-
 void vela_snapshot_cancel(struct vela_server *server, struct vela_view *view)
 {
     struct animation *animation, *next;
@@ -266,11 +261,12 @@ bool vela_snapshot_animate(struct vela_server *server, struct vela_view *view, e
     }
     struct animation *a = animation_create(view, kind, frame);
     if (kind == VELA_SNAPSHOT_CLOSE) {
-        vela_tween_start(&a->tween, VELA_WINDOW_CLOSE_MS, &vela_decelerate);
+        vela_tween_start(&a->tween, "close", VELA_WINDOW_CLOSE_MS, &vela_decelerate);
         a->to_scale = VELA_WINDOW_CLOSE_SCALE;
     } else {
         struct wlr_box target = vela_view_minimize_target(view);
-        vela_tween_start(&a->tween, VELA_WINDOW_MINIMIZE_MS, &vela_decelerate);
+        vela_tween_start(&a->tween, kind == VELA_SNAPSHOT_RESTORE ? "restore" : "minimize", VELA_WINDOW_MINIMIZE_MS,
+            &vela_decelerate);
         a->to_x = target.x + target.width / 2.0;
         a->to_y = target.y + target.height / 2.0;
         a->to_scale = VELA_WINDOW_MINIMIZE_SCALE;
@@ -304,7 +300,7 @@ bool vela_snapshot_morph(struct vela_server *server, struct vela_view *view, str
     }
     vela_snapshot_cancel(server, view);
     struct animation *a = animation_create(view, VELA_SNAPSHOT_MORPH, from);
-    a->tween = (struct vela_tween) { -1.0, VELA_WINDOW_MAXIMIZE_MS, &vela_decelerate };
+    vela_tween_start(&a->tween, "morph", VELA_WINDOW_MAXIMIZE_MS, &vela_decelerate);
     a->to_x = to.x + to.width / 2.0;
     a->to_y = to.y + to.height / 2.0;
     a->to_scale = (double)to.width / from.width;
@@ -318,7 +314,7 @@ bool vela_snapshot_morph(struct vela_server *server, struct vela_view *view, str
     return true;
 }
 
-bool vela_snapshots_tick(struct vela_server *server, double now_ms)
+bool vela_snapshots_tick(struct vela_server *server, double now_ms, double wall_ms)
 {
     struct animation *a, *next;
     wl_list_for_each_safe (a, next, &server->snapshot_animations, link) {
@@ -336,7 +332,7 @@ bool vela_snapshots_tick(struct vela_server *server, double now_ms)
         snapshot_apply(a->snapshot, lerp(a->from_x, a->to_x, p), lerp(a->from_y, a->to_y, p),
             lerp(a->from_scale, a->to_scale, p), lerp(a->from_scale_y, a->to_scale_y, p),
             (float)lerp(a->from_opacity, a->to_opacity, fade));
-        if (!vela_tween_finished(&a->tween, now_ms)) {
+        if (!vela_tween_retired(&a->tween, wall_ms)) {
             continue;
         }
         struct vela_view *owner = a->owner;
@@ -349,5 +345,5 @@ bool vela_snapshots_tick(struct vela_server *server, double now_ms)
             vela_view_finish_restore(owner);
         }
     }
-    return vela_snapshots_running(server);
+    return !wl_list_empty(&server->snapshot_animations);
 }

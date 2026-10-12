@@ -101,9 +101,9 @@ void vela_snapping_destroy(struct vela_snapping *snapping);
 void vela_snap_keyboard(struct vela_server *server, struct vela_view *view, uint32_t sym);
 // While dragging: the preview according to where the cursor is.
 void vela_snap_update_zone(struct vela_server *server);
-// The preview lighting up (true while it animates) and whether there is one.
+// The preview lighting up at `now_ms` (true while it animates). Nothing to
+// retire: it ends with the drag.
 bool vela_snap_tick_preview(struct vela_server *server, double now_ms);
-bool vela_snap_preview_shown(const struct vela_server *server);
 // End of the drag; apply: the window snaps where it points.
 void vela_snap_end_zone(struct vela_server *server, bool apply);
 // After a snap: Snap Assist offers the other windows in the free spaces.
