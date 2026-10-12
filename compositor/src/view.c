@@ -617,7 +617,7 @@ static void apply_open_frame(struct vela_view *view, double progress)
 {
     // Maximized and fullscreen windows only fade in.
     int rise = (view->maximized || view->fullscreen) ? 0 : VELA_WINDOW_OPEN_RISE;
-    vela_node_set_position(&view->tree->node, view->target_x, view->target_y + round((1.0 - progress) * rise));
+    vela_node_set_position(&view->tree->node, view->target_x, view->target_y + (1.0 - progress) * rise);
     // Opacity reaches 1 a little before the motion ends: the window is
     // readable at once, the final motion is just "settling".
     vela_node_set_opacity(&view->tree->node, (float)fmin(1.0, progress * 1.4));

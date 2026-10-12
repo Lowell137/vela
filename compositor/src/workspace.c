@@ -378,11 +378,11 @@ bool vela_workspaces_tick(struct vela_server *server, double now_ms)
     }
     double distance = narrowest * VELA_WORKSPACE_SLIDE_FRACTION * ws->direction;
     struct vela_layers *layers = &server->layers;
-    vela_node_set_position(&layers->windows_out->node, round(-distance * t), 0);
+    vela_node_set_position(&layers->windows_out->node, -distance * t, 0);
     vela_node_set_opacity(&layers->windows_out->node, (float)(1.0 - t));
     // The new ones turn opaque at once: fading together they would show
     // through each other.
-    vela_node_set_position(&layers->windows->node, round(distance * (1.0 - t)), 0);
+    vela_node_set_position(&layers->windows->node, distance * (1.0 - t), 0);
     vela_node_set_opacity(&layers->windows->node, (float)fmin(1.0, x * 4.0));
     if (x >= 1.0) {
         finish_switch(server);

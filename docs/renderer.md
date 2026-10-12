@@ -96,17 +96,23 @@ rectangles adjacent in logical space always stay adjacent in physical space.
 
 ### 3.4 Positions snapped to physical pixels
 
-**How it is done (S2).** A surface whose buffer is as large as its physical
+**How it is done (S2).** An image whose buffer is as large as its physical
 area (up to rounding) snaps to the nearest physical pixel and occupies exactly
 the buffer's pixels: 1:1 copy, nearest sampling. Rounding the two edges
 separately at 150% sometimes gave a box one pixel larger than the buffer, and
-the whole window went through the filter.
+the whole window went through the filter. The rule is the same *whoever drew
+the image*: an app's surface, or the compositor's own images (the title bar's
+title, icon and glyphs, the pieces of a snapshot at scale 1). Applied to
+surfaces only, the same text was sharp in an app and, at some window
+positions, filtered in the bar ([visual coherence](visual-coherence.md) D1).
 
 The **physical** position of each window (the origin of its main surface) is an
-integer. Animations compute fractional logical positions, but on every frame the
-origin snaps to the nearest physical pixel: no text "trembling" by half a pixel
-during a movement. Only scale transforms (opening, minimizing) resample, and only
-for their short duration.
+integer. Animations compute fractional logical positions and pass them to the
+scene unrounded: on every frame the origin snaps to the nearest physical pixel,
+once, in `scene/frame.c`. Rounding to logical units first would round twice: at
+125% a movement would advance by 1 and 2 pixels alternately. No text
+"trembling" by half a pixel during a movement. Only scale transforms (opening,
+minimizing) resample, and only for their short duration.
 
 ### 3.5 Well-chosen logical sizes
 
@@ -331,8 +337,11 @@ game's buffer) as soon as the game commits. It is turned off in Settings
 - **Windows** (xdg toplevels), **shell surfaces** (layers), **popups**.
 - **Vela's nodes**: rectangles, snapshots (closing and minimizing animations),
   snap previews.
-- Each node has: a transform (translation + scale around a point), opacity, a
-  clip with a **rounded rectangle**, a shadow, background blur, visibility.
+- Each node has a position relative to its parent, an opacity (multiplied by
+  the ancestors') and visibility; no transform: a snapshot that scales resizes
+  its pieces. A **tree** can have a shape: its children clipped to a **rounded
+  rectangle**, with a shadow below. Background blur belongs to app surfaces
+  (the protocol, §8.3).
 
 ### 5.2 Surfaces are read live
 

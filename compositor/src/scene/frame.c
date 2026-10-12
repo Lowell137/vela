@@ -211,6 +211,23 @@ struct visit {
     struct clip clip;
 };
 
+// Sharpness (§3.3, §3.4): an image drawn at the output's scale (a buffer as
+// large as its physical area, up to rounding) snaps to a physical pixel and
+// covers exactly the buffer's pixels: a 1:1 copy, unfiltered, even when the
+// logical position falls in the middle of a pixel. Whoever drew it: an app, or
+// the compositor (title, icon, glyphs).
+static void snap_to_buffer(struct wlr_box *box, const struct wlr_fbox *src, enum wl_output_transform transform,
+    double width, double height, double scale)
+{
+    bool swapped = transform & WL_OUTPUT_TRANSFORM_90;
+    double buffer_width = swapped ? src->height : src->width;
+    double buffer_height = swapped ? src->width : src->height;
+    if (vela_buffer_matches_area(src->x, src->y, buffer_width, buffer_height, width, height, scale)) {
+        box->width = (int)buffer_width;
+        box->height = (int)buffer_height;
+    }
+}
+
 static void add_surface(struct wlr_surface *surface, int sx, int sy, void *data)
 {
     struct visit *v = data;
@@ -228,18 +245,7 @@ static void add_surface(struct wlr_surface *surface, int sx, int sy, void *data)
     enum wl_output_transform transform = wlr_output_transform_invert(surface->current.transform);
     struct wlr_box box = to_pixels(lx, ly, width, height, p);
 
-    // Sharpness (§3.3, §3.4): if the app drew at this output's scale (a buffer
-    // as large as its physical area, up to rounding), the surface snaps to a
-    // physical pixel and covers exactly the buffer's pixels: a 1:1 copy,
-    // unfiltered, even when the logical position falls in the middle of a
-    // pixel.
-    bool swapped = transform & WL_OUTPUT_TRANSFORM_90;
-    double buffer_width = swapped ? src.height : src.width;
-    double buffer_height = swapped ? src.width : src.height;
-    if (vela_buffer_matches_area(src.x, src.y, buffer_width, buffer_height, width, height, p->scale)) {
-        box.width = (int)buffer_width;
-        box.height = (int)buffer_height;
-    }
+    snap_to_buffer(&box, &src, transform, width, height, p->scale);
     if (!on_screen(&box, p)) {
         return;
     }
@@ -338,6 +344,7 @@ static void visit(struct vela_scene *scene, struct vela_node *node, double lx, d
     case VELA_NODE_BUFFER: {
         struct vela_buffer_node *buffer = (struct vela_buffer_node *)node;
         struct wlr_box box = to_pixels(lx, ly, buffer->width, buffer->height, p);
+        snap_to_buffer(&box, &buffer->src, buffer->transform, buffer->width, buffer->height, p->scale);
         if (!on_screen(&box, p) || !buffer->texture) {
             break;
         }
