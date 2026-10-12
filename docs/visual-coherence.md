@@ -7,7 +7,7 @@ purpose, the invariants the code must keep, and the changes, in the order
 they are made and with how each is verified.
 
 > **Status:** approved design, implemented in the order of §8; done: PR 1
-> (§6.1), PR 2 (§6.2). Each change has one explanation, in §6; the plan in §8 only says
+> (§6.1), PR 2 (§6.2), PR 3 (§6.3). Each change has one explanation, in §6; the plan in §8 only says
 > which pull request carries it.
 
 ## 1. Goals

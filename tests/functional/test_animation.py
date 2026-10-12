@@ -17,6 +17,7 @@ PROGRESS = re.compile(r"animation: (\S+) #(\d+) start ([\d.]+) duration ([\d.]+)
                       r"x ([\d.]+) progress ([\d.]+)")
 HZ = {"HEADLESS-1": 75, "HEADLESS-2": 180}
 RETIRED = re.compile(r"animation: (\S+) #(\d+) retired wall ([\d.]+) end ([\d.]+)")
+RADIUS = re.compile(r"animation: morph #(\d+) radius ([\d.]+)")
 
 
 def bezier(curve, x):
@@ -107,6 +108,30 @@ class AnimationClock(unittest.TestCase):
         # the wall clock passes the end: a few more).
         for (serial, output), count in frames.items():
             self.assertLessEqual(count, durations[serial] * HZ[output] / 1000 + 4, f"{names[serial]} #{serial} on {output}")
+
+
+class MorphCorners(unittest.TestCase):
+    """docs/visual-coherence.md §6.3: maximizing, the window's corners go away
+    while it morphs into the new frame; restoring, they come back. They never
+    grow with the snapshot."""
+
+    def test_corners_follow_the_morph(self):
+        with Session(env={"VELA_DEBUG_ANIMATION": "1"}) as vela:
+            window = vela.open_window()
+            done = set()
+            for action, first, last in (("maximize", 8.0, 0.0), ("restore", 0.0, 8.0)):
+                vela.command(f"window {window} {action}")
+
+                def morphed(_):
+                    return {int(m[2]) for m in RETIRED.finditer(vela.log_text()) if m[1] == "morph"} - done
+                vela.wait_for(morphed, read_state=False, what=f"{action}: the morph retired")
+                serial = morphed(None).pop()
+                done.add(serial)
+                radii = [float(m[2]) for m in RADIUS.finditer(vela.log_text()) if int(m[1]) == serial]
+                self.assertAlmostEqual(radii[0], first, places=3, msg=action)
+                self.assertAlmostEqual(radii[-1], last, places=3, msg=action)
+                steps = [b - a for a, b in zip(radii, radii[1:])]
+                self.assertTrue(all(step * (last - first) >= 0 for step in steps), f"{action}: {radii}")
 
 
 if __name__ == "__main__":

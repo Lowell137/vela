@@ -661,18 +661,23 @@ bool vela_views_tick(struct vela_server *server, double now_ms, double wall_ms)
     return running;
 }
 
+// Apps with their own shadow margins (GTK) keep their own corners too.
+static bool has_own_shadow(const struct vela_view *view)
+{
+    if (!view->xdg || !view->xdg->base->surface) {
+        return false;
+    }
+    struct wlr_box g = view->xdg->base->geometry;
+    int width = view->xdg->base->surface->current.width;
+    int height = view->xdg->base->surface->current.height;
+    return g.x > 0 || g.y > 0 || (g.width > 0 && g.width < width) || (g.height > 0 && g.height < height);
+}
+
 void vela_view_update_shape(struct vela_view *view)
 {
     struct vela_shape shape = { 0 };
-    bool own_shadow = false;
-    if (view->xdg && view->xdg->base->surface) {
-        struct wlr_box g = view->xdg->base->geometry;
-        int width = view->xdg->base->surface->current.width;
-        int height = view->xdg->base->surface->current.height;
-        own_shadow = g.x > 0 || g.y > 0 || (g.width > 0 && g.width < width) || (g.height > 0 && g.height < height);
-    }
     if (view->mapped && !view->minimized && !view->maximized && !view->fullscreen && vela_snap_is_none(view->snap)
-        && !own_shadow) {
+        && !has_own_shadow(view)) {
         struct wlr_box g = vela_view_geometry(view);
         if (g.width > 0 && g.height > 0) {
             shape.enabled = true;
@@ -739,7 +744,7 @@ void vela_view_set_maximized(struct vela_view *view, bool on, bool animate)
             if (output) {
                 struct vela_placement place = vela_output_place(output, vela_output_usable_area(output));
                 vela_snapshot_morph(view->server, view,
-                    (struct wlr_box) { (int)lround(place.x), (int)lround(place.y), place.width, place.height });
+                    (struct wlr_box) { (int)lround(place.x), (int)lround(place.y), place.width, place.height }, 0.0);
             }
         }
         vela_view_leave_snap_group(view);
@@ -757,7 +762,8 @@ void vela_view_set_maximized(struct vela_view *view, bool on, bool animate)
     }
 
     if (animate) {
-        vela_snapshot_morph(view->server, view, vela_view_restore_box(view));
+        vela_snapshot_morph(
+            view->server, view, vela_view_restore_box(view), has_own_shadow(view) ? 0.0 : CORNER_RADIUS);
     }
     view->maximized = false;
     vela_view_send_maximized(view, false);
