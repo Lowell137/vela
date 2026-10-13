@@ -254,13 +254,15 @@ class Session:
                 return current
         raise TimeoutError(f"window {identifier} doesn't settle")
 
-    def screenshot(self, path):
-        subprocess.run([tool("vela-screen-dump"), path], env=self.client_env, check=True)
+    def screenshot(self, path, output=0):
+        """Capture an output by its enumeration index (zero is the first)."""
+        env = dict(self.client_env, VELA_SCREEN_DUMP_OUTPUT=str(output))
+        subprocess.run([tool("vela-screen-dump"), path], env=env, check=True)
 
-    def pixels(self):
-        """The screen now, as an Image (vela-screen-dump)."""
+    def pixels(self, output=0):
+        """The chosen output now, as an Image (vela-screen-dump)."""
         path = os.path.join(self.directory, "shot.png")
-        self.screenshot(path)
+        self.screenshot(path, output=output)
         return Image.read(path)
 
 
