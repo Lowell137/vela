@@ -17,6 +17,9 @@ class Accessibility : public QObject {
     Q_PROPERTY(bool magnifier READ magnifier WRITE setMagnifier NOTIFY changed)
     Q_PROPERTY(bool stickyKeys READ stickyKeys WRITE setStickyKeys NOTIFY changed)
     Q_PROPERTY(bool caffeine READ caffeine WRITE setCaffeine NOTIFY changed)
+    // Seconds left, updated with the state: 0 when off, -1 when on with no
+    // deadline (read-only; the shell never sends it).
+    Q_PROPERTY(int caffeineSecs READ caffeineSecs NOTIFY changed)
 
 public:
     explicit Accessibility(QObject* parent = nullptr);
@@ -31,6 +34,10 @@ public:
     void setStickyKeys(bool on);
     bool caffeine() const { return m_caffeine; }
     void setCaffeine(bool on);
+    // Caffeine for a while (minutes, whole or fractional): optimistic like
+    // the toggle, the compositor confirms and counts down.
+    Q_INVOKABLE void setCaffeineMinutes(double minutes);
+    int caffeineSecs() const { return m_caffeineSecs; }
 
     // The state sent by the compositor.
     void update(const QByteArray& json);
@@ -46,4 +53,5 @@ private:
     bool m_magnifier = false;
     bool m_stickyKeys = false;
     bool m_caffeine = false;
+    int m_caffeineSecs = 0;
 };

@@ -580,9 +580,10 @@ bool vela_a11y_json(const struct vela_a11y *a11y, char *out, size_t size)
     const char *f = "false";
     return vela_format(out, size,
         "{\"nightLight\":%s,\"colorFilter\":%s,\"magnifier\":%s,\"stickyKeys\":%s,\"touchpad\":%s,"
-        "\"caffeine\":%s%s}",
+        "\"caffeine\":%s,\"caffeineSecs\":%d%s}",
         a11y->night_light ? t : f, a11y->color_filter ? t : f, a11y->magnifier ? t : f, a11y->sticky_keys ? t : f,
-        vela_input_has_touchpad(a11y->server->input) ? t : f, a11y->server->lock->caffeine ? t : f, sun);
+        vela_input_has_touchpad(a11y->server->input) ? t : f, a11y->server->lock->caffeine ? t : f,
+        vela_lock_caffeine_remaining_s(a11y->server->lock), sun);
 }
 
 static void announce(struct vela_a11y *a11y)

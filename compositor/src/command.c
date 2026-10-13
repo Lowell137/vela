@@ -390,8 +390,15 @@ static void run_command(struct vela_server *server, const char *line)
     } else if (starts_with(line, "sticky-keys ")) {
         vela_a11y_set_sticky_keys(a11y, wanted(line + 12, a11y->sticky_keys), true);
     } else if (starts_with(line, "caffeine ")) {
-        // From quick settings: keep the session awake (lock.c).
-        vela_lock_set_caffeine(server->lock, wanted(line + 9, server->lock->caffeine));
+        // From quick settings: keep the session awake (lock.c). "caffeine on"
+        // is indefinite, "caffeine on <minutes>" turns itself off after that
+        // long (fractions for tests).
+        const char *arg = line + 9;
+        if (starts_with(arg, "on ") && atof(arg + 3) > 0) {
+            vela_lock_set_caffeine_for(server->lock, atof(arg + 3));
+        } else {
+            vela_lock_set_caffeine(server->lock, wanted(arg, server->lock->caffeine));
+        }
         vela_a11y_announce(a11y);
     } else if (starts_with(line, "switcher-pick ")) {
         // A click on an Alt+Tab preview: switch to that window.
