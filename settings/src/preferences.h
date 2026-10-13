@@ -37,6 +37,8 @@ class Preferences : public QObject {
     Q_PROPERTY(QString taskbarAlignment READ taskbarAlignment WRITE setTaskbarAlignment NOTIFY taskbarChanged)
     Q_PROPERTY(bool endTask READ endTask WRITE setEndTask NOTIFY taskbarChanged)
     Q_PROPERTY(bool taskView READ taskView WRITE setTaskView NOTIFY taskbarChanged)
+    // The apps' tray icons behind the "^" button (taskbar/trayOverflow).
+    Q_PROPERTY(bool trayOverflow READ trayOverflow WRITE setTrayOverflow NOTIFY taskbarChanged)
     Q_PROPERTY(bool taskbarAllScreens READ taskbarAllScreens WRITE setTaskbarAllScreens NOTIFY taskbarChanged)
     // icon-theme= in vela.conf: an icon theme's directory name, "" for the
     // automatic one (Breeze). The apps apply it themselves (applyIconTheme).
@@ -138,6 +140,8 @@ public:
     void setEndTask(bool on);
     bool taskView() const { return m_taskView; }
     void setTaskView(bool on);
+    bool trayOverflow() const { return m_trayOverflow; }
+    void setTrayOverflow(bool on);
     bool taskbarAllScreens() const { return m_taskbarAllScreens; }
     void setTaskbarAllScreens(bool on);
 
@@ -320,6 +324,7 @@ private:
     QString m_taskbarAlignment;
     bool m_endTask = true;
     bool m_taskView = true;
+    bool m_trayOverflow = true;
     bool m_taskbarAllScreens = true;
     QString m_iconTheme;
     QString m_cursorTheme;
