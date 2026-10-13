@@ -28,6 +28,7 @@ Window {
         }
         shown = Desktops.current
         Menus.taskViewOpen = true
+        Desktops.query() // the windows' places, for the desktop cards
         refresh()
         Capture.capture(windows.map(w => w.id))
         Menus.placeOnTargetScreen(root)
@@ -63,6 +64,27 @@ Window {
     }
     // The shown desktop's windows (plus those on all desktops).
     readonly property var shownWindows: windows.filter(w => w.workspace === shown || w.workspace === -1)
+    // A desktop's windows (plus those on all desktops) for its card: placed
+    // (their rect on this output, bottommost first) and the rest (minimized,
+    // on another output, or no rect from the compositor) as icons.
+    function deskWindows(index) {
+        const rects = Desktops.rects
+        const placed = []
+        const rest = []
+        for (const w of windows) {
+            if (w.workspace !== index && w.workspace !== -1) continue
+            const z = rects.findIndex(r => r.id === w.id)
+            const r = rects[z]
+            if (r && r.x < Screen.virtualX + Screen.width && r.x + r.w > Screen.virtualX
+                    && r.y < Screen.virtualY + Screen.height && r.y + r.h > Screen.virtualY) {
+                placed.push({ z: z, icon: w.icon, x: r.x - Screen.virtualX, y: r.y - Screen.virtualY, w: r.w, h: r.h })
+            } else {
+                rest.push(w)
+            }
+        }
+        placed.sort((a, b) => b.z - a.z)
+        return { placed: placed, rest: rest }
+    }
 
     function activate(id) {
         Shell.windowAction(id, "activate")
@@ -417,14 +439,70 @@ Window {
                                 asynchronous: true
                                 opacity: drop.containsDrag ? 0.6 : 1
                             }
-                            // The desktop's windows, small: how many there
-                            // are.
-                            Row {
-                                anchors { left: parent.left; bottom: parent.bottom; margins: 8 }
-                                spacing: 4
+                            // The desktop's windows, small, where they are
+                            // (no mouse areas: clicks and drops go to the card).
+                            Item {
+                                id: minis
+                                readonly property var layout: root.deskWindows(desk.index)
+                                readonly property real scale: width / Math.max(1, Screen.width)
+                                anchors { fill: parent; margins: 3 }
+                                clip: true
                                 Repeater {
-                                    model: Math.min(6, root.windows.filter(w => w.workspace === desk.index).length)
-                                    Rectangle { width: 14; height: 10; radius: 2; color: Qt.rgba(1, 1, 1, 0.75) }
+                                    model: minis.layout.placed
+                                    delegate: Rectangle {
+                                        required property var modelData
+                                        x: Math.round(modelData.x * minis.scale)
+                                        y: Math.round(modelData.y * minis.scale)
+                                        width: Math.max(4, Math.round(modelData.w * minis.scale))
+                                        height: Math.max(4, Math.round(modelData.h * minis.scale))
+                                        radius: 2
+                                        color: Theme.taskCard
+                                        border.width: 1
+                                        border.color: Theme.stroke
+                                        Image {
+                                            readonly property real size: Math.min(24, Math.min(parent.width, parent.height) - 6)
+                                            readonly property bool fits: size >= 10 && modelData.icon !== ""
+                                            visible: fits
+                                            anchors.centerIn: parent
+                                            width: size
+                                            height: size
+                                            source: fits ? Theme.icons + encodeURIComponent(modelData.icon) : ""
+                                            sourceSize: Qt.size(24, 24)
+                                        }
+                                    }
+                                }
+                                // The others, as icons: at most 6, then "+N".
+                                Row {
+                                    anchors { left: parent.left; bottom: parent.bottom; margins: 5 }
+                                    spacing: 4
+                                    Repeater {
+                                        model: minis.layout.rest.slice(0, 6)
+                                        delegate: Rectangle {
+                                            required property var modelData
+                                            width: 22
+                                            height: 22
+                                            radius: 4
+                                            color: Theme.taskCard
+                                            border.width: 1
+                                            border.color: Theme.stroke
+                                            Image {
+                                                anchors.centerIn: parent
+                                                width: 16
+                                                height: 16
+                                                source: modelData.icon !== "" ? Theme.icons + encodeURIComponent(modelData.icon) : ""
+                                                sourceSize: Qt.size(width, height)
+                                            }
+                                        }
+                                    }
+                                    Text {
+                                        visible: minis.layout.rest.length > 6
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: "+" + (minis.layout.rest.length - 6)
+                                        color: "white"
+                                        style: Text.Outline
+                                        styleColor: Qt.rgba(0, 0, 0, 0.6)
+                                        font.pixelSize: Theme.fontCaption
+                                    }
                                 }
                             }
                             // Close the desktop, on hover.
