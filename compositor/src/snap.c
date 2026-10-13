@@ -262,16 +262,16 @@ static void remove_preview(struct vela_snapping *snapping)
 // Dragging a window to the top of an output opens the snap layouts there,
 // like Windows 11; released on a zone, it snaps there. The compositor has the
 // pointer during the drag, so it finds the zone; the shell only draws
-// (SnapDragLayouts.qml): "snap-drag show <output> <x> <y>" (the panel's top
-// left on the output), "snap-drag hover <layout> <zone>" (-1 -1: none),
-// "snap-drag hide", and "snap-drag drop <window> <layout>" just before the
-// snap, so that Snap Assist offers the layout's other zones.
+// (SnapDragLayouts.qml) what it's sent: "snap-drag show <output> <json>" (the
+// panel's top left on the output, its scale, sizes and layouts),
+// "snap-drag hover <layout> <zone>" (-1 -1: none), "snap-drag hide", and
+// "snap-drag drop <window> <layout>" just before the snap, so that Snap
+// Assist offers the layout's other zones.
 
-#define DRAG_TRIGGER 16 // this close to the top edge opens them
-#define DRAG_KEEP 32 // this far around the panel they stay open
-// The panel as SnapDragLayouts.qml draws it: one row of 64x40 cards, 8
-// apart, 16 from the ends and 8 from the top and bottom of the pill, which is
-// 8 below the top of the output; zones 3 inside the card.
+#define DRAG_KEEP 32 // once open, this much farther they stay open
+// The panel at 100%: one row of 64x40 cards, 8 apart, 16 from the ends and 8
+// from the top and bottom of the pill, which is 8 below the top of the output;
+// zones 3 inside the card.
 #define DRAG_CARD_W 64
 #define DRAG_CARD_H 40
 #define DRAG_GAP 8
@@ -283,7 +283,7 @@ static void remove_preview(struct vela_snapping *snapping)
 #define DRAG_PANEL_H (DRAG_CARD_H + 2 * DRAG_PAD_Y)
 #define DRAG_PANEL_TOP 8
 
-// The same layouts as SnapDragLayouts.qml, in twelfths (x1 == 0: no zone).
+// In twelfths (x1 == 0: no zone).
 static const struct vela_snap drag_layouts[DRAG_COUNT][4] = {
     { { 0, 0, 6, 12 }, { 6, 0, 12, 12 } },
     { { 0, 0, 8, 12 }, { 8, 0, 12, 12 } },
@@ -295,8 +295,22 @@ static const struct vela_snap drag_layouts[DRAG_COUNT][4] = {
     { { 0, 0, 6, 6 }, { 0, 6, 6, 12 }, { 6, 0, 12, 12 } },
 };
 
-// The zone at (x, y) from the panel's top left: anywhere on a card counts,
-// its inset and the gaps between zones too.
+// The panel on an output: its top left (layout coordinates) and scale
+// ("snap-drag-scale", but at most 90% of the output's width).
+struct drag_panel {
+    double x, y, scale;
+};
+
+static struct drag_panel drag_panel_on(const struct vela_output *output)
+{
+    struct wlr_box box = vela_output_box(output);
+    double scale = fmin(vela_snap_drag_config()->scale / 100.0, 0.9 * box.width / DRAG_PANEL_W);
+    return (struct drag_panel) { box.x + (box.width - DRAG_PANEL_W * scale) / 2.0, box.y + DRAG_PANEL_TOP * scale,
+        scale };
+}
+
+// The zone at (x, y) from the panel's top left, at 100%: anywhere on a card
+// counts, its inset and the gaps between zones too.
 static bool drag_zone_at(double x, double y, int *layout, int *zone)
 {
     *layout = *zone = -1;
@@ -318,6 +332,29 @@ static bool drag_zone_at(double x, double y, int *layout, int *zone)
     return false;
 }
 
+// "snap-drag show": all the shell needs to draw what drag_zone_at hits.
+static void drag_send_show(struct vela_server *server, struct vela_output *output, struct drag_panel panel)
+{
+    struct wlr_box box = vela_output_box(output);
+    struct vela_buffer line = { 0 };
+    vela_buffer_appendf(&line,
+        "snap-drag show %s {\"x\":%.2f,\"y\":%.2f,\"scale\":%.3f,\"card\":[%d,%d],\"gap\":%d,\"pad\":[%d,%d],"
+        "\"inset\":%d,\"layouts\":[",
+        output->wlr->name, panel.x - box.x, panel.y - box.y, panel.scale, DRAG_CARD_W, DRAG_CARD_H, DRAG_GAP,
+        DRAG_PAD_X, DRAG_PAD_Y, DRAG_INSET);
+    for (int l = 0; l < DRAG_COUNT; ++l) {
+        vela_buffer_appendf(&line, "%s[", l ? "," : "");
+        for (int z = 0; z < 4 && drag_layouts[l][z].x1; ++z) {
+            struct vela_snap s = drag_layouts[l][z];
+            vela_buffer_appendf(&line, "%s[%d,%d,%d,%d]", z ? "," : "", s.x0, s.y0, s.x1, s.y1);
+        }
+        vela_buffer_appendf(&line, "]");
+    }
+    vela_buffer_appendf(&line, "]}");
+    vela_shell_send(server, vela_buffer_text(&line));
+    vela_buffer_finish(&line);
+}
+
 static const char *view_id(const struct vela_view *view);
 
 // Opens, follows and closes the layouts; the zone under the cursor, or none.
@@ -326,19 +363,25 @@ static struct vela_snap drag_layouts_update(struct vela_server *server, struct v
     struct vela_snapping *snapping = server->snapping;
     struct wlr_cursor *cursor = server->cursor;
     struct vela_view *grabbed = server->grabbed;
+    const struct vela_snap_drag_config *config = vela_snap_drag_config();
     // Only dragging with the mouse: a keyboard Move can't drop on a zone.
     bool allowed = output && grabbed && server->cursor_mode == VELA_CURSOR_MOVE && !server->interaction->keyboard.view
-        && !grabbed->fullscreen && view_id(grabbed) && vela_snap_drag_layouts_enabled();
+        && !grabbed->fullscreen && view_id(grabbed) && config->enabled;
     struct vela_output *open = NULL;
-    int px = 0;
-    int py = 0;
+    struct drag_panel panel = { 0 };
     if (output) {
         struct wlr_box box = vela_output_box(output);
-        px = box.x + (box.width - DRAG_PANEL_W) / 2;
-        py = box.y + DRAG_PANEL_TOP;
-        bool across = cursor->x >= px - DRAG_KEEP && cursor->x < px + DRAG_PANEL_W + DRAG_KEEP;
-        bool at_top = across && cursor->y < box.y + DRAG_TRIGGER;
-        bool around = across && cursor->y < py + DRAG_PANEL_H + DRAG_KEEP;
+        panel = drag_panel_on(output);
+        double width = DRAG_PANEL_W * panel.scale;
+        double height = DRAG_PANEL_H * panel.scale;
+        double x = cursor->x;
+        double y = cursor->y;
+        // Near the top, beside the panel too. Once open they stay open
+        // DRAG_KEEP farther, below the panel too: no flicker at the border.
+        bool at_top = x >= panel.x - config->width && x < panel.x + width + config->width
+            && y < box.y + config->distance;
+        bool around = x >= panel.x - config->width - DRAG_KEEP && x < panel.x + width + config->width + DRAG_KEEP
+            && y < fmax(box.y + config->distance, panel.y + height) + DRAG_KEEP;
         if (!around) {
             snapping->drag_dismissed = false; // Esc lasts until the pointer goes away
         }
@@ -346,21 +389,21 @@ static struct vela_snap drag_layouts_update(struct vela_server *server, struct v
             open = output;
         }
     }
-    char line[256];
     if (open != snapping->drag_output) {
         if (open) {
-            struct wlr_box box = vela_output_box(open);
-            snprintf(line, sizeof(line), "snap-drag show %s %d %d", open->wlr->name, px - box.x, py - box.y);
+            drag_send_show(server, open, panel);
+        } else {
+            vela_shell_send(server, "snap-drag hide");
         }
-        vela_shell_send(server, open ? line : "snap-drag hide");
         snapping->drag_output = open;
         snapping->drag_layout = snapping->drag_zone = -1;
     }
     int layout = -1;
     int zone = -1;
     if (open) {
-        drag_zone_at(cursor->x - px, cursor->y - py, &layout, &zone);
+        drag_zone_at((cursor->x - panel.x) / panel.scale, (cursor->y - panel.y) / panel.scale, &layout, &zone);
         if (layout != snapping->drag_layout || zone != snapping->drag_zone) {
+            char line[64];
             snprintf(line, sizeof(line), "snap-drag hover %d %d", layout, zone);
             vela_shell_send(server, line);
         }
