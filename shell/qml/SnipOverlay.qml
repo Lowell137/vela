@@ -276,7 +276,13 @@ Window {
             onPositionChanged: mouse => {
                 if (selecting) root.selTo = root.wordAt(mouse.x, mouse.y)
             }
-            onReleased: selecting = false
+            onReleased: mouse => {
+                if (selecting && root.selFrom >= 0) {
+                    root.menuAt = Qt.point(mouse.x, mouse.y) // like Windows: the menu comes with the selection
+                    root.menuOpen = true
+                }
+                selecting = false
+            }
         }
         Rectangle {
             visible: root.menuOpen

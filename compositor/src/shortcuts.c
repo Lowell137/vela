@@ -41,6 +41,7 @@ static const struct action {
     { "files", KIND_SHELL, "files" },
     { "task-view", KIND_SHELL, "task-view" },
     { "snip", KIND_SHELL, "snip" },
+    { "snip-text", KIND_SHELL, "snip-text" },
     { "clipboard", KIND_SHELL, "clipboard" },
     { "sound-output", KIND_SHELL, "sound-output" },
 };
