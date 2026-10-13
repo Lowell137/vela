@@ -158,6 +158,7 @@ Window {
         Apps.query = ""
         search.text = ""
         grid.currentIndex = 0
+        grid.keyNav = false
         grid.positionViewAtBeginning()
         panel.opacity = 0
         panel.y = panel.restY + panel.slide
@@ -318,10 +319,21 @@ Window {
                 Keys.onEscapePressed: root.close()
                 Keys.onReturnPressed: root.launch(grid.currentIndex)
                 Keys.onEnterPressed: root.launch(grid.currentIndex)
-                Keys.onDownPressed: grid.moveCurrentIndexDown()
-                Keys.onUpPressed: grid.moveCurrentIndexUp()
-                Keys.onTabPressed: grid.moveCurrentIndexRight()
-                Keys.onBacktabPressed: grid.moveCurrentIndexLeft()
+                Keys.onDownPressed: { grid.keyNav = true; grid.moveCurrentIndexDown() }
+                Keys.onUpPressed: { grid.keyNav = true; grid.moveCurrentIndexUp() }
+                Keys.onTabPressed: { grid.keyNav = true; grid.moveCurrentIndexRight() }
+                Keys.onBacktabPressed: { grid.keyNav = true; grid.moveCurrentIndexLeft() }
+                // Left and Right move the caret while there is text to edit.
+                Keys.onLeftPressed: event => {
+                    if (text.length > 0) { event.accepted = false; return }
+                    grid.keyNav = true
+                    grid.moveCurrentIndexLeft()
+                }
+                Keys.onRightPressed: event => {
+                    if (text.length > 0) { event.accepted = false; return }
+                    grid.keyNav = true
+                    grid.moveCurrentIndexRight()
+                }
             }
         }
 
@@ -349,6 +361,8 @@ Window {
             keyNavigationWraps: true
             boundsBehavior: Flickable.StopAtBounds
             highlightFollowsCurrentItem: false
+            // The selection is drawn once the arrows have been used (always while searching).
+            property bool keyNav: false
 
             // With the arrows the selection can leave the view: we follow it.
             onCurrentIndexChanged: positionViewAtIndex(currentIndex, GridView.Contain)
@@ -358,7 +372,7 @@ Window {
                 required property string appId
                 width: grid.cellWidth
                 height: grid.cellHeight
-                current: index === grid.currentIndex && search.text.length > 0
+                current: index === grid.currentIndex && (search.text.length > 0 || grid.keyNav)
                 onActivated: root.launch(index)
                 onContextRequested: (x, y) => root.openAppMenu(tile, x, y, tile.appId, false)
             }
