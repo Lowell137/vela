@@ -110,6 +110,7 @@ class Session:
         self.wait_for(lambda s: s["outputs"], what="an output")
 
     def stop(self, keep_log=False):
+        validation_errors = []
         if self.shell:
             self.shell.close()
         for client in self.clients:
@@ -130,6 +131,13 @@ class Session:
                 status = "a hang"
         if self.directory:
             self.log.close()
+            if self.env.get("VELA_VULKAN_VALIDATION") == "1":
+                with open(self.log_path, errors="replace") as log:
+                    text = log.read()
+                if "Vulkan validation layers enabled" not in text:
+                    validation_errors.append("Requested Vulkan validation layers were not enabled")
+                validation_errors.extend(line for line in text.splitlines()
+                                         if "[ERROR]" in line and "Vulkan:" in line)
             if keep_log or status != 0:
                 print(f"\n--- Vela log ({self.log_path}) ---")
                 with open(self.log_path, errors="replace") as log:
@@ -139,6 +147,8 @@ class Session:
         # like a real one to the supervisor.
         if status != 0:
             raise AssertionError(f"vela-compositor stopped with {status}")
+        if validation_errors:
+            raise AssertionError("Vulkan validation failed:\n" + "\n".join(validation_errors))
 
     def log_text(self):
         self.log.flush()
@@ -254,10 +264,13 @@ class Session:
                 return current
         raise TimeoutError(f"window {identifier} doesn't settle")
 
-    def screenshot(self, path, output=0):
-        """Capture an output by its enumeration index (zero is the first)."""
+    def screenshot(self, path, output=0, region=None):
+        """Capture upright output pixels; an optional region is (x, y, width, height)."""
         env = dict(self.client_env, VELA_SCREEN_DUMP_OUTPUT=str(output))
-        subprocess.run([tool("vela-screen-dump"), path], env=env, check=True)
+        args = [tool("vela-screen-dump"), path]
+        if region is not None:
+            args.extend(str(value) for value in region)
+        subprocess.run(args, env=env, check=True)
 
     def pixels(self, output=0):
         """The chosen output now, as an Image (vela-screen-dump)."""

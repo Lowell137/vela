@@ -29,7 +29,7 @@ CTest includes both CPU-only and GPU-dependent suites.
 | **Polkit agent / GoogleTest** (`polkit.*`) | The agent's queue, cancellations by polkit and by the user, a crashed dialog counting as "No", retries after a wrong password, sessions that fail by themselves, identity order and choice, the dialog protocol. | No |
 | **Sharpness** (`sharpness`) | Pixel-level checks that windows reach the expected physical pixels across fractional scales and common window states. | Yes |
 
-The compositor currently contains 59 GoogleTest cases and the polkit agent 23; the functional harness runs 87 end-to-end scenarios when the Qt shell is built. Every scenario also checks that the compositor exits with status 0 when asked to stop: a crash on the way out would look like a real one to the supervisor.
+The compositor currently contains 75 GoogleTest cases and the polkit agent 23; the functional harness runs 97 end-to-end scenarios when the Qt shell is built. Every scenario also checks that the compositor exits with status 0 when asked to stop: a crash on the way out would look like a real one to the supervisor.
 
 ## Run a subset
 
@@ -140,6 +140,22 @@ python3 tests/functional/run.py --sharpness
 The sharpness check additionally needs NumPy and Pillow available to `python3`.
 
 ## GPU requirements
+
+`tests/functional/test_output_rotation.py` exercises mixed landscape/portrait
+outputs, all eight Wayland transforms on an already maximized window, negative
+layout coordinates at 150% scale, and four-output layouts with explicit
+transform assertions. Every interior pixel of the maximized `vela-pattern`
+window is compared with its independently generated coordinate pattern;
+nonblank pixels or equality with a previous capture are insufficient. Stability
+captures must span distinct presented frames. A portrait crop also verifies
+that screen-dump regions use upright image coordinates.
+
+`vela-screen-dump` applies the protocol's transform to both image dimensions
+and pixel coordinates before PNG encoding. CPU capture tests cover all eight
+transforms on a rectangular buffer with padded rows, including bounds and
+invalid-transform rejection. These GPU tests use real hardware with headless
+outputs; physical-monitor rotation and driver coverage still need separate
+validation.
 
 The functional and sharpness suites use the real Vulkan renderer. They intentionally do not fall back to software rendering.
 
@@ -309,6 +325,10 @@ For renderer work, run relevant scenarios with Vulkan validation enabled:
 ```sh
 VELA_VULKAN_VALIDATION=1 ctest --test-dir build -R 'functional|sharpness' --output-on-failure
 ```
+
+For functional sessions, the harness also requires the requested validation
+layers to be enabled and fails on logged Vulkan validation errors, including
+errors emitted during compositor shutdown.
 
 Additional rendering switches such as `VELA_DEBUG_DAMAGE`, `VELA_DEBUG_SYNC`, `VELA_DEBUG_LINEAR` and `VELA_DEBUG_SCANOUT` are documented in [configuration.md](configuration.md).
 

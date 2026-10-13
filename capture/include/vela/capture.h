@@ -53,6 +53,10 @@ void vela_capture_end(struct vela_capture_job *job);
 bool vela_capture_supported_format(uint32_t format);
 /** Pure, overflow-safe bounds check for all pixel rows within SHM length. */
 bool vela_capture_frame_valid(const struct vela_capture_frame *frame);
+/** Size of the upright image after applying the protocol's buffer transform. */
+bool vela_capture_frame_dimensions(const struct vela_capture_frame *frame, uint32_t *width, uint32_t *height);
+/** Borrow a 32-bit pixel in upright image coordinates; NULL outside the image. */
+const uint8_t *vela_capture_frame_pixel(const struct vela_capture_frame *frame, uint32_t x, uint32_t y);
 
 #ifdef __cplusplus
 }

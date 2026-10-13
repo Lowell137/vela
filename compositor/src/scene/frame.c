@@ -527,11 +527,13 @@ void vela_draw_elements(struct vela_scene *scene, struct vela_pass *pass, const 
             vela_pass_add_rect(pass, &dst, &e->color, clip, true, &shape, e->shape_radius);
             continue;
         }
+        // Texture orientation must follow the same output-to-buffer mapping
+        // as its destination rectangle, not the opposite output transform.
         struct vela_texture_draw draw = {
             .texture = e->texture,
             .src = e->src,
             .dst = dst,
-            .transform = wlr_output_transform_compose(e->transform, output_transform),
+            .transform = wlr_output_transform_compose(e->transform, to_buffer),
             .alpha = e->opacity,
             .linear = e->linear,
             .blend = true,
@@ -596,7 +598,14 @@ static void handle_damage(struct wl_listener *listener, void *data)
 {
     struct vela_output_frame *frame = wl_container_of(listener, frame, damage);
     const struct wlr_output_event_damage *event = data;
-    wlr_damage_ring_add(&frame->ring, event->damage);
+    // wlroots reports software-cursor/backend damage in buffer coordinates;
+    // merge it with scene damage before expanding upright blur dependencies.
+    pixman_region32_t damage;
+    pixman_region32_init(&damage);
+    wlr_region_transform(&damage, event->damage, frame->output->transform,
+        frame->output->width, frame->output->height);
+    pixman_region32_union(&frame->scene_damage, &frame->scene_damage, &damage);
+    pixman_region32_fini(&damage);
     vela_output_schedule_frame(frame->owner);
 }
 
@@ -616,6 +625,7 @@ struct vela_output_frame *vela_output_frame_create(struct vela_scene *scene, str
     frame->owner = owner;
     frame->zoom = 1.0;
     wlr_damage_ring_init(&frame->ring);
+    pixman_region32_init(&frame->scene_damage);
     wl_list_insert(scene->frames.prev, &frame->link);
 
     // The cursor we draw (when there is no hardware one) and whoever asks for
@@ -655,6 +665,7 @@ void vela_output_frame_destroy(struct vela_output_frame *frame)
         wlr_drm_syncobj_timeline_unref(frame->scanout_timeline);
     }
     wlr_damage_ring_finish(&frame->ring);
+    pixman_region32_fini(&frame->scene_damage);
     free(frame->last.items);
     free(frame->current.items);
     free(frame->found);
@@ -774,7 +785,7 @@ void vela_output_frame_damage_whole(struct vela_output_frame *frame)
     int height = 0;
     wlr_output_transformed_resolution(frame->output, &width, &height);
     const struct wlr_box whole = { 0, 0, width, height };
-    wlr_damage_ring_add_box(&frame->ring, &whole);
+    union_box(&frame->scene_damage, &whole);
     vela_output_schedule_frame(frame->owner);
 }
 
@@ -834,7 +845,7 @@ void vela_output_frame_surface_committed(struct vela_output_frame *frame, struct
         }
         pixman_region32_intersect_rect(&region, &region, e->box.x, e->box.y, (unsigned)e->box.width,
             (unsigned)e->box.height);
-        wlr_damage_ring_add(&frame->ring, &region);
+        pixman_region32_union(&frame->scene_damage, &frame->scene_damage, &region);
     }
     pixman_region32_fini(&region);
     // Even without damage: the app waits for its frame callback.
@@ -851,7 +862,7 @@ void vela_output_frame_surface_destroyed(struct vela_output_frame *frame, struct
     if (!e) {
         return;
     }
-    wlr_damage_ring_add_box(&frame->ring, &e->box);
+    union_box(&frame->scene_damage, &e->box);
     // Out of the previous frame (duplicates included).
     int kept = 0;
     for (int i = 0; i < frame->last.count; ++i) {
@@ -897,6 +908,7 @@ void vela_output_frame_reset_damage(struct vela_output_frame *frame)
     wlr_damage_ring_init(&frame->ring);
     frame->width = 0;
     frame->height = 0;
+    pixman_region32_clear(&frame->scene_damage);
     vela_output_schedule_frame(frame->owner);
 }
 
@@ -952,7 +964,7 @@ static void diff_with_last(struct vela_output_frame *frame)
             vela_surface_forget(last->items[j].surface, frame->output);
         }
     }
-    wlr_damage_ring_add(&frame->ring, &changed);
+    pixman_region32_union(&frame->scene_damage, &frame->scene_damage, &changed);
     pixman_region32_fini(&changed);
 
     struct vela_elements swap = *last;
@@ -998,10 +1010,8 @@ bool vela_output_frame_render(struct vela_output_frame *frame, double lx, double
         height = swap;
     }
     const struct wlr_box whole = { 0, 0, width, height };
-    // Buffer-age damage is expressed in output coordinates but is transformed
-    // into swapchain-buffer coordinates when drawing. Even a 90 -> 270 change
-    // with identical dimensions invalidates that history and needs a full
-    // redraw: otherwise old buffer contents can appear in the new orientation.
+    // Even a 90 -> 270 change with identical dimensions invalidates buffer-age
+    // history: the old buffers contain pixels in a different orientation.
     if (width != frame->width || height != frame->height || scale != frame->scale
         || transform != frame->transform) {
         wlr_damage_ring_finish(&frame->ring);
@@ -1010,7 +1020,8 @@ bool vela_output_frame_render(struct vela_output_frame *frame, double lx, double
         frame->height = height;
         frame->scale = scale;
         frame->transform = transform;
-        wlr_damage_ring_add_box(&frame->ring, &whole);
+        pixman_region32_clear(&frame->scene_damage);
+        union_box(&frame->scene_damage, &whole);
     }
 
     // 1. The flattened scene, in this output's pixels (with the magnifier: the
@@ -1029,12 +1040,13 @@ bool vela_output_frame_render(struct vela_output_frame *frame, double lx, double
     //    frame's elements are in frame->last.
     diff_with_last(frame);
     const struct vela_elements *elements = &frame->last;
-    expand_damage_for_blur(elements, &frame->ring.current);
+    expand_damage_for_blur(elements, &frame->scene_damage);
     // Diagnostics: VELA_DEBUG_DAMAGE=1 redraws everything on every frame.
-    if (vela_env_one("VELA_DEBUG_DAMAGE") && pixman_region32_not_empty(&frame->ring.current)) {
+    if (vela_env_one("VELA_DEBUG_DAMAGE") && (pixman_region32_not_empty(&frame->scene_damage)
+            || pixman_region32_not_empty(&frame->ring.current))) {
         wlr_damage_ring_finish(&frame->ring);
         wlr_damage_ring_init(&frame->ring);
-        wlr_damage_ring_add_box(&frame->ring, &whole);
+        union_box(&frame->scene_damage, &whole);
     }
     update_surfaces(frame, elements);
 
@@ -1064,7 +1076,8 @@ bool vela_output_frame_render(struct vela_output_frame *frame, double lx, double
     const struct vela_element *candidate = pending || filtered ? NULL : scanout_candidate(frame, elements, transform);
     update_feedback(frame, candidate);
 
-    bool damaged = pixman_region32_not_empty(&frame->ring.current) || frame->night_commit_pending;
+    bool damaged = pixman_region32_not_empty(&frame->scene_damage)
+        || pixman_region32_not_empty(&frame->ring.current) || frame->night_commit_pending;
     if (!damaged && !output->needs_frame && !pending) {
         return false;
     }
@@ -1095,6 +1108,7 @@ bool vela_output_frame_render(struct vela_output_frame *frame, double lx, double
         // The output is up to date: the accumulated damage is no longer needed
         // (our buffers, instead, fell behind; see below).
         pixman_region32_clear(&frame->ring.current);
+        pixman_region32_clear(&frame->scene_damage);
         if (!frame->scanout) {
             wlr_log(WLR_INFO, "%s: direct scanout on", output->name);
         }
@@ -1111,7 +1125,7 @@ bool vela_output_frame_render(struct vela_output_frame *frame, double lx, double
             wlr_log(WLR_INFO, "%s: tearing off", output->name);
             frame->tearing = false;
         }
-        wlr_damage_ring_add_box(&frame->ring, &whole);
+        union_box(&frame->scene_damage, &whole);
     }
 
     if (!wlr_output_configure_primary_swapchain(output, state, &output->swapchain)) {
@@ -1129,13 +1143,19 @@ bool vela_output_frame_render(struct vela_output_frame *frame, double lx, double
     pixman_region32_t frame_damage, buffer_damage;
     pixman_region32_init(&frame_damage);
     pixman_region32_init(&buffer_damage);
+    enum wl_output_transform to_buffer = wlr_output_transform_invert(transform);
+    // The ring requires buffer coordinates, including its full damage for a
+    // newly acquired buffer. Never rotate that implicit full damage as though
+    // it were upright: a rectangular portrait output would lose a strip.
+    wlr_region_transform(&frame_damage, &frame->scene_damage, to_buffer, width, height);
+    wlr_damage_ring_add(&frame->ring, &frame_damage);
+    pixman_region32_clear(&frame->scene_damage);
     pixman_region32_copy(&frame_damage, &frame->ring.current);
     wlr_damage_ring_rotate_buffer(&frame->ring, buffer, &buffer_damage);
+    // Blur dependencies live in upright scene coordinates.
+    wlr_region_transform(&buffer_damage, &buffer_damage, transform, buffer->width, buffer->height);
     expand_damage_for_blur(elements, &buffer_damage);
-
-    enum wl_output_transform to_buffer = wlr_output_transform_invert(transform);
     wlr_region_transform(&buffer_damage, &buffer_damage, to_buffer, width, height);
-    wlr_region_transform(&frame_damage, &frame_damage, to_buffer, width, height);
 
     // The damage ring may contain rectangles outside the output (for example
     // when a window crosses a monitor edge). Only valid buffer coordinates
@@ -1166,8 +1186,6 @@ bool vela_output_frame_render(struct vela_output_frame *frame, double lx, double
         }
     }
 
-    int buffer_width = buffer->width;
-    int buffer_height = buffer->height;
     if (ok) {
         wlr_output_state_set_buffer(state, buffer);
         wlr_output_state_set_damage(state, &frame_damage);
@@ -1222,7 +1240,6 @@ bool vela_output_frame_render(struct vela_output_frame *frame, double lx, double
     wlr_output_state_finish(&own);
     if (!ok) {
         // The frame didn't reach the output: its damage must be redrawn.
-        wlr_region_transform(&frame_damage, &frame_damage, transform, buffer_width, buffer_height);
         wlr_damage_ring_add(&frame->ring, &frame_damage);
     }
     if (color_commit_failed) {

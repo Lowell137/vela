@@ -848,9 +848,12 @@ matched it; then `wlr_scene` went away. Each stage closes only with its tests.
   mitigated by not tearing down the renderer and device on a normal shutdown
   (the kernel reclaims everything). With `VELA_VULKAN_VALIDATION=1` everything is
   torn down, to find forgotten resources.
-- **Output rotation**: the frame handles it (elements in rotated space, damage
-  and drawing brought back to the buffer), but it hasn't been tested on a real
-  output yet.
+- **Output rotation**: elements and scene damage use upright output coordinates;
+  texture orientation and rectangles use the inverse output transform when
+  drawing into the buffer. Buffer-age history stays in swapchain-buffer
+  coordinates and is invalidated on every transform change, including 90° ↔
+  270°. GPU headless tests compare the coordinate pattern under all eight
+  transforms; physical-monitor rotation still needs separate validation.
 - **Text and icons in the compositor** (§9.2, §9.6): new dependencies
   (FreeType, HarfBuzz, fontconfig, resvg) and delicate code. The first three are
   on every system; resvg must be checked on other distributions.
