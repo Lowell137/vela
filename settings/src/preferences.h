@@ -76,6 +76,8 @@ class Preferences : public QObject {
     Q_PROPERTY(bool touchpadTap READ touchpadTap WRITE setTouchpadTap NOTIFY inputChanged)
     // The top-left corner opens Task View.
     Q_PROPERTY(bool hotCorner READ hotCorner WRITE setHotCorner NOTIFY shortcutsChanged)
+    Q_PROPERTY(bool hotCornerGlow READ hotCornerGlow WRITE setHotCornerGlow NOTIFY shortcutsChanged)
+    Q_PROPERTY(bool hotCornerAnimation READ hotCornerAnimation WRITE setHotCornerAnimation NOTIFY shortcutsChanged)
     Q_PROPERTY(bool touchpadNatural READ touchpadNatural WRITE setTouchpadNatural NOTIFY inputChanged)
     // "app", "desktop" or "no"
     Q_PROPERTY(QString threeFingers READ threeFingers WRITE setThreeFingers NOTIFY inputChanged)
@@ -202,6 +204,10 @@ public:
     void setTouchpadTap(bool on);
     bool hotCorner() const { return m_hotCorner; }
     void setHotCorner(bool on);
+    bool hotCornerGlow() const { return m_hotCornerGlow; }
+    void setHotCornerGlow(bool on);
+    bool hotCornerAnimation() const { return m_hotCornerAnimation; }
+    void setHotCornerAnimation(bool on);
     bool touchpadNatural() const { return m_touchpadNatural; }
     void setTouchpadNatural(bool on);
     QString threeFingers() const { return m_threeFingers; }
@@ -291,6 +297,8 @@ private:
     bool m_touchpadTap = true;
     bool m_touchpadNatural = true;
     bool m_hotCorner = true;
+    bool m_hotCornerGlow = true;
+    bool m_hotCornerAnimation = true;
     QString m_threeFingers = QStringLiteral("app");
     QString m_fourFingers = QStringLiteral("desktop");
     bool m_clipboardHistory = false;

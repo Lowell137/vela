@@ -32,6 +32,25 @@ Page {
                 onToggled: on => Prefs.hotCorner = on
             }
         }
+        // Only how it looks: the corner opens Task View without them too.
+        Card {
+            enabled: Prefs.hotCorner
+            opacity: enabled ? 1 : 0.45
+            title: qsTr("Glow when the pointer is near")
+            trailing: Toggle {
+                checked: Prefs.hotCornerGlow
+                onToggled: on => Prefs.hotCornerGlow = on
+            }
+        }
+        Card {
+            enabled: Prefs.hotCorner
+            opacity: enabled ? 1 : 0.45
+            title: qsTr("Animation when it triggers")
+            trailing: Toggle {
+                checked: Prefs.hotCornerAnimation
+                onToggled: on => Prefs.hotCornerAnimation = on
+            }
+        }
     }
 
     CardGroup {
