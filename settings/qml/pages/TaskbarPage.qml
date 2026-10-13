@@ -22,6 +22,19 @@ Page {
     }
 
     CardGroup {
+        title: qsTr("Other system tray icons")
+        Card {
+            icon: "go-up"
+            title: qsTr("Hidden icon menu")
+            description: qsTr("Apps' icons go behind the arrow next to the system icons")
+            trailing: Toggle {
+                checked: Prefs.trayOverflow
+                onToggled: on => Prefs.trayOverflow = on
+            }
+        }
+    }
+
+    CardGroup {
         title: qsTr("Task View")
         Card {
             icon: "view-grid"
