@@ -262,6 +262,7 @@ static bool init(struct vela_server *server)
     server->scene->tearing_control = wlr_tearing_control_manager_v1_create(display, 1);
     server->a11y = vela_a11y_create(server);
     vela_output_load_settings(server);
+    vela_views_load_settings(server); // window blur
     vela_a11y_load(server->a11y);
     vela_shortcuts_load();
     server->workspaces = vela_workspaces_create(server); // virtual desktops (workspace.c)
@@ -504,6 +505,7 @@ void vela_server_animate(struct vela_server *server, int64_t present_ns)
     struct vela_view *view;
     wl_list_for_each (view, &server->views, link) {
         vela_view_update_shape(view); // corners and shadow for the current state
+        vela_view_update_blur(view);
     }
     server->animation_now_ms = fmax(server->animation_now_ms, present_ns / 1e6);
     if (!vela_views_animating(server) && !vela_snapshots_running(server) && !vela_snap_preview_shown(server)

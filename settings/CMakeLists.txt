@@ -91,6 +91,7 @@ set(SETTINGS_QML_FILES
     qml/pages/ShortcutsPage.qml
     qml/pages/IconsPage.qml
     qml/pages/PointerPage.qml
+    qml/pages/WindowBlurPage.qml
     qml/pages/AppsPage.qml
     qml/pages/InstalledAppsPage.qml
     qml/pages/DefaultAppsPage.qml

@@ -55,6 +55,8 @@ struct vela_element {
     // Blur behind the surface (ext-background-effect, §8.3): where, in pixels
     // (empty: none).
     struct wlr_box blur_box;
+    // The window's forced blur (vela_surface_node.blur), surface coordinates.
+    struct wlr_box blur_forced;
     bool visible; // not entirely covered
     int64_t visible_area; // uncovered pixels
     int order; // position in the list, from the bottom

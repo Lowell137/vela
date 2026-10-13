@@ -46,6 +46,12 @@ class Preferences : public QObject {
     // them and passes them on to the apps it starts.
     Q_PROPERTY(QString cursorTheme READ cursorTheme WRITE setCursorTheme NOTIFY cursorChanged)
     Q_PROPERTY(int cursorSize READ cursorSize WRITE setCursorSize NOTIFY cursorChanged)
+    // window-blur*= in vela.conf: blur behind windows that don't ask for it,
+    // for all of them or only the included app ids; the excluded ones never.
+    Q_PROPERTY(bool windowBlur READ windowBlur WRITE setWindowBlur NOTIFY windowBlurChanged)
+    Q_PROPERTY(bool windowBlurAll READ windowBlurAll WRITE setWindowBlurAll NOTIFY windowBlurChanged)
+    Q_PROPERTY(QStringList windowBlurInclude READ windowBlurInclude WRITE setWindowBlurInclude NOTIFY windowBlurChanged)
+    Q_PROPERTY(QStringList windowBlurExclude READ windowBlurExclude WRITE setWindowBlurExclude NOTIFY windowBlurChanged)
     // --- Notifications ---
     Q_PROPERTY(bool doNotDisturb READ doNotDisturb WRITE setDoNotDisturb NOTIFY doNotDisturbChanged)
     // --- Power ---
@@ -138,6 +144,18 @@ public:
     Q_INVOKABLE QVariantList cursorThemes() const;
     // The theme's arrow at about `size` pixels as a data: URL, "" if unreadable.
     Q_INVOKABLE QString cursorPreview(const QString& theme, int size) const;
+
+    bool windowBlur() const { return m_windowBlur; }
+    void setWindowBlur(bool on);
+    bool windowBlurAll() const { return m_windowBlurAll; }
+    void setWindowBlurAll(bool on);
+    QStringList windowBlurInclude() const { return m_windowBlurInclude; }
+    void setWindowBlurInclude(const QStringList& apps);
+    QStringList windowBlurExclude() const { return m_windowBlurExclude; }
+    void setWindowBlurExclude(const QStringList& apps);
+    // The open windows, one per app: [{appId, title}] (the compositor's
+    // "state"); empty if it doesn't answer.
+    Q_INVOKABLE QVariantList openWindows() const;
 
     bool doNotDisturb() const { return m_doNotDisturb; }
     void setDoNotDisturb(bool on);
@@ -245,6 +263,7 @@ signals:
     void taskbarChanged();
     void iconThemeChanged();
     void cursorChanged();
+    void windowBlurChanged();
     void doNotDisturbChanged();
     void idleChanged();
     void languageChanged();
@@ -280,6 +299,10 @@ private:
     QString m_iconTheme;
     QString m_cursorTheme;
     int m_cursorSize = 24;
+    bool m_windowBlur = false;
+    bool m_windowBlurAll = false;
+    QStringList m_windowBlurInclude;
+    QStringList m_windowBlurExclude;
     bool m_doNotDisturb = false;
     int m_screenOffMinutes = 10;
     bool m_lockOnIdle = true;

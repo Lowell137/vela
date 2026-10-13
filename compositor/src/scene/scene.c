@@ -61,6 +61,16 @@ struct vela_surface_node *vela_surface_node_create(struct vela_tree *parent, str
     return node;
 }
 
+void vela_surface_node_set_blur(struct vela_surface_node *node, const struct wlr_box *box)
+{
+    if (node->blur.x == box->x && node->blur.y == box->y && node->blur.width == box->width
+        && node->blur.height == box->height) {
+        return;
+    }
+    node->blur = *box;
+    vela_scene_changed(node->node.scene);
+}
+
 struct vela_rect_node *vela_rect_node_create(struct vela_tree *parent, double width, double height,
     const struct wlr_render_color *color)
 {

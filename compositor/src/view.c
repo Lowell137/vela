@@ -6,6 +6,7 @@
 #include "interact.h"
 #include "focus.h"
 #include "bindings.h"
+#include "config.h"
 #include "decoration.h"
 #include "layer.h"
 #include "listen.h"
@@ -699,6 +700,43 @@ void vela_view_update_shape(struct vela_view *view)
     vela_tree_set_shape(view->tree, &shape);
 }
 
+void vela_view_update_blur(struct vela_view *view)
+{
+    struct vela_server *server = view->server;
+    const char *app_id = vela_view_app_id(view);
+    bool forced = server->window_blur && view->mapped && !view->fullscreen
+        && !vela_config_list_has(server->window_blur_exclude, app_id)
+        && (server->window_blur_all || vela_config_list_has(server->window_blur_include, app_id));
+    struct wlr_box box = { 0 };
+    if (forced) {
+        box = vela_view_geometry(view);
+        // Vela's bar is above the surface, drawn by us: only the app's part.
+        int bar = vela_view_title_bar_height(view);
+        box.y += bar;
+        box.height -= bar;
+    }
+    if (view->surface_node) {
+        vela_surface_node_set_blur(view->surface_node, &box);
+    }
+}
+
+void vela_views_load_settings(struct vela_server *server)
+{
+    struct vela_config settings;
+    vela_config_read(&settings);
+    server->window_blur = vela_config_flag(&settings, "window-blur", false);
+    server->window_blur_all = vela_config_flag(&settings, "window-blur-all", false);
+    free(server->window_blur_include);
+    free(server->window_blur_exclude);
+    const char *include = vela_config_get(&settings, "window-blur-include", "");
+    const char *exclude = vela_config_get(&settings, "window-blur-exclude", "");
+    server->window_blur_include = *include ? strdup(include) : NULL;
+    server->window_blur_exclude = *exclude ? strdup(exclude) : NULL;
+    vela_config_finish(&settings);
+    // The windows get it on the next frame (vela_server_animate).
+    vela_server_schedule_frames(server);
+}
+
 // ----------------------------------------------------- maximize/fullscreen --
 
 static void apply_maximized(struct vela_view *view)
@@ -1337,6 +1375,9 @@ void vela_views_finish(struct vela_server *server)
     }
     free(server->seen_outputs);
     server->seen_outputs = NULL;
+    free(server->window_blur_include);
+    free(server->window_blur_exclude);
+    server->window_blur_include = server->window_blur_exclude = NULL;
 }
 
 // ------------------------------------------------------------- outputs --
