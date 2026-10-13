@@ -228,6 +228,7 @@ void Preferences::reloadCompositor()
     m_touchpadSpeed = std::clamp(value(QStringLiteral("touchpad-speed"), QStringLiteral("10")).toInt(), 1, 20);
     m_touchpadTap = flag(QStringLiteral("touchpad-tap"), true);
     m_touchpadNatural = flag(QStringLiteral("touchpad-natural-scroll"), true);
+    m_hotCorner = flag(QStringLiteral("hot-corner"), true);
     m_threeFingers = value(QStringLiteral("touchpad-three-fingers"), QStringLiteral("app"));
     m_fourFingers = value(QStringLiteral("touchpad-four-fingers"), QStringLiteral("desktop"));
     emit inputChanged();
@@ -818,6 +819,15 @@ void Preferences::setTouchpadTap(bool on)
     }
 }
 
+void Preferences::setHotCorner(bool on)
+{
+    if (on != m_hotCorner) {
+        m_hotCorner = on;
+        saveCompositor({ { QStringLiteral("hot-corner"), yesNo(on) } });
+        emit shortcutsChanged();
+    }
+}
+
 void Preferences::setTouchpadNatural(bool on)
 {
     if (on != m_touchpadNatural) {
@@ -910,6 +920,7 @@ const FixedShortcut kFixedShortcuts[] = {
     { QT_TRANSLATE_NOOP("Preferences", "Maximize / restore, then minimize"), "Super+Up / Super+Down" },
     { QT_TRANSLATE_NOOP("Preferences", "Snap layouts"), "Super+Z" },
     { QT_TRANSLATE_NOOP("Preferences", "Previous / next desktop"), "Super+Ctrl+Left / Super+Ctrl+Right" },
+    { QT_TRANSLATE_NOOP("Preferences", "Move the window to the previous / next desktop"), "Super+Ctrl+Shift+Left / Super+Ctrl+Shift+Right" },
     { QT_TRANSLATE_NOOP("Preferences", "New desktop"), "Super+Ctrl+D" },
     { QT_TRANSLATE_NOOP("Preferences", "Close desktop"), "Super+Ctrl+F4" },
     { QT_TRANSLATE_NOOP("Preferences", "Window menu"), "Alt+Space" },

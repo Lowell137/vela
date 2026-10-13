@@ -29,6 +29,9 @@ void vela_shortcuts_load(void);
 // Runs the user shortcut for this key, if there is one.
 bool vela_shortcuts_dispatch(struct vela_server *server, uint32_t modifiers, uint32_t sym);
 
+// The top-left corner opens Task View (interact.c); "hot-corner=no" turns it off.
+bool vela_hot_corner_enabled(void);
+
 // false if the user remapped (or turned off) the built-in key of this action.
 bool vela_shortcuts_default_enabled(const char *action);
 

@@ -21,6 +21,27 @@ Window {
 
     property bool primary: false // set by screenwindows.cpp
 
+    // Scrolling switches desktops, like in the desktop switchers of other
+    // environments: one step per wheel notch, not faster than every 250 ms.
+    WheelHandler {
+        property real accumulated: 0
+        property double last: 0
+        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+        onWheel: event => {
+            accumulated += event.angleDelta.y
+            const now = Date.now()
+            if (Math.abs(accumulated) >= 120 && now - last > 250) {
+                const step = accumulated > 0 ? -1 : 1
+                const target = Desktops.current + step
+                if (target >= 0 && target < Desktops.count) {
+                    Desktops.switchTo(target)
+                    last = now
+                }
+                accumulated = 0
+            }
+        }
+    }
+
     Image {
         anchors.fill: parent
         // Drawn already at the output's exact size, in real pixels: sourceSize
