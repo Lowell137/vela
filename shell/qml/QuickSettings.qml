@@ -567,6 +567,54 @@ Window {
         }
     }
 
+    // A media card's button: "previous", "play", "pause" or "next".
+    component MediaButton: Item {
+        id: mediaButton
+        property string icon
+        property string label
+        property bool usable: true
+        signal clicked()
+        width: 44
+        height: 36
+        opacity: usable ? 1 : 0.4
+        Accessible.role: Accessible.Button
+        Accessible.name: label
+        Accessible.onPressAction: mediaButton.clicked()
+        Rectangle {
+            anchors.fill: parent
+            radius: Theme.radius
+            color: Theme.subtleHover
+            opacity: mediaMouse.containsMouse && mediaButton.usable ? 1 : 0
+        }
+        // Solid glyphs in the text color, like Windows' (the icon theme's
+        // media icons are thin and grey).
+        Shape {
+            anchors.centerIn: parent
+            width: 20
+            height: 20
+            preferredRendererType: Shape.CurveRenderer
+            ShapePath {
+                fillColor: Theme.text
+                strokeColor: "transparent"
+                PathSvg {
+                    path: ({
+                        previous: "M3.5 4h2v12h-2z M16.5 4L7 10l9.5 6z",
+                        play: "M6 3.5L17 10L6 16.5z",
+                        pause: "M5 3.5h3.5v13H5z M11.5 3.5H15v13h-3.5z",
+                        next: "M14.5 4h2v12h-2z M3.5 4L13 10l-9.5 6z"
+                    })[mediaButton.icon]
+                }
+            }
+        }
+        MouseArea {
+            id: mediaMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            enabled: mediaButton.usable
+            onClicked: mediaButton.clicked()
+        }
+    }
+
     Rectangle {
         id: panel
         x: 12
@@ -603,6 +651,104 @@ Window {
                 y: 16
                 width: parent.width - 32
                 spacing: 16
+
+                // What plays now (MPRIS, see mediakeys.h), like Windows 11:
+                // the app, the track and the artist, the cover on the right,
+                // the controls below. Only while there is a player.
+                Rectangle {
+                    id: media
+                    readonly property var player: Media.current
+                    visible: player.service !== undefined
+                    width: parent.width
+                    height: 128
+                    radius: Theme.radius
+                    color: Theme.control
+                    border.width: 1
+                    border.color: Theme.stroke
+
+                    Image {
+                        id: mediaApp
+                        x: 12
+                        y: 12
+                        width: 16
+                        height: 16
+                        source: Theme.icons + encodeURIComponent(Apps.iconForAppId(media.player.desktopEntry || "audio-x-generic"))
+                        sourceSize: Qt.size(width, height)
+                    }
+                    Text {
+                        anchors { left: mediaApp.right; leftMargin: 8; right: cover.left; rightMargin: 12; verticalCenter: mediaApp.verticalCenter }
+                        text: media.player.identity || ""
+                        color: Theme.text
+                        font.pixelSize: Theme.fontCaption
+                        elide: Text.ElideRight
+                    }
+                    Text {
+                        id: mediaTitle
+                        anchors { left: mediaApp.left; right: cover.left; rightMargin: 12; top: mediaApp.bottom; topMargin: 8 }
+                        text: media.player.title || media.player.identity || ""
+                        color: Theme.text
+                        font.pixelSize: Theme.fontBody
+                        font.weight: Font.DemiBold
+                        elide: Text.ElideRight
+                    }
+                    Text {
+                        anchors { left: mediaTitle.left; right: mediaTitle.right; top: mediaTitle.bottom; topMargin: 2 }
+                        text: media.player.artist || ""
+                        color: Theme.textSecondary
+                        font.pixelSize: Theme.fontCaption
+                        elide: Text.ElideRight
+                    }
+                    // The cover (file:// or http(s)://, loaded in the
+                    // background); until it's there, or without one, a note.
+                    Rectangle {
+                        id: cover
+                        anchors { right: parent.right; rightMargin: 12; top: parent.top; topMargin: 12 }
+                        width: 64
+                        height: 64
+                        radius: Theme.radius
+                        color: Theme.subtleHover
+                        clip: true
+                        Image {
+                            anchors.centerIn: parent
+                            width: 32
+                            height: 32
+                            visible: art.status !== Image.Ready
+                            source: Theme.icons + "audio-x-generic"
+                            sourceSize: Qt.size(width, height)
+                        }
+                        Image {
+                            id: art
+                            anchors.fill: parent
+                            visible: status === Image.Ready
+                            source: media.player.artUrl || ""
+                            sourceSize: Qt.size(128, 128)
+                            fillMode: Image.PreserveAspectCrop
+                            asynchronous: true
+                            cache: false // players reuse one file for every track
+                        }
+                    }
+                    Row {
+                        anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom; bottomMargin: 8 }
+                        spacing: 12
+                        MediaButton {
+                            icon: "previous"
+                            label: qsTr("Previous")
+                            usable: media.player.canGoPrevious === true
+                            onClicked: Media.command("previous")
+                        }
+                        MediaButton {
+                            icon: media.player.playing ? "pause" : "play"
+                            label: media.player.playing ? qsTr("Pause") : qsTr("Play")
+                            onClicked: Media.command("play-pause")
+                        }
+                        MediaButton {
+                            icon: "next"
+                            label: qsTr("Next")
+                            usable: media.player.canGoNext === true
+                            onClicked: Media.command("next")
+                        }
+                    }
+                }
 
                 Grid {
                     columns: 3
