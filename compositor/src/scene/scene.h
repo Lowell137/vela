@@ -91,7 +91,7 @@ struct vela_surface_node {
     struct wlr_surface *surface;
     // Blur forced behind the main surface (window-blur in vela.conf, view.c)
     // besides what the app asks for, in its coordinates; empty: none. Only
-    // where the surface isn't opaque (frame.c).
+    // where the surface isn't opaque, or is translucent (frame.c).
     struct wlr_box blur;
 };
 

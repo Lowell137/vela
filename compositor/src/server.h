@@ -146,6 +146,10 @@ struct vela_server {
     bool window_blur_all;
     char *window_blur_include;
     char *window_blur_exclude;
+    // The same windows drawn translucent (window-opacity*, percent 30-100;
+    // 100: opaque), when active and when not.
+    int window_opacity;
+    int window_opacity_inactive;
     // Title bar text and icons, loaded on first use (decoration.c);
     // text_loaded: tried, even if there is no font.
     struct vela_text *text;
