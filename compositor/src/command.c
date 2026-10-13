@@ -396,6 +396,7 @@ static void run_command(struct vela_server *server, const char *line)
         vela_lock_load_settings(server->lock);
         vela_input_reload(server->input); // keyboards, mice and touchpads
         vela_output_load_settings(server);
+        vela_views_load_settings(server); // window blur
         vela_a11y_load(a11y);
         vela_shortcuts_load();
         reload_icons(server);

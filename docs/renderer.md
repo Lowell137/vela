@@ -649,6 +649,14 @@ redraw entirely, radius included. Measured cost: 0.05–0.13 ms of GPU per frame
 with the Start menu opening over the taskbar. The cache of the blurred
 background (keeping it from one frame to the next if nothing changes behind) has
 not been needed yet: at idle nothing is redrawn anyway.
+- **Forced on windows** (Settings > Personalization > Window blur,
+  `window-blur*=` in vela.conf): for windows that don't ask, the blur can be
+  added behind all of them or only chosen app ids, never excluded ones. The
+  region is the window's visible part (geometry, without the shadow margins
+  and Vela's bar), minus the region the app declares opaque; nothing for
+  buffers without alpha and for fullscreen windows. It goes the same way as a
+  region asked by the app (`vela_surface_node.blur`, decided by
+  `vela_view_update_blur` before each frame).
 - **Everything at full quality, even on battery**: no automatic reduction of
   effects. Savings come from not drawing what doesn't change, not from removing
   effects.

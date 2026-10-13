@@ -145,3 +145,16 @@ TEST_F(Settings, DoesNotFollowPredictableTemporarySymlink)
     EXPECT_EQ(text, "untouched");
     EXPECT_TRUE(std::filesystem::is_symlink(file() + ".tmp"));
 }
+
+// window-blur-include= and window-blur-exclude= (view.c).
+TEST_F(Settings, ListHas)
+{
+    EXPECT_TRUE(vela_config_list_has("org.kde.konsole,foot", "foot"));
+    EXPECT_TRUE(vela_config_list_has("org.kde.konsole, foot ", "foot"));
+    EXPECT_TRUE(vela_config_list_has("Org.KDE.Konsole", "org.kde.konsole"));
+    EXPECT_FALSE(vela_config_list_has("footclient", "foot"));
+    EXPECT_FALSE(vela_config_list_has("foot", "footclient"));
+    EXPECT_FALSE(vela_config_list_has(",,", ""));
+    EXPECT_FALSE(vela_config_list_has("", "foot"));
+    EXPECT_FALSE(vela_config_list_has(nullptr, "foot"));
+}
