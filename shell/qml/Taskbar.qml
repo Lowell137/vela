@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import QtQuick
+import QtQuick.Shapes
 import Vela.Controls
 
 // The taskbar: Start button, pinned and open apps in the center, clock on the
@@ -190,21 +191,13 @@ Window {
         root.openMenu(winXEntries(), p.x, menuBottom, { above: true, keyboard: keyboard })
     }
 
-    // The menu of a notification area icon (the app decides it).
+    // The menu of a notification area icon (the app decides it). Those in the
+    // flyout open their own (TrayOverflow.qml).
     Connections {
         target: Tray
-        enabled: root.primary
+        enabled: root.primary && !Menus.trayOverflow
         function onMenuReady(row, anchorX, entries) {
-            const convert = list => list.map(e => e.separator ? { separator: true } : {
-                text: e.label,
-                icon: e.icon,
-                enabled: e.enabled,
-                checked: e.checkable ? e.checked : undefined,
-                radio: e.radio,
-                children: e.children.length > 0 ? convert(e.children) : undefined,
-                action: () => Tray.activateMenuEntry(row, e.id)
-            })
-            root.openMenu(convert(entries), anchorX, root.menuBottom, { above: true, centered: true })
+            root.openMenu(Menus.trayEntries(row, entries), anchorX, root.menuBottom, { above: true, centered: true })
         }
     }
 
@@ -397,68 +390,76 @@ Window {
     }
 
     // Notification area: the apps' icons (Telegram, Discord, Steam...), left
-    // of the clock like on Windows.
+    // of the clock like on Windows. With the overflow on (the default) only
+    // those asking for attention stay here, the others are behind the "^".
     Row {
         id: tray
         visible: root.primary
         anchors { right: microphone.left; top: parent.top; bottom: parent.bottom; rightMargin: 4 }
+        // Read in a binding: it follows the icons coming, going and changing.
+        readonly property int hiddenCount: {
+            let n = 0
+            for (const c of children) {
+                if (c.hidden) n++
+            }
+            return n
+        }
 
         Repeater {
             model: Tray
-
-            delegate: Item {
-                id: trayItem
-                required property int index
-                required property string icon
-                required property string title
-                required property bool attention
-                width: icon !== "" ? 32 : 0
+            delegate: TrayIcon {
+                readonly property bool hidden: icon !== "" && Config.trayOverflow && !attention
                 height: tray.height
-                visible: icon !== ""
+                visible: icon !== "" && !hidden
+            }
+        }
+    }
 
-                Rectangle {
-                    anchors { fill: parent; topMargin: 8; bottomMargin: 8 }
-                    radius: Theme.radius
-                    color: trayMouse.pressed ? Theme.subtlePressed : Theme.subtleHover
-                    opacity: trayMouse.containsMouse ? 1 : 0
-                    Behavior on opacity { NumberAnimation { duration: Theme.fast } }
-                }
-                Image {
-                    anchors.centerIn: parent
-                    width: 18
-                    height: 18
-                    source: trayItem.icon
-                    sourceSize: Qt.size(width, height)
-                    smooth: true
-                    mipmap: true
-                }
-                // Asks for attention (unread messages): a dot.
-                Rectangle {
-                    visible: trayItem.attention
-                    width: 6
-                    height: 6
-                    radius: 3
-                    color: Theme.accent
-                    anchors { right: parent.right; top: parent.top; rightMargin: 6; topMargin: 12 }
-                }
+    // The "^" button: the hidden icons in a flyout; it points down while open.
+    Item {
+        id: overflowButton
+        visible: root.primary && Config.trayOverflow && tray.hiddenCount > 0
+        anchors { right: tray.left; top: parent.top; bottom: parent.bottom }
+        width: visible ? 32 : 0
+        readonly property bool open: !!Menus.trayOverflow && Menus.trayOverflow.screen === root.screenName
+        onVisibleChanged: if (!visible && open) Menus.trayOverflow = null
 
-                MouseArea {
-                    id: trayMouse
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
-                    onClicked: mouse => {
-                        const center = trayItem.mapToItem(null, trayItem.width / 2, 0).x
-                        if (mouse.button === Qt.RightButton) {
-                            Tray.requestMenu(trayItem.index, center)
-                        } else if (mouse.button === Qt.MiddleButton) {
-                            Tray.secondaryActivate(trayItem.index)
-                        } else {
-                            Tray.activate(trayItem.index, center)
-                        }
-                    }
-                    onWheel: wheel => Tray.scroll(trayItem.index, wheel.angleDelta.y)
-                }
+        Rectangle {
+            anchors { fill: parent; topMargin: 8; bottomMargin: 8 }
+            radius: Theme.radius
+            color: overflowMouse.pressed ? Theme.subtlePressed : Theme.subtleHover
+            opacity: overflowMouse.containsMouse || overflowButton.open ? 1 : 0
+            Behavior on opacity { NumberAnimation { duration: Theme.fast } }
+        }
+        Shape {
+            anchors.centerIn: parent
+            width: 10
+            height: 6
+            rotation: overflowButton.open ? 180 : 0
+            Behavior on rotation {
+                NumberAnimation { duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+            }
+            preferredRendererType: Shape.CurveRenderer
+            ShapePath {
+                strokeColor: Theme.text
+                strokeWidth: 1.2
+                fillColor: "transparent"
+                capStyle: ShapePath.RoundCap
+                joinStyle: ShapePath.RoundJoin
+                startX: 1; startY: 5
+                PathLine { x: 5; y: 1 }
+                PathLine { x: 9; y: 5 }
+            }
+        }
+        MouseArea {
+            id: overflowMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            Accessible.role: Accessible.Button
+            Accessible.name: qsTr("Show hidden icons")
+            onClicked: {
+                const p = overflowButton.mapToItem(null, overflowButton.width / 2, 0)
+                Menus.trayOverflow = overflowButton.open ? null : { center: p.x, screen: root.screenName }
             }
         }
     }
