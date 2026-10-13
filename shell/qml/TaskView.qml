@@ -13,8 +13,8 @@ Window {
     visible: false
     color: "transparent"
 
-    // The desktop whose windows are shown: the current one, or the one under
-    // the mouse.
+    // The desktop whose windows are shown: the current one, the one under
+    // the mouse or the one reached with the wheel.
     property int shown: Desktops.current
     property var windows: [] // [{id, title, icon, workspace}]
     property int revision: 0 // grows at every preview ready
@@ -100,8 +100,9 @@ Window {
         NumberAnimation { target: content; property: "scale"; to: 1; duration: Theme.slow; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
     }
 
-    // Scrolling switches desktops, like in the desktop switchers of other
-    // environments: one step per wheel notch, not faster than every 250 ms.
+    // Scrolling shows the next or previous desktop's windows, without
+    // switching (a switch moves the focus and would close Task View): one
+    // step per wheel notch, not faster than every 250 ms. A click switches.
     WheelHandler {
         property real accumulated: 0
         property double last: 0
@@ -111,9 +112,10 @@ Window {
             const now = Date.now()
             if (Math.abs(accumulated) >= 120 && now - last > 250) {
                 const step = accumulated > 0 ? -1 : 1
-                const target = Desktops.current + step
+                const target = root.shown + step
                 if (target >= 0 && target < Desktops.count) {
-                    Desktops.switchTo(target)
+                    peek.stop()
+                    root.shown = target
                     last = now
                 }
                 accumulated = 0
@@ -395,6 +397,9 @@ Window {
                         id: desk
                         required property int index
                         readonly property bool current: index === Desktops.current
+                        // The frame marks the shown desktop; the bold name
+                        // the current one.
+                        readonly property bool shown: index === root.shown
                         spacing: 8
 
                         Rectangle {
@@ -402,8 +407,8 @@ Window {
                             height: desktops.cardHeight
                             radius: Theme.radiusOverlay
                             color: "black"
-                            border.width: desk.current || drop.containsDrag ? 2 : deskHover.hovered ? 1 : 0
-                            border.color: desk.current || drop.containsDrag ? Theme.accent : Theme.stroke
+                            border.width: desk.shown || drop.containsDrag ? 2 : deskHover.hovered ? 1 : 0
+                            border.color: desk.shown || drop.containsDrag ? Theme.accent : Theme.stroke
                             Image {
                                 anchors { fill: parent; margins: 3 }
                                 source: "image://wallpaper/" + encodeURIComponent(Config.wallpaper)
