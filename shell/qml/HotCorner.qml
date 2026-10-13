@@ -5,7 +5,7 @@ import QtQuick
 import Vela.Controls
 
 // The hot corner (interact.c): a soft glow in the top-left corner while the
-// pointer is near it, and a ring growing out of it when it opens Task View.
+// pointer is near it, and two small ripples when it opens Task View.
 // The compositor sends nothing when the corner is off ("hot-corner=no"), while
 // dragging a window or over a fullscreen one.
 Window {
@@ -32,16 +32,26 @@ Window {
             root.visible = true
             root.near = state === "near"
             if (state === "fire") {
-                pulse.restart()
+                for (let i = 0; i < ripples.count; i++) {
+                    ripples.itemAt(i).play()
+                }
+                settle.restart()
             }
         }
     }
 
     // Gone once nothing shows: a hidden panel gives its surface back.
     function hideIfIdle() {
-        if (!near && glow.opacity === 0 && !pulse.running) {
+        if (!near && glow.opacity === 0 && !settle.running) {
             visible = false
         }
+    }
+
+    // The ripples end together with Task View's "appear".
+    Timer {
+        id: settle
+        interval: Theme.slow + 110
+        onTriggered: root.hideIfIdle()
     }
 
     Item {
@@ -72,24 +82,32 @@ Window {
         }
     }
 
-    Rectangle {
-        id: ring
-        x: -width / 2
-        y: -height / 2
-        width: 2 * root.width - 8
-        height: width
-        radius: width / 2
-        color: "transparent"
-        border.width: 3
-        border.color: Theme.accent
-        opacity: 0
-    }
-
-    // As long as Task View's "appear", so the two end together.
-    ParallelAnimation {
-        id: pulse
-        NumberAnimation { target: ring; property: "scale"; from: 0.2; to: 1; duration: Theme.slow; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
-        NumberAnimation { target: ring; property: "opacity"; from: 0.9; to: 0; duration: Theme.slow }
-        onFinished: root.hideIfIdle()
+    // Two quiet ripples, no bigger than the glow's reach (like GNOME's).
+    Repeater {
+        id: ripples
+        model: 2
+        Rectangle {
+            id: rip
+            required property int index
+            x: -width / 2
+            y: -height / 2
+            width: 2 * 72
+            height: width
+            radius: width / 2
+            color: Qt.alpha(Theme.accent, 0.12)
+            border.width: 2
+            border.color: Theme.accent
+            opacity: 0
+            scale: 0.2
+            function play() { anim.restart() }
+            SequentialAnimation {
+                id: anim
+                PauseAnimation { duration: index * 110 }
+                ParallelAnimation {
+                    NumberAnimation { target: rip; property: "scale"; from: 0.2; to: 1; duration: Theme.slow; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+                    NumberAnimation { target: rip; property: "opacity"; from: 0.7; to: 0; duration: Theme.slow }
+                }
+            }
+        }
     }
 }
