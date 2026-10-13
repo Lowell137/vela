@@ -7,6 +7,7 @@
 #include "bindings.h"
 #include "buffer.h"
 #include "decoration.h"
+#include "icons.h"
 #include "input.h"
 #include "layer.h"
 #include "lock.h"
@@ -223,6 +224,24 @@ static void refresh_decorations(struct vela_server *server)
     }
 }
 
+// The title bar icons again if the icon theme changed (icon-theme= in
+// vela.conf, or the mode picking its dark variant).
+static void reload_icons(struct vela_server *server)
+{
+    if (!server->icons) {
+        return; // not loaded yet: the first title bar reads the theme
+    }
+    struct vela_icons *fresh = vela_icons_create(server->light_apps);
+    if (strcmp(vela_icons_theme(fresh), vela_icons_theme(server->icons)) == 0) {
+        vela_icons_destroy(fresh);
+        return;
+    }
+    vela_icons_destroy(server->icons); // the bars keep copies of their icons
+    server->icons = fresh;
+    ++server->wallpaper_tint_version;
+    refresh_decorations(server);
+}
+
 // wallpaper-tint R G B (0-255): the wallpaper's average color, for the title
 // bars.
 static void wallpaper_tint(struct vela_server *server, const char *arguments)
@@ -261,6 +280,7 @@ static void theme(struct vela_server *server, const char *arguments)
         ? (struct wlr_render_color) { 0.95f * 0.55f, 0.95f * 0.55f, 0.96f * 0.55f, 0.55f }
         : (struct wlr_render_color) { 0.11f * 0.55f, 0.11f * 0.55f, 0.12f * 0.55f, 0.55f };
     ++server->wallpaper_tint_version;
+    reload_icons(server);
     refresh_decorations(server);
     struct vela_output *output;
     wl_list_for_each (output, &server->outputs, link) {
@@ -378,6 +398,7 @@ static void run_command(struct vela_server *server, const char *line)
         vela_output_load_settings(server);
         vela_a11y_load(a11y);
         vela_shortcuts_load();
+        reload_icons(server);
     } else if (starts_with(line, "night-light ")) {
         // From quick settings: night-light on|off|toggle (and likewise
         // filters, magnifier, sticky keys).

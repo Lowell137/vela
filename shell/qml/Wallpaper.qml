@@ -563,7 +563,7 @@ Window {
                 Drag.supportedActions: Qt.CopyAction | Qt.MoveAction | Qt.LinkAction
                 Drag.proposedAction: Qt.MoveAction
                 Drag.mimeData: ({ "text/uri-list": icons.dragUrls.join("\r\n") })
-                Drag.imageSource: "image://fileicon/" + encodeURIComponent(icon.iconName)
+                Drag.imageSource: "image://fileicon/" + Style.iconMode + encodeURIComponent(icon.iconName)
                 Drag.imageSourceSize: Qt.size(Desktop.iconPixels, Desktop.iconPixels)
                 Drag.hotSpot: Qt.point(Desktop.iconPixels / 2, Desktop.iconPixels / 2)
 
@@ -625,7 +625,7 @@ Window {
                         Image {
                             anchors.fill: parent
                             visible: preview.status !== Image.Ready
-                            source: "image://fileicon/" + encodeURIComponent(icon.iconName)
+                            source: "image://fileicon/" + Style.iconMode + encodeURIComponent(icon.iconName)
                             sourceSize: Qt.size(Desktop.iconPixels, Desktop.iconPixels)
                             smooth: true
                             mipmap: true

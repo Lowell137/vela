@@ -28,6 +28,12 @@ Page {
             onClicked: root.navigate("taskbar")
         }
         LinkCard {
+            icon: "preferences-desktop-icons"
+            title: qsTr("Icons")
+            description: qsTr("Icon theme")
+            onClicked: root.navigate("icons")
+        }
+        LinkCard {
             icon: "preferences-desktop-keyboard-shortcuts"
             title: qsTr("Keyboard shortcuts")
             description: qsTr("See, change and add shortcuts")

@@ -89,6 +89,7 @@ set(SETTINGS_QML_FILES
     qml/pages/ColorsPage.qml
     qml/pages/TaskbarPage.qml
     qml/pages/ShortcutsPage.qml
+    qml/pages/IconsPage.qml
     qml/pages/AppsPage.qml
     qml/pages/InstalledAppsPage.qml
     qml/pages/DefaultAppsPage.qml

@@ -20,8 +20,9 @@ class Appearance : public QObject {
     Q_PROPERTY(QColor accent READ accent NOTIFY changed)
     Q_PROPERTY(QColor mica READ mica NOTIFY changed)
     Q_PROPERTY(QColor micaInactive READ micaInactive NOTIFY changed)
-    // "l/" or "d/" for image://icon: changes a moment after the mode, once the
-    // icon caches are emptied (applyIconTheme).
+    // "l/" or "d/" for image://icon (then "~N/" after an icon theme change):
+    // changes a moment after the mode or the theme, once the icon caches are
+    // emptied (applyIconTheme).
     Q_PROPERTY(QString iconMode READ iconMode NOTIFY iconModeChanged)
 
 public:
@@ -53,4 +54,6 @@ private:
     QColor m_mica;
     QColor m_micaInactive;
     QString m_iconMode = QStringLiteral("d/");
+    QString m_iconTheme; // icon-theme= of vela.conf
+    int m_iconGeneration = 0;
 };

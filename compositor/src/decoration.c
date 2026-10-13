@@ -281,7 +281,7 @@ static struct vela_text *text_engine(struct vela_server *server)
 static struct vela_icons *icon_loader(struct vela_server *server)
 {
     if (!server->icons) {
-        server->icons = vela_icons_create();
+        server->icons = vela_icons_create(server->light_apps);
     }
     return server->icons;
 }

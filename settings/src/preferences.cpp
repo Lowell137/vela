@@ -20,6 +20,7 @@ extern "C" {
 #include <QFileInfo>
 #include <QRegularExpression>
 #include <QLocalSocket>
+#include <QMap>
 #include <QProcess>
 #include <QSaveFile>
 #include <QSettings>
@@ -194,6 +195,8 @@ void Preferences::reloadCompositor()
     emit idleChanged();
     m_language = value(QStringLiteral("language"), {});
     emit languageChanged();
+    m_iconTheme = value(QStringLiteral("icon-theme"), {});
+    emit iconThemeChanged();
 
     m_layouts.clear();
     const QStringList layouts = value(QStringLiteral("keyboard-layout"), {}).split(u',', Qt::SkipEmptyParts);
@@ -389,6 +392,72 @@ void Preferences::setAppTheme(const QString& theme)
         }
     }
     emit appThemeChanged();
+}
+
+void Preferences::setIconTheme(const QString& theme)
+{
+    if (theme == m_iconTheme || (!theme.isEmpty() && !iconThemeExists(theme))) {
+        return;
+    }
+    m_iconTheme = theme;
+    // Shell, Settings (Appearance watches vela.conf) and compositor.
+    saveCompositor({ { QStringLiteral("icon-theme"), theme.isEmpty() ? QString() : theme } });
+    emit iconThemeChanged();
+}
+
+QVariantList Preferences::iconThemes() const
+{
+    // name -> Name=; the first directory wins, like Qt's lookup. Only themes
+    // with icon directories: not the cursor-only ones, not hicolor (Hidden).
+    QMap<QString, QString> themes;
+    const QStringList roots = QIcon::themeSearchPaths();
+    for (const QString& root : roots) {
+        const QStringList names = QDir(root).entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+        for (const QString& name : names) {
+            if (themes.contains(name)) {
+                continue;
+            }
+            QFile file(root + u'/' + name + QStringLiteral("/index.theme"));
+            if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+                continue;
+            }
+            QString text = name;
+            QStringList directories;
+            bool hidden = false;
+            bool inside = false;
+            while (!file.atEnd()) {
+                const QString line = QString::fromUtf8(file.readLine()).trimmed();
+                if (line.startsWith(u'[')) {
+                    if (inside) {
+                        break;
+                    }
+                    inside = line == QLatin1String("[Icon Theme]");
+                } else if (inside && line.startsWith(QLatin1String("Name="))) {
+                    text = line.mid(5).trimmed();
+                } else if (inside && line.startsWith(QLatin1String("Directories="))) {
+                    directories = line.mid(12).split(u',', Qt::SkipEmptyParts);
+                } else if (inside && line.startsWith(QLatin1String("Hidden="))) {
+                    hidden = line.mid(7).trimmed() == QLatin1String("true");
+                }
+            }
+            directories.removeIf([](const QString& d) { return d.trimmed().startsWith(QLatin1String("cursors")); });
+            if (!hidden && !directories.isEmpty()) {
+                themes.insert(name, text);
+            }
+        }
+    }
+    QVariantList result;
+    for (auto it = themes.cbegin(); it != themes.cend(); ++it) {
+        const QString& name = it.key();
+        if (name.endsWith(QLatin1String("-dark"), Qt::CaseInsensitive) && themes.contains(name.chopped(5))) {
+            continue; // the dark variant of a listed theme
+        }
+        result.append(QVariantMap { { QStringLiteral("name"), name }, { QStringLiteral("text"), it.value() } });
+    }
+    std::sort(result.begin(), result.end(), [](const QVariant& a, const QVariant& b) {
+        return a.toMap()[QStringLiteral("text")].toString().compare(b.toMap()[QStringLiteral("text")].toString(), Qt::CaseInsensitive) < 0;
+    });
+    return result;
 }
 
 void Preferences::setShellTheme(const QString& theme)

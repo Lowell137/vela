@@ -10,6 +10,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QSettings>
+#include <QStandardPaths>
 
 Appearance::Appearance(QObject* parent, Mode mode)
     : QObject(parent)
@@ -28,7 +29,9 @@ void Appearance::watch()
 {
     // Whoever writes the files replaces them: the directories are watched too.
     const QString shellConfig = QSettings(QStringLiteral("Vela"), QStringLiteral("vela-shell")).fileName();
-    for (const QString& path : { shellConfig, wallpaperTintCachePath() }) {
+    // vela.conf: the icon theme (icon-theme=).
+    const QString velaConfig = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + QStringLiteral("/vela/vela.conf");
+    for (const QString& path : { shellConfig, wallpaperTintCachePath(), velaConfig }) {
         const QFileInfo info(path);
         if (info.exists() && !m_watcher.files().contains(path)) {
             m_watcher.addPath(path);
@@ -57,16 +60,25 @@ void Appearance::reload()
     const QColor tint = cachedWallpaperTint();
     const QColor mica = micaFromTint(tint, true, light);
     const QColor micaInactive = micaFromTint(tint, false, light);
-    if (light == m_light && accent == m_accent && mica == m_mica && micaInactive == m_micaInactive) {
+    const QString iconTheme = configuredIconTheme();
+    if (light == m_light && accent == m_accent && mica == m_mica && micaInactive == m_micaInactive
+        && iconTheme == m_iconTheme) {
         return;
     }
     const bool first = !m_accent.isValid();
+    if (iconTheme != m_iconTheme && !first) {
+        ++m_iconGeneration;
+    }
+    m_iconTheme = iconTheme;
     m_light = light;
     m_accent = accent;
     m_mica = mica;
     m_micaInactive = micaInactive;
     applyIconTheme(light); // before QML asks for the icons
-    const QString mode = light ? QStringLiteral("l/") : QStringLiteral("d/");
+    QString mode = light ? QStringLiteral("l/") : QStringLiteral("d/");
+    if (m_iconGeneration > 0) {
+        mode += u'~' + QString::number(m_iconGeneration) + u'/';
+    }
     if (first) {
         m_iconMode = mode;
         return;
