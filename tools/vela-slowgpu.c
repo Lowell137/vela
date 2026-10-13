@@ -469,6 +469,10 @@ static void setupBuffers(void)
         // Linear: the CPU writes the color directly.
         b->bo = gbm_bo_create(gbm, WIDTH, HEIGHT, GBM_FORMAT_XRGB8888, GBM_BO_USE_LINEAR | GBM_BO_USE_RENDERING);
         if (!b->bo) {
+            // NVIDIA's GBM refuses linear + rendering; only the CPU writes here.
+            b->bo = gbm_bo_create(gbm, WIDTH, HEIGHT, GBM_FORMAT_XRGB8888, GBM_BO_USE_LINEAR);
+        }
+        if (!b->bo) {
             die("gbm_bo_create");
         }
         b->fd = gbm_bo_get_fd(b->bo);

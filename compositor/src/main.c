@@ -92,6 +92,16 @@ int main(int argc, char *argv[])
     // vblank: the kernel must not round timers (50 µs by default).
     prctl(PR_SET_TIMERSLACK, 1UL, 0UL, 0UL, 0UL);
 
+    // The signals the event loop handles (signalfd, server.c) must be blocked
+    // in every thread: one created before (the GPU driver's) would otherwise
+    // take SIGTERM and kill Vela without a clean exit. Threads inherit the mask.
+    sigset_t handled;
+    sigemptyset(&handled);
+    sigaddset(&handled, SIGINT);
+    sigaddset(&handled, SIGTERM);
+    sigaddset(&handled, SIGUSR1);
+    sigprocmask(SIG_BLOCK, &handled, NULL);
+
     const char *debug = getenv("VELA_DEBUG");
     wlr_log_init(debug && *debug ? WLR_DEBUG : WLR_INFO, NULL);
 
