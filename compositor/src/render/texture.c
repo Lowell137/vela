@@ -136,6 +136,10 @@ static struct wlr_texture *import_dmabuf(struct vela_renderer *renderer, struct 
             dmabuf->modifier);
         return NULL;
     }
+    if (vela_env_one("VELA_DEBUG_DMABUF")) {
+        wlr_log(WLR_INFO, "DMABUF trace: texture import %dx%d drm=0x%08x modifier=0x%" PRIx64
+            " planes=%d", dmabuf->width, dmabuf->height, dmabuf->format, dmabuf->modifier, dmabuf->n_planes);
+    }
     struct vela_texture *texture = new_texture(renderer, format, dmabuf->width, dmabuf->height);
     if (!vela_vulkan_import_dmabuf(vk, dmabuf, format->unorm,
             VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, &texture->image, &texture->memory)
