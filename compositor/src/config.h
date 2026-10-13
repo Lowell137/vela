@@ -40,6 +40,12 @@
 //   hot-corner-animation=yes ripples when it opens Task View
 //   snap-drag-layouts=yes    dragging a window to the top opens the snap layouts
 //                            (snap.c)
+//   snap-drag-trigger-distance=64  how close to the top they open (px, 4-200):
+//                            the pointer holds the title bar, so the window
+//                            reaching the top is enough
+//   snap-drag-trigger-width=160  how far beside the panel they open (px, 0-960)
+//   snap-drag-scale=100      their size (percent, 60-200; at most 90% of the
+//                            output's width)
 //   language=                it, en, or empty (like the system)
 //   polkit-agent=yes         start Vela's polkit agent (docs/polkit-agent.md)
 //   icon-theme=              icon theme name (empty: KDE's, Breeze); X-dark/X-Dark
