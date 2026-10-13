@@ -22,6 +22,19 @@ Page {
     }
 
     CardGroup {
+        title: qsTr("Task View")
+        Card {
+            icon: "view-grid"
+            title: qsTr("Hot corner")
+            description: qsTr("Moving the pointer into the top-left corner opens Task View")
+            trailing: Toggle {
+                checked: Prefs.hotCorner
+                onToggled: on => Prefs.hotCorner = on
+            }
+        }
+    }
+
+    CardGroup {
         title: qsTr("Taskbar behaviors")
         Card {
             icon: "format-justify-center"
