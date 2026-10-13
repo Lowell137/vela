@@ -23,6 +23,95 @@ Window {
     readonly property bool dragMode: Snip.mode === "rect" || Snip.mode === "text"
     readonly property bool hasSelection: selection.width > 0 && selection.height > 0
 
+    // The Text mode: the chosen rectangle stays, with the words found in it
+    // (like Windows' Text Actions) to select and copy. textState: "" (choosing),
+    // "busy", "words", "empty" or "failed".
+    property string textState: ""
+    property string textError: ""
+    property var words: []
+    property rect textRect: Qt.rect(0, 0, 0, 0)
+    property int selFrom: -1
+    property int selTo: -1
+    property point menuAt
+    property bool menuOpen: false
+    readonly property int selMin: Math.min(selFrom, selTo)
+    readonly property int selMax: Math.max(selFrom, selTo)
+
+    function resetText() {
+        textState = ""
+        words = []
+        selFrom = -1
+        selTo = -1
+        menuOpen = false
+        selection = Qt.rect(0, 0, 0, 0)
+    }
+    function beginText(r) {
+        if (r.width < 8 || r.height < 8) {
+            return
+        }
+        textRect = r
+        textState = "busy"
+        Snip.recognize(root.screenName, r.x, r.y, r.width, r.height)
+    }
+    // The word under the point, else the nearest one.
+    function wordAt(x, y) {
+        let best = -1
+        let bestDistance = Infinity
+        for (let i = 0; i < words.length; ++i) {
+            const w = words[i]
+            const dx = Math.max(w.x - x, 0, x - (w.x + w.w))
+            const dy = Math.max(w.y - y, 0, y - (w.y + w.h))
+            const distance = dx * dx + dy * dy * 4
+            if (distance < bestDistance) {
+                best = i
+                bestDistance = distance
+            }
+        }
+        return best
+    }
+    function textOf(from, to) {
+        let text = ""
+        for (let i = from; i <= to; ++i) {
+            if (i > from) {
+                text += words[i].line !== words[i - 1].line ? "\n" : " "
+            }
+            text += words[i].text
+        }
+        return text
+    }
+    function copySelected() {
+        if (selFrom >= 0) {
+            Snip.copyText(textOf(selMin, selMax))
+        }
+    }
+    function copyAll() {
+        if (words.length > 0) {
+            Snip.copyText(textOf(0, words.length - 1))
+        }
+    }
+    function selectAll() {
+        if (words.length > 0) {
+            selFrom = 0
+            selTo = words.length - 1
+        }
+    }
+
+    Connections {
+        target: Snip
+        function onWordsReady(screen, found) {
+            if (screen !== root.screenName || root.textState !== "busy") return
+            root.words = found
+            root.selFrom = -1
+            root.selTo = -1
+            root.textState = found.length > 0 ? "words" : "empty"
+        }
+        function onRecognizeFailed(screen, reason) {
+            if (screen !== root.screenName || root.textState !== "busy") return
+            root.textError = reason
+            root.textState = "failed"
+        }
+    }
+
     // The topmost window under the point (this output's coordinates).
     function windowAt(x, y) {
         const gx = x + Screen.virtualX
@@ -114,11 +203,119 @@ Window {
             if (mouse.button !== Qt.LeftButton) return
             if (root.dragMode) {
                 root.dragging = false
-                root.finish(root.selection)
+                if (Snip.mode === "text") {
+                    root.beginText(root.selection)
+                } else {
+                    root.finish(root.selection)
+                }
             } else if (Snip.mode === "window") {
                 root.finish(root.windowAt(mouse.x, mouse.y))
             } else {
                 root.finish(Qt.rect(0, 0, root.width, root.height))
+            }
+        }
+    }
+
+    // The words, and the mouse once the rectangle is chosen.
+    Item {
+        visible: root.textState !== ""
+        anchors.fill: parent
+        Rectangle {
+            x: root.textRect.x; y: root.textRect.y; width: root.textRect.width; height: root.textRect.height
+            color: Qt.rgba(0, 0, 0, 0.25)
+        }
+        Repeater {
+            model: root.words
+            delegate: Rectangle {
+                required property var modelData
+                required property int index
+                readonly property bool picked: root.selFrom >= 0 && index >= root.selMin && index <= root.selMax
+                x: modelData.x - 2
+                y: modelData.y - 1
+                width: modelData.w + 4
+                height: modelData.h + 2
+                radius: 3
+                color: picked ? Qt.rgba(0.25, 0.5, 0.95, 0.55) : Qt.rgba(1, 1, 1, 0.3)
+            }
+        }
+        Text {
+            visible: root.textState !== "words"
+            x: root.textRect.x + (root.textRect.width - width) / 2
+            y: root.textRect.y + (root.textRect.height - height) / 2
+            text: root.textState === "busy" ? qsTr("Reading text…")
+                : root.textState === "empty" ? qsTr("No text found") : root.textError
+            color: "white"
+            font.pixelSize: Theme.fontBody
+            style: Text.Outline
+            styleColor: "black"
+        }
+        MouseArea {
+            anchors.fill: parent
+            acceptedButtons: Qt.LeftButton | Qt.RightButton
+            cursorShape: Qt.IBeamCursor
+            property bool selecting: false
+            onPressed: mouse => {
+                root.menuOpen = false
+                const r = root.textRect
+                const inside = mouse.x >= r.x && mouse.x < r.x + r.width && mouse.y >= r.y && mouse.y < r.y + r.height
+                if (!inside) {
+                    root.resetText() // choose another rectangle
+                    return
+                }
+                if (mouse.button === Qt.RightButton) {
+                    root.menuAt = Qt.point(mouse.x, mouse.y)
+                    root.menuOpen = root.textState === "words"
+                    return
+                }
+                if (root.textState === "words") {
+                    selecting = true
+                    root.selFrom = root.wordAt(mouse.x, mouse.y)
+                    root.selTo = root.selFrom
+                }
+            }
+            onPositionChanged: mouse => {
+                if (selecting) root.selTo = root.wordAt(mouse.x, mouse.y)
+            }
+            onReleased: selecting = false
+        }
+        Rectangle {
+            visible: root.menuOpen
+            x: Math.min(root.menuAt.x, root.width - width - 8)
+            y: Math.min(root.menuAt.y, root.height - height - 8)
+            width: 220
+            height: menuItems.height + 8
+            radius: Theme.radius
+            color: Theme.dialog
+            border.width: 1
+            border.color: Theme.stroke
+            Column {
+                id: menuItems
+                x: 4; y: 4
+                width: parent.width - 8
+                Repeater {
+                    model: [
+                        { label: qsTr("Copy text"), key: "Ctrl+C", copy: true },
+                        { label: qsTr("Select all"), key: "Ctrl+A", copy: false }
+                    ]
+                    delegate: Rectangle {
+                        required property var modelData
+                        width: parent.width
+                        height: 34
+                        radius: Theme.radius
+                        color: itemMouse.containsMouse ? Theme.subtleHover : "transparent"
+                        Text { x: 10; anchors.verticalCenter: parent.verticalCenter; text: modelData.label; color: Theme.text; font.pixelSize: Theme.fontBody }
+                        Text { anchors { right: parent.right; rightMargin: 10; verticalCenter: parent.verticalCenter } text: modelData.key; color: Theme.text; opacity: 0.6; font.pixelSize: Theme.fontBody }
+                        MouseArea {
+                            id: itemMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            onClicked: {
+                                root.menuOpen = false
+                                if (modelData.copy) root.copySelected(); else root.selectAll()
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -168,10 +365,25 @@ Window {
                         hoverEnabled: true
                         onClicked: {
                             Snip.mode = tool.modelData.mode
-                            root.selection = Qt.rect(0, 0, 0, 0)
+                            root.resetText()
                         }
                     }
                 }
+            }
+            Rectangle {
+                visible: root.textState === "words"
+                width: copyAllText.width + 24
+                height: 36
+                radius: Theme.radius
+                color: copyAllMouse.containsMouse ? Theme.subtleHover : "transparent"
+                Text {
+                    id: copyAllText
+                    anchors.centerIn: parent
+                    text: qsTr("Copy all text")
+                    color: Theme.text
+                    font.pixelSize: Theme.fontBody
+                }
+                MouseArea { id: copyAllMouse; anchors.fill: parent; hoverEnabled: true; onClicked: root.copyAll() }
             }
             Rectangle { width: 1; height: 24; anchors.verticalCenter: parent.verticalCenter; color: Theme.stroke }
             Rectangle {
@@ -199,9 +411,14 @@ Window {
         focus: true
         Keys.onEscapePressed: Snip.cancel()
         Keys.onPressed: event => {
+            if (root.textState !== "") {
+                if (event.matches(StandardKey.Copy)) root.copySelected()
+                else if (event.matches(StandardKey.SelectAll)) root.selectAll()
+                return
+            }
             // Like Windows: Enter with a rectangle chosen confirms it.
             if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter) && root.hasSelection) {
-                root.finish(root.selection)
+                if (Snip.mode === "text") root.beginText(root.selection); else root.finish(root.selection)
             }
         }
     }
