@@ -124,6 +124,12 @@ void Snip::start()
     });
 }
 
+void Snip::startText()
+{
+    start();
+    setMode(QStringLiteral("text"));
+}
+
 void Snip::showOverlays()
 {
     for (QScreen* screen : QGuiApplication::screens()) {

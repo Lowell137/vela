@@ -176,6 +176,10 @@ bool vela_bindings_handle(struct vela_server *server, uint32_t modifiers, uint32
     if (super && xkb_keysym_to_lower(sym) == XKB_KEY_v && vela_shortcuts_default_enabled(ctrl ? "sound-output" : "clipboard")) {
         return shell(server, ctrl ? "sound-output" : "clipboard");
     }
+    // Win+Shift+T: the Snipping Tool in its Text mode (copy the text of a region).
+    if (super && shift && xkb_keysym_to_lower(sym) == XKB_KEY_t && vela_shortcuts_default_enabled("snip-text")) {
+        return shell(server, "snip-text");
+    }
     if (((super && shift && xkb_keysym_to_lower(sym) == XKB_KEY_s) || sym == XKB_KEY_Print) && vela_shortcuts_default_enabled("snip")) {
         return shell(server, "snip");
     }

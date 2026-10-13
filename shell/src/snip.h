@@ -45,6 +45,7 @@ public:
     QVariantList windows() const { return m_windows; }
 
     void start();
+    void startText(); // the Text mode from the start
     Q_INVOKABLE void cancel();
     // The snip, in logical coordinates of output `screen`.
     Q_INVOKABLE void finish(const QString& screen, qreal x, qreal y, qreal width, qreal height);

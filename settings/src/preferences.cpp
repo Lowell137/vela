@@ -896,6 +896,7 @@ const ShortcutAction kShortcutActions[] = {
     { "clipboard", QT_TRANSLATE_NOOP("Preferences", "Clipboard history"), "Super+V" },
     { "sound-output", QT_TRANSLATE_NOOP("Preferences", "Sound output and volume mixer"), "Super+Ctrl+V" },
     { "snip", QT_TRANSLATE_NOOP("Preferences", "Snipping tool"), "Super+Shift+S" },
+    { "snip-text", QT_TRANSLATE_NOOP("Preferences", "Copy text from the screen"), "Super+Shift+T" },
 };
 
 struct FixedShortcut {
