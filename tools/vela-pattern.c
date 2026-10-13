@@ -16,7 +16,7 @@
 // and close values are the worst case for any filter.
 //
 // Usage: vela-pattern [--scale1] [--app-id ID] [--decorated] [--popup X,Y]
-//                     [WIDTH HEIGHT]   (logical; default 401x301)
+//                     [--clear] [WIDTH HEIGHT]   (logical; default 401x301)
 //
 // --scale1: like an old app, always draws at scale 1 (the compositor must
 // magnify): one-pixel lines and a checkerboard, to judge the filter.
@@ -24,6 +24,8 @@
 // apps.
 // --popup X,Y: also opens a 200x150 magenta menu (xdg-popup), anchored at
 // point (X, Y) of the window; it may slide to stay on screen.
+// --clear: a fully transparent window instead (ARGB, alpha 0), like the parts
+// of Firefox that show the desktop (window-blur tests).
 
 #define _GNU_SOURCE
 #include <math.h>
@@ -59,6 +61,7 @@ static int pendingHeight;
 static uint32_t scale120 = 120;
 static int configured;
 static int legacy;
+static int clear;
 static int running = 1;
 
 #define POPUP_WIDTH 200
@@ -132,13 +135,14 @@ static void draw(void)
                 const uint32_t b = ((uint32_t)(x >> 8) & 15) << 4 | ((uint32_t)(y >> 8) & 15);
                 color = 0xff000000u | r << 16 | g << 8 | b;
             }
-            pixels[y * width + x] = color;
+            pixels[y * width + x] = clear ? 0 : color;
         }
     }
     munmap(pixels, size);
 
     struct wl_shm_pool* pool = wl_shm_create_pool(shm, fd, (int32_t)size);
-    struct wl_buffer* buffer = wl_shm_pool_create_buffer(pool, 0, width, height, stride, WL_SHM_FORMAT_XRGB8888);
+    struct wl_buffer* buffer = wl_shm_pool_create_buffer(pool, 0, width, height, stride,
+        clear ? WL_SHM_FORMAT_ARGB8888 : WL_SHM_FORMAT_XRGB8888);
     wl_buffer_add_listener(buffer, &bufferListener, NULL);
     wl_shm_pool_destroy(pool);
     close(fd);
@@ -275,6 +279,8 @@ int main(int argc, char** argv)
     for (; arg < argc && !strncmp(argv[arg], "--", 2); ++arg) {
         if (!strcmp(argv[arg], "--scale1")) {
             legacy = 1;
+        } else if (!strcmp(argv[arg], "--clear")) {
+            clear = 1;
         } else if (!strcmp(argv[arg], "--decorated")) {
             decorated = 1;
         } else if (!strcmp(argv[arg], "--popup") && arg + 1 < argc

@@ -656,7 +656,12 @@ not been needed yet: at idle nothing is redrawn anyway.
   and Vela's bar), minus the region the app declares opaque; nothing for
   buffers without alpha and for fullscreen windows. It goes the same way as a
   region asked by the app (`vela_surface_node.blur`, decided by
-  `vela_view_update_blur` before each frame).
+  `vela_view_update_blur` before each frame), except for the shape: the whole
+  region, not the main surface's alpha. Apps that don't ask draw nearly or
+  fully transparent pixels where the desktop shows, and Firefox (Zen) draws
+  its content in a subsurface above a transparent main surface: with the
+  alpha as the shape nothing was blurred. The cost: CSD windows that round
+  their own corners show a few blurred pixels outside them.
 - **Everything at full quality, even on battery**: no automatic reduction of
   effects. Savings come from not drawing what doesn't change, not from removing
   effects.

@@ -7,6 +7,7 @@ the wallpaper, the taskbar reserving its space and blurring what's behind it
 only where something changed must be identical to one redrawn in full
 (VELA_DEBUG_DAMAGE=1)."""
 
+import os
 import subprocess
 import time
 import unittest
@@ -63,6 +64,26 @@ class Layers(unittest.TestCase):
         self.assertGreaterEqual(len(column(blurred)), 12)
         # Outside the bar nothing changes.
         self.assertEqual(plain.rows[:plain.height - BAR - 40], blurred.rows[:blurred.height - BAR - 40])
+
+    def test_window_blur_behind_transparent_pixels(self):
+        """window-blur=yes blurs behind a window even where its pixels are
+        fully transparent (Firefox/Zen draw like that)."""
+        def column(conf):
+            with Session() as vela:
+                os.makedirs(os.path.dirname(vela.config_path()), exist_ok=True)
+                with open(vela.config_path(), "w") as f:
+                    f.write(conf)
+                vela.command("reload-config")
+                shell(vela, blur=False)
+                window = vela.open_window(400, 300, command=[tool("vela-pattern"), "--clear", "400", "300"])
+                w = vela.state().window(window)
+                image = vela.pixels()
+                return [image.at(w["x"] + 200, y) for y in range(w["y"] + 20, w["y"] + 280)]
+        # The wallpaper's bands: sharp steps between rows, gone when blurred
+        # (the window's shadow alone only shades them).
+        step = lambda pixels: max(max(abs(a - b) for a, b in zip(p, q)) for p, q in zip(pixels, pixels[1:]))
+        self.assertGreater(step(column("window-blur=no\n")), 40)
+        self.assertLess(step(column("window-blur=yes\nwindow-blur-all=yes\n")), 12)
 
 
 class Damage(unittest.TestCase):
