@@ -497,7 +497,23 @@ struct vela_target *vela_renderer_target(struct vela_renderer *r, struct wlr_buf
         .format = format->srgb,
         .subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 },
     };
-    vkCreateImageView(r->vk->device, &view_info, NULL, &target->view);
+    if (vela_env_one("VELA_DEBUG_DMABUF")) {
+        wlr_log(WLR_INFO, "DMABUF trace: before vkCreateImageView (render target)");
+    }
+    VkResult view_result = vkCreateImageView(r->vk->device, &view_info, NULL, &target->view);
+    if (vela_env_one("VELA_DEBUG_DMABUF")) {
+        wlr_log(WLR_INFO, "DMABUF trace: after vkCreateImageView result=%d", (int)view_result);
+    }
+    if (view_result != VK_SUCCESS) {
+        wlr_log(WLR_ERROR, "Renderer: vkCreateImageView for target failed: VkResult=%d", (int)view_result);
+        vkDestroyImage(r->vk->device, target->image, NULL);
+        vkFreeMemory(r->vk->device, target->memory, NULL);
+        free(target);
+        return NULL;
+    }
+    if (vela_env_one("VELA_DEBUG_DMABUF")) {
+        wlr_log(WLR_INFO, "DMABUF trace: render target ready");
+    }
 
     wlr_addon_init(&target->addon, &buffer->addons, r, &target_addon_impl);
     wl_list_insert(&r->targets, &target->link);
