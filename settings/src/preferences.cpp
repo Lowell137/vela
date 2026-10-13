@@ -341,6 +341,8 @@ void Preferences::reloadCompositor()
     m_touchpadTap = flag(QStringLiteral("touchpad-tap"), true);
     m_touchpadNatural = flag(QStringLiteral("touchpad-natural-scroll"), true);
     m_hotCorner = flag(QStringLiteral("hot-corner"), true);
+    m_hotCornerGlow = flag(QStringLiteral("hot-corner-glow"), true);
+    m_hotCornerAnimation = flag(QStringLiteral("hot-corner-animation"), true);
     m_threeFingers = value(QStringLiteral("touchpad-three-fingers"), QStringLiteral("app"));
     m_fourFingers = value(QStringLiteral("touchpad-four-fingers"), QStringLiteral("desktop"));
     emit inputChanged();
@@ -1121,6 +1123,24 @@ void Preferences::setHotCorner(bool on)
     if (on != m_hotCorner) {
         m_hotCorner = on;
         saveCompositor({ { QStringLiteral("hot-corner"), yesNo(on) } });
+        emit shortcutsChanged();
+    }
+}
+
+void Preferences::setHotCornerGlow(bool on)
+{
+    if (on != m_hotCornerGlow) {
+        m_hotCornerGlow = on;
+        saveCompositor({ { QStringLiteral("hot-corner-glow"), yesNo(on) } });
+        emit shortcutsChanged();
+    }
+}
+
+void Preferences::setHotCornerAnimation(bool on)
+{
+    if (on != m_hotCornerAnimation) {
+        m_hotCornerAnimation = on;
+        saveCompositor({ { QStringLiteral("hot-corner-animation"), yesNo(on) } });
         emit shortcutsChanged();
     }
 }

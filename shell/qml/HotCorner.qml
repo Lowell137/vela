@@ -17,23 +17,19 @@ Window {
 
     property bool near: false
     property real progress: 0 // how close to the corner while near, 0..1
-    property bool fired: false // no glow again until the pointer leaves
-    readonly property real level: near && !fired ? progress : 0
+    readonly property real level: near ? progress : 0
 
     Connections {
         target: Shell
         function onHotCornerChanged(state, output, progress) {
             if (state === "away") {
                 root.near = false
-                root.fired = false
                 return
             }
-            if (state === "fire") {
-                root.fired = true
-            } else {
-                root.near = true
-                root.progress = progress
-            }
+            // After "fire" the compositor sends "near" again only once the
+            // corner has armed again.
+            root.near = state === "near"
+            root.progress = progress
             if (!root.visible) {
                 if (state !== "fire" && root.level === 0) {
                     return // nothing to show yet

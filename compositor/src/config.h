@@ -35,6 +35,9 @@
 //   touchpad-speed=10, touchpad-tap=yes, touchpad-natural-scroll=yes
 //   touchpad-three-fingers=app  gestures: app, desktop, no
 //   touchpad-four-fingers=desktop
+//   hot-corner=yes           the top-left corner opens Task View (interact.c)
+//   hot-corner-glow=yes      a glow while the pointer is near it
+//   hot-corner-animation=yes ripples when it opens Task View
 //   language=                it, en, or empty (like the system)
 //   polkit-agent=yes         start Vela's polkit agent (docs/polkit-agent.md)
 //   icon-theme=              icon theme name (empty: KDE's, Breeze); X-dark/X-Dark

@@ -154,12 +154,15 @@ static void hot_corner_check(struct vela_server *server)
             && !(focused && focused->fullscreen);
     }
     char line[128];
+    // The glow ("hot-corner-glow=no" turns it off) waits, after firing, for
+    // the corner to arm again.
+    bool glow = allowed && armed && vela_hot_corner_glow_enabled();
     // Distance from the corner, the trigger (2px) to the near edge (48px).
     double progress = 1.0 - (hypot(dx, dy) - 2.0) / 46.0;
     int step = (int)lround(fmin(fmax(progress, 0.0), 1.0) * 20.0);
-    if ((allowed ? wlr : NULL) != near || (allowed && step != near_step)) {
-        near = allowed ? wlr : NULL;
-        near_step = allowed ? step : -1;
+    if ((glow ? wlr : NULL) != near || (glow && step != near_step)) {
+        near = glow ? wlr : NULL;
+        near_step = glow ? step : -1;
         snprintf(line, sizeof(line), "hot-corner near %s %.2f", wlr->name, step / 20.0);
         vela_shell_send(server, near ? line : "hot-corner away");
     }
@@ -172,8 +175,16 @@ static void hot_corner_check(struct vela_server *server)
     }
     armed = false;
     if (allowed) {
-        snprintf(line, sizeof(line), "hot-corner fire %s", wlr->name);
-        vela_shell_send(server, line);
+        // "fire" also puts the glow out; without the ripples
+        // ("hot-corner-animation=no") "away" does.
+        if (vela_hot_corner_animation_enabled()) {
+            snprintf(line, sizeof(line), "hot-corner fire %s", wlr->name);
+            vela_shell_send(server, line);
+        } else if (near) {
+            vela_shell_send(server, "hot-corner away");
+        }
+        near = NULL;
+        near_step = -1;
         vela_shell_send(server, "task-view");
     }
 }
