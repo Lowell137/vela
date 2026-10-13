@@ -180,6 +180,9 @@ Window {
             Button {
                 text: "Sfoglia..."
                 onClicked: {
+                    // close() first: if the portal never answered (its
+                    // backend died), open() alone would do nothing forever.
+                    browse.close()
                     root.browsing = true
                     browse.open()
                 }
