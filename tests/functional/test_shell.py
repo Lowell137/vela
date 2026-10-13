@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 Brando Giuffrida
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-"""The actual Qt shell: Super must not reset the desktop or lose a reopened menu.
+"""The actual Qt shell: panels, mixed-output coordinates, selection and snips.
 
 Fake shell sockets and vela-panel cannot exercise Qt's layer-surface lifecycle.
 Run the real shell on a private session bus and isolated configuration.
@@ -11,11 +11,15 @@ import json
 import os
 import re
 import subprocess
+import time
 import unittest
 
-from harness import BUILD, Session
+from harness import BUILD, Image, Session, tool
 
 SHELL = os.path.join(BUILD, "shell", "vela-shell")
+OUTPUT_CASES = (("normal", 1, "above"), ("90", 1, "above"), ("180", 1.25, "right"),
+                ("270", 1.5, "left"), ("flipped", 1, "below"), ("flipped-90", 1.25, "right"),
+                ("flipped-180", 1.5, "left"), ("flipped-270", 1, "below"))
 
 
 @unittest.skipUnless(os.path.exists(SHELL), "vela-shell not built (VELA_BUILD_SHELL=OFF)")
@@ -26,9 +30,18 @@ class QtShell(unittest.TestCase):
         self.addCleanup(self.stop_bus)
         address = self.bus.stdout.readline().strip()
         self.assertTrue(address, "private D-Bus session failed to start")
-        self.vela = Session(size="1920x1080@100", env={"VELA_SYNC_FILE": "0", "DBUS_SESSION_BUS_ADDRESS": address})
+        self.vela = Session(size="1920x1080@100", env={
+            "VELA_SYNC_FILE": os.environ.get("VELA_QT_SYNC_FILE", "0"), "DBUS_SESSION_BUS_ADDRESS": address})
         self.vela.start()
         self.addCleanup(self.vela.stop)
+        # Snips and desktop files must stay in this isolated test session.
+        pictures = os.path.join(self.vela.directory, "Pictures")
+        desktop = os.path.join(self.vela.directory, "Desktop")
+        os.makedirs(pictures)
+        os.makedirs(desktop)
+        os.makedirs(self.vela.env["XDG_CONFIG_HOME"], exist_ok=True)
+        with open(os.path.join(self.vela.env["XDG_CONFIG_HOME"], "user-dirs.dirs"), "w") as file:
+            file.write(f'XDG_PICTURES_DIR="{pictures}"\nXDG_DESKTOP_DIR="{desktop}"\n')
         env = dict(self.vela.client_env, QT_QPA_PLATFORM="wayland",
                    QT_WAYLAND_SHELL_INTEGRATION="layer-shell", QT_WAYLAND_RECONNECT="0",
                    QT_FORCE_STDERR_LOGGING="1", QSG_RENDER_LOOP="threaded", QSG_RHI_BACKEND="opengl",
@@ -57,6 +70,208 @@ class QtShell(unittest.TestCase):
         self.assertTrue(self.mapped(state, "vela-taskbar"))
         self.assertTrue(self.mapped(state, "vela-wallpaper"))
         self.assertNotIn("layer_surface has never been configured", self.vela.log_text())
+
+    def secondary_output(self, transform="90", scale=1, side="above"):
+        """Configure a real Qt desktop at any side, including negative layout coordinates."""
+        if not any(o["name"] == "HEADLESS-2" for o in self.vela.state()["outputs"]):
+            self.vela.command("test-output add 1920x1080")
+            self.vela.wait_for(lambda s: len(s["outputs"]) == 2, what="secondary output")
+        swapped = "90" in transform or "270" in transform
+        width, height = ((1080, 1920) if swapped else (1920, 1080))
+        width, height = int(width / scale), int(height / scale)
+        x, y = {"above": (0, -height), "left": (-width, 0),
+                "right": (1920, 0), "below": (0, 1080)}[side]
+        self.vela.randr("--output", "HEADLESS-2", "--scale", str(scale), "--pos", f"{x},{y}",
+                        "--transform", transform)
+        state = self.vela.wait_for(
+            lambda s: any(layer["namespace"] == "vela-wallpaper" and layer["mapped"]
+                          and layer["output"] == "HEADLESS-2" and layer["w"] == width
+                          and layer["h"] == height for layer in s["layers"]),
+            what="secondary Qt wallpaper configured")
+        return next(o for o in state["outputs"] if o["name"] == "HEADLESS-2")
+
+    def settled_wallpaper(self, output=1):
+        """Wait for the asynchronous wallpaper load and opacity animation to finish."""
+        last, stable_since = None, time.monotonic()
+
+        def settled(_):
+            nonlocal last, stable_since
+            image = self.vela.pixels(output=output)
+            samples = {image.at(image.width * x // 4, image.height * y // 4)
+                       for x in (1, 2, 3) for y in (1, 2, 3)}
+            if last is None or image.rows != last.rows or len(samples) == 1:
+                stable_since = time.monotonic()
+            last = image
+            return time.monotonic() - stable_since >= 0.3
+
+        self.vela.wait_for(settled, timeout=8, read_state=False, what="wallpaper loaded and stationary")
+        return last
+
+    def test_desktop_selection_matches_coordinates_on_transformed_outputs(self):
+        """Growing, shrinking and releasing the band must preserve its coordinates on every transform."""
+        for transform, scale, side in OUTPUT_CASES:
+            with self.subTest(transform=transform, scale=scale, side=side):
+                output = self.secondary_output(transform, scale, side)
+                sx, sy = 120, 160
+                ends = ((500, min(950, output["h"] - 120)), (330, min(560, output["h"] - 240)))
+                self.vela.input("move", output["x"] + sx, output["y"] + sy)
+                before = self.settled_wallpaper()
+                # Keep one virtual pointer alive throughout the complete drag,
+                # including snapshots while its button is held.
+                # Allow Qt to process device creation/focus before the press,
+                # then the press before motion (as with an existing physical mouse).
+                actions = ["move", output["x"] + sx, output["y"] + sy, "sleep", 100,
+                           "down", "sleep", 100]
+                for ex, ey in ends:
+                    actions += ["move", output["x"] + ex, output["y"] + ey, "sleep", 2000]
+                actions += ["up", "move", output["x"] + sx, output["y"] + sy]
+                pointer = subprocess.Popen([tool("vela-input"), *map(str, actions)], env=self.vela.client_env)
+                try:
+                    for ex, ey in ends:
+
+                        def correctly_drawn(_):
+                            image = self.vela.pixels(output=1)
+                            # Include the pointer tip and the one-pixel band border.
+                            left, top = int(sx * scale) - 24, int(sy * scale) - 24
+                            right, bottom = int(ex * scale) + 24, int(ey * scale) + 24
+                            # The taskbar clock can change during a held drag.
+                            desktop_height = image.height - int(48 * scale)
+                            for row, (actual, old) in enumerate(zip(image.rows[:desktop_height], before.rows)):
+                                if row < top or row >= bottom:
+                                    if actual != old: return False
+                                elif actual[:left * 3] != old[:left * 3] or actual[right * 3:] != old[right * 3:]:
+                                    return False
+                            return all(image.at(int(x * scale), int(y * scale))
+                                       != before.at(int(x * scale), int(y * scale))
+                                       for x, y in ((sx + 40, sy + 40), (ex - 40, ey - 40)))
+
+                        self.vela.wait_for(correctly_drawn, timeout=4, read_state=False,
+                                           what="the desktop selection matches its upright rectangle")
+                finally:
+                    if pointer.poll() is None:
+                        try:
+                            pointer.wait(timeout=5)
+                        except subprocess.TimeoutExpired:
+                            pointer.kill()
+                            pointer.wait()
+                    self.assertEqual(pointer.returncode, 0)
+                desktop_height = before.height - int(48 * scale)
+                self.vela.wait_for(lambda _: self.vela.pixels(output=1).rows[:desktop_height]
+                                   == before.rows[:desktop_height],
+                                   timeout=4, read_state=False, what="selection erased after release")
+
+    def test_snipping_tool_crops_upright_pixels_on_transformed_outputs(self):
+        """Both shortcuts save upright pixels for all eight transforms and four layout sides."""
+        for transform, scale, side in OUTPUT_CASES:
+            output = self.secondary_output(transform, scale, side)
+            self.vela.input("move", 100, 100)
+            before = self.settled_wallpaper()
+            for shortcut in ("Print", "super+shift+s"):
+                with self.subTest(shortcut=shortcut, transform=transform, scale=scale, side=side):
+                    self.check_snip(output, before, shortcut)
+
+    def test_cursor_remains_at_the_pointer_coordinates_on_every_transform(self):
+        """wlroots' cursor must agree with Qt surface pixels, not an inverted capture oracle."""
+        expected = None
+        path = os.path.join(self.vela.directory, "with-cursor.png")
+        for transform, _, side in OUTPUT_CASES:
+            with self.subTest(transform=transform, side=side):
+                output = self.secondary_output(transform, 1, side)
+                self.vela.input("move", 100, 100)
+                before = self.settled_wallpaper()
+                self.vela.input("move", output["x"] + 200, output["y"] + 300, "sleep", 100)
+
+                def cursor_at_pointer(_):
+                    self.vela.screenshot(path, output=1, cursor=True)
+                    image = Image.read(path)
+                    changed = False
+                    desktop_height = image.height - 96
+                    for y, (actual, old) in enumerate(zip(image.rows[:desktop_height], before.rows)):
+                        if actual == old:
+                            continue
+                        changed = True
+                        if y < 280 or y >= 350:
+                            return False
+                        if actual[:180 * 3] != old[:180 * 3] or actual[250 * 3:] != old[250 * 3:]:
+                            return False
+                    return changed
+
+                self.vela.wait_for(cursor_at_pointer, timeout=3, read_state=False,
+                                   what="cursor drawn at its actual upright pointer coordinates")
+                image = Image.read(path)
+                white = {(x, y) for y in range(280, 350) for x in range(180, 250)
+                         if image.at(x, y) == (255, 255, 255)}
+                self.assertTrue(white, "the upright cursor's opaque white pixels")
+                if expected is None:
+                    expected = white
+                else:
+                    self.assertEqual(white, expected, "cursor position and shape changed with output orientation")
+
+    def check_snip(self, output, before, shortcut):
+        """Drag a secondary-screen crop and compare the saved PNG with its original pixels."""
+        self.vela.keys(shortcut)
+        self.vela.wait_for(lambda s: {layer["output"] for layer in s["layers"]
+                                    if layer["namespace"] == "vela-snip" and layer["mapped"]}
+                           == {"HEADLESS-1", "HEADLESS-2"}, timeout=4,
+                           what="snipping overlays on both outputs")
+        self.settled_wallpaper() # The first Qt overlay frame must finish before dragging.
+        pictures = os.path.join(self.vela.directory, "Pictures", "Screenshot")
+        previous = {path: os.stat(os.path.join(pictures, path)).st_ino
+                    for path in os.listdir(pictures)} if os.path.isdir(pictures) else {}
+        self.vela.input("move", output["x"] + 120, output["y"] + 160, "sleep", 100, "down",
+                        "sleep", 100, "move", output["x"] + 520, output["y"] + 420,
+                        "sleep", 200, "up")
+        self.vela.wait_for(lambda s: not any(layer["namespace"] == "vela-snip" and layer["mapped"]
+                                           for layer in s["layers"]), what="snipping completed")
+        paths = [os.path.join(pictures, name) for name in os.listdir(pictures)
+                 if name.endswith(".png") and previous.get(name) != os.stat(os.path.join(pictures, name)).st_ino]
+        self.assertEqual(len(paths), 1, "one snip saved to the isolated Pictures directory")
+        cut = Image.read(paths[0])
+        scale = output["scale"]
+        left, top, right, bottom = (int(value * scale) for value in (120, 160, 520, 420))
+        self.assertEqual((cut.width, cut.height), (right - left, bottom - top))
+        self.assertEqual(cut.rows, [row[left * 3:right * 3] for row in before.rows[top:bottom]])
+
+    def test_magnifier_keeps_portrait_selection_and_cursor_aligned(self):
+        """Zoomed Qt selection and the wlroots cursor must indicate the same portrait pixels."""
+        for transform, scale, side in (("90", 1, "above"), ("270", 1.5, "left")):
+            with self.subTest(transform=transform, scale=scale):
+                output = self.secondary_output(transform, scale, side)
+                self.vela.input("move", output["x"] + 120, output["y"] + 160)
+                self.vela.command("magnifier on")
+                before = self.settled_wallpaper()
+                # Zoom starts at 2x and keeps the initial pointer pixel still.
+                # The endpoints stay inside that view, so dragging does not pan.
+                left, top, right, bottom = (int(v * scale) for v in (120, 160, 540, 960))
+                pointer = subprocess.Popen([tool("vela-input"), "down", "sleep", "100", "move",
+                                           str(output["x"] + 330), str(output["y"] + 560),
+                                           "sleep", "2500", "up"], env=self.vela.client_env)
+                try:
+                    def aligned(_):
+                        path = os.path.join(self.vela.directory, "magnified-selection.png")
+                        self.vela.screenshot(path, output=1, cursor=True)
+                        image = Image.read(path)
+                        margin = int(40 * scale)
+                        for y, (actual, old) in enumerate(zip(image.rows[:-int(96 * scale)], before.rows)):
+                            if y < top - margin or y >= bottom + margin:
+                                if actual != old:
+                                    return False
+                            elif (actual[:(left - margin) * 3] != old[:(left - margin) * 3]
+                                  or actual[(right + margin) * 3:] != old[(right + margin) * 3:]):
+                                return False
+                        band = all(image.at(x, y) != before.at(x, y)
+                                   for x, y in ((left + margin, top + margin), (right - margin, bottom - margin)))
+                        cursor = any(image.at(x, y) == (255, 255, 255)
+                                     for y in range(bottom - margin, bottom + margin)
+                                     for x in range(right - margin, right + margin))
+                        return band and cursor
+
+                    self.vela.wait_for(aligned, timeout=2, read_state=False,
+                                       what="magnified selection and cursor aligned")
+                finally:
+                    pointer.wait(timeout=5)
+                    self.assertEqual(pointer.returncode, 0)
+                    self.vela.command("magnifier off")
 
     def test_settings_rotation_keeps_upper_taskbar_out_of_main_output(self):
         """Rotate only the upper screen through Settings, with the real Qt desktop mapped."""

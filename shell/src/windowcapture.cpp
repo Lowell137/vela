@@ -244,6 +244,21 @@ void WindowCapture::captureScreens()
     }
 }
 
+/** Clear snapshots and cancel outstanding full-screen captures without signals. */
+void WindowCapture::clearFull()
+{
+    // A cancelled/timed-out snip must not complete into a subsequent one.
+    const QList<Job*> jobs = m_jobs;
+    for (Job* job : jobs) {
+        if (job->full) {
+            vela_capture_end(job->capture);
+            m_jobs.removeOne(job);
+            delete job;
+        }
+    }
+    m_full.clear();
+}
+
 /** Queue complete output images for the interactive Snipping Tool. */
 int WindowCapture::captureScreensFull()
 {
@@ -281,13 +296,28 @@ int WindowCapture::captureScreensFull()
 void WindowCapture::finishJob(Job* job, bool ok)
 {
     const vela_capture_frame* frame = vela_capture_pixels(job->capture);
-    // QImage may only see dimensions whose rows fit the actual SHM mapping.
-    if (ok && vela_capture_frame_valid(frame) && frame->transform == WL_OUTPUT_TRANSFORM_NORMAL) {
-        const QImage full(frame->pixels, int(frame->width), int(frame->height),
-            int(frame->stride), imageFormat(frame->format));
+    uint32_t width = 0, height = 0;
+    // Output captures describe raw buffer orientation, not upright screen
+    // coordinates. Normalize before thumbnails and Snip consume the image.
+    if (ok && vela_capture_frame_dimensions(frame, &width, &height)) {
+        QImage full;
+        if (frame->transform == WL_OUTPUT_TRANSFORM_NORMAL) {
+            full = QImage(frame->pixels, int(width), int(height),
+                int(frame->stride), imageFormat(frame->format)).copy();
+        } else {
+            full = QImage(int(width), int(height), imageFormat(frame->format));
+            if (!full.isNull()) {
+                for (uint32_t y = 0; y < height; ++y) {
+                    auto* row = full.scanLine(int(y));
+                    for (uint32_t x = 0; x < width; ++x) {
+                        memcpy(row + x * 4, vela_capture_frame_pixel(frame, x, y), 4);
+                    }
+                }
+            }
+        }
         if (!full.isNull()) {
             if (job->full) {
-                m_full.insert(job->identifier, full.copy().convertToFormat(QImage::Format_RGB32));
+                m_full.insert(job->identifier, full.convertToFormat(QImage::Format_RGB32));
             } else {
                 m_thumbnails.insert(job->identifier,
                     full.scaled(thumbnailSize, thumbnailSize, Qt::KeepAspectRatio, Qt::SmoothTransformation));

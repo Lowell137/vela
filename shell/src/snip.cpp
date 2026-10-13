@@ -57,6 +57,14 @@ Snip::Snip(QQmlEngine* engine, WindowCapture* capture, Clipboard* clipboard, Not
     , m_clipboard(clipboard)
     , m_notifications(notifications)
 {
+    m_captureTimeout.setSingleShot(true);
+    m_captureTimeout.setInterval(1500);
+    connect(&m_captureTimeout, &QTimer::timeout, this, [this] {
+        if (m_waiting > 0) {
+            m_waiting = 0;
+            showOverlays();
+        }
+    });
     connect(m_capture, &WindowCapture::screenCaptured, this, [this](const QString&, bool) {
         if (m_waiting > 0 && --m_waiting == 0) {
             showOverlays();
@@ -105,16 +113,12 @@ void Snip::start()
         return;
     }
     // If a capture doesn't come back, go on with those there are.
-    QTimer::singleShot(1500, this, [this] {
-        if (m_waiting > 0) {
-            m_waiting = 0;
-            showOverlays();
-        }
-    });
+    m_captureTimeout.start();
 }
 
 void Snip::showOverlays()
 {
+    m_captureTimeout.stop();
     for (QScreen* screen : QGuiApplication::screens()) {
         if (m_capture->fullImage(screen->name()).isNull()) {
             continue;
@@ -161,6 +165,8 @@ void Snip::cancel()
     if (!m_active) {
         return;
     }
+    m_captureTimeout.stop();
+    m_waiting = 0;
     closeOverlays();
     m_capture->clearFull();
     m_active = false;
@@ -186,6 +192,7 @@ void Snip::finish(const QString& screenName, qreal x, qreal y, qreal width, qrea
     const QRect area = QRect(qRound(x * sx), qRound(y * sy), qRound(width * sx), qRound(height * sy))
                            .intersected(full.rect());
     const QImage cut = full.copy(area);
+    m_captureTimeout.stop();
     closeOverlays();
     m_capture->clearFull();
     m_active = false;

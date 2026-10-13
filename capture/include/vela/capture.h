@@ -45,6 +45,15 @@ struct vela_capture_job *vela_capture_begin(
     vela_capture_done_fn done,
     void *userdata);
 
+/** Begin capture with ext-image-copy-capture-v1 options (e.g. paint_cursors). */
+struct vela_capture_job *vela_capture_begin_with_options(
+    struct wl_shm *shm,
+    struct ext_image_copy_capture_manager_v1 *manager,
+    struct ext_image_capture_source_v1 *source,
+    uint32_t options,
+    vela_capture_done_fn done,
+    void *userdata);
+
 /** Return borrowed pixels after a successful, validated frame, else NULL. */
 const struct vela_capture_frame *vela_capture_pixels(const struct vela_capture_job *job);
 /** Destroy protocol proxies and SHM resources; cancels pending work. */

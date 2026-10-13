@@ -75,11 +75,13 @@ const uint8_t *vela_capture_frame_pixel(const struct vela_capture_frame *frame, 
         return NULL;
     }
     uint32_t sx = x, sy = y;
+    // The reported transform maps buffer to output. Sampling upright pixels
+    // requires its inverse, matching wlr_box_transform and the output cursor.
     switch (frame->transform) {
     case WL_OUTPUT_TRANSFORM_NORMAL: break;
-    case WL_OUTPUT_TRANSFORM_90: sx = frame->width - 1 - y; sy = x; break;
+    case WL_OUTPUT_TRANSFORM_90: sx = y; sy = frame->height - 1 - x; break;
     case WL_OUTPUT_TRANSFORM_180: sx = frame->width - 1 - x; sy = frame->height - 1 - y; break;
-    case WL_OUTPUT_TRANSFORM_270: sx = y; sy = frame->height - 1 - x; break;
+    case WL_OUTPUT_TRANSFORM_270: sx = frame->width - 1 - y; sy = x; break;
     case WL_OUTPUT_TRANSFORM_FLIPPED: sx = frame->width - 1 - x; break;
     case WL_OUTPUT_TRANSFORM_FLIPPED_90: sx = y; sy = x; break;
     case WL_OUTPUT_TRANSFORM_FLIPPED_180: sy = frame->height - 1 - y; break;
@@ -261,6 +263,15 @@ struct vela_capture_job *vela_capture_begin(struct wl_shm *shm,
     struct ext_image_capture_source_v1 *source,
     vela_capture_done_fn done, void *userdata)
 {
+    return vela_capture_begin_with_options(shm, manager, source, 0, done, userdata);
+}
+
+/** Start a capture with explicitly requested protocol options. */
+struct vela_capture_job *vela_capture_begin_with_options(struct wl_shm *shm,
+    struct ext_image_copy_capture_manager_v1 *manager,
+    struct ext_image_capture_source_v1 *source,
+    uint32_t options, vela_capture_done_fn done, void *userdata)
+{
     if (!shm || !manager || !source || !done) return NULL;
     struct vela_capture_job *job = calloc(1, sizeof(*job));
     if (!job) return NULL;
@@ -268,7 +279,7 @@ struct vela_capture_job *vela_capture_begin(struct wl_shm *shm,
     job->shm = shm;
     job->done = done;
     job->userdata = userdata;
-    job->session = ext_image_copy_capture_manager_v1_create_session(manager, source, 0);
+    job->session = ext_image_copy_capture_manager_v1_create_session(manager, source, options);
     if (!job->session) {
         free(job);
         return NULL;

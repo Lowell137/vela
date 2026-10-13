@@ -29,7 +29,7 @@ CTest includes both CPU-only and GPU-dependent suites.
 | **Polkit agent / GoogleTest** (`polkit.*`) | The agent's queue, cancellations by polkit and by the user, a crashed dialog counting as "No", retries after a wrong password, sessions that fail by themselves, identity order and choice, the dialog protocol. | No |
 | **Sharpness** (`sharpness`) | Pixel-level checks that windows reach the expected physical pixels across fractional scales and common window states. | Yes |
 
-The compositor currently contains 75 GoogleTest cases and the polkit agent 23; the functional harness runs 98 end-to-end scenarios when the Qt shell is built. Every scenario also checks that the compositor exits with status 0 when asked to stop: a crash on the way out would look like a real one to the supervisor.
+The compositor currently contains 75 GoogleTest cases and the polkit agent 23; the functional harness runs 102 end-to-end scenarios when the Qt shell is built. Every scenario also checks that the compositor exits with status 0 when asked to stop: a crash on the way out would look like a real one to the supervisor.
 
 ## Run a subset
 
@@ -164,8 +164,10 @@ nonblank pixels or equality with a previous capture are insufficient. Stability
 captures must span distinct presented frames. A portrait crop also verifies
 that screen-dump regions use upright image coordinates.
 
-`vela-screen-dump` applies the protocol's transform to both image dimensions
-and pixel coordinates before PNG encoding. CPU capture tests cover all eight
+`vela-screen-dump` normalizes image dimensions and samples pixels with the
+inverse of the protocol's buffer-to-output transform before PNG encoding.
+`VELA_SCREEN_DUMP_CURSOR=1` includes the pointer for coordinate checks.
+CPU capture tests cover all eight
 transforms on a rectangular buffer with padded rows, including bounds and
 invalid-transform rejection. These GPU tests use real hardware with headless
 outputs; physical-monitor rotation and driver coverage still need separate
@@ -322,6 +324,17 @@ native surface lifetime: configure and ACK precede the first buffer, the hidden
 menu releases its native surface, and blur binds to the new surface on reopen.
 Run, Quick Settings and Notification Center also reopen after native surface
 destruction. A fake shell or `vela-panel` cannot exercise this Qt lifecycle.
+Selection and snipping tests cover all eight transforms, 100%, 125% and 150%
+scales, and outputs above, below, left and right. A held virtual pointer grows
+and shrinks the desktop band, then releases it; only the expected upright
+rectangle may change. Both Print and Super+Shift+S must map overlays on every
+output and save exactly the selected pixels to an isolated Pictures directory.
+Qt PNG filters are decoded before comparison. Captures with the wlroots cursor
+independently anchor image coordinates to the pointer position and shape, so
+opposite errors in capture and scene rotation cannot cancel each other. A zoomed
+portrait case checks that the magnifier preserves cursor/selection alignment.
+The default Qt sessions use CPU synchronization; set `VELA_QT_SYNC_FILE=1` to
+repeat them with GPU fence synchronization (the renderer remains Vulkan).
 These tests do not establish that a driver-specific protocol error is fixed
 on NVIDIA; they enforce the observable lifecycle and animation contracts.
 Reporter fixtures separately check protocol errors and shell restarts without

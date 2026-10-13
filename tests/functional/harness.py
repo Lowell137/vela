@@ -264,9 +264,10 @@ class Session:
                 return current
         raise TimeoutError(f"window {identifier} doesn't settle")
 
-    def screenshot(self, path, output=0, region=None):
+    def screenshot(self, path, output=0, region=None, cursor=False):
         """Capture upright output pixels; an optional region is (x, y, width, height)."""
-        env = dict(self.client_env, VELA_SCREEN_DUMP_OUTPUT=str(output))
+        env = dict(self.client_env, VELA_SCREEN_DUMP_OUTPUT=str(output),
+                   VELA_SCREEN_DUMP_CURSOR="1" if cursor else "0")
         args = [tool("vela-screen-dump"), path]
         if region is not None:
             args.extend(str(value) for value in region)
@@ -339,7 +340,7 @@ class FakeShell:
 
 
 class Image:
-    """A vela-screen-dump PNG: 8-bit RGB, no filters (standard library only)."""
+    """An 8-bit RGB PNG from screen-dump or Qt (standard library only)."""
 
     def __init__(self, width, height, rows):
         self.width = width
@@ -359,13 +360,36 @@ class Image:
             chunk = data[position + 8:position + 8 + length]
             if kind == b"IHDR":
                 width, height = struct.unpack(">II", chunk[:8])
-                assert chunk[8:10] == b"\x08\x02", "vela-screen-dump writes 8-bit RGB"
+                assert chunk[8:] == b"\x08\x02\x00\x00\x00", "expected non-interlaced 8-bit RGB"
             elif kind == b"IDAT":
                 packed += chunk
             position += 12 + length
         raw = zlib.decompress(packed)
         stride = 1 + width * 3
-        rows = [raw[y * stride + 1:(y + 1) * stride] for y in range(height)]
+        assert len(raw) == height * stride, "invalid PNG scanline size"
+        rows = []
+        for y in range(height):
+            filter_type = raw[y * stride]
+            row = bytearray(raw[y * stride + 1:(y + 1) * stride])
+            assert filter_type <= 4, "invalid PNG filter"
+            if filter_type:
+                previous = rows[-1] if rows else bytes(width * 3)
+                for x in range(len(row)):
+                    left = row[x - 3] if x >= 3 else 0
+                    above = previous[x]
+                    upper_left = previous[x - 3] if x >= 3 else 0
+                    if filter_type == 1:
+                        prediction = left
+                    elif filter_type == 2:
+                        prediction = above
+                    elif filter_type == 3:
+                        prediction = (left + above) // 2
+                    else:
+                        p = left + above - upper_left
+                        distances = (abs(p - left), abs(p - above), abs(p - upper_left))
+                        prediction = (left, above, upper_left)[distances.index(min(distances))]
+                    row[x] = (row[x] + prediction) & 255
+            rows.append(bytes(row))
         return Image(width, height, rows)
 
     def at(self, x, y):

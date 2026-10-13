@@ -527,13 +527,14 @@ void vela_draw_elements(struct vela_scene *scene, struct vela_pass *pass, const 
             vela_pass_add_rect(pass, &dst, &e->color, clip, true, &shape, e->shape_radius);
             continue;
         }
-        // Texture orientation must follow the same output-to-buffer mapping
-        // as its destination rectangle, not the opposite output transform.
+        // wlroots' texture transform and box transform use inverse mappings:
+        // match its software/hardware cursor rendering, which transforms the
+        // box by to_buffer and passes output_transform for the texture.
         struct vela_texture_draw draw = {
             .texture = e->texture,
             .src = e->src,
             .dst = dst,
-            .transform = wlr_output_transform_compose(e->transform, to_buffer),
+            .transform = wlr_output_transform_compose(e->transform, output_transform),
             .alpha = e->opacity,
             .linear = e->linear,
             .blend = true,
@@ -598,14 +599,9 @@ static void handle_damage(struct wl_listener *listener, void *data)
 {
     struct vela_output_frame *frame = wl_container_of(listener, frame, damage);
     const struct wlr_output_event_damage *event = data;
-    // wlroots reports software-cursor/backend damage in buffer coordinates;
-    // merge it with scene damage before expanding upright blur dependencies.
-    pixman_region32_t damage;
-    pixman_region32_init(&damage);
-    wlr_region_transform(&damage, event->damage, frame->output->transform,
-        frame->output->width, frame->output->height);
-    pixman_region32_union(&frame->scene_damage, &frame->scene_damage, &damage);
-    pixman_region32_fini(&damage);
+    // output.events.damage uses upright output-local pixels (including the
+    // software cursor). Convert once when scene_damage enters the buffer ring.
+    pixman_region32_union(&frame->scene_damage, &frame->scene_damage, event->damage);
     vela_output_schedule_frame(frame->owner);
 }
 

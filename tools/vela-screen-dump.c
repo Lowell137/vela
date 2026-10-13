@@ -7,6 +7,8 @@
 //
 // Captures the first output; with coordinates, only that area (in output
 // pixels, after applying the output transform). Uses WAYLAND_DISPLAY.
+// VELA_SCREEN_DUMP_OUTPUT selects an output; VELA_SCREEN_DUMP_CURSOR=1
+// includes the pointer for visual coordinate diagnostics.
 
 #define _GNU_SOURCE
 #include <stdint.h>
@@ -208,7 +210,10 @@ int main(int argc, char** argv)
 
     struct ext_image_capture_source_v1* source =
         ext_output_image_capture_source_manager_v1_create_source(sources, output);
-    capture = vela_capture_begin(shm, manager, source, captured, NULL);
+    const char* cursor = getenv("VELA_SCREEN_DUMP_CURSOR");
+    uint32_t options = cursor && !strcmp(cursor, "1")
+        ? EXT_IMAGE_COPY_CAPTURE_MANAGER_V1_OPTIONS_PAINT_CURSORS : 0;
+    capture = vela_capture_begin_with_options(shm, manager, source, options, captured, NULL);
     if (!capture) {
         if (source) ext_image_capture_source_v1_destroy(source);
         fprintf(stderr, "vela-screen-dump: failed to create capture session\n");
