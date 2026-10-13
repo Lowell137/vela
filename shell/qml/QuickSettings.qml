@@ -661,6 +661,15 @@ Window {
                         onToggled: Access.nightLight = !Access.nightLight
                         onContextMenu: root.openSettings("night-light-settings")
                     }
+                    // Keep awake: no lock nor screen off until turned off (only
+                    // for this session). Breeze's only cup is KTeaTime's.
+                    Tile {
+                        icon: "kteatime-symbolic"
+                        label: qsTr("Caffeine")
+                        checked: Access.caffeine
+                        onToggled: Access.caffeine = !Access.caffeine
+                        onContextMenu: root.openSettings("power")
+                    }
                     Tile {
                         icon: "preferences-desktop-accessibility"
                         label: qsTr("Accessibility")

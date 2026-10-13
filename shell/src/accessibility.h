@@ -8,13 +8,15 @@
 // Night light, color filters, magnifier and sticky keys as the shell sees
 // them: the compositor applies them (compositor/src/a11y.c) and sends the
 // state as JSON on every change ("accessibility <json>"); quick settings turn
-// them on and off from here.
+// them on and off from here. Caffeine (keep awake, compositor/src/lock.c)
+// travels with them.
 class Accessibility : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool nightLight READ nightLight WRITE setNightLight NOTIFY changed)
     Q_PROPERTY(bool colorFilter READ colorFilter WRITE setColorFilter NOTIFY changed)
     Q_PROPERTY(bool magnifier READ magnifier WRITE setMagnifier NOTIFY changed)
     Q_PROPERTY(bool stickyKeys READ stickyKeys WRITE setStickyKeys NOTIFY changed)
+    Q_PROPERTY(bool caffeine READ caffeine WRITE setCaffeine NOTIFY changed)
 
 public:
     explicit Accessibility(QObject* parent = nullptr);
@@ -27,6 +29,8 @@ public:
     void setMagnifier(bool on);
     bool stickyKeys() const { return m_stickyKeys; }
     void setStickyKeys(bool on);
+    bool caffeine() const { return m_caffeine; }
+    void setCaffeine(bool on);
 
     // The state sent by the compositor.
     void update(const QByteArray& json);
@@ -41,4 +45,5 @@ private:
     bool m_colorFilter = false;
     bool m_magnifier = false;
     bool m_stickyKeys = false;
+    bool m_caffeine = false;
 };
