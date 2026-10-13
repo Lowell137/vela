@@ -127,6 +127,7 @@ set(VELA_QML_FILES
     qml/VolumeOsd.qml
     qml/HotCorner.qml
     qml/SnapLayouts.qml
+    qml/SnapDragLayouts.qml
     qml/SnapAssist.qml
     qml/TaskbarPreview.qml
     qml/TaskbarTooltip.qml

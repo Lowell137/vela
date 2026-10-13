@@ -125,6 +125,10 @@ signals:
     void workspacesReceived(const QByteArray& json); // the state of the virtual desktops
     // Snap layouts below the Maximize button (Win+Z): x, y on the output.
     void snapLayoutsRequested(const QString& window, const QString& output, int x, int y, bool keyboard);
+    // Snap layouts while a window is dragged to the top (snap.c): "show" (name:
+    // output, a, b: the panel's top left), "hover" (a: layout, b: zone, -1:
+    // none), "hide", "drop" (name: window, a: layout).
+    void snapDragChanged(const QString& state, const QString& name, int a, int b);
     // After a snap: the windows to offer for the free spaces (JSON).
     void snapAssistRequested(const QString& json);
     void propertiesRequested(const QStringList& paths); // from Explorer
