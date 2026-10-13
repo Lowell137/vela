@@ -4,6 +4,7 @@
 #include "keyboard.h"
 
 #include "listen.h"
+#include "snap.h"
 #include "switcher.h"
 #include "lock.h"
 #include "interact.h"
@@ -311,6 +312,12 @@ static void handle_key(struct wl_listener *listener, void *data)
     // Keyboard "Move"/"Size": all keys belong to the compositor.
     if (vela_interact_keyboard(server, syms, count, mods, pressed)) {
         return;
+    }
+    // Esc while dragging to the top closes the snap layouts there.
+    for (int i = 0; i < count; ++i) {
+        if (vela_snap_drag_key(server, syms[i], pressed)) {
+            return;
+        }
     }
 
     bool handled = false;

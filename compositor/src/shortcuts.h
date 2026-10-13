@@ -36,6 +36,10 @@ bool vela_hot_corner_enabled(void);
 bool vela_hot_corner_glow_enabled(void);
 bool vela_hot_corner_animation_enabled(void);
 
+// Dragging a window to the top of an output opens the snap layouts (snap.c);
+// "snap-drag-layouts=no" turns it off.
+bool vela_snap_drag_layouts_enabled(void);
+
 // false if the user remapped (or turned off) the built-in key of this action.
 bool vela_shortcuts_default_enabled(const char *action);
 

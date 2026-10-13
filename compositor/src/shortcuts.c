@@ -60,6 +60,7 @@ static bool overridden[ACTION_COUNT]; // the user has a "shortcut-<action>" line
 static bool hot_corner = true; // "hot-corner=no" in vela.conf turns it off
 static bool hot_corner_glow = true; // "hot-corner-glow=no": no glow while near
 static bool hot_corner_animation = true; // "hot-corner-animation=no": no ripples
+static bool snap_drag_layouts = true; // "snap-drag-layouts=no": no layouts at the top
 
 bool vela_shortcut_parse(const char *text, uint32_t *modifiers, uint32_t *sym)
 {
@@ -184,6 +185,7 @@ void vela_shortcuts_load(void)
     hot_corner = vela_config_flag(&config, "hot-corner", true);
     hot_corner_glow = vela_config_flag(&config, "hot-corner-glow", true);
     hot_corner_animation = vela_config_flag(&config, "hot-corner-animation", true);
+    snap_drag_layouts = vela_config_flag(&config, "snap-drag-layouts", true);
     vela_config_finish(&config);
     wlr_log(WLR_INFO, "Shortcuts: %d from vela.conf", shortcut_count);
 }
@@ -201,6 +203,11 @@ bool vela_hot_corner_glow_enabled(void)
 bool vela_hot_corner_animation_enabled(void)
 {
     return hot_corner_animation;
+}
+
+bool vela_snap_drag_layouts_enabled(void)
+{
+    return snap_drag_layouts;
 }
 
 bool vela_shortcuts_default_enabled(const char *action)
