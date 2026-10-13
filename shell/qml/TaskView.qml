@@ -262,12 +262,16 @@ Window {
                         color: hover.hovered || cardMouse.drag.active ? Theme.taskCardHover : Theme.taskCard
                         border.width: hover.hovered ? 2 : 1
                         border.color: hover.hovered ? Theme.accent : Theme.stroke
-                        scale: cardMouse.drag.active ? 0.5 : 1
-                        Behavior on scale { NumberAnimation { duration: Theme.fast } }
+                        // Shrinks around the grabbed point, so it stays under the mouse and is the drop point.
+                        transform: Scale {
+                            origin.x: frame.Drag.hotSpot.x
+                            origin.y: frame.Drag.hotSpot.y
+                            xScale: cardMouse.drag.active ? 0.5 : 1
+                            yScale: xScale
+                            Behavior on xScale { NumberAnimation { duration: Theme.fast } }
+                        }
                         Drag.active: cardMouse.drag.active
                         Drag.keys: ["vela-window"]
-                        Drag.hotSpot.x: width / 2
-                        Drag.hotSpot.y: height / 2
                         property string windowId: card.modelData.id
 
                         Row {
@@ -343,6 +347,7 @@ Window {
                             drag.threshold: 8
                             onPressed: mouse => {
                                 dragged = false
+                                frame.Drag.hotSpot = Qt.point(mouse.x, mouse.y)
                                 if (mouse.button === Qt.LeftButton) root.dragging = card.modelData.id
                             }
                             onPositionChanged: if (drag.active) dragged = true
