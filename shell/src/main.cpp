@@ -165,6 +165,9 @@ const Panel panels[] = {
     // The whole output, transparent: a click outside the panel closes it.
     // The keyboard for Win+Z.
     { "SnapLayouts", "vela-snap-layouts", layerOverlay, fill, -1, keysOnDemand },
+    // The same while dragging a window to the top: the compositor has the
+    // pointer, the mouse and keyboard go through.
+    { "SnapDragLayouts", "vela-snap-drag", layerOverlay, fill, -1, keysNone, {}, true },
     // The output's usable area, so the spaces in twelfths match the windows'.
     { "SnapAssist", "vela-snap-assist", layerTop, fill, 0, keysExclusive },
     // The distance from the left edge is decided by the button
