@@ -102,6 +102,23 @@ class Shell(unittest.TestCase):
         self.assertNotIn("restarting it", log)
 
 
+class DmabufDiagnostics(unittest.TestCase):
+    """Tracing must cover the first output commit and the Vulkan render target."""
+
+    def test_trace_opt_in(self):
+        with Session(env={"VELA_DEBUG_DMABUF": "1"}) as vela:
+            vela.wait_for_log("DMABUF trace: after initial wlr_output_commit_state")
+            vela.wait_for_log("DMABUF trace: GBM allocated")
+            vela.wait_for_log("DMABUF trace: import complete image bound successfully")
+            vela.wait_for_log("DMABUF trace: render target ready")
+            vela.wait_for_log("DMABUF trace: after frame wlr_output_commit_state")
+
+    def test_trace_off_by_default(self):
+        with Session(env={"VELA_DEBUG_DMABUF": "0"}) as vela:
+            vela.open_window()
+            self.assertNotIn("DMABUF trace:", vela.log_text())
+
+
 class Supervisor(unittest.TestCase):
     def test_restart_after_crash(self):
         with Session(supervise=True) as vela:
