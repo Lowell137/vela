@@ -15,6 +15,7 @@
 #include "scene/frame.h"
 #include "scene/scene.h"
 #include "server.h"
+#include "shortcuts.h"
 #include "switcher.h"
 #include "util.h"
 #include "view.h"
@@ -376,6 +377,7 @@ static void run_command(struct vela_server *server, const char *line)
         vela_input_reload(server->input); // keyboards, mice and touchpads
         vela_output_load_settings(server);
         vela_a11y_load(a11y);
+        vela_shortcuts_load();
     } else if (starts_with(line, "night-light ")) {
         // From quick settings: night-light on|off|toggle (and likewise
         // filters, magnifier, sticky keys).

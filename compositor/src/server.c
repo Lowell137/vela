@@ -21,6 +21,7 @@
 #include "scene/frame.h"
 #include "scene/scene.h"
 #include "session.h"
+#include "shortcuts.h"
 #include "snap.h"
 #include "snapshot.h"
 #include "switcher.h"
@@ -262,6 +263,7 @@ static bool init(struct vela_server *server)
     server->a11y = vela_a11y_create(server);
     vela_output_load_settings(server);
     vela_a11y_load(server->a11y);
+    vela_shortcuts_load();
     server->workspaces = vela_workspaces_create(server); // virtual desktops (workspace.c)
 
     wl_event_loop_add_signal(server->loop, SIGINT, handle_terminate, display);

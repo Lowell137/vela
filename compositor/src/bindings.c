@@ -12,6 +12,7 @@
 #include "process.h"
 #include "server.h"
 #include "shell.h"
+#include "shortcuts.h"
 #include "snap.h"
 #include "switcher.h"
 #include "view.h"
@@ -89,7 +90,7 @@ bool vela_bindings_handle(struct vela_server *server, uint32_t modifiers, uint32
         return false;
     }
     // Win+L locks the screen, like Windows (Alt+L inside KDE).
-    if (windows_key && (sym == XKB_KEY_l || sym == XKB_KEY_L)) {
+    if (windows_key && (sym == XKB_KEY_l || sym == XKB_KEY_L) && vela_shortcuts_default_enabled("lock")) {
         vela_lock_screen(server->lock);
         return true;
     }
@@ -103,13 +104,18 @@ bool vela_bindings_handle(struct vela_server *server, uint32_t modifiers, uint32
     if (vela_focus_modal_layer(server)) {
         return false;
     }
-    if (windows_key && sym == XKB_KEY_Return) {
+    // The shortcuts of vela.conf (shortcuts.h): the user's own, and the
+    // remapped built-in ones.
+    if (vela_shortcuts_dispatch(server, modifiers, sym)) {
+        return true;
+    }
+    if (windows_key && sym == XKB_KEY_Return && vela_shortcuts_default_enabled("terminal")) {
         const char *terminal = getenv("VELA_TERMINAL");
         vela_spawn(terminal ? terminal : "konsole || foot || kitty || alacritty || xterm");
         return true;
     }
     struct vela_view *active = vela_views_focused(server);
-    if ((alt && sym == XKB_KEY_F4) || (alt_nested && sym == XKB_KEY_q)) {
+    if (((alt && sym == XKB_KEY_F4) || (alt_nested && sym == XKB_KEY_q)) && vela_shortcuts_default_enabled("close")) {
         if (active) {
             vela_view_close(active);
         }
@@ -167,13 +173,13 @@ bool vela_bindings_handle(struct vela_server *server, uint32_t modifiers, uint32
     // Win+V: clipboard history; Win+Ctrl+V: the sound outputs and the volume
     // mixer, in quick settings; Win+Shift+S and Print: the Snipping Tool
     // (drawn by the shell).
-    if (super && xkb_keysym_to_lower(sym) == XKB_KEY_v) {
+    if (super && xkb_keysym_to_lower(sym) == XKB_KEY_v && vela_shortcuts_default_enabled(ctrl ? "sound-output" : "clipboard")) {
         return shell(server, ctrl ? "sound-output" : "clipboard");
     }
-    if ((super && shift && xkb_keysym_to_lower(sym) == XKB_KEY_s) || sym == XKB_KEY_Print) {
+    if (((super && shift && xkb_keysym_to_lower(sym) == XKB_KEY_s) || sym == XKB_KEY_Print) && vela_shortcuts_default_enabled("snip")) {
         return shell(server, "snip");
     }
-    if ((super && tab) || (alt_nested && (sym == XKB_KEY_w || sym == XKB_KEY_W))) {
+    if (((super && tab) || (alt_nested && (sym == XKB_KEY_w || sym == XKB_KEY_W))) && vela_shortcuts_default_enabled("task-view")) {
         return shell(server, "task-view");
     }
     // Win+arrows: halves, quarters, maximize, minimize (snap.c). Inside KDE
@@ -197,7 +203,7 @@ bool vela_bindings_handle(struct vela_server *server, uint32_t modifiers, uint32
         }
         return true;
     }
-    if (alt_nested && sym == XKB_KEY_s) {
+    if (alt_nested && sym == XKB_KEY_s && vela_shortcuts_default_enabled("start")) {
         return shell(server, "toggle-start");
     }
     // Win+X: the Start button menu; Win+R: Run; Win+D: the desktop; Win+A:
@@ -217,7 +223,7 @@ bool vela_bindings_handle(struct vela_server *server, uint32_t modifiers, uint32
     };
     xkb_keysym_t lower = xkb_keysym_to_lower(sym);
     for (size_t i = 0; windows_key && i < sizeof(shell_keys) / sizeof(shell_keys[0]); ++i) {
-        if (lower == shell_keys[i].key) {
+        if (lower == shell_keys[i].key && vela_shortcuts_default_enabled(shell_keys[i].command)) {
             return shell(server, shell_keys[i].command);
         }
     }

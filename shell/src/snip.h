@@ -25,7 +25,7 @@ class WindowCapture;
 class Snip : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool active READ active NOTIFY activeChanged)
-    // "rect", "window" or "screen"
+    // "rect", "window", "screen" or "text" (a rectangle whose text is copied)
     Q_PROPERTY(QString mode READ mode WRITE setMode NOTIFY modeChanged)
     // The visible windows, topmost first: [{x, y, w, h, title}] in the layout.
     Q_PROPERTY(QVariantList windows READ windows NOTIFY activeChanged)
@@ -53,6 +53,7 @@ signals:
 private:
     void showOverlays();
     void closeOverlays();
+    void recognizeText(const QImage& image);
 
     QQmlComponent m_component;
     WindowCapture* m_capture;

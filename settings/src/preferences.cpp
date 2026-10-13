@@ -18,6 +18,7 @@ extern "C" {
 #include <QDirIterator>
 #include <QFile>
 #include <QFileInfo>
+#include <QRegularExpression>
 #include <QLocalSocket>
 #include <QProcess>
 #include <QSaveFile>
@@ -204,6 +205,7 @@ void Preferences::reloadCompositor()
     m_repeatDelay = value(QStringLiteral("keyboard-repeat-delay"), QStringLiteral("400")).toInt();
     m_repeatRate = value(QStringLiteral("keyboard-repeat-rate"), QStringLiteral("30")).toInt();
     emit keyboardChanged();
+    loadShortcuts();
 
     m_nightLight = flag(QStringLiteral("night-light"), false);
     m_nightStrength = std::clamp(value(QStringLiteral("night-light-strength"), QStringLiteral("48")).toInt(), 0, 100);
@@ -494,6 +496,13 @@ void Preferences::saveCompositor(const QList<QPair<QString, QString>>& changes)
         lines << QStringLiteral("# Vela settings (written by the Settings app)");
     }
     for (const auto& [key, value] : changes) {
+        if (value.isNull()) {
+            // A null value removes the key.
+            lines.erase(std::remove_if(lines.begin(), lines.end(),
+                            [&](const QString& line) { return line.startsWith(key + u'='); }),
+                lines.end());
+            continue;
+        }
         bool found = false;
         for (QString& line : lines) {
             if (line.startsWith(key + u'=')) {
@@ -858,4 +867,277 @@ void Preferences::clearClipboard()
         socket.write("clipboard-clear\n");
         socket.waitForBytesWritten(200);
     }
+}
+
+// -------------------------------------------------------- shortcuts --
+
+namespace {
+
+// The actions the compositor lets the user change (compositor/src/shortcuts.c)
+// with their built-in keys (docs/shortcuts.md).
+struct ShortcutAction {
+    const char* id;
+    const char* title;
+    const char* combo;
+};
+
+const ShortcutAction kShortcutActions[] = {
+    { "close", QT_TRANSLATE_NOOP("Preferences", "Close window"), "Alt+F4" },
+    { "terminal", QT_TRANSLATE_NOOP("Preferences", "Terminal"), "Super+Return" },
+    { "lock", QT_TRANSLATE_NOOP("Preferences", "Lock"), "Super+L" },
+    { "task-view", QT_TRANSLATE_NOOP("Preferences", "Task View"), "Super+Tab" },
+    { "show-desktop", QT_TRANSLATE_NOOP("Preferences", "Show desktop"), "Super+D" },
+    { "files", QT_TRANSLATE_NOOP("Preferences", "File Explorer"), "Super+E" },
+    { "settings", QT_TRANSLATE_NOOP("Preferences", "Settings"), "Super+I" },
+    { "run", QT_TRANSLATE_NOOP("Preferences", "Run"), "Super+R" },
+    { "winx", QT_TRANSLATE_NOOP("Preferences", "Power-user menu"), "Super+X" },
+    { "quick-settings", QT_TRANSLATE_NOOP("Preferences", "Quick settings"), "Super+A" },
+    { "notification-center", QT_TRANSLATE_NOOP("Preferences", "Notification center"), "Super+N" },
+    { "clipboard", QT_TRANSLATE_NOOP("Preferences", "Clipboard history"), "Super+V" },
+    { "sound-output", QT_TRANSLATE_NOOP("Preferences", "Sound output and volume mixer"), "Super+Ctrl+V" },
+    { "snip", QT_TRANSLATE_NOOP("Preferences", "Snipping tool"), "Super+Shift+S" },
+};
+
+struct FixedShortcut {
+    const char* title;
+    const char* combo;
+};
+
+const FixedShortcut kFixedShortcuts[] = {
+    { QT_TRANSLATE_NOOP("Preferences", "Switch windows"), "Alt+Tab" },
+    { QT_TRANSLATE_NOOP("Preferences", "Snap left / right"), "Super+Left / Super+Right" },
+    { QT_TRANSLATE_NOOP("Preferences", "Maximize / restore, then minimize"), "Super+Up / Super+Down" },
+    { QT_TRANSLATE_NOOP("Preferences", "Snap layouts"), "Super+Z" },
+    { QT_TRANSLATE_NOOP("Preferences", "Previous / next desktop"), "Super+Ctrl+Left / Super+Ctrl+Right" },
+    { QT_TRANSLATE_NOOP("Preferences", "New desktop"), "Super+Ctrl+D" },
+    { QT_TRANSLATE_NOOP("Preferences", "Close desktop"), "Super+Ctrl+F4" },
+    { QT_TRANSLATE_NOOP("Preferences", "Window menu"), "Alt+Space" },
+    { QT_TRANSLATE_NOOP("Preferences", "Next keyboard layout"), "Super+Space" },
+    { QT_TRANSLATE_NOOP("Preferences", "Magnifier in / out / off"), "Super+Plus / Super+Minus / Super+Esc" },
+    { QT_TRANSLATE_NOOP("Preferences", "Quit Vela"), "Alt+Shift+Esc" },
+};
+
+QString canonicalKey(const QString& raw)
+{
+    const QString key = raw.trimmed();
+    const QString lower = key.toLower();
+    static const QHash<QString, QString> named {
+        { QStringLiteral("enter"), QStringLiteral("Return") }, { QStringLiteral("return"), QStringLiteral("Return") },
+        { QStringLiteral("esc"), QStringLiteral("Escape") }, { QStringLiteral("escape"), QStringLiteral("Escape") },
+        { QStringLiteral("space"), QStringLiteral("space") }, { QStringLiteral("tab"), QStringLiteral("Tab") },
+        { QStringLiteral("left"), QStringLiteral("Left") }, { QStringLiteral("right"), QStringLiteral("Right") },
+        { QStringLiteral("up"), QStringLiteral("Up") }, { QStringLiteral("down"), QStringLiteral("Down") },
+        { QStringLiteral("print"), QStringLiteral("Print") }, { QStringLiteral("home"), QStringLiteral("Home") },
+        { QStringLiteral("end"), QStringLiteral("End") }, { QStringLiteral("delete"), QStringLiteral("Delete") },
+        { QStringLiteral("backspace"), QStringLiteral("BackSpace") }, { QStringLiteral("insert"), QStringLiteral("Insert") },
+        { QStringLiteral("pageup"), QStringLiteral("Prior") }, { QStringLiteral("pagedown"), QStringLiteral("Next") },
+        { QStringLiteral("plus"), QStringLiteral("plus") }, { QStringLiteral("minus"), QStringLiteral("minus") },
+    };
+    if (named.contains(lower)) {
+        return named.value(lower);
+    }
+    static const QRegularExpression fkey(QStringLiteral("^f([1-9]|1[0-9]|2[0-4])$"));
+    if (fkey.match(lower).hasMatch()) {
+        return QStringLiteral("F") + lower.mid(1);
+    }
+    if (key.size() == 1 && key.at(0).isLetterOrNumber()) {
+        return key.toUpper();
+    }
+    return {};
+}
+
+} // namespace
+
+QString Preferences::normalizeShortcut(const QString& text) const
+{
+    bool super = false, ctrl = false, alt = false, shift = false;
+    QString key;
+    const QStringList parts = text.split(u'+');
+    for (const QString& raw : parts) {
+        const QString part = raw.trimmed();
+        const QString lower = part.toLower();
+        if (part.isEmpty()) {
+            return {};
+        }
+        if (lower == QLatin1String("super") || lower == QLatin1String("win") || lower == QLatin1String("meta")
+            || lower == QLatin1String("logo")) {
+            super = true;
+        } else if (lower == QLatin1String("ctrl") || lower == QLatin1String("control")) {
+            ctrl = true;
+        } else if (lower == QLatin1String("alt")) {
+            alt = true;
+        } else if (lower == QLatin1String("shift")) {
+            shift = true;
+        } else if (key.isEmpty()) {
+            key = canonicalKey(part);
+            if (key.isEmpty()) {
+                return {};
+            }
+        } else {
+            return {}; // two keys
+        }
+    }
+    if (key.isEmpty()) {
+        return {};
+    }
+    const bool functionKey = key.startsWith(u'F') && key.size() > 1 && key.at(1).isDigit();
+    if (!(super || ctrl || alt) && !functionKey && key != QLatin1String("Print")) {
+        return {}; // would take a plain key away from the apps
+    }
+    QStringList out;
+    if (super) {
+        out << QStringLiteral("Super");
+    }
+    if (ctrl) {
+        out << QStringLiteral("Ctrl");
+    }
+    if (alt) {
+        out << QStringLiteral("Alt");
+    }
+    if (shift) {
+        out << QStringLiteral("Shift");
+    }
+    out << key;
+    return out.join(u'+');
+}
+
+QVariantList Preferences::fixedShortcuts() const
+{
+    QVariantList list;
+    for (const FixedShortcut& fixed : kFixedShortcuts) {
+        list.append(QVariantMap { { QStringLiteral("title"), tr(fixed.title) },
+            { QStringLiteral("combo"), QString::fromLatin1(fixed.combo) } });
+    }
+    return list;
+}
+
+void Preferences::loadShortcuts()
+{
+    m_shortcuts.clear();
+    for (const ShortcutAction& action : kShortcutActions) {
+        const QString key = QStringLiteral("shortcut-") + QLatin1String(action.id);
+        const QString defaultCombo = QString::fromLatin1(action.combo);
+        QString combo = defaultCombo;
+        bool changed = false;
+        const QString saved = compositorValue(key);
+        if (!saved.isNull()) {
+            changed = true;
+            const QString normal = normalizeShortcut(saved);
+            combo = normal; // "" when "none" or not valid: the built-in key is off
+        }
+        m_shortcuts.append(QVariantMap { { QStringLiteral("id"), QString::fromLatin1(action.id) },
+            { QStringLiteral("title"), tr(action.title) }, { QStringLiteral("combo"), combo },
+            { QStringLiteral("defaultCombo"), defaultCombo }, { QStringLiteral("changed"), changed } });
+    }
+    m_customShortcuts.clear();
+    QList<int> numbers;
+    for (const auto& [key, value] : std::as_const(m_compositor)) {
+        if (key.startsWith(QLatin1String("shortcut-custom-"))) {
+            bool ok = false;
+            const int number = key.mid(16).toInt(&ok);
+            if (ok && value.contains(u'|')) {
+                numbers.append(number);
+            }
+        }
+    }
+    std::sort(numbers.begin(), numbers.end());
+    for (int number : std::as_const(numbers)) {
+        const QString value = compositorValue(QStringLiteral("shortcut-custom-") + QString::number(number));
+        const qsizetype bar = value.indexOf(u'|');
+        m_customShortcuts.append(QVariantMap { { QStringLiteral("number"), number },
+            { QStringLiteral("combo"), normalizeShortcut(value.left(bar)) }, { QStringLiteral("command"), value.mid(bar + 1) } });
+    }
+    emit shortcutsChanged();
+}
+
+QString Preferences::shortcutConflict(const QString& combo, const QString& exceptKey) const
+{
+    const QString wanted = combo.toLower();
+    for (const QVariant& entry : m_shortcuts) {
+        const QVariantMap map = entry.toMap();
+        const QString key = QStringLiteral("shortcut-") + map.value(QStringLiteral("id")).toString();
+        if (key != exceptKey && map.value(QStringLiteral("combo")).toString().toLower() == wanted) {
+            return tr("%1 already uses %2").arg(map.value(QStringLiteral("title")).toString(), combo);
+        }
+    }
+    for (const QVariant& entry : m_customShortcuts) {
+        const QVariantMap map = entry.toMap();
+        const QString key = QStringLiteral("shortcut-custom-") + map.value(QStringLiteral("number")).toString();
+        if (key != exceptKey && map.value(QStringLiteral("combo")).toString().toLower() == wanted) {
+            return tr("Another shortcut already uses %1").arg(combo);
+        }
+    }
+    for (const FixedShortcut& fixed : kFixedShortcuts) {
+        const QStringList alternatives = QString::fromLatin1(fixed.combo).split(QStringLiteral(" / "));
+        for (const QString& alternative : alternatives) {
+            if (alternative.toLower() == wanted) {
+                return tr("%1 already uses %2").arg(tr(fixed.title), combo);
+            }
+        }
+    }
+    return {};
+}
+
+QString Preferences::setShortcut(const QString& id, const QString& combo)
+{
+    bool known = false;
+    for (const ShortcutAction& action : kShortcutActions) {
+        known = known || id == QLatin1String(action.id);
+    }
+    if (!known) {
+        return tr("Unknown shortcut");
+    }
+    const QString key = QStringLiteral("shortcut-") + id;
+    if (combo.trimmed().isEmpty()) {
+        saveCompositor({ { key, QStringLiteral("none") } }); // the built-in key off, nothing in its place
+        return {};
+    }
+    const QString normal = normalizeShortcut(combo);
+    if (normal.isEmpty()) {
+        return tr("Use modifiers and a key, for example Super+Q");
+    }
+    const QString conflict = shortcutConflict(normal, key);
+    if (!conflict.isEmpty()) {
+        return conflict;
+    }
+    saveCompositor({ { key, normal } });
+    return {};
+}
+
+void Preferences::resetShortcut(const QString& id)
+{
+    saveCompositor({ { QStringLiteral("shortcut-") + id, QString() } });
+}
+
+QString Preferences::addCustomShortcut(const QString& combo, const QString& command)
+{
+    int number = 1;
+    for (const QVariant& entry : m_customShortcuts) {
+        number = std::max(number, entry.toMap().value(QStringLiteral("number")).toInt() + 1);
+    }
+    return updateCustomShortcut(number, combo, command);
+}
+
+QString Preferences::updateCustomShortcut(int number, const QString& combo, const QString& command)
+{
+    const QString normal = normalizeShortcut(combo);
+    if (normal.isEmpty()) {
+        return tr("Use modifiers and a key, for example Super+T");
+    }
+    const QString program = command.trimmed();
+    if (program.isEmpty() || program.contains(u'\n')) {
+        return tr("Type the command to run");
+    }
+    const QString key = QStringLiteral("shortcut-custom-") + QString::number(number);
+    const QString conflict = shortcutConflict(normal, key);
+    if (!conflict.isEmpty()) {
+        return conflict;
+    }
+    saveCompositor({ { key, normal + u'|' + program } });
+    return {};
+}
+
+void Preferences::removeCustomShortcut(int number)
+{
+    saveCompositor({ { QStringLiteral("shortcut-custom-") + QString::number(number), QString() } });
 }
