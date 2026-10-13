@@ -310,15 +310,17 @@ void ShellController::handleCommand(const QByteArray& command)
     } else if (parts.first() == "workspaces") {
         emit workspacesReceived(command.mid(11));
     } else if (parts.first() == "snap-drag" && parts.size() >= 2) {
-        // snap-drag show <output> <x> <y>, hover <layout> <zone>, hide,
+        // snap-drag show <output> <json>, hover <layout> <zone>, hide,
         // drop <window> <layout>
         const QByteArray state = parts.at(1);
         const bool named = state == "show" || state == "drop";
         const int first = named ? 3 : 2;
+        const qsizetype json = command.indexOf('{');
         emit snapDragChanged(QString::fromLatin1(state),
             named && parts.size() > 2 ? QString::fromUtf8(parts.at(2)) : QString(),
             parts.size() > first ? parts.at(first).toInt() : -1,
-            parts.size() > first + 1 ? parts.at(first + 1).toInt() : -1);
+            parts.size() > first + 1 ? parts.at(first + 1).toInt() : -1,
+            json >= 0 ? QString::fromUtf8(command.mid(json)) : QString());
     } else if (parts.first() == "snap-layouts" && parts.size() == 6) {
         // snap-layouts <window> <output> <x> <y> <from keyboard>
         emit snapLayoutsRequested(QString::fromLatin1(parts.at(1)), QString::fromUtf8(parts.at(2)), parts.at(3).toInt(),
