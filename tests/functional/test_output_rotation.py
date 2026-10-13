@@ -72,29 +72,29 @@ class MixedOutputRotation(unittest.TestCase):
         expected = ("normal", "90", "180", "270", "flipped", "flipped-90",
                     "flipped-180", "flipped-270").index(str(angle))
         width, height = (1080, 1920) if expected & 1 else (1920, 1080)
-        width, height = round(width / scale), round(height / scale)
+        width, height = int(width / scale), int(height / scale)
         return self.vela.wait_for(
             lambda s: (lambda o: (o["x"], o["y"], o["w"], o["h"], o["transform"])
                        == (x, y, width, height, expected))(self.output(s, "HEADLESS-2")),
             what=f"rotation {angle} applied and layout resized")
 
-    def drag_to_second(self, window, state):
-        """Move the mapped window to output two through virtual mouse input."""
+    def drag_to_output(self, window, state, name="HEADLESS-2"):
+        """Move the mapped window to the named output through virtual mouse input."""
         start = state.window(window)
-        second = self.output(state, "HEADLESS-2")
+        second = self.output(state, name)
         sx, sy = start["x"] + 50, start["y"] + 50
         tx, ty = second["x"] + second["w"] // 2, second["y"] + 200
         self.vela.input("move", sx, sy, "keydown", "super", "down", "sleep", "50",
                         "move", (sx + tx) // 2, (sy + ty) // 2, "sleep", "50",
                         "move", tx, ty, "sleep", "100", "up", "keyup", "super")
-        return self.vela.wait_for(lambda s: s.window(window)["output"] == "HEADLESS-2",
-                                  what="window moved to the portrait output")
+        return self.vela.wait_for(lambda s: s.window(window)["output"] == name,
+                                  what=f"window moved to {name}")
 
     def assert_picture_stable(self, index=1):
         """Require identical pixels across distinct presented output frames."""
         name = f"HEADLESS-{index + 1}"
-        images = [self.vela.pixels(output=index)]
-        for _ in range(2):
+        images = []
+        for _ in range(3):
             frames = self.output(self.vela.state(), name)["frames"]
             images.append(self.vela.pixels(output=index))
             self.vela.wait_for(lambda s: self.output(s, name)["frames"] > frames,
@@ -121,10 +121,10 @@ class MixedOutputRotation(unittest.TestCase):
         self.vela.wait_for(matches, what="upright coordinate pattern on the rotated output", read_state=False)
         return last
 
-    def maximize_on_second(self):
-        """Map and maximize the pattern on output two, keeping the cursor elsewhere."""
+    def maximize_on_output(self, name="HEADLESS-2"):
+        """Map and maximize the pattern on the named output, keeping the cursor elsewhere."""
         window = self.vela.open_window(300, 200)
-        self.drag_to_second(window, self.vela.state())
+        self.drag_to_output(window, self.vela.state(), name)
         self.vela.keys("super+up")
         self.vela.wait_for(lambda s: s.window(window)["maximized"], what="maximized pattern window")
         self.vela.input("move", 100, 100)
@@ -135,7 +135,7 @@ class MixedOutputRotation(unittest.TestCase):
         self.add_output()
         state = self.rotate("90", 1920, scale=1)
         self.assert_disjoint(state)
-        window = self.maximize_on_second()
+        window = self.maximize_on_output()
         state = self.vela.state()
         second = self.output(state, "HEADLESS-2")
         w = state.window(window)
@@ -150,7 +150,7 @@ class MixedOutputRotation(unittest.TestCase):
         """Every transform of an existing window must match an independent pixel oracle."""
         self.add_output()
         self.rotate("normal", 1920, scale=1)
-        window = self.maximize_on_second()
+        window = self.maximize_on_output()
         for angle, expected in (("90", (1080, 1920)), ("270", (1080, 1920)),
                                 ("180", (1920, 1080)), ("normal", (1920, 1080)),
                                 ("flipped", (1920, 1080)), ("flipped-90", (1080, 1920)),
@@ -177,11 +177,11 @@ class MixedOutputRotation(unittest.TestCase):
         second = self.output(state, "HEADLESS-2")
         self.assertEqual((second["x"], second["y"], second["w"], second["h"]),
                          (-720, 0, 720, 1280))
-        self.maximize_on_second()
+        self.maximize_on_output()
         self.assert_pattern(1080, 1920)
 
     def test_four_outputs_mixed_orientation(self):
-        """Four mixed-scale outputs must retain their requested positions and transforms."""
+        """Four outputs must preserve geometry and render three simultaneous coordinate patterns."""
         self.add_output()
         self.vela.randr("--output", "HEADLESS-2", "--pos", "1920,0")
         self.add_output("HEADLESS-3")
@@ -203,12 +203,17 @@ class MixedOutputRotation(unittest.TestCase):
         }.items():
             o = self.output(state, name)
             self.assertEqual((o["x"], o["y"], o["w"], o["h"], o["transform"]), expected, name)
+        for name in ("HEADLESS-2", "HEADLESS-3", "HEADLESS-4"):
+            self.maximize_on_output(name)
+        for index, size in ((1, (1920, 1080)), (2, (1080, 1920)), (3, (1080, 1920))):
+            self.assert_pattern(*size, index=index)
+        self.assertEqual(self.vela.pixels(output=0).at(960, 540), (0, 0, 0))
 
     def test_capture_region_uses_upright_portrait_coordinates(self):
         """A crop near the portrait bottom must use transformed dimensions and pixels."""
         self.add_output()
         self.rotate("90", 1920)
-        self.maximize_on_second()
+        self.maximize_on_output()
         self.assert_pattern(1080, 1920)
         path = os.path.join(self.vela.directory, "crop.png")
         x, y, width, height = 1000, 1800, 64, 80
