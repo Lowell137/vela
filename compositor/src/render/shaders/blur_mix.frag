@@ -7,8 +7,8 @@
 // Live blur (§8.3): the blurred background under a panel, with Windows 11's
 // acrylic recipe: a bit more saturation, a tint and a veil of noise (no
 // banding in gradients). The panel itself gives the shape: where its surface
-// is transparent (outside the rounded corners) nothing is blurred. The panel
-// is then drawn on top.
+// is transparent (outside the rounded corners) nothing is blurred, unless
+// flags bit 3 says the whole region. The panel is then drawn on top.
 //
 // binding 0: the panel surface (uv); binding 1: the blurred background, read
 // at the output point: (pixel - pad) * shape.zw. color: the tint (linear,
@@ -37,6 +37,10 @@ void main()
     c = c * (1.0 - pc.color.a) + colorFilter(pc.color).rgb; // tint
     c += (noise(gl_FragCoord.xy) - 0.5) * (2.0 / 255.0);
     c = max(c, 0.0);
-    const float coverage = smoothstep(0.0, 0.5, texture(mask, uv).a) * shapeClip() * pc.alpha;
+    // flags bit 3: the whole region (window-blur: apps that don't ask for blur
+    // often draw nearly or fully transparent pixels, or draw in a subsurface
+    // above a transparent main surface, like Firefox).
+    const float shape = (pc.flags & 8u) != 0u ? 1.0 : smoothstep(0.0, 0.5, texture(mask, uv).a);
+    const float coverage = shape * shapeClip() * pc.alpha;
     outColor = vec4(c, 1.0) * coverage;
 }
