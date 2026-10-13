@@ -129,12 +129,15 @@ static void unhover_decoration(struct vela_interaction *interaction)
 
 // The hot corner: the pointer reaching the top-left corner of an output opens
 // Task View, once; it arms again when the pointer leaves the corner. The shell
-// shows it (HotCorner.qml): "hot-corner near <output>" and "hot-corner away"
-// only when that changes, not at every motion, and "hot-corner fire <output>".
+// shows it (HotCorner.qml): "hot-corner near <output> <progress>" (0 at the
+// edge of the near zone, 1 at the corner, in steps of 0.05) and "hot-corner
+// away" only when that changes, not at every motion, and "hot-corner fire
+// <output>".
 static void hot_corner_check(struct vela_server *server)
 {
     static bool armed = true;
     static struct wlr_output *near = NULL; // only compared, never dereferenced
+    static int near_step = -1;
     struct wlr_cursor *cursor = server->cursor;
     struct wlr_output *wlr = wlr_output_layout_output_at(server->output_layout, cursor->x, cursor->y);
     if (!wlr) {
@@ -151,9 +154,13 @@ static void hot_corner_check(struct vela_server *server)
             && !(focused && focused->fullscreen);
     }
     char line[128];
-    if ((allowed ? wlr : NULL) != near) {
+    // Distance from the corner, the trigger (2px) to the near edge (48px).
+    double progress = 1.0 - (hypot(dx, dy) - 2.0) / 46.0;
+    int step = (int)lround(fmin(fmax(progress, 0.0), 1.0) * 20.0);
+    if ((allowed ? wlr : NULL) != near || (allowed && step != near_step)) {
         near = allowed ? wlr : NULL;
-        snprintf(line, sizeof(line), "hot-corner near %s", wlr->name);
+        near_step = allowed ? step : -1;
+        snprintf(line, sizeof(line), "hot-corner near %s %.2f", wlr->name, step / 20.0);
         vela_shell_send(server, near ? line : "hot-corner away");
     }
     if (dx > 24.0 || dy > 24.0) {

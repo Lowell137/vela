@@ -16,21 +16,33 @@ Window {
     color: "transparent"
 
     property bool near: false
+    property real progress: 0 // how close to the corner while near, 0..1
+    property bool fired: false // no glow again until the pointer leaves
+    readonly property real level: near && !fired ? progress : 0
 
     Connections {
         target: Shell
-        function onHotCornerChanged(state, output) {
+        function onHotCornerChanged(state, output, progress) {
             if (state === "away") {
                 root.near = false
+                root.fired = false
                 return
             }
-            // Only while hidden: hiding and showing again at once breaks the
-            // layer surface's configure handshake ("wrong configure serial").
+            if (state === "fire") {
+                root.fired = true
+            } else {
+                root.near = true
+                root.progress = progress
+            }
             if (!root.visible) {
+                if (state !== "fire" && root.level === 0) {
+                    return // nothing to show yet
+                }
+                // Only while hidden: hiding and showing again at once breaks
+                // the layer surface's configure handshake ("wrong configure serial").
                 Shell.placeOnScreen(root, output)
             }
             root.visible = true
-            root.near = state === "near"
             if (state === "fire") {
                 for (let i = 0; i < ripples.count; i++) {
                     ripples.itemAt(i).play()
@@ -42,7 +54,7 @@ Window {
 
     // Gone once nothing shows: a hidden panel gives its surface back.
     function hideIfIdle() {
-        if (!near && glow.opacity === 0 && !settle.running) {
+        if (level === 0 && glow.opacity === 0 && !settle.running) {
             visible = false
         }
     }
@@ -57,8 +69,13 @@ Window {
     Item {
         id: glow
         anchors.fill: parent
-        opacity: root.near ? 1 : 0
-        Behavior on opacity { NumberAnimation { duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate } }
+        // Grows and brightens with the pointer's approach; a short smoothing
+        // between the compositor's steps, a slower fade once it is gone.
+        opacity: 0.9 * root.level
+        scale: 0.4 + 0.6 * root.level
+        transformOrigin: Item.TopLeft
+        Behavior on opacity { NumberAnimation { duration: root.level > 0 ? 70 : Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate } }
+        Behavior on scale { NumberAnimation { duration: root.level > 0 ? 70 : Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate } }
         onOpacityChanged: root.hideIfIdle()
 
         // Quarter circles: centered on the corner, the rest is off the output.
