@@ -123,6 +123,7 @@ constexpr LayerWindow::Anchors centered;
 constexpr LayerWindow::Anchors bottom(LayerWindow::AnchorBottom);
 constexpr LayerWindow::Anchors bottomLeft = bottom | LayerWindow::AnchorLeft;
 constexpr LayerWindow::Anchors bottomRight = bottom | LayerWindow::AnchorRight;
+constexpr LayerWindow::Anchors topLeft = LayerWindow::Anchors(LayerWindow::AnchorTop) | LayerWindow::AnchorLeft;
 constexpr LayerWindow::Anchors fill = bottom | LayerWindow::AnchorTop | LayerWindow::AnchorLeft | LayerWindow::AnchorRight;
 constexpr auto layerTop = LayerWindow::LayerTop;
 constexpr auto layerOverlay = LayerWindow::LayerOverlay;
@@ -155,6 +156,9 @@ const Panel panels[] = {
     { "TaskView", "vela-task-view", layerTop, fill, 0, keysExclusive },
     // The desktop's name in the center of the output.
     { "DesktopOsd", "vela-desktop-osd", layerOverlay, centered, -1, keysNone, {}, true },
+    // The hot corner's glow and pulse, in the top-left corner; the mouse goes
+    // through.
+    { "HotCorner", "vela-hot-corner", layerOverlay, topLeft, -1, keysNone, {}, true },
     // The volume: above fullscreen windows too, like Windows 11. It takes the
     // mouse (drag, mute, wheel).
     { "VolumeOsd", "vela-volume-osd", layerOverlay, bottom, 0, keysNone, QMargins(0, 0, 0, 12) },

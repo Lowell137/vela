@@ -300,6 +300,10 @@ void ShellController::handleCommand(const QByteArray& command)
         emit volumeKeyPressed(QString::fromLatin1(parts.at(1)));
     } else if (parts.first() == "media" && parts.size() == 2) {
         emit mediaKeyPressed(QString::fromLatin1(parts.at(1)));
+    } else if (parts.first() == "hot-corner" && parts.size() >= 2) {
+        // hot-corner near|fire <output>, hot-corner away
+        emit hotCornerChanged(QString::fromLatin1(parts.at(1)),
+            parts.size() > 2 ? QString::fromUtf8(parts.at(2)) : QString());
     } else if (command == "task-view") {
         emit taskViewRequested();
     } else if (parts.first() == "workspaces") {
