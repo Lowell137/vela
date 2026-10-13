@@ -344,6 +344,9 @@ void Preferences::reloadCompositor()
     m_hotCornerGlow = flag(QStringLiteral("hot-corner-glow"), true);
     m_hotCornerAnimation = flag(QStringLiteral("hot-corner-animation"), true);
     m_snapDragLayouts = flag(QStringLiteral("snap-drag-layouts"), true);
+    m_snapDragDistance = std::clamp(value(QStringLiteral("snap-drag-trigger-distance"), QStringLiteral("64")).toInt(), 4, 200);
+    m_snapDragWidth = std::clamp(value(QStringLiteral("snap-drag-trigger-width"), QStringLiteral("160")).toInt(), 0, 960);
+    m_snapDragScale = std::clamp(value(QStringLiteral("snap-drag-scale"), QStringLiteral("100")).toInt(), 60, 200);
     m_threeFingers = value(QStringLiteral("touchpad-three-fingers"), QStringLiteral("app"));
     m_fourFingers = value(QStringLiteral("touchpad-four-fingers"), QStringLiteral("desktop"));
     emit inputChanged();
@@ -1151,6 +1154,36 @@ void Preferences::setSnapDragLayouts(bool on)
     if (on != m_snapDragLayouts) {
         m_snapDragLayouts = on;
         saveCompositor({ { QStringLiteral("snap-drag-layouts"), yesNo(on) } });
+        emit shortcutsChanged();
+    }
+}
+
+void Preferences::setSnapDragDistance(int value)
+{
+    value = std::clamp(value, 4, 200);
+    if (value != m_snapDragDistance) {
+        m_snapDragDistance = value;
+        saveCompositor({ { QStringLiteral("snap-drag-trigger-distance"), QString::number(value) } });
+        emit shortcutsChanged();
+    }
+}
+
+void Preferences::setSnapDragWidth(int value)
+{
+    value = std::clamp(value, 0, 960);
+    if (value != m_snapDragWidth) {
+        m_snapDragWidth = value;
+        saveCompositor({ { QStringLiteral("snap-drag-trigger-width"), QString::number(value) } });
+        emit shortcutsChanged();
+    }
+}
+
+void Preferences::setSnapDragScale(int value)
+{
+    value = std::clamp(value, 60, 200);
+    if (value != m_snapDragScale) {
+        m_snapDragScale = value;
+        saveCompositor({ { QStringLiteral("snap-drag-scale"), QString::number(value) } });
         emit shortcutsChanged();
     }
 }

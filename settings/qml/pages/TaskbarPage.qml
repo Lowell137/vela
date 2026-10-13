@@ -63,6 +63,51 @@ Page {
                 onToggled: on => Prefs.snapDragLayouts = on
             }
         }
+        Card {
+            enabled: Prefs.snapDragLayouts
+            opacity: enabled ? 1 : 0.45
+            title: qsTr("How close to the top")
+            description: qsTr("%1 px from the top of the screen").arg(Prefs.snapDragDistance)
+            trailing: Slider {
+                width: 220
+                from: 4
+                to: 200
+                stepSize: 4
+                live: false
+                value: Prefs.snapDragDistance
+                onReleased: value => Prefs.snapDragDistance = Math.round(value)
+            }
+        }
+        Card {
+            enabled: Prefs.snapDragLayouts
+            opacity: enabled ? 1 : 0.45
+            title: qsTr("How far to the sides")
+            description: qsTr("%1 px beside the layouts").arg(Prefs.snapDragWidth)
+            trailing: Slider {
+                width: 220
+                from: 0
+                to: 960
+                stepSize: 20
+                live: false
+                value: Prefs.snapDragWidth
+                onReleased: value => Prefs.snapDragWidth = Math.round(value)
+            }
+        }
+        Card {
+            enabled: Prefs.snapDragLayouts
+            opacity: enabled ? 1 : 0.45
+            title: qsTr("Size of the layouts")
+            description: qsTr("%1%").arg(Prefs.snapDragScale)
+            trailing: Slider {
+                width: 220
+                from: 60
+                to: 200
+                stepSize: 10
+                live: false
+                value: Prefs.snapDragScale
+                onReleased: value => Prefs.snapDragScale = Math.round(value)
+            }
+        }
     }
 
     CardGroup {
