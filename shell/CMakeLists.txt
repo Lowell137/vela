@@ -164,6 +164,7 @@ target_link_libraries(vela-shell PRIVATE
     vela-audio) # the sound (common/audio, docs/audio.md)
 
 install(TARGETS vela-shell RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(PROGRAMS ../scripts/vela-ocr DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 # The tests (ctest): the Exec key of .desktop files, default apps and the
 # volume's steps.

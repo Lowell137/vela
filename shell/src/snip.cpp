@@ -18,10 +18,12 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QLocalSocket>
+#include <QProcess>
 #include <QQmlEngine>
 #include <QQuickWindow>
 #include <QScreen>
 #include <QSaveFile>
+#include <QTemporaryFile>
 #include <QStandardPaths>
 #include <QTimer>
 #include <QUrl>
@@ -194,6 +196,11 @@ void Snip::finish(const QString& screenName, qreal x, qreal y, qreal width, qrea
         return;
     }
 
+    if (m_mode == QLatin1String("text")) {
+        recognizeText(cut);
+        return;
+    }
+
     m_clipboard->copyImage(cut);
     // In Pictures/Screenshots, like Windows.
     const QString folder = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation) + QStringLiteral("/Screenshot");
@@ -212,4 +219,45 @@ void Snip::finish(const QString& screenName, qreal x, qreal y, qreal width, qrea
     if (saved) {
         m_saved.insert(id, path);
     }
+}
+
+// The Text mode (like PowerToys' Text Extractor): vela-ocr reads the text in
+// the chosen rectangle, and it goes to the clipboard.
+void Snip::recognizeText(const QImage& image)
+{
+    const auto report = [this](const QString& title, const QString& body) {
+        m_notifications->Notify(QCoreApplication::translate("Snip", "Snipping Tool"), 0,
+            QStringLiteral("accessories-screenshot"), title, body, QStringList(), QVariantMap(), 6000);
+    };
+    auto* file = new QTemporaryFile(QDir::tempPath() + QStringLiteral("/vela-ocr-XXXXXX.png"), this);
+    if (!file->open() || !image.save(file, "PNG") || !file->flush()) {
+        file->deleteLater();
+        report(QCoreApplication::translate("Snip", "Couldn't read the text"), QString());
+        return;
+    }
+    auto* process = new QProcess(this);
+    process->setProcessChannelMode(QProcess::SeparateChannels);
+    connect(process, &QProcess::errorOccurred, this, [=, this](QProcess::ProcessError error) {
+        if (error == QProcess::FailedToStart) {
+            report(QCoreApplication::translate("Snip", "Couldn't read the text"),
+                QCoreApplication::translate("Snip", "vela-ocr isn't installed."));
+            file->deleteLater();
+            process->deleteLater();
+        }
+    });
+    connect(process, &QProcess::finished, this, [=, this](int code, QProcess::ExitStatus) {
+        const QString text = QString::fromUtf8(process->readAllStandardOutput()).trimmed();
+        if (code == 127) {
+            report(QCoreApplication::translate("Snip", "Couldn't read the text"),
+                QCoreApplication::translate("Snip", "Install tesseract or RapidOCR to read text."));
+        } else if (text.isEmpty()) {
+            report(QCoreApplication::translate("Snip", "No text found"), QString());
+        } else {
+            m_clipboard->copyText(text);
+            report(QCoreApplication::translate("Snip", "Text copied to clipboard"), text.left(200));
+        }
+        file->deleteLater();
+        process->deleteLater();
+    });
+    process->start(QStringLiteral("vela-ocr"), { file->fileName() });
 }

@@ -19,6 +19,8 @@ Window {
     property rect selection: Qt.rect(0, 0, 0, 0)
     property point origin
     property bool dragging: false
+    // Text, like Rectangle, drags a rectangle; it copies the text in it.
+    readonly property bool dragMode: Snip.mode === "rect" || Snip.mode === "text"
     readonly property bool hasSelection: selection.width > 0 && selection.height > 0
 
     // The topmost window under the point (this output's coordinates).
@@ -91,14 +93,14 @@ Window {
                 Snip.cancel()
                 return
             }
-            if (Snip.mode === "rect") {
+            if (root.dragMode) {
                 root.origin = Qt.point(mouse.x, mouse.y)
                 root.dragging = true
                 root.selection = Qt.rect(mouse.x, mouse.y, 0, 0)
             }
         }
         onPositionChanged: mouse => {
-            if (Snip.mode === "rect" && root.dragging) {
+            if (root.dragMode && root.dragging) {
                 root.selection = Qt.rect(Math.min(root.origin.x, mouse.x), Math.min(root.origin.y, mouse.y),
                     Math.abs(mouse.x - root.origin.x), Math.abs(mouse.y - root.origin.y))
             } else if (Snip.mode === "window") {
@@ -107,10 +109,10 @@ Window {
                 root.selection = Qt.rect(0, 0, root.width, root.height)
             }
         }
-        onExited: if (Snip.mode !== "rect") root.selection = Qt.rect(0, 0, 0, 0)
+        onExited: if (!root.dragMode) root.selection = Qt.rect(0, 0, 0, 0)
         onReleased: mouse => {
             if (mouse.button !== Qt.LeftButton) return
-            if (Snip.mode === "rect") {
+            if (root.dragMode) {
                 root.dragging = false
                 root.finish(root.selection)
             } else if (Snip.mode === "window") {
@@ -140,7 +142,8 @@ Window {
                 model: [
                     { mode: "rect", icon: "select-rectangular", tip: qsTr("Rectangle") },
                     { mode: "window", icon: "window", tip: qsTr("Window") },
-                    { mode: "screen", icon: "view-fullscreen", tip: qsTr("Full screen") }
+                    { mode: "screen", icon: "view-fullscreen", tip: qsTr("Full screen") },
+                    { mode: "text", icon: "edit-select-text", tip: qsTr("Text") }
                 ]
                 delegate: Rectangle {
                     id: tool

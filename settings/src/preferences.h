@@ -126,6 +126,22 @@ public:
     QString language() const { return m_language; }
     void setLanguage(const QString& language);
 
+    // Keyboard shortcuts (vela.conf: shortcut-<action>, shortcut-custom-N).
+    // Each entry of `shortcuts`: id, title, combo (current, "" if off),
+    // defaultCombo, changed. Each of `customShortcuts`: number, combo, command.
+    Q_PROPERTY(QVariantList shortcuts READ shortcuts NOTIFY shortcutsChanged)
+    Q_PROPERTY(QVariantList customShortcuts READ customShortcuts NOTIFY shortcutsChanged)
+    QVariantList shortcuts() const { return m_shortcuts; }
+    QVariantList customShortcuts() const { return m_customShortcuts; }
+    Q_INVOKABLE QVariantList fixedShortcuts() const; // listed, not editable: title, combo
+    Q_INVOKABLE QString normalizeShortcut(const QString& text) const; // "" if it isn't valid
+    // These return an error text, or "" when done.
+    Q_INVOKABLE QString setShortcut(const QString& id, const QString& combo);
+    Q_INVOKABLE void resetShortcut(const QString& id);
+    Q_INVOKABLE QString addCustomShortcut(const QString& combo, const QString& command);
+    Q_INVOKABLE QString updateCustomShortcut(int number, const QString& combo, const QString& command);
+    Q_INVOKABLE void removeCustomShortcut(int number);
+
     QVariantList keyboardLayouts() const { return m_layouts; }
     Q_INVOKABLE void addKeyboardLayout(const QString& layout, const QString& variant);
     Q_INVOKABLE void removeKeyboardLayout(int index);
@@ -208,6 +224,7 @@ signals:
     void idleChanged();
     void languageChanged();
     void keyboardChanged();
+    void shortcutsChanged();
     void nightLightChanged();
     void inputChanged();
     void clipboardChanged();
@@ -223,6 +240,8 @@ private:
     void queryCompositor(); // night light, magnifier...: the current state
     void watchConfig();
     void saveLayouts();
+    void loadShortcuts(); // from m_compositor
+    QString shortcutConflict(const QString& combo, const QString& exceptKey) const;
 
     QString m_wallpaper;
     QStringList m_recentWallpapers;
@@ -238,6 +257,8 @@ private:
     bool m_lockOnIdle = true;
     QString m_language;
     QVariantList m_layouts;
+    QVariantList m_shortcuts;
+    QVariantList m_customShortcuts;
     int m_repeatDelay = 400;
     int m_repeatRate = 30;
     bool m_nightLight = false;

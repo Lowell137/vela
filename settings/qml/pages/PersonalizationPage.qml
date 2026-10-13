@@ -27,6 +27,12 @@ Page {
             description: qsTr("Alignment, taskbar behaviors")
             onClicked: root.navigate("taskbar")
         }
+        LinkCard {
+            icon: "preferences-desktop-keyboard-shortcuts"
+            title: qsTr("Keyboard shortcuts")
+            description: qsTr("See, change and add shortcuts")
+            onClicked: root.navigate("shortcuts")
+        }
     }
 
     // The preview: the wallpaper with a window and the taskbar in miniature.

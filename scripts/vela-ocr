@@ -1,0 +1,21 @@
+#!/bin/sh
+# vela-ocr IMAGE: prints the text in the image (the Snipping Tool's Text mode).
+# RapidOCR (PP-OCRv5, Latin) if some Python has it, else tesseract. A Python
+# with RapidOCR can be given in VELA_OCR_PYTHON or put in ~/.local/share/vela/ocr.
+img=$1
+for py in "$VELA_OCR_PYTHON" "${XDG_DATA_HOME:-$HOME/.local/share}/vela/ocr/bin/python" python3; do
+    [ -n "$py" ] && "$py" -c 'import rapidocr' 2>/dev/null || continue
+    exec "$py" -c '
+import sys, logging
+from rapidocr import RapidOCR, LangRec, OCRVersion, ModelType
+logging.disable(logging.CRITICAL)
+engine = RapidOCR(params={"Rec.lang_type": LangRec.LATIN, "Rec.ocr_version": OCRVersion.PPOCRV5,
+                          "Rec.model_type": ModelType.MOBILE})
+print("\n".join(engine(sys.argv[1]).txts or []))
+' "$img" 2>/dev/null
+done
+if command -v tesseract >/dev/null; then
+    langs=$(tesseract --list-langs 2>/dev/null | grep -xE 'tur|eng' | paste -sd+)
+    exec tesseract "$img" - ${langs:+-l "$langs"} 2>/dev/null
+fi
+exit 127
