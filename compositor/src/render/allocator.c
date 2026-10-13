@@ -12,6 +12,7 @@
 #include <drm_fourcc.h>
 #include <gbm.h>
 #include <stdlib.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <wlr/interfaces/wlr_buffer.h>
 #include <wlr/render/allocator.h>
@@ -104,6 +105,12 @@ static struct wlr_buffer *create_buffer(struct wlr_allocator *wlr_alloc, int wid
     d->format = format->format;
     d->modifier = gbm_bo_get_modifier(bo);
     d->n_planes = gbm_bo_get_plane_count(bo);
+    if (d->n_planes < 1 || d->n_planes > WLR_DMABUF_MAX_PLANES) {
+        wlr_log(WLR_ERROR, "Allocator: invalid GBM plane count %d", d->n_planes);
+        gbm_bo_destroy(bo);
+        free(buffer);
+        return NULL;
+    }
     for (int i = 0; i < d->n_planes; ++i) {
         d->fd[i] = gbm_bo_get_fd_for_plane(bo, i);
         d->offset[i] = gbm_bo_get_offset(bo, i);
@@ -122,8 +129,14 @@ static struct wlr_buffer *create_buffer(struct wlr_allocator *wlr_alloc, int wid
         wlr_log(WLR_INFO, "DMABUF trace: GBM allocated %dx%d drm=0x%08x modifier=0x%llx planes=%d",
             width, height, d->format, (unsigned long long)d->modifier, d->n_planes);
         for (int i = 0; i < d->n_planes; ++i) {
-            wlr_log(WLR_INFO, "DMABUF trace: GBM plane=%d fd=%d offset=%u stride=%u",
-                i, d->fd[i], d->offset[i], d->stride[i]);
+            struct stat info;
+            if (fstat(d->fd[i], &info) == 0) {
+                wlr_log(WLR_INFO, "DMABUF trace: GBM plane=%d fd=%d dev=%llu ino=%llu offset=%u stride=%u",
+                    i, d->fd[i], (unsigned long long)info.st_dev, (unsigned long long)info.st_ino,
+                    d->offset[i], d->stride[i]);
+            } else {
+                wlr_log_errno(WLR_ERROR, "DMABUF trace: GBM plane=%d fstat fd=%d", i, d->fd[i]);
+            }
         }
     }
     wlr_buffer_init(&buffer->base, &buffer_impl, width, height);
