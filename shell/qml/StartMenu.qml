@@ -40,11 +40,12 @@ Window {
     }
     readonly property bool showPinned: search.text.length === 0 && pinned.length > 0
 
-    // The Start menu is centered above the taskbar: from its coordinates to
-    // the output's, for right-click menus.
+    // The Start menu is above the taskbar, centered or at the left: from its
+    // coordinates to the output's, for right-click menus.
     function screenPoint(item, x, y) {
         const p = item.mapToItem(null, x, y)
-        return Qt.point((Screen.width - root.width) / 2 + p.x, Screen.height - Theme.taskbarHeight - root.height + p.y)
+        const left = Config.taskbarAlignment === "left" ? 12 : (Screen.width - root.width) / 2 // placeStartMenu
+        return Qt.point(left + p.x, Screen.height - Theme.taskbarHeight - root.height + p.y)
     }
 
     // An app's menu (docs/renderer.md §14.7): recent files and tasks at the
@@ -68,19 +69,20 @@ Window {
         const taskbar = Tasks.isPinned(id)
             ? { text: qsTr("Unpin from &taskbar"), icon: "window-unpin", action: () => Tasks.unpin(id) }
             : { text: qsTr("Pin to &taskbar"), icon: "window-pin", action: () => Tasks.pin(id) }
+        const desktop = { text: qsTr("Add to &desktop"), icon: "user-desktop", action: () => { FileActions.createLinks([Apps.desktopFile(id)], System.desktopDirectory()); root.close() } }
         const folder = { text: qsTr("Open file &location"), icon: "document-open-folder", action: () => { System.showInFolder(Apps.desktopFile(id)); root.close() } }
         const uninstall = { text: qsTr("&Uninstall"), icon: "edit-delete", enabled: System.canUninstall(Apps.desktopFile(id)), action: () => { System.uninstall(Apps.desktopFile(id)); root.close() } }
         if (pinnedTile) {
             entries.push(
                 { text: qsTr("&Unpin from Start"), icon: "window-unpin", action: () => Shell.unpinFromStart(id) },
                 { text: qsTr("Move to &front"), icon: "go-top", enabled: Shell.startPins.indexOf(id) > 0, action: () => Shell.moveStartPinToFront(id) },
-                taskbar, folder, uninstall)
+                taskbar, desktop, folder, uninstall)
         } else {
             entries.push(
                 inStart
                     ? { text: qsTr("&Unpin from Start"), icon: "window-unpin", action: () => Shell.unpinFromStart(id) }
                     : { text: qsTr("&Pin to Start"), icon: "window-pin", action: () => Shell.pinToStart(id) },
-                { text: qsTr("&More"), children: [taskbar, folder] },
+                { text: qsTr("&More"), children: [taskbar, desktop, folder] },
                 uninstall)
         }
         return entries
