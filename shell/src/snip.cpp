@@ -59,6 +59,12 @@ Snip::Snip(QQmlEngine* engine, WindowCapture* capture, Clipboard* clipboard, Not
     , m_clipboard(clipboard)
     , m_notifications(notifications)
 {
+    m_idle.setSingleShot(true);
+    connect(&m_idle, &QTimer::timeout, this, [this] {
+        if (m_worker && !m_pending.file) {
+            m_worker->closeWriteChannel(); // vela-ocr --serve ends at the end of its input
+        }
+    });
     connect(m_capture, &WindowCapture::screenCaptured, this, [this](const QString&, bool) {
         if (m_waiting > 0 && --m_waiting == 0) {
             showOverlays();
@@ -77,6 +83,9 @@ void Snip::setMode(const QString& mode)
 {
     if (mode != m_mode) {
         m_mode = mode;
+        if (mode == QLatin1String("text")) {
+            startWorker(); // warms up while the rectangle is chosen
+        }
         emit modeChanged();
     }
 }
@@ -166,6 +175,7 @@ void Snip::cancel()
     closeOverlays();
     m_capture->clearFull();
     m_active = false;
+    m_idle.start(30000); // the worker stays for a second snip
     emit activeChanged();
 }
 
@@ -191,13 +201,9 @@ void Snip::finish(const QString& screenName, qreal x, qreal y, qreal width, qrea
     closeOverlays();
     m_capture->clearFull();
     m_active = false;
+    m_idle.start(30000);
     emit activeChanged();
     if (cut.isNull()) {
-        return;
-    }
-
-    if (m_mode == QLatin1String("text")) {
-        recognizeText(cut);
         return;
     }
 
@@ -221,43 +227,112 @@ void Snip::finish(const QString& screenName, qreal x, qreal y, qreal width, qrea
     }
 }
 
-// The Text mode (like PowerToys' Text Extractor): vela-ocr reads the text in
-// the chosen rectangle, and it goes to the clipboard.
-void Snip::recognizeText(const QImage& image)
+// The area of output `screenName` (logical coordinates) in image pixels, and
+// the pixels per logical unit.
+static bool imageArea(const QImage& full, const QString& screenName, const QRectF& logical, QRect* area, QPointF* scale)
 {
-    const auto report = [this](const QString& title, const QString& body) {
-        m_notifications->Notify(QCoreApplication::translate("Snip", "Snipping Tool"), 0,
-            QStringLiteral("accessories-screenshot"), title, body, QStringList(), QVariantMap(), 6000);
-    };
-    auto* file = new QTemporaryFile(QDir::tempPath() + QStringLiteral("/vela-ocr-XXXXXX.png"), this);
-    if (!file->open() || !image.save(file, "PNG") || !file->flush()) {
-        file->deleteLater();
-        report(QCoreApplication::translate("Snip", "Couldn't read the text"), QString());
+    QScreen* screen = nullptr;
+    for (QScreen* candidate : QGuiApplication::screens()) {
+        if (candidate->name() == screenName) {
+            screen = candidate;
+        }
+    }
+    if (full.isNull() || !screen || logical.width() < 1 || logical.height() < 1) {
+        return false;
+    }
+    *scale = QPointF(full.width() / qreal(screen->geometry().width()), full.height() / qreal(screen->geometry().height()));
+    *area = QRect(qRound(logical.x() * scale->x()), qRound(logical.y() * scale->y()),
+        qRound(logical.width() * scale->x()), qRound(logical.height() * scale->y()))
+                .intersected(full.rect());
+    return !area->isEmpty();
+}
+
+// The Text mode, like Windows' Text Actions: the chosen rectangle stays on the
+// screen and vela-ocr (a worker kept warm while the tool is open) finds its
+// words; the overlay lets you select them and copy.
+void Snip::startWorker()
+{
+    m_idle.stop();
+    if (m_worker && m_worker->state() != QProcess::NotRunning) {
         return;
     }
-    auto* process = new QProcess(this);
-    process->setProcessChannelMode(QProcess::SeparateChannels);
-    connect(process, &QProcess::errorOccurred, this, [=, this](QProcess::ProcessError error) {
-        if (error == QProcess::FailedToStart) {
-            report(QCoreApplication::translate("Snip", "Couldn't read the text"),
-                QCoreApplication::translate("Snip", "vela-ocr isn't installed."));
-            file->deleteLater();
-            process->deleteLater();
-        }
-    });
-    connect(process, &QProcess::finished, this, [=, this](int code, QProcess::ExitStatus) {
-        const QString text = QString::fromUtf8(process->readAllStandardOutput()).trimmed();
-        if (code == 127) {
-            report(QCoreApplication::translate("Snip", "Couldn't read the text"),
-                QCoreApplication::translate("Snip", "Install tesseract or RapidOCR to read text."));
-        } else if (text.isEmpty()) {
-            report(QCoreApplication::translate("Snip", "No text found"), QString());
-        } else {
-            m_clipboard->copyText(text);
-            report(QCoreApplication::translate("Snip", "Text copied to clipboard"), text.left(200));
-        }
+    if (!m_worker) {
+        m_worker = new QProcess(this);
+        m_worker->setProcessChannelMode(QProcess::SeparateChannels);
+        connect(m_worker, &QProcess::readyReadStandardOutput, this, [this] {
+            while (m_worker->canReadLine()) {
+                const QJsonObject reply = QJsonDocument::fromJson(m_worker->readLine()).object();
+                if (m_pending.file) {
+                    finishRecognize(reply);
+                }
+            }
+        });
+        connect(m_worker, &QProcess::finished, this, [this] {
+            if (m_pending.file) {
+                finishRecognize(QJsonObject { { QStringLiteral("error"), QStringLiteral("exit") } });
+            }
+        });
+        connect(m_worker, &QProcess::errorOccurred, this, [this](QProcess::ProcessError error) {
+            if (error == QProcess::FailedToStart && m_pending.file) {
+                finishRecognize(QJsonObject { { QStringLiteral("error"), QStringLiteral("missing") } });
+            }
+        });
+    }
+    m_worker->start(QStringLiteral("vela-ocr"), { QStringLiteral("--serve") });
+}
+
+void Snip::recognize(const QString& screenName, qreal x, qreal y, qreal width, qreal height)
+{
+    const QImage full = m_capture->fullImage(screenName);
+    QRect area;
+    QPointF scale;
+    if (m_pending.file || !imageArea(full, screenName, QRectF(x, y, width, height), &area, &scale)) {
+        return;
+    }
+    auto* file = new QTemporaryFile(QDir::tempPath() + QStringLiteral("/vela-ocr-XXXXXX.png"), this);
+    if (!file->open() || !full.copy(area).save(file, "PNG") || !file->flush()) {
         file->deleteLater();
-        process->deleteLater();
-    });
-    process->start(QStringLiteral("vela-ocr"), { file->fileName() });
+        emit recognizeFailed(screenName, QCoreApplication::translate("Snip", "Couldn't read the text"));
+        return;
+    }
+    m_pending = { file, screenName, QPointF(area.x() / scale.x(), area.y() / scale.y()), scale };
+    startWorker();
+    m_worker->write(file->fileName().toUtf8() + '\n');
+}
+
+void Snip::finishRecognize(const QJsonObject& reply)
+{
+    const Pending job = std::exchange(m_pending, Pending());
+    job.file->deleteLater();
+    if (reply.contains(QStringLiteral("error"))) {
+        const bool missing = reply.value(QStringLiteral("error")).toString() == QLatin1String("missing");
+        emit recognizeFailed(job.screen, missing ? QCoreApplication::translate("Snip", "Text recognition isn't installed (vela-ocr).")
+                                                 : QCoreApplication::translate("Snip", "Couldn't read the text"));
+        return;
+    }
+    // Pixels of the crop to this output's logical coordinates.
+    QVariantList words;
+    for (const QJsonValue& value : reply.value(QStringLiteral("words")).toArray()) {
+        const QJsonObject word = value.toObject();
+        words.append(QVariantMap {
+            { QStringLiteral("text"), word.value(QStringLiteral("t")).toString() },
+            { QStringLiteral("x"), job.origin.x() + word.value(QStringLiteral("x")).toDouble() / job.scale.x() },
+            { QStringLiteral("y"), job.origin.y() + word.value(QStringLiteral("y")).toDouble() / job.scale.y() },
+            { QStringLiteral("w"), word.value(QStringLiteral("w")).toDouble() / job.scale.x() },
+            { QStringLiteral("h"), word.value(QStringLiteral("h")).toDouble() / job.scale.y() },
+            { QStringLiteral("line"), word.value(QStringLiteral("l")).toInt() },
+        });
+    }
+    emit wordsReady(job.screen, words);
+}
+
+void Snip::copyText(const QString& text)
+{
+    if (text.isEmpty()) {
+        return;
+    }
+    m_clipboard->copyText(text);
+    m_notifications->Notify(QCoreApplication::translate("Snip", "Snipping Tool"), 0, QStringLiteral("accessories-screenshot"),
+        QCoreApplication::translate("Snip", "Text copied to clipboard"), text.left(200), QStringList(), QVariantMap(), 4000);
+    cancel();
 }

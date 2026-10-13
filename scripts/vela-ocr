@@ -1,21 +1,94 @@
-#!/bin/sh
-# vela-ocr IMAGE: prints the text in the image (the Snipping Tool's Text mode).
-# RapidOCR (PP-OCRv5, Latin) if some Python has it, else tesseract. A Python
-# with RapidOCR can be given in VELA_OCR_PYTHON or put in ~/.local/share/vela/ocr.
-img=$1
-for py in "$VELA_OCR_PYTHON" "${XDG_DATA_HOME:-$HOME/.local/share}/vela/ocr/bin/python" python3; do
-    [ -n "$py" ] && "$py" -c 'import rapidocr' 2>/dev/null || continue
-    exec "$py" -c '
-import sys, logging
-from rapidocr import RapidOCR, LangRec, OCRVersion, ModelType
-logging.disable(logging.CRITICAL)
-engine = RapidOCR(params={"Rec.lang_type": LangRec.LATIN, "Rec.ocr_version": OCRVersion.PPOCRV5,
-                          "Rec.model_type": ModelType.MOBILE})
-print("\n".join(engine(sys.argv[1]).txts or []))
-' "$img" 2>/dev/null
-done
-if command -v tesseract >/dev/null; then
-    langs=$(tesseract --list-langs 2>/dev/null | grep -xE 'tur|eng' | paste -sd+)
-    exec tesseract "$img" - ${langs:+-l "$langs"} 2>/dev/null
-fi
-exit 127
+#!/usr/bin/env python3
+"""Text recognition for the Snipping Tool's Text mode.
+
+  vela-ocr IMAGE     prints the text of the image
+  vela-ocr --serve   reads image paths from stdin; for each, one JSON line:
+                     {"words": [{"t": text, "x": x, "y": y, "w": w, "h": h, "l": line}]}
+
+RapidOCR (PP-OCRv5, Latin) if a Python has it (VELA_OCR_PYTHON or
+~/.local/share/vela/ocr), else tesseract (tur+eng if installed)."""
+import json
+import os
+import subprocess
+import sys
+
+HOME_PYTHON = os.path.join(os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share"), "vela/ocr/bin/python")
+
+
+def rapidocr_words():
+    """A function path -> words, or None when RapidOCR isn't here."""
+    real_stdout, sys.stdout = sys.stdout, sys.stderr  # its log lines stay off our output
+    try:
+        import logging
+        from rapidocr import LangRec, ModelType, OCRVersion, RapidOCR
+        logging.disable(logging.CRITICAL)
+        engine = RapidOCR(params={"Rec.lang_type": LangRec.LATIN, "Rec.ocr_version": OCRVersion.PPOCRV5,
+                                  "Rec.model_type": ModelType.MOBILE})
+    except Exception:
+        return None
+    finally:
+        sys.stdout = real_stdout
+
+    def run(path):
+        result = engine(path, return_word_box=True)
+        words = []
+        for line, entry in enumerate(result.word_results or ()):
+            for text, _score, box in entry:
+                xs = [p[0] for p in box]
+                ys = [p[1] for p in box]
+                words.append({"t": text, "x": min(xs), "y": min(ys), "w": max(xs) - min(xs), "h": max(ys) - min(ys), "l": line})
+        return words
+    return run
+
+
+def tesseract_words():
+    def run(path):
+        langs = subprocess.run(["tesseract", "--list-langs"], capture_output=True, text=True).stdout.split()
+        args = ["tesseract", path, "-", "tsv"]
+        wanted = "+".join(l for l in ("tur", "eng") if l in langs)
+        if wanted:
+            args[3:3] = ["-l", wanted]
+        out = subprocess.run(args, capture_output=True, text=True)
+        words, lines = [], {}
+        for row in out.stdout.splitlines()[1:]:
+            c = row.split("\t")
+            if len(c) < 12 or c[0] != "5" or not c[11].strip():
+                continue
+            line = lines.setdefault(tuple(c[2:5]), len(lines))
+            words.append({"t": c[11], "x": int(c[6]), "y": int(c[7]), "w": int(c[8]), "h": int(c[9]), "l": line})
+        return words
+    return run
+
+
+def engine():
+    # RapidOCR may live in another Python; run there instead.
+    if "VELA_OCR_REEXEC" not in os.environ:
+        for py in (os.environ.get("VELA_OCR_PYTHON"), HOME_PYTHON):
+            if py and os.access(py, os.X_OK) and os.path.dirname(os.path.dirname(py)) != sys.prefix:
+                os.environ["VELA_OCR_REEXEC"] = "1"
+                os.execv(py, [py] + sys.argv)
+    run = rapidocr_words()
+    if run is None:
+        import shutil
+        if not shutil.which("tesseract"):
+            sys.exit(127)
+        run = tesseract_words()
+    return run
+
+
+def main():
+    if len(sys.argv) == 2 and sys.argv[1] != "--serve":
+        words = engine()(sys.argv[1])
+        for line in sorted({w["l"] for w in words}):
+            print(" ".join(w["t"] for w in words if w["l"] == line))
+        return
+    run = engine()
+    for path in sys.stdin:
+        try:
+            reply = {"words": run(path.strip())}
+        except Exception as error:
+            reply = {"error": str(error)}
+        print(json.dumps(reply), flush=True)
+
+
+main()
