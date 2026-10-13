@@ -452,10 +452,19 @@ bool vela_vulkan_supports_dmabuf(const struct vela_vulkan *vk, VkFormat format, 
     VkExternalImageFormatProperties external_props = { .sType = VK_STRUCTURE_TYPE_EXTERNAL_IMAGE_FORMAT_PROPERTIES };
     VkImageFormatProperties2 image_props
         = { .sType = VK_STRUCTURE_TYPE_IMAGE_FORMAT_PROPERTIES_2, .pNext = &external_props };
-    if (vkGetPhysicalDeviceImageFormatProperties2(vk->physical, &image_info, &image_props) != VK_SUCCESS) {
-        return false;
+    const bool trace = vela_env_one("VELA_DEBUG_DMABUF");
+    if (trace) {
+        wlr_log(WLR_INFO, "DMABUF trace: before vkGetPhysicalDeviceImageFormatProperties2 format=%d modifier=0x%llx usage=0x%x",
+            (int)format, (unsigned long long)modifier, (unsigned)usage);
     }
-    return external_props.externalMemoryProperties.externalMemoryFeatures & VK_EXTERNAL_MEMORY_FEATURE_IMPORTABLE_BIT;
+    VkResult result = vkGetPhysicalDeviceImageFormatProperties2(vk->physical, &image_info, &image_props);
+    VkExternalMemoryFeatureFlags features = result == VK_SUCCESS
+        ? external_props.externalMemoryProperties.externalMemoryFeatures : 0;
+    if (trace) {
+        wlr_log(WLR_INFO, "DMABUF trace: after vkGetPhysicalDeviceImageFormatProperties2 result=%d externalFeatures=0x%x importable=%d",
+            (int)result, (unsigned)features, !!(features & VK_EXTERNAL_MEMORY_FEATURE_IMPORTABLE_BIT));
+    }
+    return result == VK_SUCCESS && (features & VK_EXTERNAL_MEMORY_FEATURE_IMPORTABLE_BIT);
 }
 
 // A format's modifiers with their properties, in an allocated array.
@@ -512,6 +521,10 @@ static void query_formats(struct vela_vulkan *vk)
         if ((optimal & shm_needs) == shm_needs && vk->shm_format_count < VELA_MAX_SHM_FORMATS) {
             vk->shm_formats[vk->shm_format_count++] = format->drm;
         }
+    }
+    if (vela_env_one("VELA_DEBUG_DMABUF")) {
+        wlr_log(WLR_INFO, "DMABUF trace: format discovery GPU=%s render=%zu texture=%zu shm=%d",
+            vk->name, vk->render_formats.len, vk->texture_formats.len, vk->shm_format_count);
     }
 }
 
@@ -579,15 +592,35 @@ bool vela_vulkan_import_dmabuf(const struct vela_vulkan *vk, const struct wlr_dm
 {
     *image = VK_NULL_HANDLE;
     *memory = VK_NULL_HANDLE;
+    const bool trace = vela_env_one("VELA_DEBUG_DMABUF");
+    if (dmabuf->n_planes < 1 || dmabuf->n_planes > WLR_DMABUF_MAX_PLANES) {
+        wlr_log(WLR_ERROR, "DMABUF import: invalid plane count %d", dmabuf->n_planes);
+        return false;
+    }
     // No "disjoint" images: RGB formats don't need them.
     struct stat first;
-    fstat(dmabuf->fd[0], &first);
-    for (int i = 1; i < dmabuf->n_planes; ++i) {
+    if (fstat(dmabuf->fd[0], &first) < 0) {
+        wlr_log_errno(WLR_ERROR, "DMABUF import: fstat plane 0 fd=%d", dmabuf->fd[0]);
+        return false;
+    }
+    if (trace) {
+        wlr_log(WLR_INFO, "DMABUF trace: import resource dev=%llu ino=%llu %dx%d format=%d modifier=0x%llx planes=%d",
+            (unsigned long long)first.st_dev, (unsigned long long)first.st_ino,
+            dmabuf->width, dmabuf->height, (int)format, (unsigned long long)dmabuf->modifier, dmabuf->n_planes);
+    }
+    for (int i = 0; i < dmabuf->n_planes; ++i) {
         struct stat other;
-        fstat(dmabuf->fd[i], &other);
-        if (other.st_ino != first.st_ino) {
-            wlr_log(WLR_ERROR, "dmabuf with planes in different buffers: not supported");
+        if (fstat(dmabuf->fd[i], &other) < 0) {
+            wlr_log_errno(WLR_ERROR, "DMABUF import: fstat plane %d fd=%d", i, dmabuf->fd[i]);
             return false;
+        }
+        if (other.st_dev != first.st_dev || other.st_ino != first.st_ino) {
+            wlr_log(WLR_ERROR, "DMABUF import: planes in different buffers (plane %d): not supported", i);
+            return false;
+        }
+        if (trace) {
+            wlr_log(WLR_INFO, "DMABUF trace: import plane=%d fd=%d offset=%u stride=%u",
+                i, dmabuf->fd[i], dmabuf->offset[i], dmabuf->stride[i]);
         }
     }
 
@@ -630,6 +663,7 @@ bool vela_vulkan_import_dmabuf(const struct vela_vulkan *vk, const struct wlr_dm
         wlr_log(WLR_INFO, "DMABUF trace: after vkCreateImage result=%d", (int)image_result);
     }
     if (image_result != VK_SUCCESS) {
+        wlr_log(WLR_ERROR, "DMABUF import: vkCreateImage failed: VkResult=%d", (int)image_result);
         *image = VK_NULL_HANDLE;
         return false;
     }
@@ -651,7 +685,23 @@ bool vela_vulkan_import_dmabuf(const struct vela_vulkan *vk, const struct wlr_dm
         wlr_log(WLR_INFO, "DMABUF trace: after vkGetMemoryFdPropertiesKHR result=%d memoryTypeBits=0x%x",
             (int)fd_result, fd_props.memoryTypeBits);
     }
-    uint32_t memory_type = vela_vulkan_memory_type(vk, requirements.memoryTypeBits & fd_props.memoryTypeBits, 0);
+    if (fd_result != VK_SUCCESS) {
+        wlr_log(WLR_ERROR, "DMABUF import: vkGetMemoryFdPropertiesKHR failed: VkResult=%d", (int)fd_result);
+        vkDestroyImage(vk->device, *image, NULL);
+        *image = VK_NULL_HANDLE;
+        return false;
+    }
+    uint32_t allowed_types = requirements.memoryTypeBits & fd_props.memoryTypeBits;
+    uint32_t memory_type = vela_vulkan_memory_type(vk, allowed_types, 0);
+    if (trace) {
+        wlr_log(WLR_INFO, "DMABUF trace: memory type intersection=0x%x selected=%u", allowed_types, memory_type);
+    }
+    if (memory_type == UINT32_MAX) {
+        wlr_log(WLR_ERROR, "DMABUF import: no compatible Vulkan memory type (mask=0x%x)", allowed_types);
+        vkDestroyImage(vk->device, *image, NULL);
+        *image = VK_NULL_HANDLE;
+        return false;
+    }
 
     // Vulkan takes ownership of the descriptor: we give it a copy.
     int fd = fcntl(dmabuf->fd[0], F_DUPFD_CLOEXEC, 0);
@@ -671,32 +721,46 @@ bool vela_vulkan_import_dmabuf(const struct vela_vulkan *vk, const struct wlr_dm
         .allocationSize = requirements.size,
         .memoryTypeIndex = memory_type,
     };
-    VkResult allocate_result = VK_ERROR_UNKNOWN;
-    if (fd >= 0 && memory_type != UINT32_MAX) {
-        if (vela_env_one("VELA_DEBUG_DMABUF")) {
-            wlr_log(WLR_INFO, "DMABUF trace: before vkAllocateMemory fd=%d size=%llu memoryType=%u",
-                fd, (unsigned long long)requirements.size, memory_type);
-        }
-        allocate_result = vkAllocateMemory(vk->device, &alloc_info, NULL, memory);
-        if (vela_env_one("VELA_DEBUG_DMABUF")) {
-            wlr_log(WLR_INFO, "DMABUF trace: after vkAllocateMemory result=%d", (int)allocate_result);
-        }
+    if (fd < 0) {
+        wlr_log_errno(WLR_ERROR, "DMABUF import: cannot duplicate fd=%d", dmabuf->fd[0]);
+        vkDestroyImage(vk->device, *image, NULL);
+        *image = VK_NULL_HANDLE;
+        return false;
     }
-    if (fd < 0 || memory_type == UINT32_MAX || allocate_result != VK_SUCCESS) {
-        if (fd >= 0) {
-            close(fd);
-        }
+    if (trace) {
+        wlr_log(WLR_INFO, "DMABUF trace: before vkAllocateMemory fd=%d size=%llu memoryType=%u",
+            fd, (unsigned long long)requirements.size, memory_type);
+    }
+    VkResult allocate_result = vkAllocateMemory(vk->device, &alloc_info, NULL, memory);
+    if (trace) {
+        wlr_log(WLR_INFO, "DMABUF trace: after vkAllocateMemory result=%d", (int)allocate_result);
+    }
+    if (allocate_result != VK_SUCCESS) {
+        wlr_log(WLR_ERROR, "DMABUF import: vkAllocateMemory failed: VkResult=%d", (int)allocate_result);
+        // Vulkan only consumes the copied FD on a successful import.
+        close(fd);
         vkDestroyImage(vk->device, *image, NULL);
         *image = VK_NULL_HANDLE;
         *memory = VK_NULL_HANDLE;
         return false;
     }
-    if (vela_env_one("VELA_DEBUG_DMABUF")) {
+    if (trace) {
         wlr_log(WLR_INFO, "DMABUF trace: before vkBindImageMemory");
     }
     VkResult bind_result = vkBindImageMemory(vk->device, *image, *memory, 0);
-    if (vela_env_one("VELA_DEBUG_DMABUF")) {
+    if (trace) {
         wlr_log(WLR_INFO, "DMABUF trace: after vkBindImageMemory result=%d", (int)bind_result);
+    }
+    if (bind_result != VK_SUCCESS) {
+        wlr_log(WLR_ERROR, "DMABUF import: vkBindImageMemory failed: VkResult=%d", (int)bind_result);
+        vkDestroyImage(vk->device, *image, NULL);
+        vkFreeMemory(vk->device, *memory, NULL);
+        *image = VK_NULL_HANDLE;
+        *memory = VK_NULL_HANDLE;
+        return false;
+    }
+    if (trace) {
+        wlr_log(WLR_INFO, "DMABUF trace: import complete image bound successfully");
     }
     return true;
 }
