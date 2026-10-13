@@ -138,6 +138,21 @@ bool vela_bindings_handle(struct vela_server *server, uint32_t modifiers, uint32
     // create a new one, Win+Ctrl+F4 to close the current one (inside KDE with
     // Alt+Ctrl); Win+Tab (Alt+W) Task View.
     if (windows_key && ctrl) {
+        // With Shift: the window goes to the previous/next desktop (a new one
+        // after the last) and you follow it.
+        if (shift && (sym == XKB_KEY_Left || sym == XKB_KEY_Right)) {
+            if (active) {
+                int target = server->workspaces->current + (sym == XKB_KEY_Left ? -1 : 1);
+                if (target >= server->workspaces->count) {
+                    target = vela_workspaces_add(server);
+                }
+                if (target >= 0) {
+                    vela_workspaces_move_view(server, active, target);
+                    vela_workspaces_switch(server, target, true);
+                }
+            }
+            return true;
+        }
         if (sym == XKB_KEY_Left || sym == XKB_KEY_Right) {
             vela_workspaces_switch(server, server->workspaces->current + (sym == XKB_KEY_Left ? -1 : 1), true);
             return true;

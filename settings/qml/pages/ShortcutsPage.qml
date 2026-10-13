@@ -123,6 +123,19 @@ Page {
     }
 
     CardGroup {
+        title: qsTr("Corner and mouse")
+        Card {
+            icon: "view-grid"
+            title: qsTr("Hot corner")
+            description: qsTr("Moving the pointer into the top-left corner opens Task View")
+            trailing: Toggle {
+                checked: Prefs.hotCorner
+                onToggled: on => Prefs.hotCorner = on
+            }
+        }
+    }
+
+    CardGroup {
         title: qsTr("Your shortcuts")
         Card {
             icon: "list-add"

@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "interact.h"
+#include "shortcuts.h"
+#include "shell.h"
 
 #include "a11y.h"
 #include "bindings.h"
@@ -125,8 +127,37 @@ static void unhover_decoration(struct vela_interaction *interaction)
     }
 }
 
+// The hot corner: the pointer reaching the top-left corner of an output opens
+// Task View, once; it arms again when the pointer leaves the corner.
+static void hot_corner_check(struct vela_server *server)
+{
+    static bool armed = true;
+    struct wlr_cursor *cursor = server->cursor;
+    struct wlr_output *wlr = wlr_output_layout_output_at(server->output_layout, cursor->x, cursor->y);
+    if (!wlr) {
+        return;
+    }
+    struct wlr_box box;
+    wlr_output_layout_get_box(server->output_layout, wlr, &box);
+    double dx = cursor->x - box.x;
+    double dy = cursor->y - box.y;
+    if (dx > 24.0 || dy > 24.0) {
+        armed = true;
+        return;
+    }
+    if (dx >= 2.0 || dy >= 2.0 || !armed) {
+        return;
+    }
+    armed = false;
+    struct vela_view *focused = vela_views_focused(server);
+    if (server->cursor_mode == VELA_CURSOR_PASSTHROUGH && vela_hot_corner_enabled() && !(focused && focused->fullscreen)) {
+        vela_shell_send(server, "task-view");
+    }
+}
+
 void vela_interact_motion(struct vela_server *server, uint32_t time_msec)
 {
+    hot_corner_check(server);
     struct vela_interaction *interaction = server->interaction;
     struct wlr_cursor *cursor = server->cursor;
     struct wlr_seat *seat = server->seat;
