@@ -7,8 +7,9 @@ import Vela.Controls
 // Personalization > Window blur: the blur behind see-through windows, like
 // Windows 11's acrylic (window-blur*= in vela.conf). Apps that ask for blur
 // themselves always get it; this forces it on the others, for all windows or
-// only the chosen apps, never the excluded ones. The compositor applies it
-// right away.
+// only the chosen apps, never the excluded ones; the same windows can also be
+// drawn translucent (window-opacity=), so the blur shows through them. The
+// compositor applies it right away.
 Page {
     id: page
 
@@ -35,6 +36,22 @@ Page {
                 onChosen: index => Prefs.windowBlurAll = index === 1
             }
         }
+        Card {
+            enabled: Prefs.windowBlur
+            opacity: enabled ? 1 : 0.45
+            icon: "edit-opacity"
+            title: qsTr("Window opacity")
+            description: qsTr("%1%").arg(Prefs.windowOpacity)
+            trailing: Slider {
+                width: 220
+                from: 30
+                to: 100
+                stepSize: 5
+                live: false
+                value: Prefs.windowOpacity
+                onReleased: value => Prefs.windowOpacity = Math.round(value)
+            }
+        }
     }
 
     AppList {
@@ -58,7 +75,7 @@ Page {
         Card {
             icon: "dialog-information"
             title: qsTr("Where blur shows")
-            description: qsTr("Only behind the see-through parts of a window, never behind its shadow. Opaque and fullscreen windows aren't blurred. Apps that ask for blur themselves keep it.")
+            description: qsTr("Only behind the see-through parts of a window, never behind its shadow. Opaque and fullscreen windows aren't blurred, unless window opacity makes them see-through; fullscreen windows always stay opaque. Apps that ask for blur themselves keep it.")
         }
     }
 

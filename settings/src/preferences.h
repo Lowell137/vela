@@ -52,6 +52,8 @@ class Preferences : public QObject {
     Q_PROPERTY(bool windowBlurAll READ windowBlurAll WRITE setWindowBlurAll NOTIFY windowBlurChanged)
     Q_PROPERTY(QStringList windowBlurInclude READ windowBlurInclude WRITE setWindowBlurInclude NOTIFY windowBlurChanged)
     Q_PROPERTY(QStringList windowBlurExclude READ windowBlurExclude WRITE setWindowBlurExclude NOTIFY windowBlurChanged)
+    // window-opacity= (percent, 30-100): the same windows drawn translucent.
+    Q_PROPERTY(int windowOpacity READ windowOpacity WRITE setWindowOpacity NOTIFY windowBlurChanged)
     // --- Notifications ---
     Q_PROPERTY(bool doNotDisturb READ doNotDisturb WRITE setDoNotDisturb NOTIFY doNotDisturbChanged)
     // --- Power ---
@@ -153,6 +155,8 @@ public:
     void setWindowBlurInclude(const QStringList& apps);
     QStringList windowBlurExclude() const { return m_windowBlurExclude; }
     void setWindowBlurExclude(const QStringList& apps);
+    int windowOpacity() const { return m_windowOpacity; }
+    void setWindowOpacity(int percent);
     // The open windows, one per app: [{appId, title}] (the compositor's
     // "state"); empty if it doesn't answer.
     Q_INVOKABLE QVariantList openWindows() const;
@@ -303,6 +307,7 @@ private:
     bool m_windowBlurAll = false;
     QStringList m_windowBlurInclude;
     QStringList m_windowBlurExclude;
+    int m_windowOpacity = 100;
     bool m_doNotDisturb = false;
     int m_screenOffMinutes = 10;
     bool m_lockOnIdle = true;
