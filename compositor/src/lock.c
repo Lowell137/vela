@@ -4,6 +4,7 @@
 #include "lock.h"
 
 #include "listen.h"
+#include "a11y.h"
 #include "switcher.h"
 #include "snap.h"
 #include "focus.h"
@@ -240,6 +241,11 @@ static int handle_idle_timer(void *data)
 {
     struct vela_lock *lock = data;
     struct vela_server *server = lock->server;
+    // A timed caffeine that ran out while its timer was still queued.
+    if (lock->caffeine && lock->caffeine_until_ns > 0 && vela_now_ns() >= lock->caffeine_until_ns) {
+        vela_lock_set_caffeine(lock, false);
+        vela_a11y_announce(server->a11y);
+    }
     // An app is showing something (a video), or caffeine: try again later.
     bool inhibited = lock->caffeine;
     struct wlr_idle_inhibitor_v1 *inhibitor;
@@ -317,12 +323,57 @@ void vela_lock_note_activity(struct vela_lock *lock)
 void vela_lock_set_caffeine(struct vela_lock *lock, bool on)
 {
     lock->caffeine = on;
+    lock->caffeine_until_ns = 0;
+    if (lock->caffeine_timer) {
+        wl_event_source_timer_update(lock->caffeine_timer, 0);
+    }
     if (lock->idle_notifier) {
         wlr_idle_notifier_v1_set_inhibited(lock->idle_notifier, on);
     }
     // Turning it on wakes the outputs; turning it off starts the wait from zero.
     vela_lock_note_activity(lock);
     wlr_log(WLR_INFO, "Caffeine %s", on ? "on" : "off");
+}
+
+void vela_lock_set_caffeine_for(struct vela_lock *lock, double minutes)
+{
+    if (minutes <= 0) {
+        vela_lock_set_caffeine(lock, true);
+        return;
+    }
+    vela_lock_set_caffeine(lock, true);
+    lock->caffeine_until_ns = vela_now_ns() + (int64_t)(minutes * 60 * VELA_NS_PER_SEC);
+    if (lock->caffeine_timer) {
+        int ms = (int)(minutes * 60 * 1000);
+        wl_event_source_timer_update(lock->caffeine_timer, ms > 0 ? ms : 1);
+    }
+    wlr_log(WLR_INFO, "Caffeine on for %.2f minutes", minutes);
+}
+
+int vela_lock_caffeine_remaining_s(struct vela_lock *lock)
+{
+    if (!lock->caffeine) {
+        return 0;
+    }
+    if (lock->caffeine_until_ns <= 0) {
+        return -1;
+    }
+    int64_t left = lock->caffeine_until_ns - vela_now_ns();
+    if (left <= 0) {
+        return 0;
+    }
+    return (int)((left + VELA_NS_PER_SEC - 1) / VELA_NS_PER_SEC);
+}
+
+static int handle_caffeine_timer(void *data)
+{
+    struct vela_lock *lock = data;
+    if (lock->caffeine && lock->caffeine_until_ns > 0 && vela_now_ns() >= lock->caffeine_until_ns) {
+        vela_lock_set_caffeine(lock, false);
+        vela_a11y_announce(lock->server->a11y);
+        wlr_log(WLR_INFO, "Caffeine time is up");
+    }
+    return 0;
 }
 
 // -------------------------------------------------------------- creation --
@@ -342,6 +393,9 @@ struct vela_lock *vela_lock_create(struct vela_server *server)
 
     lock->manager = wlr_session_lock_manager_v1_create(server->display);
     vela_listen(&lock->manager->events.new_lock, &lock->new_lock, handle_new_lock);
+
+    // Timed caffeine turns itself off (cheap in every session, tests too).
+    lock->caffeine_timer = wl_event_loop_add_timer(server->loop, handle_caffeine_timer, lock);
 
     lock->idle_notifier = wlr_idle_notifier_v1_create(server->display);
     lock->idle_inhibit = wlr_idle_inhibit_v1_create(server->display);

@@ -18,8 +18,9 @@
 // vela.conf ("screen-off", "lock-on-idle"; VELA_SCREEN_OFF and
 // VELA_LOCK_ON_IDLE take precedence). An app can prevent it while showing
 // something (a video: idle-inhibit). Apps learn the user is idle through
-// ext-idle-notify. Caffeine (quick settings, "caffeine on|off|toggle")
-// keeps the user "here" until turned off: neither of them, nor apps' idle
+// ext-idle-notify. Caffeine (quick settings, "caffeine on|off|toggle", with an
+// optional duration in minutes: "caffeine on 30") keeps the user "here" until
+// turned off or the time runs out: neither of them, nor apps' idle
 // notifications. Nested or headless nothing turns off, unless VELA_SCREEN_OFF
 // is set (tests; minutes, fractions too).
 
@@ -63,6 +64,8 @@ struct vela_lock {
     bool locking; // locked for inactivity, outputs to turn off shortly
     bool screens_off;
     bool caffeine; // for this session only
+    int64_t caffeine_until_ns; // CLOCK_MONOTONIC deadline, 0: no deadline
+    struct wl_event_source *caffeine_timer; // turns itself off when time is up
 
     struct wl_listener new_lock;
     struct wl_listener new_surface;
@@ -84,6 +87,11 @@ void vela_lock_engage(struct vela_lock *lock);
 void vela_lock_note_activity(struct vela_lock *lock);
 // Caffeine: no inactivity (no lock, outputs on, apps never told idle).
 void vela_lock_set_caffeine(struct vela_lock *lock, bool on);
+// Caffeine for a while: like above, but turns itself off after `minutes`
+// (fractions for tests). Non-positive minutes mean indefinite (as above).
+void vela_lock_set_caffeine_for(struct vela_lock *lock, double minutes);
+// Seconds left (rounded up): 0 when off, -1 when on with no deadline.
+int vela_lock_caffeine_remaining_s(struct vela_lock *lock);
 // Rereads vela.conf (the "reload-config" command).
 void vela_lock_load_settings(struct vela_lock *lock);
 // On every delivered frame: the lock waits for black on every output.
