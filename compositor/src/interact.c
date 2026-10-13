@@ -196,7 +196,7 @@ void vela_interact_motion(struct vela_server *server, uint32_t time_msec)
             interaction->hovered_decoration = NULL;
             wlr_seat_pointer_clear_focus(seat);
             vela_input_constrain(input, NULL);
-            wlr_cursor_set_xcursor(cursor, server->cursor_manager, resize_cursor(edges));
+            vela_input_set_xcursor(server, resize_cursor(edges));
             return;
         }
     }
@@ -219,7 +219,7 @@ void vela_interact_motion(struct vela_server *server, uint32_t time_msec)
         vela_snap_hover_maximize(server, NULL);
     }
     if (!hit.surface) {
-        wlr_cursor_set_xcursor(cursor, server->cursor_manager, "default");
+        vela_input_set_xcursor(server, "default");
         wlr_seat_pointer_clear_focus(seat);
         vela_input_constrain(input, NULL);
         return;
@@ -504,7 +504,7 @@ void vela_interact_begin_keyboard(struct vela_server *server, struct vela_view *
         wlr_cursor_warp(cursor, NULL, frame.x + frame.width / 2.0, frame.y + frame.height / 2.0);
     }
     wlr_seat_pointer_clear_focus(server->seat);
-    wlr_cursor_set_xcursor(cursor, server->cursor_manager, mode == VELA_CURSOR_MOVE ? "move" : "all-scroll");
+    vela_input_set_xcursor(server, mode == VELA_CURSOR_MOVE ? "move" : "all-scroll");
 }
 
 static void keyboard_key(struct vela_server *server, xkb_keysym_t sym, uint32_t modifiers)
@@ -591,7 +591,7 @@ static void finish_keyboard(struct vela_server *server, bool confirm)
     memset(&interaction->keyboard, 0, sizeof(interaction->keyboard));
     server->cursor_mode = VELA_CURSOR_PASSTHROUGH;
     server->grabbed = NULL;
-    wlr_cursor_set_xcursor(server->cursor, server->cursor_manager, "default");
+    vela_input_set_xcursor(server, "default");
     vela_interact_motion(server, 0);
 }
 

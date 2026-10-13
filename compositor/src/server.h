@@ -121,6 +121,7 @@ struct vela_server {
     struct wlr_seat *seat;
     struct wlr_cursor *cursor;
     struct wlr_xcursor_manager *cursor_manager;
+    const char *cursor_name; // the theme's cursor shown (vela_input_set_xcursor), NULL: an app's image
     enum vela_cursor_mode cursor_mode;
     struct vela_input *input; // devices, keyboards, gestures (input.h)
     struct vela_a11y *a11y; // night light, filters, magnifier, sticky keys (a11y.h)

@@ -389,7 +389,7 @@ void vela_lock_engage(struct vela_lock *lock)
     server->focused_layer = NULL;
     wlr_seat_keyboard_clear_focus(server->seat);
     wlr_seat_pointer_clear_focus(server->seat);
-    wlr_cursor_set_xcursor(server->cursor, server->cursor_manager, "default");
+    vela_input_set_xcursor(server, "default");
     vela_lock_update_layout(lock);
     vela_scene_changed(server->scene);
     wlr_log(WLR_INFO, "Screen locked");
