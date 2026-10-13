@@ -87,6 +87,43 @@ class Accessibility(unittest.TestCase):
         self.vela.wait_for(lambda _: not self.a11y()["nightLight"], what="night light off by the schedule",
                            read_state=False)
 
+    def test_night_light_headless_fallback_pixels(self):
+        # A headless output has no DRM gamma LUT. The Vulkan fallback must
+        # tint rendered pixels, then restore the originals when turned off.
+        self.start(["night-light-strength=100"])
+        identifier = self.vela.open_window(400, 300,
+                                           command=[tool("vela-pattern"), "--scale1", "400", "300"])
+        window = self.vela.state().window(identifier)
+        before = self.vela.pixels()
+        # The scale1 test pattern has stable pure-white pixels in this area.
+        left, top = int(window["x"]), int(window["y"])
+        samples = [(left + x, top + y) for y in range(80, 110) for x in range(230, 270)
+                   if before.at(left + x, top + y) == (255, 255, 255)]
+        self.assertTrue(samples, "test pattern should have a stable white pixel")
+        x, y = samples[len(samples) // 2]
+        original = before.at(x, y)
+
+        self.vela.command("night-light on")
+        self.vela.wait_for(lambda _: self.vela.pixels().at(x, y)[2] < original[2] - 10,
+                           what="Vulkan night-light fallback to reduce blue", read_state=False)
+
+        self.vela.command("night-light off")
+        self.vela.wait_for(
+            lambda _: all(abs(actual - expected) <= 3
+                          for actual, expected in zip(self.vela.pixels().at(x, y), original)),
+            what="Vulkan night-light fallback to restore the original pixel", read_state=False)
+
+        # Interrupt another fade while it is still warming the output:
+        # disabling must not leave a partially tinted cached buffer behind.
+        self.vela.command("night-light on")
+        self.vela.wait_for(lambda _: self.vela.pixels().at(x, y)[2] < original[2] - 3,
+                           what="a partial Night Light transition", read_state=False)
+        self.vela.command("night-light off")
+        self.vela.wait_for(
+            lambda _: all(abs(actual - expected) <= 3
+                          for actual, expected in zip(self.vela.pixels().at(x, y), original)),
+            what="restoration after interrupting Night Light", read_state=False)
+
     def modifiers_while(self, actions, at_ms):
         """The keyboard modifiers ("modifiers" request) at the moments
         `at_ms` while vela-input runs `actions`: its virtual keyboard

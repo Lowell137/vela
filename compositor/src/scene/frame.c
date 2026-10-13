@@ -674,14 +674,21 @@ void vela_output_frame_destroy(struct vela_output_frame *frame)
 static void prepare_night_light(struct vela_output_frame *frame)
 {
     struct vela_scene *scene = frame->scene;
-    if (scene->night_version == frame->night_version) {
+    if (scene->night_version == frame->night_version && !frame->gamma_retry_pending) {
         return;
     }
     frame->night_version = scene->night_version;
-    // Only real outputs have a gamma (not nested or headless ones).
-    if (frame->gamma_refused || !wlr_output_is_drm(frame->output)) {
-        frame->gamma_refused = true;
+    // Only real DRM outputs have a gamma LUT. An earlier failure suppresses
+    // repeated tests during the animation, except on an explicit retry.
+    if (!wlr_output_is_drm(frame->output)) {
         frame->night_in_gamma = false;
+        return;
+    }
+    if (frame->gamma_refused && !frame->gamma_retry_pending) {
+        // If clearing the old LUT failed, keep drawing without a shader:
+        // otherwise its still-committed LUT would apply a second tint.
+        frame->night_in_gamma = frame->night_clear_needed && frame->night_gamma_committed
+            && !frame->night_commit_pending;
         return;
     }
     struct wlr_color_transform *transform = scene->night_active ? night_lut(scene->night_gains) : NULL;
@@ -696,16 +703,63 @@ static void prepare_night_light(struct vela_output_frame *frame)
         if (transform) {
             wlr_color_transform_unref(transform);
         }
+        bool was_refused = frame->gamma_refused;
         frame->gamma_refused = true;
+        frame->gamma_retry_pending = false;
         frame->night_in_gamma = false;
+        if (frame->night_transform) {
+            wlr_color_transform_unref(frame->night_transform);
+            frame->night_transform = NULL;
+        }
+        // Removing the old LUT is an explicit color commit. Omitting the
+        // transform from the state leaves the hardware LUT installed.
+        frame->night_clear_needed = frame->night_gamma_committed;
+        frame->night_commit_pending = frame->night_clear_needed;
+        if (scene->night_active && (!was_refused || frame->night_clear_needed)) {
+            // The shader path changes all pixels. A previously failed clear
+            // also needs a fresh repaint when it is attempted again.
+            vela_output_frame_damage_whole(frame);
+        }
         return;
     }
+    bool recovering = frame->gamma_refused;
+    frame->gamma_refused = false;
+    frame->gamma_retry_pending = false;
     if (frame->night_transform) {
         wlr_color_transform_unref(frame->night_transform);
     }
     frame->night_transform = transform;
     frame->night_commit_pending = true;
     frame->night_in_gamma = scene->night_active;
+    if (recovering && scene->night_active) {
+        // Previously rendered buffers contain the shader's warm tint.
+        // Redraw them once without the shader when the LUT comes back.
+        vela_output_frame_damage_whole(frame);
+    }
+}
+
+// Only a rejected color commit enters this path; ordinary buffer/render
+// failures must not poison gamma support. A rejected new LUT falls back to
+// Vulkan on the next frame. If a LUT is already installed, first attempt to
+// clear it atomically with the Vulkan frame. A rejected NULL commit is
+// deferred until the next explicit retry instead of spinning every frame.
+static void night_color_commit_failed(struct vela_output_frame *frame)
+{
+    bool tried_lut = frame->night_transform != NULL;
+    if (frame->night_transform) {
+        wlr_color_transform_unref(frame->night_transform);
+        frame->night_transform = NULL;
+    }
+    frame->gamma_refused = true;
+    frame->gamma_retry_pending = false;
+    frame->night_clear_needed = frame->night_gamma_committed;
+    frame->night_commit_pending = tried_lut && frame->night_clear_needed;
+    frame->night_in_gamma = frame->night_clear_needed && !frame->night_commit_pending;
+    wlr_log(WLR_INFO, "%s: gamma color commit rejected, %s", frame->output->name,
+        frame->night_commit_pending ? "clearing previous LUT before Vulkan fallback"
+                                    : frame->night_clear_needed ? "deferring LUT clear until retry"
+                                                                : "falling back to Vulkan");
+    vela_output_frame_damage_whole(frame);
 }
 
 void vela_output_frame_set_magnifier(struct vela_output_frame *frame, double zoom, double x, double y)
@@ -728,6 +782,28 @@ void vela_output_frame_damage_whole(struct vela_output_frame *frame)
     wlr_output_transformed_resolution(frame->output, &width, &height);
     const struct wlr_box whole = { 0, 0, width, height };
     wlr_damage_ring_add_box(&frame->ring, &whole);
+    vela_output_schedule_frame(frame->owner);
+}
+
+void vela_output_frame_color_changed(struct vela_output_frame *frame, bool filter_changed, bool night_changed)
+{
+    if (filter_changed || (night_changed && (!wlr_output_is_drm(frame->output)
+                              || (frame->gamma_refused && !frame->night_in_gamma)))) {
+        vela_output_frame_damage_whole(frame);
+    } else if (night_changed) {
+        // A DRM gamma transform can be committed with unchanged pixels.
+        vela_output_schedule_frame(frame->owner);
+    }
+}
+
+void vela_output_frame_retry_night_light(struct vela_output_frame *frame)
+{
+    if ((!frame->gamma_refused && !frame->night_clear_needed) || frame->gamma_retry_pending
+        || !wlr_output_is_drm(frame->output) || !frame->output->enabled) {
+        return;
+    }
+    // The retry flag bypasses the version guard without inventing a version.
+    frame->gamma_retry_pending = true;
     vela_output_schedule_frame(frame->owner);
 }
 
@@ -1012,6 +1088,10 @@ bool vela_output_frame_render(struct vela_output_frame *frame, double lx, double
     // Direct scanout: no drawing, the app's buffer goes on screen.
     if (candidate && try_scanout(frame, candidate, state)) {
         wlr_output_state_finish(&own);
+        if (frame->night_commit_pending) {
+            frame->night_gamma_committed = frame->night_transform != NULL;
+            frame->night_clear_needed = false;
+        }
         frame->night_commit_pending = false;
         // The output is up to date: the accumulated damage is no longer needed
         // (our buffers, instead, fell behind; see below).
@@ -1065,6 +1145,7 @@ bool vela_output_frame_render(struct vela_output_frame *frame, double lx, double
     pixman_region32_intersect_rect(&frame_damage, &frame_damage, 0, 0, buffer->width, buffer->height);
 
     bool ok = false;
+    bool color_commit_failed = false;
     struct vela_pass *pass = vela_renderer_begin_pass(frame->renderer, buffer);
     if (pass) {
         if (filtered) {
@@ -1099,8 +1180,43 @@ bool vela_output_frame_render(struct vela_output_frame *frame, double lx, double
             }
         }
         ok = wlr_output_commit_state(output, state);
+        if (!ok && frame->night_commit_pending) {
+            // A commit can fail for reasons unrelated to gamma. Try the same
+            // buffer/mode without changing the color transform before deciding
+            // that the LUT was rejected. Omitting the bit retains an old LUT.
+            struct wlr_output_state no_color;
+            wlr_output_state_init(&no_color);
+            if (wlr_output_state_copy(&no_color, state)) {
+                wlr_output_state_set_color_transform(&no_color, NULL);
+                no_color.committed &= ~WLR_OUTPUT_STATE_COLOR_TRANSFORM;
+                // A shader-tinted frame must never be delivered with an old
+                // hardware LUT still installed: omitting a rejected NULL
+                // clear would briefly apply both tints. In that case, test
+                // the distinction without committing the unsafe buffer.
+                bool would_double_tint = frame->night_gamma_committed
+                    && frame->night_transform == NULL && night_in_drawing;
+                if (!would_double_tint && wlr_output_commit_state(output, &no_color)) {
+                    // This buffer did reach the output, but the requested LUT
+                    // did not. Repaint with the shader and (if necessary)
+                    // clear the previously installed LUT on the next frame.
+                    ok = true;
+                    color_commit_failed = true;
+                    wlr_output_state_set_color_transform(state, NULL);
+                    state->committed &= ~WLR_OUTPUT_STATE_COLOR_TRANSFORM;
+                } else {
+                    // If both commits fail, only blame gamma when testing
+                    // isolates the color transform as the rejected change.
+                    // A runtime failure despite valid tests is not proof.
+                    color_commit_failed = !wlr_output_test_state(output, state)
+                        && wlr_output_test_state(output, &no_color);
+                }
+            }
+            wlr_output_state_finish(&no_color);
+        }
     }
-    if (ok) {
+    if (ok && frame->night_commit_pending && !color_commit_failed) {
+        frame->night_gamma_committed = frame->night_transform != NULL;
+        frame->night_clear_needed = false;
         frame->night_commit_pending = false;
     }
     wlr_buffer_unlock(buffer);
@@ -1109,6 +1225,11 @@ bool vela_output_frame_render(struct vela_output_frame *frame, double lx, double
         // The frame didn't reach the output: its damage must be redrawn.
         wlr_region_transform(&frame_damage, &frame_damage, transform, buffer_width, buffer_height);
         wlr_damage_ring_add(&frame->ring, &frame_damage);
+    }
+    if (color_commit_failed) {
+        // Also needed when the buffer-only retry succeeded: that success
+        // does not mean the gamma LUT was applied.
+        night_color_commit_failed(frame);
     }
     pixman_region32_fini(&frame_damage);
     pixman_region32_fini(&buffer_damage);

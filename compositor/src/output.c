@@ -293,13 +293,39 @@ bool vela_output_commit_mode(struct vela_output *output, struct wlr_output_state
     struct wlr_box area = vela_output_box(output);
     bool ok = vela_output_frame_render(output->frame, area.x, area.y, state);
     if (!ok) {
+        // A failed render commit may have included a newly rejected gamma LUT.
+        // The mode fallback must not re-submit that transform by accident.
+        bool reset_gamma = output->frame->gamma_refused
+            && (state->committed & WLR_OUTPUT_STATE_COLOR_TRANSFORM);
+        if (reset_gamma) {
+            wlr_output_state_set_color_transform(state, NULL);
+        }
         // Fallback (also to turn the output on or off): wlroots puts an empty
         // buffer, which our damage tracking doesn't know about.
         ok = wlr_output_commit_state(output->wlr, state);
+        if (ok && (state->committed & WLR_OUTPUT_STATE_COLOR_TRANSFORM)) {
+            // The fallback may have committed a color transform even though
+            // the renderer failed earlier. Track what the monitor accepted.
+            output->frame->night_gamma_committed = state->color_transform != NULL;
+            output->frame->night_clear_needed = false;
+            output->frame->night_commit_pending = false;
+            output->frame->night_in_gamma = state->color_transform != NULL;
+        }
+        if (!ok && reset_gamma) {
+            // If clearing the LUT is also refused, still try the mode change.
+            // Keep the old LUT marked as applied for a later clear retry.
+            state->committed &= ~WLR_OUTPUT_STATE_COLOR_TRANSFORM;
+            ok = wlr_output_commit_state(output->wlr, state);
+        }
         vela_output_frame_reset_damage(output->frame);
     }
     vela_frame_clock_set_mode_refresh(&output->clock, output->wlr->refresh);
     vela_output_arrange_layers(output);
+    if (ok && (state->committed & (WLR_OUTPUT_STATE_MODE | WLR_OUTPUT_STATE_ENABLED))) {
+        // The DRM gamma capabilities may have changed with the mode/power state.
+        // Retry after the mode commit, not while testing the old output state.
+        vela_output_frame_retry_night_light(output->frame);
+    }
     vela_output_schedule_frame(output);
     return ok;
 }

@@ -131,7 +131,7 @@ elif name == "gh":
         # Simulate the GitHub CLI's verified identity + source commit policy,
         # NOT the underlying Sigstore cryptography. A failure must fail closed.
         if os.environ.get("TEST_REJECT_ATTEST"):
-            sys.exit(1)
+            sys.exit("simulated gh attestation rejection")
         if args[args.index("--repo") + 1] != "vela-desktop/vela":
             sys.exit("Unexpected attestation repository")
         if args[args.index("--signer-workflow") + 1] != "vela-desktop/vela/.github/workflows/build.yml":
@@ -263,6 +263,10 @@ class UpdateFixture(unittest.TestCase):
         self.assertEqual(result.returncode, status, result.stdout + result.stderr)
         return result
 
+    def write_config(self, source):
+        self.config.parent.mkdir(parents=True, exist_ok=True)
+        self.config.write_text(f"source={source}\n")
+
     def calls(self, tool):
         if not self.calls_file.exists():
             return []
@@ -381,6 +385,15 @@ class UpdateRevision(UpdateFixture):
         self.assertEqual(self.calls("makepkg")[0]["sha"], self.nvidia)
         self.assertEqual(list((self.mirror.parent / "packages").glob("*.pkg.tar.zst")), [])
 
+    def test_workflow_artifact_attestation_failure_shows_reason_and_builds(self):
+        self.env.update(TEST_CI_RUN="123", TEST_DOWNLOAD_SHA=self.nvidia[:7],
+                        TEST_REJECT_ATTEST="1")
+        result = self.run_update("--branch", "fix/nvidia", "--download")
+        self.assertIn("simulated gh attestation rejection", result.stderr)
+        self.assertIn("provenance verification failed", result.stderr)
+        self.assertEqual(self.calls("sudo"), [])
+        self.assertEqual(self.calls("makepkg")[0]["sha"], self.nvidia)
+
     def test_workflow_artifact_attestation_is_tied_to_selected_sha(self):
         self.env.update(TEST_CI_RUN="123", TEST_DOWNLOAD_SHA=self.nvidia[:7])
         self.run_update("--branch", "fix/nvidia", "--download")
@@ -442,10 +455,6 @@ class UpdateSources(UpdateFixture):
         self.assertEqual([call["operation"] for call in self.calls("git")],
                          ["clone", "update", "update"])
 
-    def write_config(self, source):
-        self.config.parent.mkdir(parents=True, exist_ok=True)
-        self.config.write_text(f"source={source}\n")
-
     def assert_https_transport(self):
         calls = self.calls("git")
         self.assertTrue(calls, "No Git transport was exercised")
@@ -500,22 +509,55 @@ class UpdateSources(UpdateFixture):
         self.assertEqual(self.calls("git")[-1]["url"], HTTPS_SOURCE)
         self.assertEqual(self.config.read_text(), f"source={HTTPS_SOURCE}\n")
 
-    def test_saved_old_https_source_is_migrated(self):
-        self.write_config("https://github.com/BrandoDev/vela.git")
+    def test_saved_official_https_case_variant_is_canonicalized(self):
+        self.write_config("https://github.com/VELA-DESKTOP/Vela.git")
         self.run_update("--check", source=False)
         self.assertEqual(self.config.read_text(), f"source={HTTPS_SOURCE}\n")
         self.assert_https_transport()
 
-    def test_explicit_old_https_source_is_migrated(self):
-        self.run_update("--source", "https://github.com/BrandoDev/vela.git",
+    def test_explicit_official_https_case_variant_is_canonicalized(self):
+        self.run_update("--source", "https://github.com/VELA-DESKTOP/Vela.git",
                         "--check", source=False)
         self.assertEqual(self.config.read_text(), f"source={HTTPS_SOURCE}\n")
         self.assert_https_transport()
 
-    def test_old_https_mirror_is_repointed_without_reclone(self):
+    def test_official_git_url_aliases_are_canonicalized(self):
+        aliases = (
+            "https://github.com/vela-desktop/vela",
+            "https://github.com/vela-desktop/vela.git",
+            "ssh://git@github.com/vela-desktop/vela",
+            "ssh://git@github.com/vela-desktop/vela.git",
+            "git@github.com:vela-desktop/vela",
+            "git@github.com:vela-desktop/vela.git",
+            "https://github.com/VeLa-DeSkToP/VeLa.git",
+        )
+        for url in aliases:
+            with self.subTest(url=url):
+                self.write_config(url)
+                self.run_update("--check", source=False)
+                self.assertEqual(self.config.read_text(), f"source={HTTPS_SOURCE}\n")
+                self.assert_https_transport()
+
+    def test_official_url_without_git_suffix_is_canonicalized(self):
+        self.run_update("--source", "https://github.com/vela-desktop/vela",
+                        "--check", source=False)
+        self.assertEqual(self.config.read_text(), f"source={HTTPS_SOURCE}\n")
+        self.assert_https_transport()
+
+    def test_official_url_alias_mirror_is_repointed_without_reclone(self):
         self.run_update("--check", source=False)
         subprocess.run(["git", "-C", str(self.mirror), "remote", "set-url",
-                        "origin", "https://github.com/BrandoDev/vela.git"],
+                        "origin", "https://github.com/vela-desktop/vela"],
+                       env=self.env, check=True)
+        self.run_update("--check", source=False)
+        self.assertEqual([call["operation"] for call in self.calls("git")],
+                         ["clone", "update"])
+        self.assert_https_transport()
+
+    def test_official_https_case_variant_mirror_is_repointed_without_reclone(self):
+        self.run_update("--check", source=False)
+        subprocess.run(["git", "-C", str(self.mirror), "remote", "set-url",
+                        "origin", "https://github.com/VELA-DESKTOP/Vela.git"],
                        env=self.env, check=True)
         self.run_update("--check", source=False)
         self.assertEqual([call["operation"] for call in self.calls("git")],
@@ -523,33 +565,33 @@ class UpdateSources(UpdateFixture):
         self.assert_https_transport()
 
     def test_explicit_github_ssh_sources_are_saved_as_https(self):
-        for source in ("ssh://git@github.com/BrandoDev/vela.git", "git@github.com:BrandoDev/vela.git"):
+        for source in ("ssh://git@github.com/VELA-DESKTOP/Vela.git", "git@github.com:vela-desktop/vela.git"):
             with self.subTest(source=source):
                 self.run_update("--source", source, "--check", source=False)
                 self.assertEqual(self.config.read_text(), f"source={HTTPS_SOURCE}\n")
                 self.assert_https_transport()
 
     def test_remembered_github_ssh_sources_are_migrated(self):
-        for source in ("ssh://git@github.com/BrandoDev/vela.git", "git@github.com:BrandoDev/vela.git"):
+        for source in ("ssh://git@github.com/VELA-DESKTOP/Vela.git", "git@github.com:vela-desktop/vela.git"):
             with self.subTest(source=source):
                 self.write_config(source)
                 self.run_update("--check", source=False)
                 self.assertEqual(self.config.read_text(), f"source={HTTPS_SOURCE}\n")
                 self.assert_https_transport()
 
-    def test_legacy_config_is_migrated_to_https(self):
+    def test_old_config_filename_is_migrated_to_https(self):
         self.config.parent.mkdir(parents=True)
         legacy = self.config.with_name("aggiornamenti.conf")
-        legacy.write_text("sorgente=git@github.com:BrandoDev/vela.git\n")
+        legacy.write_text("sorgente=git@github.com:vela-desktop/vela.git\n")
         self.run_update("--check", source=False)
         self.assertFalse(legacy.exists())
         self.assertEqual(self.config.read_text(), f"source={HTTPS_SOURCE}\n")
         self.assert_https_transport()
 
-    def test_old_ssh_mirror_is_migrated_without_recloning(self):
+    def test_official_ssh_mirror_is_migrated_without_recloning(self):
         self.run_update("--check", source=False)
-        for index, source in enumerate(("ssh://git@github.com/BrandoDev/vela.git",
-                                        "git@github.com:BrandoDev/vela.git"), start=1):
+        for index, source in enumerate(("ssh://git@github.com/VELA-DESKTOP/Vela.git",
+                                        "git@github.com:vela-desktop/vela.git"), start=1):
             with self.subTest(source=source):
                 subprocess.run(["git", "-C", str(self.mirror), "remote", "set-url", "origin",
                                 source], env=self.env, check=True)
@@ -615,8 +657,8 @@ class UpdateSources(UpdateFixture):
         self.assertFalse(self.config.exists())
         self.assertFalse(list(self.mirror.parent.glob("vela-mirror.*")))
 
-    def test_old_origin_uses_org_for_ci_artifacts(self):
-        self.git("remote", "set-url", "origin", "git@github.com:BrandoDev/vela.git")
+    def test_official_ssh_origin_uses_org_for_ci_artifacts(self):
+        self.git("remote", "set-url", "origin", "git@github.com:vela-desktop/vela.git")
         self.env.update(TEST_CI_RUN="123", TEST_DOWNLOAD_SHA=self.main[:7])
         self.run_update("--download")
         listing = next(call for call in self.calls("gh")
@@ -625,7 +667,7 @@ class UpdateSources(UpdateFixture):
                          "vela-desktop/vela")
 
     def test_local_copy_with_ssh_origin_stays_local(self):
-        self.git("remote", "set-url", "origin", "git@github.com:BrandoDev/vela.git")
+        self.git("remote", "set-url", "origin", "git@github.com:vela-desktop/vela.git")
         self.run_update("--check")
         self.run_update("--check", source=False)
         self.assertEqual(self.config.read_text(), f"source={self.source}\n")
@@ -710,6 +752,28 @@ class UpdatePublicReleases(UpdateFixture):
     def test_corrupted_download_falls_back_to_local_build(self):
         self.env.update(TEST_RELEASE_SHA=self.main, TEST_CORRUPT_RELEASE="1")
         self.run_update("--download", source=False)
+        self.assertEqual(self.calls("sudo"), [])
+        self.assertEqual(self.calls("makepkg")[0]["sha"], self.main)
+
+    def test_official_url_alias_release_uses_canonical_provenance(self):
+        self.write_config("https://github.com/vela-desktop/vela")
+        self.env["TEST_RELEASE_SHA"] = self.main
+        self.run_update("--download", source=False)
+        self.assertEqual(self.config.read_text(), f"source={HTTPS_SOURCE}\n")
+        verification = next(call for call in self.calls("gh")
+                            if call["args"][:2] == ["attestation", "verify"])
+        args = verification["args"]
+        self.assertEqual(args[args.index("--repo") + 1], "vela-desktop/vela")
+        self.assertEqual(args[args.index("--signer-workflow") + 1],
+                         "vela-desktop/vela/.github/workflows/build.yml")
+        self.assertEqual(self.calls("makepkg"), [])
+        self.assertEqual(len(self.calls("sudo")), 1)
+
+    def test_public_release_attestation_failure_shows_reason_and_builds(self):
+        self.env.update(TEST_RELEASE_SHA=self.main, TEST_REJECT_ATTEST="1")
+        result = self.run_update("--download")
+        self.assertIn("simulated gh attestation rejection", result.stderr)
+        self.assertIn("provenance verification failed", result.stderr)
         self.assertEqual(self.calls("sudo"), [])
         self.assertEqual(self.calls("makepkg")[0]["sha"], self.main)
 
