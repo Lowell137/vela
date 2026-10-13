@@ -16,7 +16,7 @@
 // and close values are the worst case for any filter.
 //
 // Usage: vela-pattern [--scale1] [--app-id ID] [--decorated] [--popup X,Y]
-//                     [--clear] [WIDTH HEIGHT]   (logical; default 401x301)
+//                     [--clear] [--fullscreen] [WIDTH HEIGHT]   (logical; default 401x301)
 //
 // --scale1: like an old app, always draws at scale 1 (the compositor must
 // magnify): one-pixel lines and a checkerboard, to judge the filter.
@@ -26,6 +26,7 @@
 // point (X, Y) of the window; it may slide to stay on screen.
 // --clear: a fully transparent window instead (ARGB, alpha 0), like the parts
 // of Firefox that show the desktop (window-blur tests).
+// --fullscreen: asks to be fullscreen (window-opacity tests).
 
 #define _GNU_SOURCE
 #include <math.h>
@@ -276,11 +277,14 @@ int main(int argc, char** argv)
     int arg = 1;
     const char* appId = "vela.pattern";
     int decorated = 0;
+    int fullscreen = 0;
     for (; arg < argc && !strncmp(argv[arg], "--", 2); ++arg) {
         if (!strcmp(argv[arg], "--scale1")) {
             legacy = 1;
         } else if (!strcmp(argv[arg], "--clear")) {
             clear = 1;
+        } else if (!strcmp(argv[arg], "--fullscreen")) {
+            fullscreen = 1;
         } else if (!strcmp(argv[arg], "--decorated")) {
             decorated = 1;
         } else if (!strcmp(argv[arg], "--popup") && arg + 1 < argc
@@ -320,6 +324,9 @@ int main(int argc, char** argv)
     xdg_toplevel_add_listener(toplevel, &toplevelListener, NULL);
     xdg_toplevel_set_title(toplevel, "vela-pattern");
     xdg_toplevel_set_app_id(toplevel, appId);
+    if (fullscreen) {
+        xdg_toplevel_set_fullscreen(toplevel, NULL);
+    }
     if (decorated) {
         if (!decorationManager) {
             fprintf(stderr, "vela-pattern: no xdg-decoration\n");
