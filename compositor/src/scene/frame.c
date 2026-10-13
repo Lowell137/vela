@@ -1172,7 +1172,14 @@ bool vela_output_frame_render(struct vela_output_frame *frame, double lx, double
                 wlr_presentation_surface_textured_on_output(surface, output);
             }
         }
+        if (vela_env_one("VELA_DEBUG_DMABUF")) {
+            wlr_log(WLR_INFO, "DMABUF trace: before frame wlr_output_commit_state output=%s committed=0x%x buffer=%dx%d",
+                output->name, state->committed, buffer->width, buffer->height);
+        }
         ok = wlr_output_commit_state(output, state);
+        if (vela_env_one("VELA_DEBUG_DMABUF")) {
+            wlr_log(WLR_INFO, "DMABUF trace: after frame wlr_output_commit_state output=%s ok=%d", output->name, ok);
+        }
         if (!ok && frame->night_commit_pending) {
             // A commit can fail for reasons unrelated to gamma. Try the same
             // buffer/mode without changing the color transform before deciding
@@ -1363,7 +1370,14 @@ static bool try_scanout(struct vela_output_frame *frame, const struct vela_eleme
         if (!info || info->pacing == output) {
             wlr_presentation_surface_scanned_out_on_output(surface, output);
         }
+        if (vela_env_one("VELA_DEBUG_DMABUF")) {
+            wlr_log(WLR_INFO, "DMABUF trace: before scanout wlr_output_commit_state output=%s committed=0x%x",
+                output->name, attempt.committed);
+        }
         ok = wlr_output_commit_state(output, &attempt);
+        if (vela_env_one("VELA_DEBUG_DMABUF")) {
+            wlr_log(WLR_INFO, "DMABUF trace: after scanout wlr_output_commit_state output=%s ok=%d", output->name, ok);
+        }
     }
     if (ok && tearing != frame->tearing) {
         wlr_log(WLR_INFO, "%s: tearing %s", output->name, tearing ? "on (the app asks for it)" : "off");
