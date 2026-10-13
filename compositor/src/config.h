@@ -38,6 +38,8 @@
 //   hot-corner=yes           the top-left corner opens Task View (interact.c)
 //   hot-corner-glow=yes      a glow while the pointer is near it
 //   hot-corner-animation=yes ripples when it opens Task View
+//   snap-drag-layouts=yes    dragging a window to the top opens the snap layouts
+//                            (snap.c)
 //   language=                it, en, or empty (like the system)
 //   polkit-agent=yes         start Vela's polkit agent (docs/polkit-agent.md)
 //
