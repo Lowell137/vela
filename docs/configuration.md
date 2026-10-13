@@ -61,6 +61,12 @@ Vela Settings preserves unrelated lines when it updates a key and asks the compo
 | `touchpad-natural-scroll` | `yes` | Natural scrolling. |
 | `touchpad-three-fingers` | `app` | Three-finger gesture mode: `app`, `desktop` or `no`. |
 | `touchpad-four-fingers` | `desktop` | Four-finger gesture mode. |
+| `window-blur` | `no` | Blur behind windows that don't ask for it (Settings > Personalization > Window blur). |
+| `window-blur-all` | `no` | `yes`: every window; `no`: only the `window-blur-include` apps. |
+| `window-blur-include` | empty | Comma-separated app ids (or X11 classes) to blur, case-insensitive. |
+| `window-blur-exclude` | empty | App ids never forced; wins over the other two. |
+| `window-opacity` | `100` | The same windows drawn translucent, in percent (30–100), so the blur shows through them; title bar included, shadow and fullscreen windows not. `100` changes nothing. |
+| `window-opacity-inactive` | `window-opacity` | The same for windows that aren't active. |
 
 The Settings app is the preferred way to edit these values because it applies validation and reloads the compositor at the correct time.
 

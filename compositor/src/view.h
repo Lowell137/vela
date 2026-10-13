@@ -195,9 +195,10 @@ bool vela_views_animating(struct vela_server *server);
 // and borders (margins outside the geometry, such as GTK).
 void vela_view_update_shape(struct vela_view *view);
 // The blur forced behind the window (window-blur in vela.conf), not when
-// fullscreen: the window's visible part, without the shadow margins.
+// fullscreen: the window's visible part, without the shadow margins. The
+// same windows take window-opacity (window-opacity-inactive when not active).
 void vela_view_update_blur(struct vela_view *view);
-// Rereads the window-blur* keys of vela.conf (at startup and on
+// Rereads the window-blur* and window-opacity* keys of vela.conf (at startup and on
 // "reload-config"), then a frame to apply them.
 void vela_views_load_settings(struct vela_server *server);
 // Creates or removes Vela's bar as the window asks, or realigns it to the

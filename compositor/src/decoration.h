@@ -51,6 +51,8 @@ struct vela_decoration *vela_decoration_create(struct vela_server *server, struc
 void vela_decoration_destroy(struct vela_decoration *decoration);
 
 void vela_decoration_update(struct vela_decoration *decoration, const struct vela_decoration_state *state);
+// The whole bar's opacity (window-opacity, view.c).
+void vela_decoration_set_opacity(struct vela_decoration *decoration, float opacity);
 
 // What lies at a global point of the bar.
 enum vela_decoration_part vela_decoration_part_at(const struct vela_decoration *decoration, double lx, double ly);

@@ -161,7 +161,10 @@ static void blur_pixels(const struct vela_element *e, pixman_region32_t *out)
     pixman_region32_init(&region);
     if (!wlr_box_empty(&e->blur_forced)) {
         union_box(&region, &e->blur_forced);
-        pixman_region32_subtract(&region, &region, &e->surface->opaque_region);
+        // Translucent (window-opacity): even its opaque part shows what is behind.
+        if (e->opacity >= 1.0f) {
+            pixman_region32_subtract(&region, &region, &e->surface->opaque_region);
+        }
     }
     if (asked) {
         pixman_region32_union(&region, &region, asked);
@@ -231,6 +234,7 @@ struct visit {
     struct vela_elements *out;
     double lx, ly;
     float opacity;
+    float blur_opacity; // without the surface node's own (window-opacity)
     struct clip clip;
     struct wlr_surface *root;
     struct wlr_box forced_blur; // for the root only
@@ -276,14 +280,15 @@ static void add_surface(struct wlr_surface *surface, int sx, int sy, void *data)
     e->transform = transform;
     e->box = box;
     e->opacity = v->opacity;
+    e->blur_opacity = v->blur_opacity;
     e->linear = !is_one_to_one(&e->src, &box, e->transform);
     e->origin_x = (lx - p->origin_x) * p->scale;
     e->origin_y = (ly - p->origin_y) * p->scale;
     e->scale_x = width > 0 ? box.width / width : p->scale;
     e->scale_y = height > 0 ? box.height / height : p->scale;
     apply_clip(e, &v->clip);
-    // A buffer without alpha can't show what is behind it.
-    if (surface == v->root && !vela_texture_is_opaque(texture)) {
+    // A buffer without alpha can't show what is behind it, unless translucent.
+    if (surface == v->root && (e->opacity < 1.0f || !vela_texture_is_opaque(texture))) {
         e->blur_forced = v->forced_blur;
     }
     pixman_region32_t pixels;
@@ -305,6 +310,7 @@ static void visit(struct vela_scene *scene, struct vela_node *node, double lx, d
     }
     lx += node->x;
     ly += node->y;
+    float inherited = opacity;
     if (!captured) {
         opacity *= node->opacity;
     }
@@ -340,7 +346,7 @@ static void visit(struct vela_scene *scene, struct vela_node *node, double lx, d
         if (!root->mapped) {
             break;
         }
-        struct visit context = { scene, p, out, lx, ly, opacity, clip, root, surface_node->blur };
+        struct visit context = { scene, p, out, lx, ly, opacity, inherited, clip, root, surface_node->blur };
         vela_for_each_surface(root, add_surface, &context);
         break;
     }
@@ -503,8 +509,8 @@ static bool same_look(const struct vela_element *a, const struct vela_element *b
 {
     bool same_texture = a->surface ? true : a->texture == b->texture;
     return a->surface == b->surface && same_texture && same_box(&a->box, &b->box) && same_fbox(&a->src, &b->src)
-        && a->transform == b->transform && a->opacity == b->opacity && a->linear == b->linear
-        && same_color(&a->color, &b->color) && same_box(&a->shape_rect, &b->shape_rect)
+        && a->transform == b->transform && a->opacity == b->opacity && a->blur_opacity == b->blur_opacity
+        && a->linear == b->linear && same_color(&a->color, &b->color) && same_box(&a->shape_rect, &b->shape_rect)
         && a->shape_radius == b->shape_radius && same_box(&a->shadow_window, &b->shadow_window)
         && a->shadow_sigma == b->shadow_sigma && same_box(&a->blur_box, &b->blur_box)
         && same_box(&a->blur_forced, &b->blur_forced);
@@ -590,6 +596,7 @@ void vela_draw_elements(struct vela_scene *scene, struct vela_pass *pass, const 
             if (pixman_region32_not_empty(&region)) {
                 struct vela_texture_draw panel = draw;
                 panel.clip = NULL;
+                panel.alpha = e->blur_opacity; // the blur as strong as if the window were opaque
                 vela_pass_add_blur(pass, &panel, &region, blur_strength(e->scale_x), &scene->acrylic_tint,
                     !wlr_box_empty(&e->blur_forced));
             }

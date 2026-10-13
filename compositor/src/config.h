@@ -46,6 +46,9 @@
 //   window-blur-all=no       yes: every window; no: only window-blur-include
 //   window-blur-include=     app ids, comma-separated
 //   window-blur-exclude=     app ids never forced (wins over the other two)
+//   window-opacity=100       the forced windows translucent (percent, 30-100;
+//                            not fullscreen; title bar too, not the shadow)
+//   window-opacity-inactive= the same when not active (empty: window-opacity)
 //
 // The old Italian names are still read (legacy_names.h).
 

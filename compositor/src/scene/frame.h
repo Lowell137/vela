@@ -42,6 +42,7 @@ struct vela_element {
     enum wl_output_transform transform;
     struct wlr_box box;
     float opacity;
+    float blur_opacity; // the blur's, without the window's own (window-opacity)
     bool linear; // bilinear filter; false: 1:1 copy
     // From the surface to pixels: pixel = origin + scale * logical coordinate.
     double origin_x, origin_y;

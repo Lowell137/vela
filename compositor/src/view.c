@@ -715,8 +715,16 @@ void vela_view_update_blur(struct vela_view *view)
         box.y += bar;
         box.height -= bar;
     }
+    // The whole window (surfaces and bar) translucent, the shadow not: it
+    // stays outside the window. The blur keeps its own strength (frame.c).
+    float opacity = forced ? (view->activated ? server->window_opacity : server->window_opacity_inactive) / 100.0f
+                           : 1.0f;
     if (view->surface_node) {
         vela_surface_node_set_blur(view->surface_node, &box);
+        vela_node_set_opacity(&view->surface_node->node, opacity);
+    }
+    if (view->decoration) {
+        vela_decoration_set_opacity(view->decoration, opacity);
     }
 }
 
@@ -732,6 +740,9 @@ void vela_views_load_settings(struct vela_server *server)
     const char *exclude = vela_config_get(&settings, "window-blur-exclude", "");
     server->window_blur_include = *include ? strdup(include) : NULL;
     server->window_blur_exclude = *exclude ? strdup(exclude) : NULL;
+    server->window_opacity = vela_clamp(atoi(vela_config_get(&settings, "window-opacity", "100")), 30, 100);
+    const char *inactive = vela_config_get(&settings, "window-opacity-inactive", "");
+    server->window_opacity_inactive = *inactive ? vela_clamp(atoi(inactive), 30, 100) : server->window_opacity;
     vela_config_finish(&settings);
     // The windows get it on the next frame (vela_server_animate).
     vela_server_schedule_frames(server);
