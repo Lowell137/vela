@@ -306,6 +306,7 @@ void Preferences::reloadCompositor()
     m_windowBlurAll = flag(QStringLiteral("window-blur-all"), false);
     m_windowBlurInclude = cleanAppIds(value(QStringLiteral("window-blur-include"), {}).split(u','));
     m_windowBlurExclude = cleanAppIds(value(QStringLiteral("window-blur-exclude"), {}).split(u','));
+    m_windowOpacity = std::clamp(value(QStringLiteral("window-opacity"), QStringLiteral("100")).toInt(), 30, 100);
     emit windowBlurChanged();
 
     m_layouts.clear();
@@ -567,6 +568,17 @@ void Preferences::setWindowBlurExclude(const QStringList& apps)
     }
     m_windowBlurExclude = clean;
     saveCompositor({ { QStringLiteral("window-blur-exclude"), clean.isEmpty() ? QString() : clean.join(u',') } });
+    emit windowBlurChanged();
+}
+
+void Preferences::setWindowOpacity(int percent)
+{
+    percent = std::clamp(percent, 30, 100);
+    if (percent == m_windowOpacity) {
+        return;
+    }
+    m_windowOpacity = percent;
+    saveCompositor({ { QStringLiteral("window-opacity"), QString::number(percent) } });
     emit windowBlurChanged();
 }
 
