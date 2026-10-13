@@ -90,6 +90,7 @@ set(SETTINGS_QML_FILES
     qml/pages/TaskbarPage.qml
     qml/pages/ShortcutsPage.qml
     qml/pages/IconsPage.qml
+    qml/pages/PointerPage.qml
     qml/pages/AppsPage.qml
     qml/pages/InstalledAppsPage.qml
     qml/pages/DefaultAppsPage.qml

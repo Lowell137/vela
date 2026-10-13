@@ -180,6 +180,77 @@ static void load_pointer_settings(struct vela_input *input)
     vela_config_finish(&settings);
 }
 
+// The cursor theme: cursor-theme= and cursor-size= of vela.conf, else
+// XCURSOR_THEME and XCURSOR_SIZE as the session started. Deliberately written
+// back to our environment: the apps we start, Xwayland and the shell (which
+// passes them on to the apps it starts) get the same cursor.
+static struct wlr_xcursor_manager *create_cursor_manager(const struct vela_config *settings)
+{
+    static bool saved;
+    static char *session_theme, *session_size;
+    if (!saved) {
+        saved = true;
+        session_theme = getenv("XCURSOR_THEME") ? strdup(getenv("XCURSOR_THEME")) : NULL;
+        session_size = getenv("XCURSOR_SIZE") ? strdup(getenv("XCURSOR_SIZE")) : NULL;
+    }
+    const char *size = vela_config_get(settings, "cursor-size", "");
+    if (atoi(size) < 8 || atoi(size) > 256) {
+        size = session_size;
+    }
+    size ? setenv("XCURSOR_SIZE", size, 1) : unsetenv("XCURSOR_SIZE");
+    uint32_t pixels = (uint32_t)vela_env_int("XCURSOR_SIZE", 24);
+
+    const char *theme = vela_config_get(settings, "cursor-theme", "");
+    struct wlr_xcursor_manager *manager = NULL;
+    if (*theme) {
+        manager = wlr_xcursor_manager_create(theme, pixels);
+        // Not installed (any more): wlroots would fall back to its built-in
+        // theme, "default"; the session's is better.
+        if (wlr_xcursor_manager_load(manager, 1.0f)) {
+            struct wlr_xcursor_manager_theme *loaded
+                = wl_container_of(manager->scaled_themes.next, loaded, link);
+            if (strcmp(loaded->theme->name, theme) != 0) {
+                wlr_log(WLR_ERROR, "Cursor theme \"%s\" not found: using the default", theme);
+                wlr_xcursor_manager_destroy(manager);
+                manager = NULL;
+            }
+        }
+    }
+    if (!manager) {
+        theme = session_theme;
+        manager = wlr_xcursor_manager_create(theme, pixels);
+    }
+    theme ? setenv("XCURSOR_THEME", theme, 1) : unsetenv("XCURSOR_THEME");
+    return manager;
+}
+
+void vela_input_set_xcursor(struct vela_server *server, const char *name)
+{
+    server->cursor_name = name;
+    wlr_cursor_set_xcursor(server->cursor, server->cursor_manager, name);
+}
+
+// A new theme or size: the cursor (in the shape it has) and the X11 one move
+// to the new manager before the old one goes, since wlr_cursor keeps pointers
+// to the manager and to its (animated) cursor. Images already handed to the
+// outputs or Xwayland are copied by wlroots when their theme is freed.
+static void reload_cursor_theme(struct vela_server *server, const struct vela_config *settings)
+{
+    struct wlr_xcursor_manager *old = server->cursor_manager;
+    struct wlr_xcursor_manager *fresh = create_cursor_manager(settings);
+    if (fresh->size == old->size && (fresh->name && old->name ? strcmp(fresh->name, old->name) == 0 : fresh->name == old->name)) {
+        wlr_xcursor_manager_destroy(fresh); // nothing loaded yet: cheap
+        return;
+    }
+    wlr_log(WLR_INFO, "Cursor theme: %s, %u px", fresh->name ? fresh->name : "(default)", fresh->size);
+    server->cursor_manager = fresh;
+    if (server->cursor_name) {
+        wlr_cursor_set_xcursor(server->cursor, fresh, server->cursor_name);
+    }
+    vela_xwayland_set_cursor(server);
+    wlr_xcursor_manager_destroy(old);
+}
+
 void vela_input_reload(struct vela_input *input)
 {
     struct vela_config settings;
@@ -188,6 +259,7 @@ void vela_input_reload(struct vela_input *input)
     wl_list_for_each (keyboard, &input->keyboards, link) {
         vela_keyboard_apply_settings(keyboard, &settings);
     }
+    reload_cursor_theme(input->server, &settings);
     vela_config_finish(&settings);
     struct wlr_seat *seat = input->server->seat;
     if (seat->keyboard_state.keyboard) {
@@ -570,6 +642,7 @@ static void handle_request_set_cursor(struct wl_listener *listener, void *data)
     struct vela_input *input = wl_container_of(listener, input, request_set_cursor);
     struct wlr_seat_pointer_request_set_cursor_event *event = data;
     if (input->server->seat->pointer_state.focused_client == event->seat_client) {
+        input->server->cursor_name = NULL;
         wlr_cursor_set_surface(input->server->cursor, event->surface, event->hotspot_x, event->hotspot_y);
     }
 }
@@ -582,7 +655,7 @@ static void handle_request_set_shape(struct wl_listener *listener, void *data)
     struct wlr_cursor_shape_manager_v1_request_set_shape_event *event = data;
     struct vela_server *server = input->server;
     if (event->seat_client == server->seat->pointer_state.focused_client) {
-        wlr_cursor_set_xcursor(server->cursor, server->cursor_manager, wlr_cursor_shape_v1_name(event->shape));
+        vela_input_set_xcursor(server, wlr_cursor_shape_v1_name(event->shape));
     }
 }
 
@@ -773,8 +846,10 @@ struct vela_input *vela_input_create(struct vela_server *server)
 
     server->cursor = wlr_cursor_create();
     wlr_cursor_attach_output_layout(server->cursor, server->output_layout);
-    server->cursor_manager
-        = wlr_xcursor_manager_create(getenv("XCURSOR_THEME"), (uint32_t)vela_env_int("XCURSOR_SIZE", 24));
+    struct vela_config settings;
+    vela_config_read(&settings);
+    server->cursor_manager = create_cursor_manager(&settings);
+    vela_config_finish(&settings);
 
     // Games and apps that want the mouse to themselves.
     input->relative_pointers = wlr_relative_pointer_manager_v1_create(display);

@@ -41,6 +41,11 @@ class Preferences : public QObject {
     // icon-theme= in vela.conf: an icon theme's directory name, "" for the
     // automatic one (Breeze). The apps apply it themselves (applyIconTheme).
     Q_PROPERTY(QString iconTheme READ iconTheme WRITE setIconTheme NOTIFY iconThemeChanged)
+    // cursor-theme= and cursor-size= in vela.conf: a cursor theme's directory
+    // name ("": $XCURSOR_THEME) and its size in pixels. The compositor applies
+    // them and passes them on to the apps it starts.
+    Q_PROPERTY(QString cursorTheme READ cursorTheme WRITE setCursorTheme NOTIFY cursorChanged)
+    Q_PROPERTY(int cursorSize READ cursorSize WRITE setCursorSize NOTIFY cursorChanged)
     // --- Notifications ---
     Q_PROPERTY(bool doNotDisturb READ doNotDisturb WRITE setDoNotDisturb NOTIFY doNotDisturbChanged)
     // --- Power ---
@@ -126,6 +131,15 @@ public:
     // The installed icon themes: [{name, text}], by text; "X-dark"/"X-Dark"
     // are inside "X" (chosen by the mode).
     Q_INVOKABLE QVariantList iconThemes() const;
+
+    QString cursorTheme() const { return m_cursorTheme; }
+    void setCursorTheme(const QString& theme);
+    int cursorSize() const { return m_cursorSize; }
+    void setCursorSize(int size);
+    // The installed cursor themes (with a cursors/ directory): [{name, text}].
+    Q_INVOKABLE QVariantList cursorThemes() const;
+    // The theme's arrow at about `size` pixels as a data: URL, "" if unreadable.
+    Q_INVOKABLE QString cursorPreview(const QString& theme, int size) const;
 
     bool doNotDisturb() const { return m_doNotDisturb; }
     void setDoNotDisturb(bool on);
@@ -234,6 +248,7 @@ signals:
     void appThemeChanged();
     void taskbarChanged();
     void iconThemeChanged();
+    void cursorChanged();
     void doNotDisturbChanged();
     void idleChanged();
     void languageChanged();
@@ -267,6 +282,8 @@ private:
     bool m_taskView = true;
     bool m_taskbarAllScreens = true;
     QString m_iconTheme;
+    QString m_cursorTheme;
+    int m_cursorSize = 24;
     bool m_doNotDisturb = false;
     int m_screenOffMinutes = 10;
     bool m_lockOnIdle = true;

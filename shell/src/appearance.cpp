@@ -8,6 +8,7 @@
 #include "mica.h"
 
 #include <QDir>
+#include <QFile>
 #include <QFileInfo>
 #include <QSettings>
 #include <QStandardPaths>
@@ -47,8 +48,29 @@ void Appearance::watch()
     }
 }
 
+// cursor-theme= and cursor-size= of vela.conf to the apps the shell starts,
+// as the compositor does for its own (it exported them when the shell started).
+// shortcut: keys removed later keep the last values here until the shell restarts.
+static void applyCursorEnvironment()
+{
+    QFile file(QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + QStringLiteral("/vela/vela.conf"));
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        return;
+    }
+    while (!file.atEnd()) {
+        const QByteArray line = file.readLine().trimmed();
+        if ((line.startsWith("cursor-theme=") || line.startsWith("cursor-size=")) && !line.endsWith('=')) {
+            const qsizetype equals = line.indexOf('=');
+            qputenv(line.startsWith("cursor-theme=") ? "XCURSOR_THEME" : "XCURSOR_SIZE", line.mid(equals + 1).trimmed());
+        }
+    }
+}
+
 void Appearance::reload()
 {
+    if (m_mode == Mode::Shell) {
+        applyCursorEnvironment();
+    }
     QSettings shell(QStringLiteral("Vela"), QStringLiteral("vela-shell"));
     shell.sync();
     const QString key = m_mode == Mode::Shell ? QStringLiteral("appearance/shellTheme") : QStringLiteral("appearance/appTheme");
