@@ -7,6 +7,7 @@ Fake shell sockets and vela-panel cannot exercise Qt's layer-surface lifecycle.
 Run the real shell on a private session bus and isolated configuration.
 """
 
+import json
 import os
 import re
 import subprocess
@@ -56,6 +57,56 @@ class QtShell(unittest.TestCase):
         self.assertTrue(self.mapped(state, "vela-taskbar"))
         self.assertTrue(self.mapped(state, "vela-wallpaper"))
         self.assertNotIn("layer_surface has never been configured", self.vela.log_text())
+
+    def test_settings_rotation_keeps_upper_taskbar_out_of_main_output(self):
+        """Rotate only the upper screen through Settings, with the real Qt desktop mapped."""
+        settings = os.path.join(BUILD, "settings", "vela-displays-test")
+        self.assertTrue(os.path.exists(settings), "native Settings test client missing")
+        # Match the reported layout: 2560x1440 at 125%, with a 1080p monitor
+        # immediately above it. Settings must choose the new Y itself.
+        self.vela.randr("--output", "HEADLESS-1", "--mode", "2560x1440", "--scale", "1.25", "--pos", "0,0")
+        self.vela.command("test-output add 1920x1080")
+        self.vela.wait_for(lambda s: len(s["outputs"]) == 2, what="upper monitor connected")
+        self.vela.randr("--output", "HEADLESS-2", "--scale", "1", "--pos", "0,-1080")
+        self.vela.wait_for(lambda s: sum(layer["namespace"] == "vela-taskbar" and layer["mapped"]
+                                       for layer in s["layers"]) == 2, timeout=15,
+                           what="a real taskbar on each monitor")
+        window = self.vela.open_window()
+        self.vela.keys("super+up")
+        self.vela.wait_for(lambda s: s.window(window)["maximized"], what="main-output pattern maximized")
+        self.vela.wait_still(window)
+        before = self.vela.pixels(output=0)
+        for transform, y, size in (("90", -1920, (1080, 1920)), ("270", -1920, (1080, 1920)),
+                                   ("normal", -1080, (1920, 1080))):
+            with self.subTest(transform=transform):
+                result = subprocess.run([settings, "--apply-client", self.vela.display, "HEADLESS-2",
+                                         json.dumps({"transform": transform})], env=self.vela.client_env,
+                                        capture_output=True, text=True, timeout=7)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                state = self.vela.state() # The native client exits only after server confirmation.
+                main, upper = (next(o for o in state["outputs"] if o["name"] == name)
+                               for name in ("HEADLESS-1", "HEADLESS-2"))
+                self.assertEqual((upper["x"], upper["y"], upper["w"], upper["h"]), (0, y, *size))
+                self.assertEqual(upper["y"] + upper["h"], main["y"])
+                self.assertEqual((main["x"], main["y"], main["w"], main["h"]), (0, 0, 2048, 1152))
+                def layers_placed(s):
+                    layers = {layer["namespace"]: layer for layer in s["layers"]
+                              if layer["mapped"] and layer["output"] == "HEADLESS-2"}
+                    if not {"vela-wallpaper", "vela-taskbar"} <= layers.keys():
+                        return False
+                    wallpaper, taskbar = layers["vela-wallpaper"], layers["vela-taskbar"]
+                    return ((wallpaper["x"], wallpaper["y"], wallpaper["w"], wallpaper["h"])
+                            == (0, y, *size)
+                            and (taskbar["x"], taskbar["y"], taskbar["w"], taskbar["h"])
+                            == (0, -48, size[0], 48))
+
+                self.vela.wait_for(layers_placed, what="both upper layers confined to their own monitor")
+                after = self.vela.pixels(output=0)
+                # Exclude the main taskbar clock and window edges; an upper
+                # taskbar at the old Y would cut directly through these rows.
+                self.assertEqual(before.rows[64:-96], after.rows[64:-96],
+                                 "upper-monitor contents leaked into the main monitor")
+                self.check_desktop()
 
     def test_super_repeatedly_opens_and_closes_the_real_menu(self):
         # One virtual keyboard, as on the user's desktop. Creating a fresh

@@ -142,7 +142,10 @@ static void state_json(struct vela_server *server, struct vela_buffer *json)
         } else {
             vela_buffer_append(json, "null");
         }
-        vela_buffer_append(json, "}");
+        double lx = 0, ly = 0;
+        vela_node_coords(&layer->tree->node, &lx, &ly);
+        vela_buffer_appendf(json, ",\"x\":%g,\"y\":%g,\"w\":%d,\"h\":%d}", lx, ly,
+            wlr->surface->current.width, wlr->surface->current.height);
         if (keyboard_surface && wlr->surface == keyboard_surface) {
             keyboard_layer = layer;
         }

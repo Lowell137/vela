@@ -29,7 +29,7 @@ CTest includes both CPU-only and GPU-dependent suites.
 | **Polkit agent / GoogleTest** (`polkit.*`) | The agent's queue, cancellations by polkit and by the user, a crashed dialog counting as "No", retries after a wrong password, sessions that fail by themselves, identity order and choice, the dialog protocol. | No |
 | **Sharpness** (`sharpness`) | Pixel-level checks that windows reach the expected physical pixels across fractional scales and common window states. | Yes |
 
-The compositor currently contains 75 GoogleTest cases and the polkit agent 23; the functional harness runs 97 end-to-end scenarios when the Qt shell is built. Every scenario also checks that the compositor exits with status 0 when asked to stop: a crash on the way out would look like a real one to the supervisor.
+The compositor currently contains 75 GoogleTest cases and the polkit agent 23; the functional harness runs 98 end-to-end scenarios when the Qt shell is built. Every scenario also checks that the compositor exits with status 0 when asked to stop: a crash on the way out would look like a real one to the supervisor.
 
 ## Run a subset
 
@@ -91,6 +91,20 @@ with a shortened compositor deadline. Its killed process runs the same native
 `Displays` backend as Settings. These tests exercise the real protocol and output
 commits without a GPU; the functional suite still supplies renderer and window
 placement coverage on real hardware.
+
+Size-only changes through the native Settings backend preserve the selected
+display's facing edge, gap and transverse alignment with a neighboring display.
+The fixture covers monitors above, below, left and right, fractional scaling,
+explicit positions, preview rollback and insufficient space between two other
+outputs. An upper 1080p screen rotated to portrait must move from `y=-1080` to
+`y=-1920`, rather than overlap the screen below it.
+
+The GPU shell test repeats that reported layout with the real Qt desktop:
+2560x1440 at 125% below 1920x1080 at 100%. It requests only the transform through
+the actual `Displays` client, checks both wallpaper and taskbar rectangles, and
+compares the main screen's pixels across 90°, 270° and landscape transitions.
+Direct `vela-randr --pos` tests alone cannot verify Settings chooses the right
+position. Layer entries in diagnostic `state` include their live logical bounds.
 
 Diagnostic reporter and graphical smoke check:
 
