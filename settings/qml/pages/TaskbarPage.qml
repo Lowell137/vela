@@ -54,6 +54,18 @@ Page {
     }
 
     CardGroup {
+        title: qsTr("Snap windows")
+        Card {
+            icon: "view-split-left-right"
+            title: qsTr("Show snap layouts when I drag a window to the top of my screen")
+            trailing: Toggle {
+                checked: Prefs.snapDragLayouts
+                onToggled: on => Prefs.snapDragLayouts = on
+            }
+        }
+    }
+
+    CardGroup {
         title: qsTr("Taskbar behaviors")
         Card {
             icon: "format-justify-center"
