@@ -112,6 +112,7 @@ struct vela_output_frame {
     struct wlr_damage_ring ring;
     int width, height;
     float scale;
+    enum wl_output_transform transform; // damage history is bound to this orientation
 
     // The previous frame and the one being built (they swap): the damage comes
     // from them.

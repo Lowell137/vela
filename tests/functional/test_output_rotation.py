@@ -91,19 +91,38 @@ class MixedOutputRotation(unittest.TestCase):
         image = self.vela.pixels(output=1)
         self.assertEqual((image.width, image.height), (1080, 1920))
         self.assertNotEqual(image.at(540, 960), (0, 0, 0), "portrait rendering is blank")
+        # A window on output 2 must not be painted over output 1.
+        self.assertEqual(self.vela.pixels(output=0).at(960, 540), (0, 0, 0))
         self.assert_picture_stable()
 
     def test_270_and_rotation_changes_keep_the_image_and_layout(self):
         self.add_output()
+        self.rotate("normal", 1920, scale=1)
+        window = self.vela.open_window(300, 200)
+        self.drag_to_second(window, self.vela.state())
+        self.vela.keys("super+up")
+        self.vela.wait_for(lambda s: s.window(window)["maximized"],
+                           what="window maximized before rotations")
+        portrait_frames = []
         for angle, expected in (("90", (1080, 1920)), ("270", (1080, 1920)),
                                 ("180", (1920, 1080)), ("normal", (1920, 1080))):
             state = self.rotate(angle, 1920, scale=1)
             self.assert_disjoint(state)
+            second = self.output(state, "HEADLESS-2")
+            self.vela.wait_for(
+                lambda s: (lambda w: w["maximized"] and (w["x"], w["y"], w["w"], w["h"])
+                           == (second["x"], second["y"], second["w"], second["h"]))(s.window(window)),
+                what=f"maximized window resized after {angle} rotation")
+            time.sleep(0.3)
             image = self.vela.pixels(output=1)
             self.assertEqual((image.width, image.height), expected)
-        # A fresh window rendered after the transitions must remain visible.
-        window = self.vela.open_window(300, 200)
-        self.drag_to_second(window, self.vela.state())
+            self.assertNotEqual(image.at(image.width // 2, image.height // 2), (0, 0, 0))
+            if angle in ("90", "270"):
+                portrait_frames.append(image.rows)
+        # Same logical content after 90 -> 270 (same swapchain dimensions):
+        # both pictures must be completely repainted, not reuse stale pixels.
+        self.assertEqual(portrait_frames[0], portrait_frames[1],
+                         "rotation 90 -> 270 reused pixels from the old transform")
         self.assert_picture_stable()
 
     def test_portrait_left_of_landscape_at_fractional_scale(self):

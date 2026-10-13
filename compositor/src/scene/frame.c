@@ -998,12 +998,18 @@ bool vela_output_frame_render(struct vela_output_frame *frame, double lx, double
         height = swap;
     }
     const struct wlr_box whole = { 0, 0, width, height };
-    if (width != frame->width || height != frame->height || scale != frame->scale) {
+    // Buffer-age damage is expressed in output coordinates but is transformed
+    // into swapchain-buffer coordinates when drawing. Even a 90 -> 270 change
+    // with identical dimensions invalidates that history and needs a full
+    // redraw: otherwise old buffer contents can appear in the new orientation.
+    if (width != frame->width || height != frame->height || scale != frame->scale
+        || transform != frame->transform) {
         wlr_damage_ring_finish(&frame->ring);
         wlr_damage_ring_init(&frame->ring);
         frame->width = width;
         frame->height = height;
         frame->scale = scale;
+        frame->transform = transform;
         wlr_damage_ring_add_box(&frame->ring, &whole);
     }
 
