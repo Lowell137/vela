@@ -54,6 +54,7 @@ void Workspaces::update(const QByteArray& json)
         m_stickyApps << app.toString();
     }
     m_snapGroups = state[QStringLiteral("snapGroups")].toArray().toVariantList();
+    m_rects = state[QStringLiteral("rects")].toArray().toVariantList();
     emit changed();
 }
 

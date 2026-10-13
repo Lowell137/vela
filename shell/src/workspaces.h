@@ -23,6 +23,9 @@ class Workspaces : public QObject {
     // Snap groups: [{output, windows: [{id, tile: [x0, y0, x1, y1]}]}], tile
     // in twelfths of the usable area.
     Q_PROPERTY(QVariantList snapGroups READ snapGroups NOTIFY changed)
+    // Where the windows are, on every desktop: [{id, x, y, w, h}], layout
+    // coordinates, topmost first, minimized ones left out.
+    Q_PROPERTY(QVariantList rects READ rects NOTIFY changed)
 
 public:
     explicit Workspaces(QObject* parent = nullptr);
@@ -33,6 +36,7 @@ public:
     QVariantMap windows() const { return m_windows; }
     QStringList stickyApps() const { return m_stickyApps; }
     QVariantList snapGroups() const { return m_snapGroups; }
+    QVariantList rects() const { return m_rects; }
 
     // A window's desktop (-1: all; -2: unknown).
     Q_INVOKABLE int workspaceOf(const QString& window) const;
@@ -49,8 +53,9 @@ public:
 
     // The state sent by the compositor ("workspaces <json>").
     void update(const QByteArray& json);
-    // Asks the compositor for it (when the shell starts).
-    void query();
+    // Asks the compositor for it (when the shell starts, and Task View for
+    // fresh rects: moving a window sends nothing).
+    Q_INVOKABLE void query();
 
 signals:
     void changed();
@@ -61,4 +66,5 @@ private:
     QVariantMap m_windows;
     QStringList m_stickyApps;
     QVariantList m_snapGroups;
+    QVariantList m_rects;
 };
