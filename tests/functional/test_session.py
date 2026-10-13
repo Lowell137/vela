@@ -74,6 +74,24 @@ class Lock(unittest.TestCase):
             self.assertTrue(vela.state().has(window))
 
 
+class Caffeine(unittest.TestCase):
+    """Caffeine (quick settings): inactivity turns nothing off until it's
+    turned off again (lock.c)."""
+
+    def test_caffeine_holds_off_inactivity(self):
+        # 3 seconds of inactivity; headless it needs VELA_SCREEN_OFF.
+        with Session(env={"VELA_SCREEN_OFF": "0.05", "VELA_LOCK_ON_IDLE": "no"}) as vela:
+            self.assertFalse(vela.query("accessibility")["caffeine"])
+            vela.command("caffeine on")
+            vela.wait_for(lambda s: vela.query("accessibility")["caffeine"], read_state=False, what="caffeine on")
+            vela.wait_for(lambda s: s.output["powered"], what="screen on")
+            time.sleep(4.5)
+            self.assertTrue(vela.state().output["powered"])
+            vela.command("caffeine toggle")
+            vela.wait_for(lambda s: not s.output["powered"], timeout=6, what="screen off without caffeine")
+            self.assertFalse(vela.query("accessibility")["caffeine"])
+
+
 class Shell(unittest.TestCase):
     """The startup command (the shell): relaunched when it fails, but not
     when it exits cleanly nor when it keeps failing right after starting

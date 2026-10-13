@@ -18,7 +18,10 @@
 // vela.conf ("screen-off", "lock-on-idle"; VELA_SCREEN_OFF and
 // VELA_LOCK_ON_IDLE take precedence). An app can prevent it while showing
 // something (a video: idle-inhibit). Apps learn the user is idle through
-// ext-idle-notify. Nested or headless nothing turns off.
+// ext-idle-notify. Caffeine (quick settings, "caffeine on|off|toggle")
+// keeps the user "here" until turned off: neither of them, nor apps' idle
+// notifications. Nested or headless nothing turns off, unless VELA_SCREEN_OFF
+// is set (tests; minutes, fractions too).
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -59,6 +62,7 @@ struct vela_lock {
     bool lock_on_idle;
     bool locking; // locked for inactivity, outputs to turn off shortly
     bool screens_off;
+    bool caffeine; // for this session only
 
     struct wl_listener new_lock;
     struct wl_listener new_surface;
@@ -78,6 +82,8 @@ void vela_lock_screen(struct vela_lock *lock);
 void vela_lock_engage(struct vela_lock *lock);
 // The user is here: turns the outputs back on and restarts the wait.
 void vela_lock_note_activity(struct vela_lock *lock);
+// Caffeine: no inactivity (no lock, outputs on, apps never told idle).
+void vela_lock_set_caffeine(struct vela_lock *lock, bool on);
 // Rereads vela.conf (the "reload-config" command).
 void vela_lock_load_settings(struct vela_lock *lock);
 // On every delivered frame: the lock waits for black on every output.
