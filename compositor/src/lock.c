@@ -240,8 +240,8 @@ static int handle_idle_timer(void *data)
 {
     struct vela_lock *lock = data;
     struct vela_server *server = lock->server;
-    // An app is showing something (a video): try again later.
-    bool inhibited = false;
+    // An app is showing something (a video), or caffeine: try again later.
+    bool inhibited = lock->caffeine;
     struct wlr_idle_inhibitor_v1 *inhibitor;
     wl_list_for_each (inhibitor, &lock->idle_inhibit->inhibitors, link) {
         const struct vela_surface_state *state = vela_surface_state_get(inhibitor->surface);
@@ -277,14 +277,15 @@ void vela_lock_load_settings(struct vela_lock *lock)
     if (!minutes || !*minutes) {
         minutes = vela_config_get(&settings, "screen-off", "");
     }
-    lock->screen_off_ms = vela_max(0, *minutes ? atoi(minutes) : 10) * 60 * 1000;
+    const double wait = *minutes ? atof(minutes) : 10.0; // fractions for tests
+    lock->screen_off_ms = wait > 0 ? (int)(wait * 60 * 1000) : 0;
     const char *on_idle = getenv("VELA_LOCK_ON_IDLE");
     if (!on_idle || !*on_idle) {
         on_idle = vela_config_get(&settings, "lock-on-idle", "");
     }
     lock->lock_on_idle = strcmp(on_idle, "0") != 0 && strcmp(on_idle, "no") != 0;
     vela_config_finish(&settings);
-    wlr_log(WLR_INFO, "Idle: screen off after %d minutes%s", lock->screen_off_ms / 60000,
+    wlr_log(WLR_INFO, "Idle: screen off after %d seconds%s", lock->screen_off_ms / 1000,
         lock->lock_on_idle ? ", with lock" : "");
     // The wait starts again from now, with the new minutes.
     lock->locking = false;
@@ -313,6 +314,17 @@ void vela_lock_note_activity(struct vela_lock *lock)
     }
 }
 
+void vela_lock_set_caffeine(struct vela_lock *lock, bool on)
+{
+    lock->caffeine = on;
+    if (lock->idle_notifier) {
+        wlr_idle_notifier_v1_set_inhibited(lock->idle_notifier, on);
+    }
+    // Turning it on wakes the outputs; turning it off starts the wait from zero.
+    vela_lock_note_activity(lock);
+    wlr_log(WLR_INFO, "Caffeine %s", on ? "on" : "off");
+}
+
 // -------------------------------------------------------------- creation --
 
 struct vela_lock *vela_lock_create(struct vela_server *server)
@@ -335,8 +347,10 @@ struct vela_lock *vela_lock_create(struct vela_server *server)
     lock->idle_inhibit = wlr_idle_inhibit_v1_create(server->display);
     vela_listen(&lock->idle_inhibit->events.new_inhibitor, &lock->new_inhibitor, handle_new_inhibitor);
 
-    // Only in the real session: nested or headless nothing turns off.
-    if (server->session) {
+    // Only in the real session: nested or headless nothing turns off (tests
+    // ask for it with VELA_SCREEN_OFF).
+    const char *screen_off = getenv("VELA_SCREEN_OFF");
+    if (server->session || (screen_off && *screen_off)) {
         lock->idle_timer = wl_event_loop_add_timer(server->loop, handle_idle_timer, lock);
         vela_lock_load_settings(lock);
     }
