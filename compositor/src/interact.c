@@ -128,10 +128,13 @@ static void unhover_decoration(struct vela_interaction *interaction)
 }
 
 // The hot corner: the pointer reaching the top-left corner of an output opens
-// Task View, once; it arms again when the pointer leaves the corner.
+// Task View, once; it arms again when the pointer leaves the corner. The shell
+// shows it (HotCorner.qml): "hot-corner near <output>" and "hot-corner away"
+// only when that changes, not at every motion, and "hot-corner fire <output>".
 static void hot_corner_check(struct vela_server *server)
 {
     static bool armed = true;
+    static struct wlr_output *near = NULL; // only compared, never dereferenced
     struct wlr_cursor *cursor = server->cursor;
     struct wlr_output *wlr = wlr_output_layout_output_at(server->output_layout, cursor->x, cursor->y);
     if (!wlr) {
@@ -141,6 +144,18 @@ static void hot_corner_check(struct vela_server *server)
     wlr_output_layout_get_box(server->output_layout, wlr, &box);
     double dx = cursor->x - box.x;
     double dy = cursor->y - box.y;
+    bool allowed = false;
+    if (dx < 48.0 && dy < 48.0) {
+        struct vela_view *focused = vela_views_focused(server);
+        allowed = server->cursor_mode == VELA_CURSOR_PASSTHROUGH && vela_hot_corner_enabled()
+            && !(focused && focused->fullscreen);
+    }
+    char line[128];
+    if ((allowed ? wlr : NULL) != near) {
+        near = allowed ? wlr : NULL;
+        snprintf(line, sizeof(line), "hot-corner near %s", wlr->name);
+        vela_shell_send(server, near ? line : "hot-corner away");
+    }
     if (dx > 24.0 || dy > 24.0) {
         armed = true;
         return;
@@ -149,8 +164,9 @@ static void hot_corner_check(struct vela_server *server)
         return;
     }
     armed = false;
-    struct vela_view *focused = vela_views_focused(server);
-    if (server->cursor_mode == VELA_CURSOR_PASSTHROUGH && vela_hot_corner_enabled() && !(focused && focused->fullscreen)) {
+    if (allowed) {
+        snprintf(line, sizeof(line), "hot-corner fire %s", wlr->name);
+        vela_shell_send(server, line);
         vela_shell_send(server, "task-view");
     }
 }

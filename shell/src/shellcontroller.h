@@ -119,6 +119,8 @@ signals:
     void settingsRequested(); // Win+I
     void filesRequested(); // Win+E
     void taskViewRequested(); // Win+Tab
+    // The top-left corner (interact.c): "near", "away" or "fire", and on which output.
+    void hotCornerChanged(const QString& state, const QString& output);
     void workspacesReceived(const QByteArray& json); // the state of the virtual desktops
     // Snap layouts below the Maximize button (Win+Z): x, y on the output.
     void snapLayoutsRequested(const QString& window, const QString& output, int x, int y, bool keyboard);
