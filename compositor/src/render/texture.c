@@ -7,6 +7,8 @@
 
 #include "render/render.h"
 
+#include "util.h"
+
 #include <inttypes.h>
 #include <linux/dma-buf.h>
 #include <stdlib.h>
