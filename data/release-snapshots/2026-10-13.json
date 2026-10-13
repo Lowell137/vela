@@ -1,0 +1,58 @@
+{
+  "assets": {
+    "634038768": {
+      "downloads": 0,
+      "name": "vela-git-0.1.0.r96.g5618438-1-x86_64.pkg.tar.zst",
+      "release_tag": "alpha-561843893c34ef15ff3fd48f1a7b27a57075d3d1"
+    },
+    "634038769": {
+      "downloads": 0,
+      "name": "SHA256SUMS",
+      "release_tag": "alpha-561843893c34ef15ff3fd48f1a7b27a57075d3d1"
+    },
+    "634078532": {
+      "downloads": 1,
+      "name": "SHA256SUMS",
+      "release_tag": "alpha-3781c8448d2f9e08bd9994df6aa3e08ab95543d6"
+    },
+    "634078545": {
+      "downloads": 1,
+      "name": "vela-git-0.1.0.r97.g3781c84-1-x86_64.pkg.tar.zst",
+      "release_tag": "alpha-3781c8448d2f9e08bd9994df6aa3e08ab95543d6"
+    },
+    "634606703": {
+      "downloads": 4,
+      "name": "vela-git-0.1.0.r98.g06eeaf8-1-x86_64.pkg.tar.zst",
+      "release_tag": "alpha-06eeaf8c4ccd72c9283f1fec3317301f95cd34d8"
+    },
+    "634606705": {
+      "downloads": 4,
+      "name": "SHA256SUMS",
+      "release_tag": "alpha-06eeaf8c4ccd72c9283f1fec3317301f95cd34d8"
+    },
+    "636708174": {
+      "downloads": 0,
+      "name": "vela-git-0.1.0.r99.g19f5281-1-x86_64.pkg.tar.zst",
+      "release_tag": "alpha-19f5281cd751b4c3fb8592fe7069ce686a55baa3"
+    },
+    "636708176": {
+      "downloads": 0,
+      "name": "SHA256SUMS",
+      "release_tag": "alpha-19f5281cd751b4c3fb8592fe7069ce686a55baa3"
+    },
+    "636898584": {
+      "downloads": 1,
+      "name": "vela-git-0.1.0.r100.g35dbdac-1-x86_64.pkg.tar.zst",
+      "release_tag": "alpha-35dbdac5e44a46d35a68765dade5cef97622e06c"
+    },
+    "636898591": {
+      "downloads": 1,
+      "name": "SHA256SUMS",
+      "release_tag": "alpha-35dbdac5e44a46d35a68765dade5cef97622e06c"
+    }
+  },
+  "collected_at": "2026-10-13T14:03:24+00:00",
+  "releases": 5,
+  "schema_version": 1,
+  "total_downloads_current_assets": 12
+}
