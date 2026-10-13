@@ -38,6 +38,9 @@ class Preferences : public QObject {
     Q_PROPERTY(bool endTask READ endTask WRITE setEndTask NOTIFY taskbarChanged)
     Q_PROPERTY(bool taskView READ taskView WRITE setTaskView NOTIFY taskbarChanged)
     Q_PROPERTY(bool taskbarAllScreens READ taskbarAllScreens WRITE setTaskbarAllScreens NOTIFY taskbarChanged)
+    // icon-theme= in vela.conf: an icon theme's directory name, "" for the
+    // automatic one (Breeze). The apps apply it themselves (applyIconTheme).
+    Q_PROPERTY(QString iconTheme READ iconTheme WRITE setIconTheme NOTIFY iconThemeChanged)
     // --- Notifications ---
     Q_PROPERTY(bool doNotDisturb READ doNotDisturb WRITE setDoNotDisturb NOTIFY doNotDisturbChanged)
     // --- Power ---
@@ -115,6 +118,12 @@ public:
     void setTaskView(bool on);
     bool taskbarAllScreens() const { return m_taskbarAllScreens; }
     void setTaskbarAllScreens(bool on);
+
+    QString iconTheme() const { return m_iconTheme; }
+    void setIconTheme(const QString& theme);
+    // The installed icon themes: [{name, text}], by text; "X-dark"/"X-Dark"
+    // are inside "X" (chosen by the mode).
+    Q_INVOKABLE QVariantList iconThemes() const;
 
     bool doNotDisturb() const { return m_doNotDisturb; }
     void setDoNotDisturb(bool on);
@@ -220,6 +229,7 @@ signals:
     void accentChanged();
     void appThemeChanged();
     void taskbarChanged();
+    void iconThemeChanged();
     void doNotDisturbChanged();
     void idleChanged();
     void languageChanged();
@@ -252,6 +262,7 @@ private:
     bool m_endTask = true;
     bool m_taskView = true;
     bool m_taskbarAllScreens = true;
+    QString m_iconTheme;
     bool m_doNotDisturb = false;
     int m_screenOffMinutes = 10;
     bool m_lockOnIdle = true;
