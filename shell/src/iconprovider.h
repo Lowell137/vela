@@ -154,6 +154,21 @@ public:
             name = QUrl::fromPercentEncoding(rest.toUtf8());
         }
 
+        // An app's own drawings (:/fluent, see common/fluent) come before the
+        // theme's, in the text's color of the mode they're asked for.
+        const QString own = QStringLiteral(":/fluent/") + name + QStringLiteral(".svg");
+        if (name.size() != id.size() && QFile::exists(own)) {
+            QPixmap pixmap = QIcon(own).pixmap(QSize(extent, extent), 1.0);
+            QPainter painter(&pixmap);
+            painter.setCompositionMode(QPainter::CompositionMode_SourceIn);
+            painter.fillRect(pixmap.rect(), id[0] == u'l' ? QColor(0x1b, 0x1b, 0x1b)
+                : id[0] == u'd' ? QColor(0xf3, 0xf3, 0xf6) : QColor(Qt::white));
+            if (size) {
+                *size = pixmap.size();
+            }
+            return pixmap;
+        }
+
         QIcon icon = name.startsWith(u'/') ? QIcon(name) : QIcon::fromTheme(name);
         if (icon.isNull()) {
             icon = QIcon::fromTheme(QStringLiteral("application-x-executable"));
