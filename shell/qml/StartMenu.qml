@@ -411,6 +411,8 @@ Window {
                     Apps.query = text
                     FileSearch.query = text
                     root.extraIndex = -1
+                    // Typing goes back to editing: the caret keeps its arrows.
+                    grid.keyNav = false
                     grid.currentIndex = 0
                     grid.positionViewAtBeginning()
                 }
@@ -423,14 +425,19 @@ Window {
                 Keys.onUpPressed: { grid.keyNav = true; if (!root.moveExtra(-1)) grid.moveCurrentIndexUp() }
                 Keys.onTabPressed: { grid.keyNav = true; grid.moveCurrentIndexRight() }
                 Keys.onBacktabPressed: { grid.keyNav = true; grid.moveCurrentIndexLeft() }
-                // Left and Right move the caret while there is text to edit.
+                // Left and Right move the caret while typing, and the grid once a result
+                // has been chosen with the arrows.
                 Keys.onLeftPressed: event => {
-                    if (text.length > 0) { event.accepted = false; return }
+                    // The caret, until Up/Down/Tab picked a result.
+                    if (text.length > 0 && !grid.keyNav) { event.accepted = false; return }
+                    if (root.extraIndex >= 0) { return } // Settings and Files rows: nothing
                     grid.keyNav = true
                     grid.moveCurrentIndexLeft()
                 }
                 Keys.onRightPressed: event => {
-                    if (text.length > 0) { event.accepted = false; return }
+                    // The caret, until Up/Down/Tab picked a result.
+                    if (text.length > 0 && !grid.keyNav) { event.accepted = false; return }
+                    if (root.extraIndex >= 0) { return } // Settings and Files rows: nothing
                     grid.keyNav = true
                     grid.moveCurrentIndexRight()
                 }
