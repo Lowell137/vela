@@ -34,6 +34,9 @@ class ShellController : public QObject {
     // "capture on dnd": the compositor also asks for notifications to be
     // silenced while it lasts (capture-dnd=yes).
     Q_PROPERTY(bool captureSilence READ captureSilence NOTIFY screenCapturedChanged)
+    // While captured: how many windows are left out of it ("capture on
+    // hidden N", docs/renderer.md §15).
+    Q_PROPERTY(int captureHiddenWindows READ captureHiddenWindows NOTIFY screenCapturedChanged)
 
 public:
     explicit ShellController(QObject* parent = nullptr);
@@ -78,6 +81,7 @@ public:
 
     bool screenCaptured() const { return m_screenCaptured; }
     bool captureSilence() const { return m_screenCaptured && m_captureDnd; }
+    int captureHiddenWindows() const { return m_screenCaptured ? m_captureHidden : 0; }
     bool startMenuOpen() const { return m_startMenuOpen; }
     void setStartMenuOpen(bool open)
     {
@@ -167,7 +171,7 @@ signals:
     // The window menu (right click on the title bar, Alt+Space): on which
     // output and where, in output coordinates.
     void windowMenuRequested(const QString& window, const QString& output, int x, int y, bool maximized,
-        bool resizable, bool keyboard, bool onTop);
+        bool resizable, bool keyboard, bool onTop, bool captureHidden);
 
 private Q_SLOTS:
     void onPrepareForSleep(bool starting);
@@ -184,5 +188,6 @@ private:
     bool m_startMenuOpen = false;
     bool m_screenCaptured = false;
     bool m_captureDnd = false;
+    int m_captureHidden = 0;
     QStringList m_startPins;
 };

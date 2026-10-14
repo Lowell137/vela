@@ -184,6 +184,7 @@ Window {
             { text: qsTr("&Show this window on all desktops"), checked: w.workspace === -1, action: () => Desktops.setWindowSticky(w.id, w.workspace !== -1) },
             { text: qsTr("Show windows from this &app on all desktops"), checked: appSticky, enabled: w.appId !== "", action: () => Desktops.setAppSticky(w.id, !appSticky) },
             { text: qsTr("Always on &top"), checked: !!w.alwaysOnTop, action: () => Shell.windowAction(w.id, w.alwaysOnTop ? "always-on-top off" : "always-on-top on") },
+            { text: qsTr("&Hide from screen capture"), checked: Desktops.captureHidden.indexOf(w.id) >= 0, action: () => Shell.windowAction(w.id, Desktops.captureHidden.indexOf(w.id) >= 0 ? "capture-hide off" : "capture-hide on") },
             { separator: true },
             { text: qsTr("&Close"), icon: "window-close", action: () => Shell.windowAction(w.id, "close") }
         ]

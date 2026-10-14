@@ -276,6 +276,10 @@
         <translation>Sempre in &amp;primo piano</translation>
     </message>
     <message>
+        <source>&amp;Hide from screen capture</source>
+        <translation>&amp;Nascondi dalle acquisizioni dello schermo</translation>
+    </message>
+    <message>
         <source>&amp;Close</source>
         <translation>&amp;Chiudi</translation>
     </message>
@@ -1139,6 +1143,10 @@
         <translation>Sempre in &amp;primo piano</translation>
     </message>
     <message>
+        <source>&amp;Hide from screen capture</source>
+        <translation>&amp;Nascondi dalle acquisizioni dello schermo</translation>
+    </message>
+    <message>
         <source>&amp;Close</source>
         <translation>&amp;Chiudi</translation>
     </message>
@@ -1332,6 +1340,13 @@
     <message>
         <source>Your screen is being shared</source>
         <translation>Il tuo schermo è condiviso</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n window(s) hidden from the capture</source>
+        <translation>
+            <numerusform>%n finestra nascosta dall&apos;acquisizione</numerusform>
+            <numerusform>%n finestre nascoste dall&apos;acquisizione</numerusform>
+        </translation>
     </message>
     <message>
         <source>%1 is using your microphone</source>

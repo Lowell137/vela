@@ -55,6 +55,10 @@ void Workspaces::update(const QByteArray& json)
     }
     m_snapGroups = state[QStringLiteral("snapGroups")].toArray().toVariantList();
     m_rects = state[QStringLiteral("rects")].toArray().toVariantList();
+    m_captureHidden.clear();
+    for (const QJsonValue& id : state[QStringLiteral("captureHidden")].toArray()) {
+        m_captureHidden << id.toString();
+    }
     emit changed();
 }
 

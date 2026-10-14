@@ -62,8 +62,8 @@ Window {
     // bar, Alt+Space, apps that ask for it (show_window_menu).
     Connections {
         target: Shell
-        function onWindowMenuRequested(window, output, x, y, maximized, resizable, keyboard, onTop) {
-            Menus.open(Menus.windowEntries(maximized, false, resizable, action => Shell.windowAction(window, action), onTop),
+        function onWindowMenuRequested(window, output, x, y, maximized, resizable, keyboard, onTop, captureHidden) {
+            Menus.open(Menus.windowEntries(maximized, false, resizable, action => Shell.windowAction(window, action), onTop, captureHidden),
                 x, y, { screen: output, keyboard: keyboard })
         }
     }

@@ -307,11 +307,15 @@ void ShellController::handleCommand(const QByteArray& command)
             parts.size() > 2 ? QString::fromUtf8(parts.at(2)) : QString(),
             parts.size() > 3 ? parts.at(3).toDouble() : 1.0);
     } else if (parts.first() == "capture" && parts.size() >= 2) {
+        // capture on [dnd] [hidden <windows hidden from it>], capture off
         const bool on = parts.at(1) == "on";
         const bool dnd = on && parts.size() > 2 && parts.at(2) == "dnd";
-        if (on != m_screenCaptured || dnd != m_captureDnd) {
+        const qsizetype hiddenAt = parts.indexOf("hidden");
+        const int hidden = on && hiddenAt > 0 && hiddenAt + 1 < parts.size() ? parts.at(hiddenAt + 1).toInt() : 0;
+        if (on != m_screenCaptured || dnd != m_captureDnd || hidden != m_captureHidden) {
             m_screenCaptured = on;
             m_captureDnd = dnd;
+            m_captureHidden = hidden;
             emit screenCapturedChanged();
         }
     } else if (command == "task-view") {
@@ -369,11 +373,12 @@ void ShellController::handleCommand(const QByteArray& command)
         emit accessibilityReceived(command.mid(14));
     } else if (parts.first() == "snap-assist") {
         emit snapAssistRequested(QString::fromUtf8(command.mid(12)));
-    } else if (parts.first() == "window-menu" && parts.size() == 9) {
+    } else if (parts.first() == "window-menu" && parts.size() >= 9) {
         // window-menu <id> <output> <x> <y> <maximized> <resizable> <from
-        // keyboard> <always on top>
+        // keyboard> <always on top> [<hidden from screen capture>]
         emit windowMenuRequested(QString::fromLatin1(parts.at(1)), QString::fromUtf8(parts.at(2)), parts.at(3).toInt(),
-            parts.at(4).toInt(), parts.at(5) == "1", parts.at(6) == "1", parts.at(7) == "1", parts.at(8) == "1");
+            parts.at(4).toInt(), parts.at(5) == "1", parts.at(6) == "1", parts.at(7) == "1", parts.at(8) == "1",
+            parts.size() > 9 && parts.at(9) == "1");
     } else if (!command.isEmpty() && command != "ping") {
         qWarning("vela-shell: comando sconosciuto '%s'", command.constData());
     }

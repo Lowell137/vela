@@ -26,6 +26,8 @@ class Workspaces : public QObject {
     // Where the windows are, on every desktop: [{id, x, y, w, h}], layout
     // coordinates, topmost first, minimized ones left out.
     Q_PROPERTY(QVariantList rects READ rects NOTIFY changed)
+    // The windows hidden from screen capture (ext identifiers).
+    Q_PROPERTY(QStringList captureHidden READ captureHidden NOTIFY changed)
 
 public:
     explicit Workspaces(QObject* parent = nullptr);
@@ -37,6 +39,7 @@ public:
     QStringList stickyApps() const { return m_stickyApps; }
     QVariantList snapGroups() const { return m_snapGroups; }
     QVariantList rects() const { return m_rects; }
+    QStringList captureHidden() const { return m_captureHidden; }
 
     // A window's desktop (-1: all; -2: unknown).
     Q_INVOKABLE int workspaceOf(const QString& window) const;
@@ -67,4 +70,5 @@ private:
     QStringList m_stickyApps;
     QVariantList m_snapGroups;
     QVariantList m_rects;
+    QStringList m_captureHidden;
 };

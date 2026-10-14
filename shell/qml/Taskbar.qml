@@ -533,7 +533,11 @@ Window {
 
         function showTooltip() {
             const p = screenShare.mapToItem(null, screenShare.width / 2, 0)
-            Menus.tooltip = { text: Notifications.captureSilenced ? qsTr("Your screen is being shared. Notifications are silenced.") : qsTr("Your screen is being shared"), center: p.x, screen: root.screenName, owner: "screenShare" }
+            let text = Notifications.captureSilenced ? qsTr("Your screen is being shared. Notifications are silenced.") : qsTr("Your screen is being shared")
+            if (Shell.captureHiddenWindows > 0) {
+                text += "\n" + qsTr("%n window(s) hidden from the capture", "", Shell.captureHiddenWindows)
+            }
+            Menus.tooltip = { text: text, center: p.x, screen: root.screenName, owner: "screenShare" }
         }
         function hideTooltip() {
             shareTooltipDelay.stop()
