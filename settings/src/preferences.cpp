@@ -228,6 +228,10 @@ void Preferences::reload()
     m_doNotDisturb = settings.value(QStringLiteral("notifications/doNotDisturb"), false).toBool();
     emit doNotDisturbChanged();
     m_clipboardHistory = settings.value(QStringLiteral("clipboard/history"), false).toBool();
+    m_clipboardAtPointer = settings.value(QStringLiteral("clipboard/atPointer"), true).toBool();
+    m_clipboardKeep = settings.value(QStringLiteral("clipboard/keep"), false).toBool();
+    m_clipboardDays = settings.value(QStringLiteral("clipboard/days"), 0).toInt();
+    m_clipboardLimit = settings.value(QStringLiteral("clipboard/limit"), 25).toInt();
     emit clipboardChanged();
 
     // The mode: the one chosen here (vela-shell.conf); for apps, if not set
@@ -1326,6 +1330,42 @@ void Preferences::setClipboardHistory(bool on)
     }
 }
 
+void Preferences::setClipboardAtPointer(bool on)
+{
+    if (on != m_clipboardAtPointer) {
+        m_clipboardAtPointer = on;
+        setShell(QStringLiteral("clipboard/atPointer"), on);
+        emit clipboardChanged();
+    }
+}
+
+void Preferences::setClipboardKeep(bool on)
+{
+    if (on != m_clipboardKeep) {
+        m_clipboardKeep = on;
+        setShell(QStringLiteral("clipboard/keep"), on);
+        emit clipboardChanged();
+    }
+}
+
+void Preferences::setClipboardDays(int days)
+{
+    if (days != m_clipboardDays) {
+        m_clipboardDays = days;
+        setShell(QStringLiteral("clipboard/days"), days);
+        emit clipboardChanged();
+    }
+}
+
+void Preferences::setClipboardLimit(int limit)
+{
+    if (limit != m_clipboardLimit) {
+        m_clipboardLimit = limit;
+        setShell(QStringLiteral("clipboard/limit"), limit);
+        emit clipboardChanged();
+    }
+}
+
 void Preferences::clearClipboard()
 {
     // To the shell, on its socket.
@@ -1364,6 +1404,7 @@ const ShortcutAction kShortcutActions[] = {
     { "quick-settings", QT_TRANSLATE_NOOP("Preferences", "Quick settings"), "Super+A" },
     { "notification-center", QT_TRANSLATE_NOOP("Preferences", "Notification center"), "Super+N" },
     { "clipboard", QT_TRANSLATE_NOOP("Preferences", "Clipboard history"), "Super+V" },
+    { "emoji", QT_TRANSLATE_NOOP("Preferences", "Emoji and more"), "Super+." },
     { "sound-output", QT_TRANSLATE_NOOP("Preferences", "Sound output and volume mixer"), "Super+Ctrl+V" },
     { "snip", QT_TRANSLATE_NOOP("Preferences", "Snipping tool"), "Super+Shift+S" },
     { "snip-text", QT_TRANSLATE_NOOP("Preferences", "Copy text from the screen"), "Super+Shift+T" },

@@ -7,6 +7,8 @@
 #include "server.h"
 #include "util.h"
 
+#include <wlr/types/wlr_cursor.h>
+
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,6 +49,16 @@ void vela_shell_send(struct vela_server *server, const char *line)
         wlr_log(WLR_DEBUG, "Shell not reachable on %s", address.sun_path);
     }
     close(fd);
+}
+
+void vela_shell_send_at_pointer(struct vela_server *server, const char *line)
+{
+    char buffer[128];
+    if (server->cursor && vela_format(buffer, sizeof(buffer), "%s %d %d", line, (int)server->cursor->x, (int)server->cursor->y)) {
+        vela_shell_send(server, buffer);
+    } else {
+        vela_shell_send(server, line);
+    }
 }
 
 // -------------------------------------------------------------- supervision --
