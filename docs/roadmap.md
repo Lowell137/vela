@@ -89,7 +89,7 @@ direction, not a promise.
 ### Files
 - Network locations: SMB, SFTP, WebDAV.
 - Phones and cameras (MTP, PTP).
-- Quick preview with Space.
+- Quick preview with Space: audio and video.
 - An indexed search that finds files by name and content.
 - Batch rename.
 - Mounting disk images.
