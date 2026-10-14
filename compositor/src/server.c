@@ -156,6 +156,7 @@ static bool init(struct vela_server *server)
     server->display = wl_display_create();
     server->loop = wl_display_get_event_loop(server->display);
     struct wl_display *display = server->display;
+    server->shell.display = display; // the shell's connection is ours (docs/renderer.md §15.3)
 
     // Picks the backend by itself: DRM/KMS from a VT, or a Wayland window when
     // launched inside another session (such as KDE) for testing.

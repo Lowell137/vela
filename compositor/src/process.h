@@ -11,6 +11,8 @@
 #include <stdint.h>
 #include <sys/types.h>
 
+#include <wayland-server-core.h>
+
 struct wl_event_loop;
 struct wl_event_source;
 
@@ -36,6 +38,12 @@ struct vela_child {
     struct wl_event_source *source;
     int64_t started_ns;
     int quick_crashes; // abnormal exits in a row shortly after starting
+    // The shell only (docs/renderer.md §15.3): the compositor makes its Wayland
+    // connection and passes it as WAYLAND_SOCKET, so `client` is known to be
+    // this child's. NULL display: the child connects like any app.
+    struct wl_display *display;
+    struct wl_client *client; // while connected
+    struct wl_listener client_destroy;
 };
 
 void vela_child_init(struct vela_child *child, const char *name, int death_signal, int final_exit_code);
