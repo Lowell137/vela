@@ -12,17 +12,17 @@ qt_standard_project_setup(REQUIRES 6.7)
 
 # What a program shows and the lines it leaves behind, shared with the tests.
 add_library(vela-terminal-core OBJECT
+    src/terminal.cpp
+    src/terminal.h
     src/vt.cpp
     src/vt.h)
 target_include_directories(vela-terminal-core PUBLIC src)
 target_compile_options(vela-terminal-core PRIVATE -Wall -Wextra)
-target_link_libraries(vela-terminal-core PUBLIC Qt6::Gui PkgConfig::VTERM)
+target_link_libraries(vela-terminal-core PUBLIC Qt6::Gui Qt6::Quick PkgConfig::VTERM)
 
 qt_add_executable(vela-terminal
     src/main.cpp
-    src/host.h
-    src/terminal.cpp
-    src/terminal.h)
+    src/host.h)
 
 set(TERMINAL_QML_FILES
     qml/Main.qml
@@ -67,6 +67,11 @@ if(VELA_BUILD_TOOLS)
     target_compile_options(vela-terminal-test PRIVATE -Wall -Wextra)
     target_link_libraries(vela-terminal-test PRIVATE vela-terminal-core Qt6::Test)
     add_test(NAME terminal-vt COMMAND vela-terminal-test)
+    # The keys, through the item itself, with a real pty (offscreen).
+    qt_add_executable(vela-terminal-keys tests/keys.cpp)
+    target_compile_options(vela-terminal-keys PRIVATE -Wall -Wextra)
+    target_link_libraries(vela-terminal-keys PRIVATE vela-terminal-core Qt6::Test)
+    add_test(NAME terminal-keys COMMAND vela-terminal-keys)
 endif()
 
 install(TARGETS vela-terminal RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})

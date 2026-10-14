@@ -92,6 +92,7 @@ private:
     QPoint cellAt(QPointF position) const; // x: column, y: line
     bool selected(int line, int column) const;
     void select(QPoint from, QPoint to);
+    void clearSelection();
     QString selectedText() const;
     bool forwardMouse(QMouseEvent* event, bool pressed, bool moved);
 
