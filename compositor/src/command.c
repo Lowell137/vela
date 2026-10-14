@@ -414,6 +414,8 @@ static void run_command(struct vela_server *server, const char *line)
                 vela_output_arrange_layers(output);
             }
         }
+    } else if (starts_with(line, "taskbar-position ")) {
+        server->taskbar_top = strcmp(line + 17, "top") == 0;
     } else if (strcmp(line, "paste") == 0) {
         vela_input_paste(server->input); // Win+V: the shell has put the item on the clipboard
     } else if (strcmp(line, "modifiers") == 0 || strcmp(line, "workspaces") == 0

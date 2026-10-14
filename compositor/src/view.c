@@ -299,10 +299,11 @@ struct wlr_box vela_view_minimize_target(struct vela_view *view)
     if (view->taskbar_rect.width > 0) {
         return view->taskbar_rect;
     }
-    // Unknown button: the center of the output's bottom edge.
+    // Unknown button: the center of the taskbar's edge.
     struct vela_output *output = vela_view_output(view);
     struct wlr_box area = output ? vela_output_box(output) : (struct wlr_box) { 0, 0, 1920, 1080 };
-    return (struct wlr_box) { area.x + area.width / 2 - 24, area.y + area.height - 48, 48, 48 };
+    const int y = output && output->server->taskbar_top ? area.y : area.y + area.height - 48;
+    return (struct wlr_box) { area.x + area.width / 2 - 24, y, 48, 48 };
 }
 
 // Where the window returns when it stops being maximized or fullscreen. If it

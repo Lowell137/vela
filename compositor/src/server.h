@@ -139,6 +139,12 @@ struct vela_server {
     // The taskbar hides by itself ("taskbar-autohide", from the shell): windows
     // use the space it reserves for the panels.
     bool taskbar_autohide;
+    // The taskbar is at the top edge ("taskbar-position top|bottom", from the
+    // shell). The panels are placed by their anchors; this only moves what
+    // the compositor puts near the taskbar itself: the hot corner (it goes to
+    // the opposite corner, so the Start button keeps the top-left one) and the
+    // minimize target of windows without a button.
+    bool taskbar_top;
     // The desktop wallpaper's tint (Mica, docs/renderer.md §9.4): the average
     // color, in sRGB, sent by the shell. The version changes with it and with
     // the theme: title bars redraw.
