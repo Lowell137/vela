@@ -46,6 +46,8 @@ QtObject {
     // The hidden tray icons flyout (TrayOverflow.qml): {center (x of the "^"
     // button on the output), screen}, or null.
     property var trayOverflow: null
+    // The weather flyout (WeatherFlyout.qml): {center, centerY, screen}, or null.
+    property var weather: null
     // The output of the taskbar a panel was opened from (Start, quick
     // settings, notification center, Task View): the panel goes there. Empty:
     // the main output (opened from the keyboard).
