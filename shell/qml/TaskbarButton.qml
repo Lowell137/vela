@@ -64,12 +64,10 @@ Item {
     // taskbar): app open / active (or Start menu open)
     Rectangle {
         property real length: root.progress >= 0 ? 24 : root.active ? 16 : root.running ? 6 : 0
-        anchors.horizontalCenter: root.vertical ? undefined : parent.horizontalCenter
-        anchors.verticalCenter: root.vertical ? parent.verticalCenter : undefined
-        anchors.bottom: root.vertical ? undefined : parent.bottom
-        anchors.left: root.vertical && Config.taskbarLeft ? parent.left : undefined
-        anchors.right: root.vertical && Config.taskbarRight ? parent.right : undefined
-        anchors.margins: 2
+        // x/y, not anchors: anchors switched to undefined at run time keep
+        // their old edge when the taskbar's position changes live.
+        x: root.vertical ? (Config.taskbarLeft ? 2 : parent.width - width - 2) : (parent.width - width) / 2
+        y: root.vertical ? (parent.height - height) / 2 : parent.height - height - 2
         width: root.vertical ? 3 : length
         height: root.vertical ? length : 3
         radius: 1.5

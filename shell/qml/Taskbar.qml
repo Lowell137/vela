@@ -271,10 +271,10 @@ Window {
 
         // A thin line of light on the edge towards the screen, like glass.
         Rectangle {
-            anchors.left: root.vertical && Config.taskbarLeft ? undefined : parent.left
-            anchors.right: root.vertical && Config.taskbarLeft ? parent.right : undefined
-            anchors.top: !root.vertical && Config.taskbarTop ? undefined : parent.top
-            anchors.bottom: !root.vertical && Config.taskbarTop ? parent.bottom : undefined
+            // x/y, not anchors: anchors switched to undefined at run time
+            // keep their old edge when the position changes live.
+            x: root.vertical && Config.taskbarLeft ? parent.width - width : 0
+            y: !root.vertical && Config.taskbarTop ? parent.height - height : 0
             width: root.vertical ? 1 : parent.width
             height: root.vertical ? parent.height : 1
             color: Theme.stroke
@@ -495,12 +495,8 @@ Window {
         columns: root.vertical ? 1 : 1000
         width: root.vertical ? parent.width : implicitWidth
         height: root.vertical ? implicitHeight : parent.height
-        anchors.right: root.vertical ? undefined : screenShare.left
-        anchors.top: root.vertical ? undefined : parent.top
-        anchors.bottom: root.vertical ? screenShare.top : undefined
-        anchors.left: root.vertical ? parent.left : undefined
-        anchors.rightMargin: 4
-        anchors.bottomMargin: 4
+        x: root.vertical ? 0 : screenShare.x - width - 4
+        y: root.vertical ? screenShare.y - height - 4 : 0
         // Read in a binding: it follows the icons coming, going and changing.
         readonly property int hiddenCount: {
             let n = 0
@@ -527,10 +523,8 @@ Window {
     Item {
         id: overflowButton
         visible: root.primary && Config.trayOverflow && tray.hiddenCount > 0
-        anchors.right: root.vertical ? undefined : tray.left
-        anchors.top: root.vertical ? undefined : parent.top
-        anchors.bottom: root.vertical ? tray.top : undefined
-        anchors.left: root.vertical ? parent.left : undefined
+        x: root.vertical ? 0 : tray.x - width - 0
+        y: root.vertical ? tray.y - height - 0 : 0
         width: root.vertical ? parent.width : (visible ? 32 : 0)
         height: root.vertical ? (visible ? 32 : 0) : parent.height
         readonly property bool open: !!Menus.trayOverflow && Menus.trayOverflow.screen === root.screenName
@@ -584,10 +578,8 @@ Window {
         visible: root.primary && Weather.shown
         vertical: root.vertical
         screenName: root.screenName
-        anchors.left: parent.left
-        anchors.leftMargin: root.vertical ? 0 : 8
-        anchors.top: root.vertical ? undefined : parent.top
-        anchors.bottom: root.vertical ? overflowButton.top : undefined
+        x: root.vertical ? 0 : 8
+        y: root.vertical ? overflowButton.y - height : 0
     }
 
     // The screen being shared or recorded, like Windows 11: a red dot over a
@@ -596,10 +588,8 @@ Window {
     Item {
         id: screenShare
         visible: root.primary && Shell.screenCaptured
-        anchors.right: root.vertical ? undefined : microphone.left
-        anchors.top: root.vertical ? undefined : parent.top
-        anchors.bottom: root.vertical ? microphone.top : undefined
-        anchors.left: root.vertical ? parent.left : undefined
+        x: root.vertical ? 0 : microphone.x - width - 0
+        y: root.vertical ? microphone.y - height - 0 : 0
         width: root.vertical ? parent.width : (visible ? 32 : 0)
         height: root.vertical ? (visible ? 32 : 0) : parent.height
 
@@ -661,10 +651,8 @@ Window {
     Item {
         id: microphone
         visible: root.primary && Audio.microphoneUsers.length > 0
-        anchors.right: root.vertical ? undefined : systemIcons.left
-        anchors.top: root.vertical ? undefined : parent.top
-        anchors.bottom: root.vertical ? systemIcons.top : undefined
-        anchors.left: root.vertical ? parent.left : undefined
+        x: root.vertical ? 0 : systemIcons.x - width - 0
+        y: root.vertical ? systemIcons.y - height - 0 : 0
         width: root.vertical ? parent.width : (visible ? 32 : 0)
         height: root.vertical ? (visible ? 32 : 0) : parent.height
 
@@ -726,12 +714,8 @@ Window {
     Item {
         id: systemIcons
         visible: root.primary
-        anchors.right: root.vertical ? undefined : clock.left
-        anchors.top: root.vertical ? undefined : parent.top
-        anchors.bottom: root.vertical ? clock.top : undefined
-        anchors.left: root.vertical ? parent.left : undefined
-        anchors.rightMargin: 2
-        anchors.bottomMargin: 2
+        x: root.vertical ? 0 : clock.x - width - 2
+        y: root.vertical ? clock.y - height - 2 : 0
         width: root.vertical ? parent.width : (visible ? iconsRow.width + 16 : 0)
         height: root.vertical ? (visible ? iconsRow.height + 16 : 0) : parent.height
 
@@ -813,12 +797,8 @@ Window {
     // taskbar, which is narrow).
     Item {
         id: clock
-        anchors.right: root.vertical ? undefined : parent.right
-        anchors.top: root.vertical ? undefined : parent.top
-        anchors.bottom: root.vertical ? showDesktop.top : undefined
-        anchors.left: root.vertical ? parent.left : undefined
-        anchors.rightMargin: 12
-        anchors.bottomMargin: 4
+        x: root.vertical ? 0 : parent.width - width - 12
+        y: root.vertical ? showDesktop.y - height - 4 : 0
         readonly property bool badge: Notifications.history.count > 0 || Notifications.silenced
         width: root.vertical ? parent.width : clockColumn.implicitWidth + 16 + (badge ? 22 : 0)
         height: root.vertical ? clockColumn.implicitHeight + 16 + (badge ? 22 : 0) : parent.height
@@ -914,10 +894,8 @@ Window {
     Item {
         id: showDesktop
         visible: root.primary
-        anchors.right: root.vertical ? undefined : parent.right
-        anchors.top: root.vertical ? undefined : parent.top
-        anchors.bottom: root.vertical ? parent.bottom : undefined
-        anchors.left: root.vertical ? parent.left : undefined
+        x: root.vertical ? 0 : parent.width - width
+        y: root.vertical ? parent.height - height : 0
         // Invisible at rest and over the clock's margin: it takes no room. Only
         // under the pointer a short line shows, like Windows.
         width: root.vertical ? parent.width : (visible ? 8 : 0)
