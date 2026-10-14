@@ -45,6 +45,8 @@ void Accessibility::update(const QByteArray& json)
     m_colorFilter = state[QStringLiteral("colorFilter")].toBool();
     m_magnifier = state[QStringLiteral("magnifier")].toBool();
     m_stickyKeys = state[QStringLiteral("stickyKeys")].toBool();
+    m_caffeine = state[QStringLiteral("caffeine")].toBool();
+    m_caffeineSecs = state[QStringLiteral("caffeineSecs")].toInt();
     emit changed();
 }
 
@@ -76,4 +78,24 @@ void Accessibility::setStickyKeys(bool on)
     m_stickyKeys = on;
     emit changed();
     ShellController::sendToCompositor(on ? "sticky-keys on" : "sticky-keys off");
+}
+
+void Accessibility::setCaffeine(bool on)
+{
+    m_caffeine = on;
+    m_caffeineSecs = on ? -1 : 0;
+    emit changed();
+    ShellController::sendToCompositor(on ? "caffeine on" : "caffeine off");
+}
+
+void Accessibility::setCaffeineMinutes(double minutes)
+{
+    if (!(minutes > 0)) {
+        setCaffeine(false);
+        return;
+    }
+    m_caffeine = true;
+    m_caffeineSecs = (int)(minutes * 60 + 0.5);
+    emit changed();
+    ShellController::sendToCompositor(QStringLiteral("caffeine on %1").arg(minutes).toUtf8());
 }

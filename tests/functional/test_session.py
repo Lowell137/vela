@@ -74,6 +74,36 @@ class Lock(unittest.TestCase):
             self.assertTrue(vela.state().has(window))
 
 
+class Caffeine(unittest.TestCase):
+    """Caffeine (quick settings): inactivity turns nothing off until it's
+    turned off again, or its minutes run out (lock.c)."""
+
+    def test_caffeine_holds_off_inactivity(self):
+        # 3 seconds of inactivity; headless it needs VELA_SCREEN_OFF.
+        with Session(env={"VELA_SCREEN_OFF": "0.05", "VELA_LOCK_ON_IDLE": "no"}) as vela:
+            self.assertFalse(vela.query("accessibility")["caffeine"])
+            vela.command("caffeine on")
+            vela.wait_for(lambda s: vela.query("accessibility")["caffeine"], read_state=False, what="caffeine on")
+            self.assertEqual(vela.query("accessibility")["caffeineSecs"], -1)
+            vela.wait_for(lambda s: s.output["powered"], what="screen on")
+            time.sleep(4.5)
+            self.assertTrue(vela.state().output["powered"])
+            vela.command("caffeine toggle")
+            vela.wait_for(lambda s: not s.output["powered"], timeout=6, what="screen off without caffeine")
+            self.assertFalse(vela.query("accessibility")["caffeine"])
+
+    def test_caffeine_turns_itself_off(self):
+        # 0.04 minutes are about 2.4 seconds; the screen (3 seconds of
+        # inactivity) must still be on just after, and off once time is up.
+        with Session(env={"VELA_SCREEN_OFF": "0.05", "VELA_LOCK_ON_IDLE": "no"}) as vela:
+            vela.command("caffeine on 0.04")
+            vela.wait_for(lambda s: vela.query("accessibility")["caffeine"], read_state=False, what="timed caffeine on")
+            self.assertGreater(vela.query("accessibility")["caffeineSecs"], 0)
+            vela.wait_for(lambda s: not vela.query("accessibility")["caffeine"], read_state=False, timeout=10,
+                          what="caffeine off by itself")
+            vela.wait_for(lambda s: not s.output["powered"], timeout=6, what="screen off after time is up")
+
+
 class Shell(unittest.TestCase):
     """The startup command (the shell): relaunched when it fails, but not
     when it exits cleanly nor when it keeps failing right after starting

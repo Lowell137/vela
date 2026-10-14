@@ -199,6 +199,8 @@ static bool answer(struct vela_server *server, int fd, const char *line)
         window_rects_json(server, &reply);
     } else if (strcmp(line, "state") == 0) {
         state_json(server, &reply);
+    } else if (strcmp(line, "caffeine status") == 0) {
+        vela_buffer_append(&reply, server->lock->caffeine ? "on" : "off");
     } else if (strcmp(line, "accessibility") == 0) {
         char json[512];
         if (!vela_a11y_json(server->a11y, json, sizeof(json))) {
@@ -386,7 +388,8 @@ static void run_command(struct vela_server *server, const char *line)
     } else if (strcmp(line, "paste") == 0) {
         vela_input_paste(server->input); // Win+V: the shell has put the item on the clipboard
     } else if (strcmp(line, "modifiers") == 0 || strcmp(line, "workspaces") == 0
-        || strcmp(line, "accessibility") == 0 || strcmp(line, "window-rects") == 0) {
+        || strcmp(line, "accessibility") == 0 || strcmp(line, "window-rects") == 0
+        || strcmp(line, "caffeine status") == 0) {
         // already answered to whoever asked
     } else if (starts_with(line, "workspace ")) {
         workspace(server, line);
@@ -410,6 +413,17 @@ static void run_command(struct vela_server *server, const char *line)
         vela_a11y_set_magnifier(a11y, wanted(line + 10, a11y->magnifier));
     } else if (starts_with(line, "sticky-keys ")) {
         vela_a11y_set_sticky_keys(a11y, wanted(line + 12, a11y->sticky_keys), true);
+    } else if (starts_with(line, "caffeine ")) {
+        // From quick settings: keep the session awake (lock.c). "caffeine on"
+        // is indefinite, "caffeine on <minutes>" turns itself off after that
+        // long (fractions for tests).
+        const char *arg = line + 9;
+        if (starts_with(arg, "on ") && atof(arg + 3) > 0) {
+            vela_lock_set_caffeine_for(server->lock, atof(arg + 3));
+        } else {
+            vela_lock_set_caffeine(server->lock, wanted(arg, server->lock->caffeine));
+        }
+        vela_a11y_announce(a11y);
     } else if (starts_with(line, "switcher-pick ")) {
         // A click on an Alt+Tab preview: switch to that window.
         vela_switcher_pick(server, atoi(line + 14));
