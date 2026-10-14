@@ -150,9 +150,10 @@ test-output remove HEADLESS-2
 test-power off
 test-power on
 reload-config
+restart-shell
 ```
 
-`state` returns the compositor's visible state as JSON and is the primary assertion surface used by the functional test harness.
+`state` returns the compositor's visible state as JSON and is the primary assertion surface used by the functional test harness. `restart-shell` (also "Restart shell" in the Start menu's power menu) sends SIGTERM to the startup command and relaunches it without ending the session or counting a crash (`compositor/src/process.c`).
 
 ## Project layout
 

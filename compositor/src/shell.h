@@ -13,6 +13,9 @@ struct vela_server;
 // cleanly, nor when it keeps failing right after starting). The shell lives
 // in vela_server.shell (a vela_child, process.h).
 void vela_shell_start(struct vela_server *server, const char *command);
+// The shell ends (SIGTERM) and is launched again; the session and the
+// compositor stay up. Not counted as a crash.
+void vela_shell_restart(struct vela_server *server);
 // We are shutting down: the shell going away must not be relaunched.
 void vela_shell_stop(struct vela_server *server);
 

@@ -68,6 +68,11 @@ void vela_shell_start(struct vela_server *server, const char *command)
     vela_child_start(&server->shell, server->loop, command);
 }
 
+void vela_shell_restart(struct vela_server *server)
+{
+    vela_child_restart(&server->shell);
+}
+
 void vela_shell_stop(struct vela_server *server)
 {
     vela_child_stop(&server->shell);

@@ -779,6 +779,11 @@ Window {
                             }
                         }
                         PowerEntry {
+                            icon: "view-refresh"
+                            label: qsTr("Restart shell")
+                            onActivated: { root.close(); Shell.restartShell() }
+                        }
+                        PowerEntry {
                             icon: "system-reboot"
                             label: qsTr("Restart")
                             onActivated: Shell.reboot()

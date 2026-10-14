@@ -130,6 +130,8 @@ public:
     // Signs out: asks the compositor to close (apps close with it). Doesn't
     // shut down or restart the computer.
     Q_INVOKABLE void logout();
+    // Relaunches only vela-shell (the compositor and apps stay).
+    Q_INVOKABLE void restartShell();
     Q_INVOKABLE void lock(); // Win+L from the shell
     // The wallpaper's average color to the compositor: the title bars' tint
     // (Mica, docs/renderer.md §9.4).
