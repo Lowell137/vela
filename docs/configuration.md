@@ -34,6 +34,7 @@ Vela Settings preserves unrelated lines when it updates a key and asks the compo
 | `lock-on-idle` | `yes` | Lock before turning displays off. |
 | `terminal` | empty | Default terminal (Super+Enter): a program, empty for the first installed of konsole, foot, kitty, alacritty, gnome-terminal, xterm. Set in Apps > Default apps. |
 | `task-manager` | empty | Default task manager: a monitor program (or btop/htop/top, opened in the terminal), empty for the first installed. Set in Apps > Default apps. |
+| `decoration-ssd` | `kitty` | Comma-separated app ids that always get Vela's title bar, even when they never ask through xdg-decoration (kitty never asks). Empty disables it. |
 | `polkit-agent` | `yes` | Start Vela's polkit agent (the User Account Control dialog) in the real session. `no` leaves the job to another agent. |
 | `keyboard-layout` | system/default | Comma-separated XKB layouts, for example `it,us`. |
 | `keyboard-variant` | empty | Comma-separated XKB variants matching `keyboard-layout`. |
