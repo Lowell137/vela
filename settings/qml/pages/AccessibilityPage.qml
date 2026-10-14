@@ -69,6 +69,12 @@ Page {
 
     CardGroup {
         title: qsTr("Interaction")
+        LinkCard {
+            icon: "cursor-arrow"
+            title: qsTr("Mouse pointer")
+            description: qsTr("Cursor theme and size")
+            onClicked: root.navigate("pointer")
+        }
         Card {
             icon: "input-keyboard"
             title: qsTr("Sticky keys")

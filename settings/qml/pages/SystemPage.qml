@@ -31,6 +31,12 @@ Page {
             onClicked: root.navigate("power")
         }
         LinkCard {
+            icon: "view-split-left-right"
+            title: qsTr("Multitasking")
+            description: qsTr("Snap layouts, Task View hot corner, window rules")
+            onClicked: root.navigate("multitasking")
+        }
+        LinkCard {
             icon: "edit-paste"
             title: qsTr("Clipboard")
             description: qsTr("Clipboard history (Win+V), clear")

@@ -92,6 +92,16 @@ Page {
         }
     }
 
+    CardGroup {
+        title: qsTr("Related settings")
+        LinkCard {
+            icon: "preferences-desktop-keyboard-shortcuts"
+            title: qsTr("Keyboard shortcuts")
+            description: qsTr("See, change and add shortcuts")
+            onClicked: root.navigate("shortcuts")
+        }
+    }
+
     Dialog {
         id: addDialog
         parent: root.contentItem
