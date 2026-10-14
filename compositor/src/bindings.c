@@ -11,6 +11,7 @@
 #include "lock.h"
 #include "output.h"
 #include "process.h"
+#include "scene/scene.h"
 #include "server.h"
 #include "shell.h"
 #include "shortcuts.h"
@@ -290,9 +291,10 @@ void vela_window_menu_show(struct vela_server *server, struct vela_view *view, d
     // coordinates.
     struct wlr_box box = vela_output_box(output);
     char line[512];
-    snprintf(line, sizeof(line), "window-menu %s %s %d %d %d %d %d %d", view->ext_handle->identifier,
+    snprintf(line, sizeof(line), "window-menu %s %s %d %d %d %d %d %d %d", view->ext_handle->identifier,
         output->wlr->name, (int)lround(lx - box.x), (int)lround(ly - box.y), view->maximized ? 1 : 0,
-        vela_view_resizable(view) ? 1 : 0, keyboard ? 1 : 0, view->always_on_top ? 1 : 0);
+        vela_view_resizable(view) ? 1 : 0, keyboard ? 1 : 0, view->always_on_top ? 1 : 0,
+        view->tree->node.capture_hidden ? 1 : 0);
     vela_shell_send(server, line);
 }
 
@@ -330,6 +332,12 @@ void vela_window_action(struct vela_server *server, struct vela_view *view, cons
         const char *arg = action[13] == ' ' ? action + 14 : "toggle";
         bool on = strcmp(arg, "toggle") == 0 ? !view->always_on_top : strcmp(arg, "on") == 0;
         vela_view_set_always_on_top(view, on);
+    } else if (strncmp(action, "capture-hide", 12) == 0) {
+        // "capture-hide [on|off|toggle]": hidden from screen capture
+        // (docs/renderer.md §15), from the window menu and Task View.
+        const char *arg = action[12] == ' ' ? action + 13 : "toggle";
+        bool on = strcmp(arg, "toggle") == 0 ? !view->tree->node.capture_hidden : strcmp(arg, "on") == 0;
+        vela_view_set_capture_hidden(view, on);
     } else if (strcmp(action, "move") == 0) {
         vela_interact_begin_keyboard(server, view, VELA_CURSOR_MOVE);
     } else if (strcmp(action, "resize") == 0) {

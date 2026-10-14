@@ -146,6 +146,23 @@ static void handle_new_surface(struct wl_listener *listener, void *data)
     vela_listen(&wlr->events.destroy, &layer->destroy, handle_destroy);
     vela_listen(&wlr->events.new_popup, &layer->new_popup, handle_new_popup);
     wl_list_insert(server->layer_surfaces.prev, &layer->link);
+    vela_layer_update_capture_hidden(layer);
+}
+
+void vela_layer_update_capture_hidden(struct vela_layer_surface *layer)
+{
+    // The panels of shell/src/main.cpp that draw window thumbnails or titles.
+    static const char *const previews[] = { "vela-switcher", "vela-task-view", "vela-taskbar-preview",
+        "vela-taskbar-tooltip", "vela-share" };
+    struct vela_server *server = layer->server;
+    bool hidden = false;
+    if (server->capture_hidden_count > 0 && layer->wlr->namespace
+        && vela_capture_hide_trusts(server, wl_resource_get_client(layer->wlr->resource))) {
+        for (size_t i = 0; i < sizeof(previews) / sizeof(previews[0]); ++i) {
+            hidden = hidden || strcmp(layer->wlr->namespace, previews[i]) == 0;
+        }
+    }
+    layer->tree->node.capture_hidden = hidden;
 }
 
 void vela_layers_init(struct vela_server *server)

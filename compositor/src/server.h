@@ -208,6 +208,7 @@ struct vela_server {
     // App commits held until their GPU has finished (§7.3).
     struct vela_ready ready;
     struct vela_child shell; // the launched and supervised shell (shell.h)
+    int capture_hidden_count; // windows hidden from screen capture (view.c)
     struct vela_child polkit_agent; // the polkit agent (polkit.h)
     struct vela_commands *commands; // the command socket (command.h)
     // wlr-output-management (output_manager.h).

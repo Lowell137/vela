@@ -65,7 +65,20 @@ static void announce(struct vela_capture_watch *watch, bool on)
 {
     watch->on = on;
     watch->ticks_on = 0;
-    vela_shell_send(watch->server, !on ? "capture off" : watch->dnd ? "capture on dnd" : "capture on");
+    const char *line = !on ? "capture off" : watch->dnd ? "capture on dnd" : "capture on";
+    char with_hidden[64];
+    int hidden = watch->server->capture_hidden_count;
+    if (on && hidden > 0 && vela_format(with_hidden, sizeof(with_hidden), "%s hidden %d", line, hidden)) {
+        line = with_hidden;
+    }
+    vela_shell_send(watch->server, line);
+}
+
+void vela_capture_watch_hidden_changed(struct vela_capture_watch *watch)
+{
+    if (watch && watch->on) {
+        announce(watch, true);
+    }
 }
 
 // wlroots keeps no list we can read of the screencopy frames being captured, so

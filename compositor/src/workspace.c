@@ -148,7 +148,8 @@ static const char *view_id(const struct vela_view *view)
 void vela_workspaces_json(struct vela_server *server, struct vela_buffer *out)
 {
     // {"current":0,"names":["Desktop 1"],"windows":{"<ext id>":0 (-1:
-    // all)},"stickyApps":[...],"snapGroups":[...],"rects":[...]}
+    // all)},"stickyApps":[...],"snapGroups":[...],"captureHidden":[...],
+    // "rects":[...]}
     const struct vela_workspaces *ws = server->workspaces;
     vela_buffer_appendf(out, "{\"current\":%d,\"names\":[", ws->current);
     for (int i = 0; i < ws->count; ++i) {
@@ -217,6 +218,17 @@ void vela_workspaces_json(struct vela_server *server, struct vela_buffer *out)
     // Where the windows are, on every desktop (hidden ones keep their place),
     // for Task View's desktop cards: [{"id":...,"x":..,"y":..,"w":..,"h":..}],
     // frame included, topmost first; minimized ones left out.
+    // The windows hidden from screen capture (docs/renderer.md §15), for
+    // Task View's menu.
+    vela_buffer_append(out, "],\"captureHidden\":[");
+    first = true;
+    wl_list_for_each (view, &server->views, link) {
+        if (view->mapped && view_id(view) && view->tree->node.capture_hidden) {
+            vela_buffer_append(out, first ? "" : ",");
+            vela_buffer_append_json(out, view_id(view));
+            first = false;
+        }
+    }
     vela_buffer_append(out, "],\"rects\":[");
     first = true;
     wl_list_for_each (view, &server->views, link) {

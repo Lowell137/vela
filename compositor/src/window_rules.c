@@ -50,6 +50,8 @@ static void apply_pair(struct vela_window_rule *rule, const char *key, const cha
         rule->fullscreen = yes(value);
     } else if (strcmp(key, "always-on-top") == 0) {
         rule->always_on_top = yes(value);
+    } else if (strcmp(key, "capture") == 0) {
+        rule->capture = yes(value);
     } else {
         fprintf(stderr, "vela: window-rule: ignoring \"%s=%s\"\n", key, value);
     }
@@ -70,7 +72,7 @@ bool vela_window_rules_add(struct vela_window_rules *rules, const char *value)
         fprintf(stderr, "vela: window-rule: no app id in \"%s\"\n", value);
         return false;
     }
-    struct vela_window_rule rule = { .center = -1, .maximized = -1, .fullscreen = -1, .always_on_top = -1 };
+    struct vela_window_rule rule = { .center = -1, .maximized = -1, .fullscreen = -1, .always_on_top = -1, .capture = -1 };
     rule.app = strndup(value, app_length);
 
     // key=value pairs split on commas; a piece without '=' continues the

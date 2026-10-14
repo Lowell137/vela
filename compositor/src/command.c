@@ -102,10 +102,11 @@ static void state_json(struct vela_server *server, struct vela_buffer *json)
         vela_buffer_append_json(json, output->wlr->name);
         vela_buffer_appendf(json,
             ",\"x\":%d,\"y\":%d,\"w\":%d,\"h\":%d,\"scale\":%g,\"enabled\":%s,\"powered\":%s,\"frames\":%llu,"
-            "\"missed\":%llu}",
+            "\"missed\":%llu,\"capturePasses\":%llu}",
             box.x, box.y, box.width, box.height, (double)output->wlr->scale, output->wlr->enabled ? t : f,
             output->powered ? t : f, (unsigned long long)output->clock.frames_total,
-            (unsigned long long)output->clock.missed_total);
+            (unsigned long long)output->clock.missed_total,
+            (unsigned long long)(output->frame ? output->frame->capture_passes : 0));
         first = false;
     }
     vela_buffer_append(json, "],\"windows\":[");
@@ -139,8 +140,9 @@ static void state_json(struct vela_server *server, struct vela_buffer *json)
         } else {
             vela_buffer_appendf(json, "[%d,%d,%d,%d]", view->snap.x0, view->snap.y0, view->snap.x1, view->snap.y1);
         }
-        vela_buffer_appendf(json, ",\"snapGroup\":%u,\"alwaysOnTop\":%s,\"z\":%d}", view->snap_group,
-            view->always_on_top ? t : f, stack_index(server, view));
+        vela_buffer_appendf(json, ",\"snapGroup\":%u,\"alwaysOnTop\":%s,\"captureHidden\":%s,\"z\":%d}",
+            view->snap_group, view->always_on_top ? t : f, view->tree->node.capture_hidden ? t : f,
+            stack_index(server, view));
         first = false;
     }
     // The layer-shell surfaces, bottom to top, and the one with the keyboard.
@@ -154,8 +156,9 @@ static void state_json(struct vela_server *server, struct vela_buffer *json)
         struct vela_output *out = vela_layer_surface_output(layer);
         vela_buffer_append(json, first ? "{\"namespace\":" : ",{\"namespace\":");
         vela_buffer_append_json(json, wlr->namespace ? wlr->namespace : "");
-        vela_buffer_appendf(json, ",\"layer\":%d,\"keyboard\":%d,\"mapped\":%s,\"output\":", (int)wlr->current.layer,
-            (int)wlr->current.keyboard_interactive, wlr->surface->mapped ? t : f);
+        vela_buffer_appendf(json, ",\"layer\":%d,\"keyboard\":%d,\"mapped\":%s,\"shell\":%s,\"output\":",
+            (int)wlr->current.layer, (int)wlr->current.keyboard_interactive, wlr->surface->mapped ? t : f,
+            vela_capture_hide_trusts(server, wl_resource_get_client(wlr->resource)) ? t : f);
         if (out) {
             vela_buffer_append_json(json, out->wlr->name);
         } else {

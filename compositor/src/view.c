@@ -14,6 +14,7 @@
 #include "output.h"
 #include "popup.h"
 #include "scene/capture.h"
+#include "scene/frame.h"
 #include "scene/scene.h"
 #include "server.h"
 #include "snapshot.h"
@@ -25,6 +26,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wlr/config.h>
+#include <wlr/interfaces/wlr_ext_image_capture_source_v1.h>
 #include <wlr/types/wlr_compositor.h>
 #include <wlr/types/wlr_ext_foreign_toplevel_list_v1.h>
 #include <wlr/types/wlr_ext_image_capture_source_v1.h>
@@ -482,6 +484,7 @@ void vela_view_title_changed(struct vela_view *view)
         wlr_foreign_toplevel_handle_v1_set_title(view->handle, vela_view_title(view));
     }
     update_ext_handle(view);
+    vela_view_check_capture_rule(view); // capture=no with title~= follows the title
 }
 
 void vela_view_app_id_changed(struct vela_view *view)
@@ -495,6 +498,91 @@ void vela_view_app_id_changed(struct vela_view *view)
 void vela_view_parent_changed(struct vela_view *view)
 {
     update_handle_parent(view);
+    vela_views_update_capture_hidden(view->server); // a dialog of a hidden window is hidden
+}
+
+// --------------------------------------------- hidden from screen capture --
+
+bool vela_capture_hide_trusts(struct vela_server *server, struct wl_client *client)
+{
+    // false here leaves even the shell's previews of hidden windows blank.
+    return client && client == server->shell.client;
+}
+
+bool vela_view_capture_hidden(const struct vela_view *view)
+{
+    // The window or one of its parents (depth-limited: a parent cycle can't hang us).
+    for (int depth = 0; view && depth < 32; view = view_parent(view), ++depth) {
+        if (view->capture_choice ? view->capture_choice > 0 : view->capture_rule_hides) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void vela_view_set_capture_hidden(struct vela_view *view, bool on)
+{
+    view->capture_choice = on ? 1 : -1;
+    vela_views_update_capture_hidden(view->server);
+}
+
+static bool rule_hides(struct vela_view *view)
+{
+    const struct vela_window_rule *rule
+        = vela_window_rules_find(&view->server->window_rules, vela_view_app_id(view), vela_view_title(view));
+    return rule && rule->capture == 0;
+}
+
+void vela_view_check_capture_rule(struct vela_view *view)
+{
+    bool hides = view->mapped && rule_hides(view);
+    if (hides != view->capture_rule_hides) {
+        view->capture_rule_hides = hides;
+        vela_views_update_capture_hidden(view->server);
+    }
+}
+
+void vela_views_update_capture_hidden(struct vela_server *server)
+{
+    int count = 0;
+    bool x11 = false;
+    bool changed = false;
+    struct vela_view *view;
+    wl_list_for_each (view, &server->views, link) {
+        bool hidden = vela_view_capture_hidden(view);
+        if (hidden != view->tree->node.capture_hidden) {
+            view->tree->node.capture_hidden = hidden;
+            changed = true;
+            if (hidden) {
+                // Shares of this window that are running (a portal) stop now.
+                vela_window_capture_destroy(view->capture);
+                view->capture = NULL;
+            }
+        }
+        count += hidden;
+        x11 = x11 || (hidden && view->x11);
+    }
+    // X11 menus and the dragged icon don't know their window (§15.2).
+    server->layers.x11_popups->node.capture_hidden = x11;
+    server->layers.drag->node.capture_hidden = count > 0;
+    bool count_changed = count != server->capture_hidden_count;
+    server->capture_hidden_count = count;
+    struct vela_layer_surface *layer;
+    wl_list_for_each (layer, &server->layer_surfaces, link) {
+        vela_layer_update_capture_hidden(layer);
+    }
+    if (changed || count_changed) {
+        // No capture stream keeps an old frame with (or without) the window.
+        struct vela_output_frame *frame;
+        wl_list_for_each (frame, &server->scene->frames, link) {
+            vela_output_frame_damage_whole(frame);
+        }
+        wlr_log(WLR_INFO, "Windows hidden from screen capture: %d", count);
+        vela_workspaces_announce(server); // Task View's menu shows the choice
+    }
+    if (count_changed) {
+        vela_capture_watch_hidden_changed(server->capture_watch);
+    }
 }
 
 static void handle_taskbar_activate(struct wl_listener *listener, void *data)
@@ -782,7 +870,11 @@ void vela_views_load_settings(struct vela_server *server)
         if (view->mapped && view->xdg) {
             vela_view_update_decoration(view);
         }
+        // Unlike the other rules, capture= reaches the open windows too: a
+        // privacy rule must not wait for the next window (§15).
+        view->capture_rule_hides = view->mapped && rule_hides(view);
     }
+    vela_views_update_capture_hidden(server);
 }
 
 // ----------------------------------------------------- maximize/fullscreen --
@@ -1147,6 +1239,8 @@ void vela_view_mapped(struct vela_view *view)
     if (rule && rule->always_on_top == 1 && !view->fullscreen) {
         vela_view_set_always_on_top(view, true);
     }
+    view->capture_rule_hides = rule && rule->capture == 0;
+    vela_views_update_capture_hidden(server); // before its first frame
     start_open_animation(view);
     vela_workspaces_announce(server);
 }
@@ -1163,6 +1257,8 @@ void vela_view_unmapped(struct vela_view *view)
     view->close_animated = false;
     view->mapped = false;
     view->always_on_top = false;
+    view->capture_rule_hides = false;
+    view->capture_choice = 0;
     view->animating = false;
     if (view->minimized) {
         view->minimized = false;
@@ -1175,6 +1271,7 @@ void vela_view_unmapped(struct vela_view *view)
     vela_window_capture_destroy(view->capture);
     view->capture = NULL;
     forget(view);
+    vela_views_update_capture_hidden(view->server);
     vela_workspaces_announce(view->server);
 }
 
@@ -1414,9 +1511,13 @@ static void handle_capture_request(struct wl_listener *listener, void *data)
 {
     struct wlr_ext_foreign_toplevel_image_capture_source_manager_v1_request *request = data;
     struct vela_view *view = request->toplevel_handle->data;
-    if (!view || view->server->locked) {
+    if (!view || view->server->locked
+        || (view->tree->node.capture_hidden && !vela_capture_hide_trusts(view->server, request->client))) {
         // An isolated window source can bypass visible composition; refuse
-        // access to any window hidden behind the lock screen.
+        // access to any window hidden behind the lock screen, or hidden from
+        // capture (§15.2). An inert source: the client's session stops at once.
+        // new_id is private in 0.20 but has no public way to answer "no" (as ready.c does with synced).
+        wlr_ext_image_capture_source_v1_create_resource(NULL, request->client, request->WLR_PRIVATE.new_id);
         return;
     }
     // The current look, even if minimized or covered by other windows: the

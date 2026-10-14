@@ -18,7 +18,10 @@
 //   maximized=yes  opens maximized
 //   fullscreen=no  opens as a normal window even if it asks for fullscreen
 //   always-on-top=yes
-// Unknown keys are logged and ignored. Applied once, when the window maps.
+//   capture=no     hidden from screen capture (docs/renderer.md §15)
+// Unknown keys are logged and ignored. Applied once, when the window maps;
+// capture= also when the title changes and on reload-config, to the windows
+// already open (a privacy rule must not wait for the next window).
 
 #include <stdbool.h>
 
@@ -30,7 +33,7 @@ struct vela_window_rule {
     bool has_position, has_size;
     int x, y, width, height;
     // -1: not set
-    int center, maximized, fullscreen, always_on_top;
+    int center, maximized, fullscreen, always_on_top, capture;
 };
 
 struct vela_window_rules {

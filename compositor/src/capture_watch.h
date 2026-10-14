@@ -22,5 +22,8 @@ void vela_capture_watch_destroy(struct vela_capture_watch *watch);
 void vela_capture_watch_copy_capture(struct vela_capture_watch *watch, struct wlr_ext_image_copy_capture_manager_v1 *manager);
 // vela.conf was read again.
 void vela_capture_watch_load(struct vela_capture_watch *watch);
+// The number of windows hidden from capture changed: while capture is on the
+// shell hears it at once ("capture on [dnd] hidden N", for the tooltip).
+void vela_capture_watch_hidden_changed(struct vela_capture_watch *watch);
 
 #endif

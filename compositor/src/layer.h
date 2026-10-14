@@ -52,6 +52,10 @@ bool vela_layer_surface_wants_keyboard(const struct vela_layer_surface *layer);
 void vela_layers_configure(struct vela_server *server, struct vela_output *output, const struct wlr_box *full,
     struct wlr_box *usable, struct wlr_box *work);
 
+// While a window is hidden from screen capture, the shell's panels that show
+// window previews or titles are hidden from it too (docs/renderer.md §15.2).
+void vela_layer_update_capture_hidden(struct vela_layer_surface *layer);
+
 // The output goes away: its surfaces are closed.
 void vela_layers_close_output(struct vela_server *server, struct vela_output *output);
 

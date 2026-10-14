@@ -67,6 +67,11 @@ struct vela_view {
     // "Always on top": stays above normal windows (below panels and fullscreen
     // ones). Not kept across unmap: a window that reopens starts normal.
     bool always_on_top;
+    // Hidden from screen capture (docs/renderer.md §15): by a window rule
+    // (capture=no) or by the window menu, which wins over the rule (1 hide,
+    // -1 show, 0 the rule decides). Not kept across unmap.
+    bool capture_rule_hides;
+    int capture_choice;
     struct vela_snap snap; // where it is, if snapped (snap.h)
     // Snap group, like Windows 11: the windows arranged together with Snap
     // Assist; the taskbar shows them and brings them forward together. 0:
@@ -185,6 +190,19 @@ void vela_view_set_fullscreen(struct vela_view *view, bool on);
 // normal ones, in their usual order. focus.c calls the second after any raise.
 void vela_view_set_always_on_top(struct vela_view *view, bool on);
 void vela_views_raise_always_on_top(struct vela_server *server);
+// Hidden from screen capture (docs/renderer.md §15): the window menu's
+// choice, the window rule checked again (title change, reload-config), and
+// the marks in the scene brought up to date for every window, its children
+// and the shell's previews. vela_view_capture_hidden: what is in effect, the
+// parents' choice included.
+void vela_view_set_capture_hidden(struct vela_view *view, bool on);
+void vela_view_check_capture_rule(struct vela_view *view);
+void vela_views_update_capture_hidden(struct vela_server *server);
+bool vela_view_capture_hidden(const struct vela_view *view);
+// The one connection that sees hidden windows in its toplevel captures: the
+// shell's, for its previews (§15.3).
+struct wl_client;
+bool vela_capture_hide_trusts(struct vela_server *server, struct wl_client *client);
 // Like Windows: the window disappears, goes to the end of the Alt+Tab order
 // and the keyboard moves to the next one.
 void vela_view_set_minimized(struct vela_view *view, bool on);
