@@ -1042,11 +1042,12 @@ Win+X followed by the underlined letter opens the item directly.
   taskbar", "Run as administrator", "Open file location", "App settings"),
   "Uninstall".
 - **Recommended**: "Open file location", "Remove from list".
-- **Files and Settings** (search results above the apps): up to 8 file
-  names under `~` (`shell/src/filesearch.cpp`: depth 6, hidden folders,
+- **Settings and Files** (search results below the apps): up to 5 file
+  and folder names (files first) under `~` (`shell/src/filesearch.cpp`: depth 6, hidden folders,
   `node_modules` and caches skipped, 1.5 s budget, 250 ms after typing stops)
   open with `xdg-open`; up to 4 Settings pages open `vela-settings --page
-  <name>`. The arrows and Enter move through them before the apps. The page
+  <name>`. The arrows go through the apps first, then Settings, then Files; Enter on
+  an app match still opens the first app. The page
   list is a subset of Settings' search index (`settings/qml/Main.qml`).
 - **Search box** (and every text field in the shell): "Undo", "Cut", "Copy",
   "Paste", "Select all".

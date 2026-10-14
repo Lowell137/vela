@@ -14,6 +14,7 @@ private slots:
     void matchesNames();
     void skipsHiddenAndModules();
     void respectsDepthAndLimit();
+    void filesBeforeFolders();
 };
 
 static void touch(const QString& path)
@@ -57,6 +58,18 @@ void FileSearchTest::respectsDepthAndLimit()
     QVERIFY(FileSearch::scan(dir.path(), QStringLiteral("deep"), 2, 8, 1000, cancel).isEmpty());
     QCOMPARE(FileSearch::scan(dir.path(), QStringLiteral("deep"), 6, 8, 1000, cancel).size(), 1);
     QCOMPARE(FileSearch::scan(dir.path(), QStringLiteral(".log"), 6, 3, 1000, cancel).size(), 3);
+}
+
+void FileSearchTest::filesBeforeFolders()
+{
+    QTemporaryDir dir;
+    touch(dir.filePath(QStringLiteral("capture/x.txt")));
+    touch(dir.filePath(QStringLiteral("a/capture/x.txt")));
+    touch(dir.filePath(QStringLiteral("zz/capture.png")));
+    std::atomic_bool cancel(false);
+    const QStringList r = FileSearch::scan(dir.path(), QStringLiteral("capture"), 6, 5, 1000, cancel);
+    QCOMPARE(r.size(), 3);
+    QVERIFY(r.first().endsWith(QLatin1String("capture.png")));
 }
 
 QTEST_MAIN(FileSearchTest)

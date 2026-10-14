@@ -24,7 +24,7 @@ class FileSearch : public QObject {
 
 public:
     static constexpr int maxDepth = 6;
-    static constexpr int maxResults = 8;
+    static constexpr int maxResults = 5;
     static constexpr int maxMillis = 1500;
 
     explicit FileSearch(QObject* parent = nullptr);

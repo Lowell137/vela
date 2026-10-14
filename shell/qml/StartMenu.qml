@@ -65,22 +65,22 @@ Window {
         { page: "accessibility", text: qsTr("Accessibility"), keys: qsTr("low vision color blindness") }
     ]
 
-    // The extra results of a search, in screen order: files, then settings.
+    // The extra results of a search, in screen order, below the apps: settings, then files.
     readonly property var extras: {
         const q = search.text.trim().toLowerCase()
         if (q.length === 0) {
             return []
         }
         const out = []
-        for (const f of FileSearch.results) {
-            out.push({ kind: "file", name: f.name, detail: f.path.replace(System.homeDirectory(), "~"), path: f.path })
-        }
         let n = 0
         for (const e of settingsIndex) {
             if (n < 4 && (e.text.toLowerCase().indexOf(q) >= 0 || e.keys.toLowerCase().indexOf(q) >= 0)) {
                 out.push({ kind: "setting", name: e.text, detail: qsTr("Settings"), page: e.page })
                 n++
             }
+        }
+        for (const f of FileSearch.results) {
+            out.push({ kind: "file", name: f.name, detail: f.path.replace(System.homeDirectory(), "~"), path: f.path })
         }
         return out
     }
@@ -101,17 +101,23 @@ Window {
     }
     function moveExtra(delta) {
         const next = extraIndex + delta
-        if (extraIndex >= 0 && next >= extras.length) {
-            extraIndex = -1
-            grid.currentIndex = 0
-        } else if (extraIndex < 0 && delta < 0 && extras.length > 0 && grid.currentIndex < 6) {
-            extraIndex = extras.length - 1
-        } else if (extraIndex >= 0) {
-            extraIndex = Math.max(0, next)
-        } else {
-            return false
+        if (extraIndex >= 0) {
+            if (next < 0 && grid.count > 0) {
+                extraIndex = -1
+                grid.currentIndex = grid.count - 1
+            } else {
+                extraIndex = Math.max(0, Math.min(extras.length - 1, next))
+                grid.positionViewAtEnd()
+            }
+            return true
         }
-        return true
+        // Down from the last row of apps goes to the extras below.
+        if (delta > 0 && extras.length > 0 && Math.floor(grid.currentIndex / 6) >= Math.floor((grid.count - 1) / 6)) {
+            extraIndex = 0
+            grid.positionViewAtEnd()
+            return true
+        }
+        return false
     }
     onExtrasChanged: {
         // No app matches: the keyboard goes to the first extra.
@@ -474,77 +480,8 @@ Window {
             // Above all apps, those pinned to Start.
             header: Item {
                 width: grid.width
-                height: root.showPinned ? pinnedGrid.height + allTitle.height + 24 : extraColumn.height
-                visible: root.showPinned || root.extras.length > 0
-
-                // Files and Settings matches, above the apps.
-                Column {
-                    id: extraColumn
-                    width: parent.width
-                    visible: !root.showPinned
-                    bottomPadding: root.extras.length > 0 ? 8 : 0
-
-                    Repeater {
-                        model: root.extras
-
-                        delegate: Column {
-                            id: extraRow
-                            required property var modelData
-                            required property int index
-                            width: extraColumn.width
-                            readonly property bool first: index === 0 || root.extras[index - 1].kind !== modelData.kind
-
-                            Text {
-                                visible: extraRow.first
-                                leftPadding: 12
-                                topPadding: index === 0 ? 0 : 8
-                                bottomPadding: 4
-                                text: extraRow.modelData.kind === "file" ? qsTr("Files") : qsTr("Settings")
-                                color: Theme.text
-                                font.pixelSize: Theme.fontBody
-                                font.weight: Font.DemiBold
-                            }
-                            Item {
-                                width: parent.width
-                                height: 36
-
-                                Rectangle {
-                                    anchors.fill: parent
-                                    anchors.leftMargin: 3
-                                    anchors.rightMargin: 3
-                                    radius: Theme.radius
-                                    color: extraMouse.pressed ? Theme.subtlePressed : Theme.subtleHover
-                                    opacity: extraMouse.containsMouse || root.extraIndex === extraRow.index ? 1 : 0
-                                    border.width: root.extraIndex === extraRow.index ? 1 : 0
-                                    border.color: Theme.stroke
-                                }
-                                Text {
-                                    id: extraName
-                                    x: 12
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    width: Math.min(implicitWidth, parent.width * 0.5)
-                                    text: extraRow.modelData.name
-                                    color: Theme.text
-                                    font.pixelSize: Theme.fontBody
-                                    elide: Text.ElideRight
-                                }
-                                Text {
-                                    anchors { left: extraName.right; leftMargin: 10; right: parent.right; rightMargin: 12; verticalCenter: parent.verticalCenter }
-                                    text: extraRow.modelData.detail
-                                    color: Theme.textSecondary
-                                    font.pixelSize: Theme.fontCaption
-                                    elide: Text.ElideMiddle
-                                }
-                                MouseArea {
-                                    id: extraMouse
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    onClicked: root.openExtra(extraRow.index)
-                                }
-                            }
-                        }
-                    }
-                }
+                height: root.showPinned ? pinnedGrid.height + allTitle.height + 24 : 0
+                visible: root.showPinned
 
                 Grid {
                     id: pinnedGrid
@@ -580,6 +517,80 @@ Window {
                     font.pixelSize: Theme.fontBody
                     font.weight: Font.DemiBold
                 }
+            }
+
+            footer: Item {
+                width: grid.width
+                height: extraColumn.height
+                visible: root.extras.length > 0
+
+            // Settings and Files matches, below the apps.
+            Column {
+                id: extraColumn
+                width: parent.width
+                bottomPadding: root.extras.length > 0 ? 8 : 0
+
+                Repeater {
+                    model: root.extras
+
+                    delegate: Column {
+                        id: extraRow
+                        required property var modelData
+                        required property int index
+                        width: extraColumn.width
+                        readonly property bool first: index === 0 || root.extras[index - 1].kind !== modelData.kind
+
+                        Text {
+                            visible: extraRow.first
+                            leftPadding: 12
+                            topPadding: 8
+                            bottomPadding: 4
+                            text: extraRow.modelData.kind === "file" ? qsTr("Files") : qsTr("Settings")
+                            color: Theme.text
+                            font.pixelSize: Theme.fontBody
+                            font.weight: Font.DemiBold
+                        }
+                        Item {
+                            width: parent.width
+                            height: 36
+
+                            Rectangle {
+                                anchors.fill: parent
+                                anchors.leftMargin: 3
+                                anchors.rightMargin: 3
+                                radius: Theme.radius
+                                color: extraMouse.pressed ? Theme.subtlePressed : Theme.subtleHover
+                                opacity: extraMouse.containsMouse || root.extraIndex === extraRow.index ? 1 : 0
+                                border.width: root.extraIndex === extraRow.index ? 1 : 0
+                                border.color: Theme.stroke
+                            }
+                            Text {
+                                id: extraName
+                                x: 12
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: Math.min(implicitWidth, parent.width * 0.5)
+                                text: extraRow.modelData.name
+                                color: Theme.text
+                                font.pixelSize: Theme.fontBody
+                                elide: Text.ElideRight
+                            }
+                            Text {
+                                anchors { left: extraName.right; leftMargin: 10; right: parent.right; rightMargin: 12; verticalCenter: parent.verticalCenter }
+                                text: extraRow.modelData.detail
+                                color: Theme.textSecondary
+                                font.pixelSize: Theme.fontCaption
+                                elide: Text.ElideMiddle
+                            }
+                            MouseArea {
+                                id: extraMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                onClicked: root.openExtra(extraRow.index)
+                            }
+                        }
+                    }
+                }
+            }
             }
 
             Text {

@@ -76,11 +76,12 @@ void FileSearch::setResults(const QStringList& paths)
 QStringList FileSearch::scan(const QString& root, const QString& query, int depth, int limit,
     int millis, const std::atomic_bool& cancel)
 {
-    QStringList found;
+    QStringList found; // files first, then folders (many folders share a name)
+    QStringList dirs;
     const QDeadlineTimer deadline(millis);
     // shortcut: no index, a bounded breadth-first walk; upgrade to a cached index if it feels slow.
     std::deque<std::pair<QString, int>> queue { { root, 0 } };
-    while (!queue.empty() && found.size() < limit) {
+    while (!queue.empty() && found.size() < limit && dirs.size() < limit) {
         const auto [dir, level] = queue.front();
         queue.pop_front();
         if (cancel.load() || deadline.hasExpired()) {
@@ -94,8 +95,8 @@ QStringList FileSearch::scan(const QString& root, const QString& query, int dept
                 continue;
             }
             if (name.contains(query, Qt::CaseInsensitive)) {
-                found.append(e.filePath());
-                if (found.size() >= limit) {
+                (e.isDir() ? dirs : found).append(e.filePath());
+                if (found.size() >= limit || dirs.size() >= limit) {
                     break;
                 }
             }
@@ -105,5 +106,6 @@ QStringList FileSearch::scan(const QString& root, const QString& query, int dept
             }
         }
     }
-    return found;
+    found += dirs;
+    return found.mid(0, limit);
 }
