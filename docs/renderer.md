@@ -1138,3 +1138,135 @@ off all notifications for <app>", "Go to notification settings".
 | Tasks (jump list) | the `[Desktop Action …]` actions in the app's `.desktop` file |
 | Share | the sharing portal, once it exists; until then the item isn't there |
 | Show more options | the full menu with KDE's service menus |
+
+## 15. Hiding a window from screen capture
+
+A window can be marked "hidden from screen capture" (`capture=no` in a window
+rule, or "Hide from screen capture" in the window menu): it stays on the screen
+as usual, but whatever a capture client receives shows what lies under it (the
+windows below, the wallpaper). For password managers and private chats. This is
+a privacy feature, so the rule is: **a path that is not listed here as covered
+must be assumed to leak**.
+
+### 15.1 Where captured pixels come from
+
+| Path | Who uses it | Where the pixels come from |
+|---|---|---|
+| ext-image-copy-capture, output source (`wlr_ext_output_image_capture_source_manager_v1`) | grim, vela-screen-dump, xdg-desktop-portal-wlr ≥ 0.8, the shell's Snipping Tool and screen thumbnails | wlroots copies `event->state->buffer` in the output's `commit` event |
+| wlr-screencopy-v1 (`wlr_screencopy_manager_v1`) | wf-recorder, OBS (wlrobs), older portals, grim without ext | the same: the committed buffer, in the `commit` event |
+| ext-image-copy-capture, toplevel source (`ext-foreign-toplevel-image-capture-source`) | Alt+Tab, Task View, taskbar and share previews (shell), grim -T, portals sharing one window | Vela's renderer draws the window alone (`scene/capture.c`) |
+| The shell's own panels | Alt+Tab, Task View, taskbar preview and tooltip, share chooser | they *show* toplevel thumbnails on screen, so the output paths above see them |
+| Direct scanout | a fullscreen app | the app's buffer is the committed buffer |
+| Snapshots | close, minimize, maximize animations | copies of the window's buffers in other scene nodes |
+| X11 menus | Xwayland override-redirect windows | the `x11_popups` scene layer, not the window's tree |
+| Drag icon | drag and drop | the `drag` scene layer |
+
+Both output paths capture exactly what the monitor gets, at commit time. Vela
+offers no wlr-export-dmabuf, so there is no third output path.
+
+### 15.2 How each path hides the window
+
+- **Output captures (both protocols)**: when a capture is in progress on an
+  output (`output->attach_render_locks > 0`: both wlroots implementations take
+  that lock while they wait for a frame or a session is running) and a marked
+  scene node is visible in the frame, the frame is drawn a second time into a
+  buffer of our own (same size and format as the output's swapchain), with
+  the marked nodes left out of the scene walk (`skip_capture_hidden`). A
+  listener placed **first** on the output's `commit` signal swaps
+  `state->buffer` for that buffer, so every capture listener after it copies
+  the version without the window. The monitor still gets the normal buffer
+  (the swap happens after `output_apply_commit`). This relies on wlroots 0.20
+  details: the event's state is `wlr_output_commit_state`'s local copy, and
+  `pending.buffer` is not used after the event when the compositor supplied
+  the buffer. Re-check it when moving to a new wlroots.
+- **Direct scanout**: the same lock disables scanout
+  (`wlr_output_is_direct_scanout_allowed`), so while a capture runs the frame is
+  composited and the twin pass applies. A hidden fullscreen window shows in the
+  capture what lies under it (the desktop, usually).
+- **Blur**: the twin pass blurs its own target, which never contained the
+  hidden window: the acrylic of a panel above it shows the desktop behind.
+  There is no blurred-background cache that could carry it over (§8.3).
+- **What belongs to the window**: its subsurfaces (read live from the
+  surface node), xdg popups, Vela's title bar, its shadow and its rounded-corner
+  clip are all inside `view->tree`, the node that carries the mark. Snapshots
+  copy the mark from the tree they photograph. Moving the window to another
+  desktop or to the fullscreen layer moves the node with its mark.
+- **Child windows and dialogs**: a window whose parent (xdg or X11 transient
+  chain) is hidden is hidden too.
+- **X11 menus and the drag icon**: they don't know their window. While any X11
+  window is hidden, the whole `x11_popups` layer is left out of output
+  captures; while any window is hidden, the `drag` layer is.
+- **Toplevel captures**: a request for a hidden window is answered with an
+  inert source (the session stops at once), unless it comes from the trusted
+  shell connection (§15.3). When a window becomes hidden, its existing capture
+  source is destroyed: running sessions (a portal sharing that window) stop.
+- **The shell's previews on screen**: while any window is hidden, the trusted
+  shell's layer surfaces that can show thumbnails or titles of windows
+  (`vela-switcher`, `vela-task-view`, `vela-taskbar-preview`,
+  `vela-taskbar-tooltip`, `vela-share`) are left out of output captures like a
+  hidden window. A recording made while Alt+Tab is open shows no switcher.
+- **Damage**: a capture client that uses damage only redraws what the frame
+  says changed. The commits of surfaces under a hidden window still add damage
+  (occluded surfaces are kept in the element list), so the capture is not
+  left stale there. When a window's mark changes, every output is damaged
+  whole, so a stream doesn't keep an old frame with the window in it.
+
+### 15.3 Trust: shell previews versus user output
+
+The shell is the one client allowed to capture a hidden window, for its own
+previews (finding the window in Alt+Tab or Task View). Trust goes by
+**connection**, not by pid or executable: the compositor creates the shell's
+Wayland connection itself (a `socketpair` and `wl_client_create`) and passes
+the other end as `WAYLAND_SOCKET` to the process it launches with `-s`.
+libwayland consumes and unsets the variable on the first connect, so the apps
+the shell launches, and anything that connects through `WAYLAND_DISPLAY`
+(Settings, a second shell instance, a Qt reconnection after a crash), are not
+trusted. A shell started any other way is untrusted: its previews of hidden
+windows are just empty.
+
+The distinction between *internal preview* and *user output* is made by the
+kind of capture, not by the client:
+
+- **Toplevel captures** are previews. Only the trusted connection gets hidden
+  windows, and the panels that show them are themselves hidden from captures
+  (§15.2), so a preview never ends up in a recording.
+- **Output captures** are user output, for everyone, the shell included: the
+  Snipping Tool crops its snips (rectangle, window, full screen, text) from
+  output captures, so a saved or copied snip shows what lies under the hidden
+  window; so do vela-screen-dump, grim, recorders and portals.
+
+The choice is a single function in the compositor
+(`vela_capture_hide_trusts`, `view.c`): toplevel requests from the trusted
+connection see hidden windows; to make even the shell's previews blank, it
+returns false.
+
+### 15.4 Cost
+
+- No capture in progress: one integer test per frame (`attach_render_locks`).
+- A capture in progress, nothing marked in view: a walk over the frame's
+  element list looking for a visible marked element; no drawing.
+- A capture in progress and a marked element visible: one extra full drawing
+  of the output per committed frame, into a second swapchain (two to three
+  buffers the size of the output), released when the capture ends. The
+  monitor's frame is drawn as before.
+- The state's `capturePasses` counter (per output, `state` on the command
+  socket) counts the extra drawings, for the tests.
+
+### 15.5 Not covered
+
+- **Metadata**: title and app id stay visible in ext-foreign-toplevel-list and
+  wlr-foreign-toplevel (any client can list windows), on the taskbar button
+  (which is on screen and in recordings), in the share chooser's list.
+- **Notifications** the app sends, the **clipboard** (and its history panel),
+  the app's **cursor image**, its **audio**, the accessibility tree (AT-SPI
+  reads the text of any window).
+- **X11 to X11**: X11 apps can read other X11 windows inside Xwayland
+  (XComposite, XGetImage) without passing through the compositor's capture
+  protocols. A hidden X11 window is hidden only from Wayland capture clients.
+- **Window rules match once per event**: the rule is checked when the window
+  opens, when its title changes and on `reload-config`; the first rule that
+  matches wins, so an earlier rule for the same app without `capture=` keeps
+  the window visible.
+- **What was already captured**: marking a window stops future frames, it
+  can't recall frames already sent, nor the shell's cached thumbnails.
+- **Physical cameras** pointed at the screen.
