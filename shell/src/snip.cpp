@@ -15,6 +15,8 @@
 #include <QDateTime>
 #include <QDesktopServices>
 #include <QDir>
+#include <QFile>
+#include <QFileInfo>
 #include <QGuiApplication>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -28,6 +30,9 @@
 #include <QStandardPaths>
 #include <QTimer>
 #include <QUrl>
+
+#include <csignal>
+#include <signal.h>
 
 namespace {
 
@@ -57,6 +62,7 @@ Snip::Snip(QQmlEngine* engine, WindowCapture* capture, Clipboard* clipboard, Not
     : QObject(parent)
     , m_component(engine, "Vela.Shell", "SnipOverlay")
     , m_counterComponent(engine, "Vela.Shell", "SnipCountdown")
+    , m_barComponent(engine, "Vela.Shell", "SnipRecordBar")
     , m_capture(capture)
     , m_clipboard(clipboard)
     , m_notifications(notifications)
@@ -71,6 +77,11 @@ Snip::Snip(QQmlEngine* engine, WindowCapture* capture, Clipboard* clipboard, Not
         if (m_waiting > 0 && --m_waiting == 0) {
             captured();
         }
+    });
+    m_recordClock.setInterval(1000);
+    connect(&m_recordClock, &QTimer::timeout, this, [this] {
+        ++m_recordSeconds;
+        emit recordSecondsChanged();
     });
     m_countdown.setInterval(1000);
     connect(&m_countdown, &QTimer::timeout, this, &Snip::tickCountdown);
@@ -116,6 +127,10 @@ void Snip::tickCountdown()
         m_counter->deleteLater();
     }
     QTimer::singleShot(150, this, [this] {
+        if (m_mode == QLatin1String("record")) { // no new photo: the recording starts
+            finishNow(m_delayed.screen, m_delayed.area.x(), m_delayed.area.y(), m_delayed.area.width(), m_delayed.area.height());
+            return;
+        }
         m_delayed.recapturing = true;
         m_capture->clearFull();
         m_waiting = m_capture->captureScreensFull();
@@ -183,6 +198,10 @@ QImage Snip::image(const QString& screen) const
 
 void Snip::start()
 {
+    if (m_recorder) { // the same shortcut ends the recording
+        stopRecording();
+        return;
+    }
     if (m_active) {
         return;
     }
@@ -309,6 +328,15 @@ void Snip::finish(const QString& screenName, qreal x, qreal y, qreal width, qrea
 
 void Snip::finishNow(const QString& screenName, qreal x, qreal y, qreal width, qreal height)
 {
+    if (m_mode == QLatin1String("record")) {
+        closeOverlays();
+        m_capture->clearFull();
+        m_active = false;
+        emit activeChanged();
+        // Let the overlays leave the screen before the first frame.
+        QTimer::singleShot(250, this, [=] { startRecording(screenName, QRectF(x, y, width, height)); });
+        return;
+    }
     const QImage full = m_capture->fullImage(screenName);
     QScreen* screen = nullptr;
     for (QScreen* candidate : QGuiApplication::screens()) {
@@ -463,4 +491,133 @@ void Snip::copyText(const QString& text)
     m_notifications->Notify(QCoreApplication::translate("Snip", "Snipping Tool"), 0, QStringLiteral("accessories-screenshot"),
         QCoreApplication::translate("Snip", "Text copied to clipboard"), text.left(200), QStringList(), QVariantMap(), 4000);
     cancel();
+}
+
+void Snip::toggleMicrophone()
+{
+    m_microphone = SnipExtras::nextAudio(m_microphone);
+    emit microphoneChanged();
+}
+
+static void notifyRecording(NotificationServer* n, const QString& title, const QString& body, const QStringList& actions,
+    const QVariantMap& hints = QVariantMap())
+{
+    n->Notify(QCoreApplication::translate("Snip", "Snipping Tool"), 0, QStringLiteral("media-record"), title, body, actions,
+        hints, 6000);
+}
+
+// The chosen area (logical coordinates of the output) to global layout
+// coordinates, and the wf-recorder child.
+void Snip::startRecording(const QString& screenName, const QRectF& logical)
+{
+    QScreen* screen = nullptr;
+    for (QScreen* candidate : QGuiApplication::screens()) {
+        if (candidate->name() == screenName) {
+            screen = candidate;
+        }
+    }
+    if (!screen || m_recorder || logical.width() < 1 || logical.height() < 1) {
+        return;
+    }
+    if (QStandardPaths::findExecutable(QStringLiteral("wf-recorder")).isEmpty()) {
+        notifyRecording(m_notifications, QCoreApplication::translate("Snip", "Can't record the screen"),
+            QCoreApplication::translate("Snip", "wf-recorder isn't installed."), QStringList());
+        return;
+    }
+    const QRect geo = screen->geometry();
+    const QRect local = logical.toAlignedRect().intersected(QRect(QPoint(0, 0), geo.size()));
+    // The whole output: -o; else a rectangle (even sizes: H.264 needs them).
+    m_recordOutput = local == QRect(QPoint(0, 0), geo.size()) ? screenName : QString();
+    m_recordArea = QRect(geo.topLeft() + local.topLeft(), QSize(local.width() & ~1, local.height() & ~1));
+    if (m_recordArea.width() < 2 || m_recordArea.height() < 2) {
+        return;
+    }
+    launchRecorder(false);
+}
+
+void Snip::launchRecorder(bool webm)
+{
+    const QString folder = QStandardPaths::writableLocation(QStandardPaths::MoviesLocation) + QStringLiteral("/Screen Recordings");
+    QDir().mkpath(folder);
+    m_recordWebm = webm;
+    m_recordFile = folder + QLatin1Char('/') + SnipExtras::recordFileName(QDateTime::currentDateTime(), webm);
+    m_stopping = false;
+    m_recorder = new QProcess(this);
+    connect(m_recorder, &QProcess::finished, this, [this](int code, QProcess::ExitStatus status) {
+        recorderFinished(code, status == QProcess::CrashExit);
+    });
+    connect(m_recorder, &QProcess::errorOccurred, this, [this](QProcess::ProcessError error) {
+        if (error == QProcess::FailedToStart) {
+            recorderFinished(-1, true);
+        }
+    });
+    m_recorder->start(QStringLiteral("wf-recorder"),
+        SnipExtras::recordArgs(m_recordFile, m_recordOutput, m_recordArea, m_microphone, webm));
+    m_recordSeconds = 0;
+    m_recordClock.start();
+    emit recordingChanged();
+    emit recordSecondsChanged();
+    if (!m_bar && m_barComponent.isReady()) {
+        auto* window = qobject_cast<QQuickWindow*>(m_barComponent.create());
+        if (window) {
+            using LayerWindow = LayerShellQt::Window;
+            LayerWindow* layer = LayerWindow::get(window);
+            layer->setScope(QStringLiteral("vela-snip-record"));
+            layer->setLayer(LayerWindow::LayerOverlay);
+            layer->setAnchors(LayerWindow::Anchors(LayerWindow::AnchorTop));
+            layer->setMargins(QMargins(0, 12, 0, 0));
+            layer->setExclusiveZone(0);
+            layer->setKeyboardInteractivity(LayerWindow::KeyboardInteractivityNone);
+            window->show();
+            m_bar = window;
+        }
+    }
+}
+
+// SIGINT, like Ctrl+C: wf-recorder then finishes the file properly.
+void Snip::stopRecording()
+{
+    if (!m_recorder || m_stopping) {
+        return;
+    }
+    m_stopping = true;
+    ::kill(pid_t(m_recorder->processId()), SIGINT);
+    QTimer::singleShot(5000, this, [this, p = QPointer<QProcess>(m_recorder)] {
+        if (p && p->state() != QProcess::NotRunning) {
+            p->kill();
+        }
+    });
+}
+
+void Snip::recorderFinished(int code, bool crashed)
+{
+    if (!m_recorder) {
+        return;
+    }
+    m_recorder->deleteLater();
+    m_recorder = nullptr;
+    m_recordClock.stop();
+    if (m_bar) {
+        m_bar->hide();
+        m_bar->deleteLater();
+    }
+    emit recordingChanged();
+    const bool stopped = m_stopping;
+    m_stopping = false;
+    const bool ok = QFileInfo(m_recordFile).size() > 0 && (stopped || (!crashed && code == 0));
+    if (ok) {
+        const uint id = m_notifications->Notify(QCoreApplication::translate("Snip", "Snipping Tool"), 0,
+            QStringLiteral("media-record"), QCoreApplication::translate("Snip", "Recording saved"),
+            QCoreApplication::translate("Snip", "Saved to Videos > Screen Recordings. Click to open it."),
+            QStringList { QStringLiteral("default"), QCoreApplication::translate("Snip", "Open") }, QVariantMap(), 8000);
+        m_saved.insert(id, m_recordFile);
+        return;
+    }
+    QFile::remove(m_recordFile);
+    if (!stopped && !m_recordWebm) { // no libx264: try WebM
+        launchRecorder(true);
+        return;
+    }
+    notifyRecording(m_notifications, QCoreApplication::translate("Snip", "Can't record the screen"),
+        QCoreApplication::translate("Snip", "wf-recorder stopped without a file."), QStringList());
 }

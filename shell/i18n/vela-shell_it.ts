@@ -763,6 +763,26 @@
         <source>Text copied to clipboard</source>
         <translation>Testo copiato negli Appunti</translation>
     </message>
+    <message>
+        <source>Can&apos;t record the screen</source>
+        <translation>Impossibile registrare lo schermo</translation>
+    </message>
+    <message>
+        <source>wf-recorder isn&apos;t installed.</source>
+        <translation>wf-recorder non è installato.</translation>
+    </message>
+    <message>
+        <source>Recording saved</source>
+        <translation>Registrazione salvata</translation>
+    </message>
+    <message>
+        <source>Saved to Videos &gt; Screen Recordings. Click to open it.</source>
+        <translation>Salvata in Video &gt; Screen Recordings. Fai clic per aprirla.</translation>
+    </message>
+    <message>
+        <source>wf-recorder stopped without a file.</source>
+        <translation>wf-recorder si è fermato senza creare un file.</translation>
+    </message>
 </context>
 <context>
     <name>SnipOverlay</name>
@@ -803,8 +823,20 @@
         <translation>Selettore colore</translation>
     </message>
     <message>
+        <source>Record</source>
+        <translation>Registra</translation>
+    </message>
+    <message>
         <source>Copy all text</source>
         <translation>Copia tutto il testo</translation>
+    </message>
+    <message>
+        <source>Sound: microphone</source>
+        <translation>Audio: microfono</translation>
+    </message>
+    <message>
+        <source>Sound: off</source>
+        <translation>Audio: disattivato</translation>
     </message>
     <message>
         <source>Delay: none</source>
@@ -813,6 +845,13 @@
     <message>
         <source>Delay: %1 s</source>
         <translation>Ritardo: %1 s</translation>
+    </message>
+</context>
+<context>
+    <name>SnipRecordBar</name>
+    <message>
+        <source>Stop</source>
+        <translation>Interrompi</translation>
     </message>
 </context>
 <context>
