@@ -169,7 +169,7 @@ int main(int argc, char* argv[])
     Bluetooth bluetooth;
     About about;
     DateTime dateTime;
-    DefaultApps defaultApps(&apps);
+    DefaultApps defaultApps(&apps, &preferences);
     KeyboardLayouts layouts;
     SystemStatus status;
 

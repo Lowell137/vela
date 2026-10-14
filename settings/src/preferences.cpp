@@ -877,6 +877,13 @@ void Preferences::setLockOnIdle(bool on)
     }
 }
 
+void Preferences::setCompositorValue(const QString& key, const QString& program)
+{
+    // System tools (Default apps): the chosen program, empty for automatic
+    // (the key goes away).
+    saveCompositor({ { key, program.isEmpty() ? QString() : program } });
+}
+
 void Preferences::setLanguage(const QString& language)
 {
     if (language != m_language) {
