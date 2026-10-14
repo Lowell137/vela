@@ -55,6 +55,7 @@ public:
         QString workDir; // Path=: the directory to start it in (empty: home)
         QString wmClass; // StartupWMClass: its windows' app_id, if different from the id
         bool terminal = false;
+        QStringList categories; // Categories= (TerminalEmulator, Monitor...)
     };
 
     explicit AppModel(QObject* parent = nullptr);

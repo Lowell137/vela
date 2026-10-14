@@ -195,17 +195,24 @@ QVariantList DefaultApps::candidatesFor(const QStringList& mimes, const QString&
 }
 
 QVariantMap DefaultApps::toolCategory(const QString& key, const char* label, const char* icon,
-    const QStringList& programs, const QStringList& cli) const
+    const QStringList& categories, const QStringList& programs, const QStringList& cli) const
 {
     const QString current = m_prefs ? m_prefs->compositorValue(key) : QString();
     QVariantList rest;
     QSet<QString> seen;
     for (const AppModel::Entry& e : m_apps->all()) {
-        if (!programs.contains(e.program) || e.program.isEmpty() || seen.contains(e.program)) {
-            continue;
+        // Categories= says what it is; the known programs cover apps that
+        // omit it (GNOME Resources has only "System").
+        const bool matches = programs.contains(e.program)
+            || std::all_of(categories.cbegin(), categories.cend(),
+                [&](const QString& c) { return e.categories.contains(c); });
+        // A console app runs only inside the terminal: just the known tools
+        // (the shell wraps those); a flatpak's program is "flatpak", not it.
+        const bool runnable = (!e.terminal || cliTools().contains(e.program)) && e.program != QLatin1String("flatpak");
+        if (matches && runnable && !e.program.isEmpty() && !seen.contains(e.program)) {
+            seen.insert(e.program);
+            rest.append(appInfo(e.id));
         }
-        seen.insert(e.program);
-        rest.append(appInfo(e.id));
     }
     for (const QString& tool : cli) {
         if (!seen.contains(tool) && !QStandardPaths::findExecutable(tool).isEmpty()) {
@@ -263,9 +270,11 @@ QVariantList DefaultApps::categories() const
     // System tools have no MIME type: the terminal (Super+Enter) and the task
     // manager. The choice is a program in vela.conf, "" for automatic.
     out.append(toolCategory("terminal", QT_TRANSLATE_NOOP("DefaultApps", "Terminal"), "utilities-terminal",
-        { "konsole", "foot", "kitty", "alacritty", "gnome-terminal", "xterm", "wezterm" }, {}));
+        { "TerminalEmulator" }, { "konsole", "foot", "kitty", "alacritty", "gnome-terminal", "xterm", "wezterm" }, {}));
     out.append(toolCategory("task-manager", QT_TRANSLATE_NOOP("DefaultApps", "Task manager"),
-        "utilities-system-monitor", { "plasma-systemmonitor", "gnome-system-monitor", "missioncenter" },
+        "utilities-system-monitor", { "System", "Monitor" },
+        { "plasma-systemmonitor", "gnome-system-monitor", "missioncenter", "resources", "xfce4-taskmanager", "ksysguard",
+            "mate-system-monitor", "lxtask", "btop", "htop" },
         { "btop", "htop", "top" }));
     return out;
 }

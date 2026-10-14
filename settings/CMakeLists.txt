@@ -151,6 +151,13 @@ qt_add_translations(TARGETS vela-settings SOURCE_TARGETS vela-settings vela-disp
 
 if(VELA_BUILD_TOOLS AND VELA_BUILD_COMPOSITOR)
     find_package(Qt6 6.5 REQUIRED COMPONENTS Test)
+    qt_add_executable(vela-defaultapps-test
+        tests/defaultapps_test.cpp src/defaultapps.cpp src/defaultapps.h
+        ${SHELL_SRC}/appmodel.cpp ${SHELL_SRC}/appmodel.h)
+    target_include_directories(vela-defaultapps-test PRIVATE src ${SHELL_SRC})
+    target_compile_options(vela-defaultapps-test PRIVATE -Wall -Wextra)
+    target_link_libraries(vela-defaultapps-test PRIVATE Qt6::Core Qt6::Gui Qt6::Test)
+    add_test(NAME settings-defaultapps COMMAND vela-defaultapps-test)
     qt_add_executable(vela-displays-test tests/displays_test.cpp)
     target_include_directories(vela-displays-test PRIVATE ${DISPLAYS_GENERATED_DIR})
     target_link_libraries(vela-displays-test PRIVATE vela-displays Qt6::Test PkgConfig::DISPLAYS_WAYLAND)
