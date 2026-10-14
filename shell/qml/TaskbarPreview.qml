@@ -24,6 +24,11 @@ Window {
 
     readonly property int cardWidth: 208
     readonly property int cardHeight: 152
+    // The media strip's room: every card has it when one has a strip.
+    readonly property int stripHeight: 40
+    // Window identifier -> its MPRIS player, for windows of an app that plays.
+    property var mediaFor: ({})
+    readonly property int mediaExtra: Object.keys(mediaFor).length > 0 ? stripHeight : 0
 
     Connections {
         target: Menus
@@ -44,6 +49,11 @@ Window {
             next[identifier] = (next[identifier] || 0) + 1
             root.ready = next
         }
+    }
+    // A player starting, pausing, changing track: the strips follow.
+    Connections {
+        target: Media
+        function onPlayersChanged() { root.updateMedia() }
     }
     // A window closed (or moved) while the previews are open.
     Connections {
@@ -74,7 +84,8 @@ Window {
         const current = Desktops.current
         const list = Capture.windowList().filter(w => info.appIds.indexOf(w.appId) >= 0
             && (Desktops.workspaceOf(w.id) === current || Desktops.workspaceOf(w.id) === -1))
-        windows = list.map(w => ({ id: w.id, title: w.title, icon: Apps.iconForAppId(w.appId) }))
+        windows = list.map(w => ({ id: w.id, title: w.title, appId: w.appId, icon: Apps.iconForAppId(w.appId) }))
+        updateMedia()
         const ids = windows.map(w => w.id)
         const found = []
         for (const group of Desktops.snapGroups) {
@@ -87,6 +98,16 @@ Window {
         if (windows.length === 0) {
             Menus.preview = null
         }
+    }
+
+    function updateMedia() {
+        const found = {}
+        for (const w of windows) {
+            const same = windows.filter(o => o.appId === w.appId).length
+            const player = Media.playerFor(w.appId, w.title, same)
+            if (player.service) found[w.id] = player
+        }
+        mediaFor = found
     }
 
     function show(info) {
@@ -148,11 +169,12 @@ Window {
         property string title
         property string icon
         property bool closable: true
+        property var media: null // the MPRIS player: a strip below
         default property alias preview: previewArea.data
         signal activated()
         signal closeRequested()
         width: root.cardWidth
-        height: root.cardHeight
+        height: root.cardHeight + root.mediaExtra
         radius: Theme.radiusOverlay
         color: cardHover.hovered ? Theme.subtleHover : "transparent"
 
@@ -181,7 +203,7 @@ Window {
         }
         Item {
             id: previewArea
-            anchors { left: parent.left; right: parent.right; top: header.bottom; bottom: parent.bottom; margins: 10; topMargin: 8 }
+            anchors { left: parent.left; right: parent.right; top: header.bottom; bottom: parent.bottom; margins: 10; topMargin: 8; bottomMargin: 10 + root.mediaExtra }
         }
         MouseArea {
             anchors.fill: parent
@@ -191,6 +213,72 @@ Window {
                     if (card.closable) card.closeRequested()
                 } else {
                     card.activated()
+                }
+            }
+        }
+        // Media: the track, and previous / play-pause / next, under a divider.
+        Item {
+            id: strip
+            visible: card.media !== null
+            anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
+            height: root.stripHeight
+            Rectangle {
+                anchors { left: parent.left; right: parent.right; top: parent.top; leftMargin: 10; rightMargin: 10 }
+                height: 1
+                color: Theme.stroke
+            }
+            Text {
+                anchors { left: parent.left; leftMargin: 12; right: buttons.left; rightMargin: 8; verticalCenter: parent.verticalCenter }
+                text: card.media ? card.media.title : ""
+                color: Theme.text
+                font.pixelSize: Theme.fontCaption
+                elide: Text.ElideRight
+            }
+            Row {
+                id: buttons
+                anchors { right: parent.right; rightMargin: 8; verticalCenter: parent.verticalCenter }
+                spacing: 2
+                Repeater {
+                    model: [
+                        { key: "previous", icon: "media-skip-backward", name: qsTr("Previous") },
+                        { key: "play-pause", icon: "", name: "" },
+                        { key: "next", icon: "media-skip-forward", name: qsTr("Next") }
+                    ]
+                    delegate: Item {
+                        id: button
+                        required property var modelData
+                        readonly property bool playing: card.media !== null && card.media.playing === true
+                        readonly property string iconName: modelData.key === "play-pause"
+                            ? (playing ? "media-playback-pause" : "media-playback-start") : modelData.icon
+                        readonly property bool usable: card.media === null || (modelData.key === "previous" ? card.media.canGoPrevious !== false
+                            : modelData.key === "next" ? card.media.canGoNext !== false : true)
+                        width: 28
+                        height: 28
+                        opacity: usable ? 1 : 0.4
+                        Accessible.role: Accessible.Button
+                        Accessible.name: modelData.key === "play-pause" ? (playing ? qsTr("Pause") : qsTr("Play")) : modelData.name
+                        Accessible.onPressAction: if (usable && card.media) Media.commandTo(card.media.service, modelData.key)
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: Theme.radius
+                            color: Theme.subtleHover
+                            opacity: buttonMouse.containsMouse && button.usable ? 1 : 0
+                        }
+                        Image {
+                            anchors.centerIn: parent
+                            width: 16
+                            height: 16
+                            source: Theme.icons + encodeURIComponent(button.iconName)
+                            sourceSize: Qt.size(width, height)
+                        }
+                        MouseArea {
+                            id: buttonMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            enabled: button.usable
+                            onClicked: Media.commandTo(card.media.service, button.modelData.key)
+                        }
+                    }
                 }
             }
         }
@@ -230,7 +318,7 @@ Window {
         x: 16
         y: Config.taskbarVertical ? 8 : (Config.taskbarTop ? 12 : 4) // the gap is towards the taskbar
         width: cards.width + 12
-        height: root.cardHeight + 12
+        height: root.cardHeight + root.mediaExtra + 12
         radius: Theme.radiusOverlay
         color: Theme.surface
         border.width: 1
@@ -255,6 +343,7 @@ Window {
                     required property var modelData
                     title: modelData.title
                     icon: modelData.icon
+                    media: root.mediaFor[modelData.id] || null
                     onActivated: {
                         Shell.windowAction(modelData.id, "activate")
                         Menus.preview = null
