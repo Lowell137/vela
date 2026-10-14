@@ -196,6 +196,14 @@ Specifiche sistema
         <translation>Interazione</translation>
     </message>
     <message>
+        <source>Mouse pointer</source>
+        <translation>Puntatore del mouse</translation>
+    </message>
+    <message>
+        <source>Cursor theme and size</source>
+        <translation>Tema e dimensione del cursore</translation>
+    </message>
+    <message>
         <source>Sticky keys</source>
         <translation>Tasti permanenti</translation>
     </message>
@@ -421,6 +429,58 @@ Specifiche sistema
     <message>
         <source>Save multiple items to the clipboard to use later. Press Win+V to see and paste them</source>
         <translation>Salva più elementi negli Appunti da usare in seguito. Premi Win+V per vederli e incollarli</translation>
+    </message>
+    <message>
+        <source>Open next to the pointer</source>
+        <translation>Apri accanto al puntatore</translation>
+    </message>
+    <message>
+        <source>The clipboard and emoji panel (Win+V, Win+.) opens where the mouse pointer is. Off: at the bottom right of the screen</source>
+        <translation>Il pannello degli appunti e delle emoji (Win+V, Win+.) si apre dove si trova il puntatore del mouse. Disattivato: in basso a destra dello schermo</translation>
+    </message>
+    <message>
+        <source>History</source>
+        <translation>Cronologia</translation>
+    </message>
+    <message>
+        <source>Keep the history after restarting</source>
+        <translation>Mantieni la cronologia dopo il riavvio</translation>
+    </message>
+    <message>
+        <source>What you copied is still there after you sign out or restart. Off: only pinned items are kept. Copied passwords are stored too</source>
+        <translation>Ciò che hai copiato resta dopo la disconnessione o il riavvio. Disattivato: restano solo gli elementi bloccati. Vengono salvate anche le password copiate</translation>
+    </message>
+    <message>
+        <source>Delete items after</source>
+        <translation>Elimina gli elementi dopo</translation>
+    </message>
+    <message>
+        <source>Older items leave the history by themselves; pinned items stay</source>
+        <translation>Gli elementi più vecchi escono da soli dalla cronologia; quelli bloccati restano</translation>
+    </message>
+    <message>
+        <source>Never</source>
+        <translation>Mai</translation>
+    </message>
+    <message>
+        <source>1 day</source>
+        <translation>1 giorno</translation>
+    </message>
+    <message>
+        <source>1 week</source>
+        <translation>1 settimana</translation>
+    </message>
+    <message>
+        <source>1 month</source>
+        <translation>1 mese</translation>
+    </message>
+    <message>
+        <source>Number of items</source>
+        <translation>Numero di elementi</translation>
+    </message>
+    <message>
+        <source>Past this many, the oldest item leaves when a new one is copied</source>
+        <translation>Oltre questo numero, l&apos;elemento più vecchio esce quando ne viene copiato uno nuovo</translation>
     </message>
     <message>
         <source>Clear clipboard data</source>
@@ -874,6 +934,18 @@ Specifiche sistema
         <translation>I giochi che lo chiedono vanno sullo schermo senza aspettare il monitor: meno latenza, con qualche strappo nell&apos;immagine (tearing)</translation>
     </message>
     <message>
+        <source>Screen sharing</source>
+        <translation>Condivisione dello schermo</translation>
+    </message>
+    <message>
+        <source>Show an indicator while my screen is shared or recorded</source>
+        <translation>Mostra un indicatore mentre lo schermo è condiviso o registrato</translation>
+    </message>
+    <message>
+        <source>Silence notifications while sharing</source>
+        <translation>Silenzia le notifiche durante la condivisione</translation>
+    </message>
+    <message>
         <source>Related settings</source>
         <translation>Impostazioni correlate</translation>
     </message>
@@ -1012,23 +1084,23 @@ Specifiche sistema
     <name>IconsPage</name>
     <message>
         <source>Automatic (Breeze)</source>
-        <translation type="unfinished"></translation>
+        <translation>Automatico (Breeze)</translation>
     </message>
     <message>
         <source>Icon theme</source>
-        <translation type="unfinished"></translation>
+        <translation>Tema delle icone</translation>
     </message>
     <message>
         <source>&quot;%1&quot; isn&apos;t installed: the automatic theme is used</source>
-        <translation type="unfinished"></translation>
+        <translation>«%1» non è installato: viene usato il tema automatico</translation>
     </message>
     <message>
         <source>Taskbar, Start, Settings and title bars. A theme&apos;s dark version follows the mode</source>
-        <translation type="unfinished"></translation>
+        <translation>Barra delle applicazioni, Start, Impostazioni e barre del titolo. La versione scura di un tema segue la modalità</translation>
     </message>
     <message>
         <source>Preview</source>
-        <translation type="unfinished"></translation>
+        <translation>Anteprima</translation>
     </message>
 </context>
 <context>
@@ -1125,6 +1197,18 @@ Specifiche sistema
         <translation>Tieni premuto un tasto qui</translation>
     </message>
     <message>
+        <source>Related settings</source>
+        <translation>Impostazioni correlate</translation>
+    </message>
+    <message>
+        <source>Keyboard shortcuts</source>
+        <translation>Scorciatoie da tastiera</translation>
+    </message>
+    <message>
+        <source>See, change and add shortcuts</source>
+        <translation>Vedi, cambia e aggiungi scorciatoie</translation>
+    </message>
+    <message>
         <source>Cancel</source>
         <translation>Annulla</translation>
     </message>
@@ -1168,6 +1252,10 @@ Specifiche sistema
         <translation>Notifiche</translation>
     </message>
     <message>
+        <source>Multitasking</source>
+        <translation>Multitasking</translation>
+    </message>
+    <message>
         <source>Power</source>
         <translation>Alimentazione</translation>
     </message>
@@ -1201,23 +1289,23 @@ Specifiche sistema
     </message>
     <message>
         <source>Keyboard shortcuts</source>
-        <translation type="unfinished"></translation>
+        <translation>Scorciatoie da tastiera</translation>
     </message>
     <message>
         <source>Icons</source>
-        <translation type="unfinished"></translation>
+        <translation>Icone</translation>
     </message>
     <message>
         <source>Mouse pointer</source>
-        <translation type="unfinished"></translation>
+        <translation>Puntatore del mouse</translation>
     </message>
     <message>
         <source>Window blur</source>
-        <translation type="unfinished"></translation>
+        <translation>Sfocatura delle finestre</translation>
     </message>
     <message>
         <source>Window rules</source>
-        <translation type="unfinished"></translation>
+        <translation>Regole delle finestre</translation>
     </message>
     <message>
         <source>Apps</source>
@@ -1344,6 +1432,10 @@ Specifiche sistema
         <translation>silenzioso notifiche</translation>
     </message>
     <message>
+        <source>snap layouts windows hot corner task view arrange</source>
+        <translation>layout aggancio finestre angolo attivo vista attività disponi</translation>
+    </message>
+    <message>
         <source>screen off sleep idle battery energy saver lock</source>
         <translation>schermo spento sospensione inattività batteria risparmio energia blocco</translation>
     </message>
@@ -1428,28 +1520,52 @@ Specifiche sistema
         <translation>taskbar allineamento sinistra centro termina attività</translation>
     </message>
     <message>
+        <source>Automatically hide the taskbar</source>
+        <translation>Nascondi automaticamente la barra delle applicazioni</translation>
+    </message>
+    <message>
+        <source>auto hide autohide taskbar panel edge</source>
+        <translation>nascondi automaticamente barra applicazioni pannello bordo</translation>
+    </message>
+    <message>
+        <source>Combine taskbar buttons</source>
+        <translation>Raggruppa i pulsanti della barra delle applicazioni</translation>
+    </message>
+    <message>
+        <source>group windows buttons labels never always</source>
+        <translation>raggruppa finestre pulsanti etichette mai sempre</translation>
+    </message>
+    <message>
         <source>keys hotkeys keybindings shortcut super close window command</source>
-        <translation type="unfinished"></translation>
+        <translation>tasti scorciatoie combinazioni super chiudi finestra comando</translation>
     </message>
     <message>
         <source>Icon theme</source>
-        <translation type="unfinished"></translation>
+        <translation>Tema delle icone</translation>
     </message>
     <message>
         <source>icons theme papirus breeze</source>
-        <translation type="unfinished"></translation>
+        <translation>icone tema papirus breeze</translation>
     </message>
     <message>
         <source>cursor pointer theme size arrow xcursor</source>
-        <translation type="unfinished"></translation>
+        <translation>cursore puntatore tema dimensione freccia xcursor</translation>
     </message>
     <message>
         <source>blur acrylic transparency translucent glass effects</source>
-        <translation type="unfinished"></translation>
+        <translation>sfocatura acrilico trasparenza traslucido vetro effetti</translation>
+    </message>
+    <message>
+        <source>Window opacity</source>
+        <translation>Opacità delle finestre</translation>
+    </message>
+    <message>
+        <source>opacity transparency see-through windows</source>
+        <translation>opacità trasparenza finestre trasparenti</translation>
     </message>
     <message>
         <source>rules monitor output desktop position size always on top maximized app window placement</source>
-        <translation type="unfinished"></translation>
+        <translation>regole monitor uscita desktop posizione dimensione sempre in primo piano ingrandita app finestra posizionamento</translation>
     </message>
     <message>
         <source>programs applications</source>
@@ -1534,6 +1650,30 @@ Specifiche sistema
     <message>
         <source>games tearing latency full screen vsync</source>
         <translation>giochi tearing latenza schermo intero vsync</translation>
+    </message>
+    <message>
+        <source>Snap layouts</source>
+        <translation>Layout di aggancio</translation>
+    </message>
+    <message>
+        <source>snap tile drag top screen edge layouts</source>
+        <translation>aggancio affianca trascina alto bordo schermo layout</translation>
+    </message>
+    <message>
+        <source>Hot corner</source>
+        <translation>Angolo attivo</translation>
+    </message>
+    <message>
+        <source>task view corner top-left overview glow animation</source>
+        <translation>vista attività angolo alto sinistra panoramica bagliore animazione</translation>
+    </message>
+    <message>
+        <source>Screen sharing</source>
+        <translation>Condivisione dello schermo</translation>
+    </message>
+    <message>
+        <source>indicator recording capture share silence notifications do not disturb</source>
+        <translation>indicatore registrazione cattura condivisione silenzia notifiche non disturbare</translation>
     </message>
     <message>
         <source>low vision color blindness</source>
@@ -1623,12 +1763,87 @@ Specifiche sistema
         <translation>Tocchi, gesti, scorrimento</translation>
     </message>
     <message>
+        <source>Mouse pointer</source>
+        <translation>Puntatore del mouse</translation>
+    </message>
+    <message>
+        <source>Cursor theme and size</source>
+        <translation>Tema e dimensione del cursore</translation>
+    </message>
+    <message>
         <source>Accessibility</source>
         <translation>Accessibilità</translation>
     </message>
     <message>
         <source>Magnifier, color filters, sticky keys</source>
         <translation>Lente di ingrandimento, filtri colore, tasti permanenti</translation>
+    </message>
+</context>
+<context>
+    <name>MultitaskingPage</name>
+    <message>
+        <source>Snap windows</source>
+        <translation>Aggancia le finestre</translation>
+    </message>
+    <message>
+        <source>Show snap layouts when I drag a window to the top of my screen</source>
+        <translation>Mostra i layout di aggancio quando trascino una finestra nella parte superiore dello schermo</translation>
+    </message>
+    <message>
+        <source>How close to the top</source>
+        <translation>Distanza dal bordo superiore</translation>
+    </message>
+    <message>
+        <source>%1 px from the top of the screen</source>
+        <translation>%1 px dal bordo superiore dello schermo</translation>
+    </message>
+    <message>
+        <source>How far to the sides</source>
+        <translation>Distanza dai lati</translation>
+    </message>
+    <message>
+        <source>%1 px beside the layouts</source>
+        <translation>%1 px a lato dei layout</translation>
+    </message>
+    <message>
+        <source>Size of the layouts</source>
+        <translation>Dimensione dei layout</translation>
+    </message>
+    <message>
+        <source>%1%</source>
+        <translation>%1%</translation>
+    </message>
+    <message>
+        <source>Task View</source>
+        <translation>Vista attività</translation>
+    </message>
+    <message>
+        <source>Hot corner</source>
+        <translation>Angolo attivo</translation>
+    </message>
+    <message>
+        <source>Moving the pointer into the top-left corner opens Task View</source>
+        <translation>Spostando il puntatore nell&apos;angolo in alto a sinistra si apre la Vista attività</translation>
+    </message>
+    <message>
+        <source>Glow when the pointer is near</source>
+        <translation>Bagliore quando il puntatore è vicino</translation>
+    </message>
+    <message>
+        <source>Animation when it triggers</source>
+        <translation>Animazione all&apos;attivazione</translation>
+    </message>
+    <message>
+        <source>Related settings</source>
+        <translation>Impostazioni correlate</translation>
+    </message>
+    <message>
+        <source>Window rules</source>
+        <translation>Regole delle finestre</translation>
+    </message>
+    <message>
+        <source>Where and how an app&apos;s windows open</source>
+        <translation>Dove e come si aprono le finestre di un&apos;app</translation>
     </message>
 </context>
 <context>
@@ -1887,86 +2102,94 @@ Specifiche sistema
     </message>
     <message>
         <source>Icons</source>
-        <translation type="unfinished"></translation>
+        <translation>Icone</translation>
     </message>
     <message>
         <source>Icon theme</source>
-        <translation type="unfinished"></translation>
+        <translation>Tema delle icone</translation>
     </message>
     <message>
         <source>Mouse pointer</source>
-        <translation type="unfinished"></translation>
+        <translation>Puntatore del mouse</translation>
     </message>
     <message>
         <source>Cursor theme and size</source>
-        <translation type="unfinished"></translation>
+        <translation>Tema e dimensione del cursore</translation>
     </message>
     <message>
         <source>Window blur</source>
-        <translation type="unfinished"></translation>
+        <translation>Sfocatura delle finestre</translation>
+    </message>
+    <message>
+        <source>Appearance</source>
+        <translation>Aspetto</translation>
     </message>
     <message>
         <source>Blur behind see-through windows</source>
-        <translation type="unfinished"></translation>
+        <translation>Sfocatura dietro le finestre trasparenti</translation>
+    </message>
+    <message>
+        <source>Related settings</source>
+        <translation>Impostazioni correlate</translation>
     </message>
     <message>
         <source>Window rules</source>
-        <translation type="unfinished"></translation>
+        <translation>Regole delle finestre</translation>
     </message>
     <message>
         <source>Where and how an app&apos;s windows open</source>
-        <translation type="unfinished"></translation>
+        <translation>Dove e come si aprono le finestre di un&apos;app</translation>
     </message>
     <message>
         <source>Keyboard shortcuts</source>
-        <translation type="unfinished"></translation>
+        <translation>Scorciatoie da tastiera</translation>
     </message>
     <message>
         <source>See, change and add shortcuts</source>
-        <translation type="unfinished"></translation>
+        <translation>Vedi, cambia e aggiungi scorciatoie</translation>
     </message>
 </context>
 <context>
     <name>PointerPage</name>
     <message>
         <source>Automatic</source>
-        <translation type="unfinished">Automatica</translation>
+        <translation>Automatica</translation>
     </message>
     <message>
         <source>Pointer style</source>
-        <translation type="unfinished"></translation>
+        <translation>Stile del puntatore</translation>
     </message>
     <message>
         <source>&quot;%1&quot; isn&apos;t installed: the automatic theme is used</source>
-        <translation type="unfinished"></translation>
+        <translation>«%1» non è installato: viene usato il tema automatico</translation>
     </message>
     <message>
         <source>The cursor themes installed in your icons folders</source>
-        <translation type="unfinished"></translation>
+        <translation>I temi di cursore installati nelle cartelle delle icone</translation>
     </message>
     <message>
         <source>Size</source>
-        <translation type="unfinished"></translation>
+        <translation>Dimensione</translation>
     </message>
     <message>
         <source>%1 px</source>
-        <translation type="unfinished"></translation>
+        <translation>%1 px</translation>
     </message>
     <message>
         <source>Preview</source>
-        <translation type="unfinished"></translation>
+        <translation>Anteprima</translation>
     </message>
     <message>
         <source>No preview for this theme</source>
-        <translation type="unfinished"></translation>
+        <translation>Nessuna anteprima per questo tema</translation>
     </message>
     <message>
         <source>Open apps keep their pointer</source>
-        <translation type="unfinished"></translation>
+        <translation>Le app aperte mantengono il proprio puntatore</translation>
     </message>
     <message>
         <source>Apps that draw their own pointer use the new one when you open them again. The taskbar starts apps with it right away; after signing out, everything uses it.</source>
-        <translation type="unfinished"></translation>
+        <translation>Le app che disegnano il proprio puntatore usano quello nuovo quando le riapri. La barra delle applicazioni avvia le app con quello nuovo subito; dopo la disconnessione, tutto lo usa.</translation>
     </message>
 </context>
 <context>
@@ -2044,7 +2267,7 @@ Specifiche sistema
     <name>Preferences</name>
     <message>
         <source>Close window</source>
-        <translation type="unfinished"></translation>
+        <translation>Chiudi finestra</translation>
     </message>
     <message>
         <source>Terminal</source>
@@ -2052,11 +2275,11 @@ Specifiche sistema
     </message>
     <message>
         <source>Lock</source>
-        <translation type="unfinished"></translation>
+        <translation>Blocca</translation>
     </message>
     <message>
         <source>Task View</source>
-        <translation type="unfinished"></translation>
+        <translation>Vista attività</translation>
     </message>
     <message>
         <source>Show desktop</source>
@@ -2064,115 +2287,119 @@ Specifiche sistema
     </message>
     <message>
         <source>File Explorer</source>
-        <translation type="unfinished"></translation>
+        <translation>Esplora file</translation>
     </message>
     <message>
         <source>Settings</source>
-        <translation type="unfinished">Impostazioni</translation>
+        <translation>Impostazioni</translation>
     </message>
     <message>
         <source>Run</source>
-        <translation type="unfinished"></translation>
+        <translation>Esegui</translation>
     </message>
     <message>
         <source>Power-user menu</source>
-        <translation type="unfinished"></translation>
+        <translation>Menu utenti esperti</translation>
     </message>
     <message>
         <source>Quick settings</source>
-        <translation type="unfinished"></translation>
+        <translation>Impostazioni rapide</translation>
     </message>
     <message>
         <source>Notification center</source>
-        <translation type="unfinished"></translation>
+        <translation>Centro notifiche</translation>
     </message>
     <message>
         <source>Clipboard history</source>
-        <translation type="unfinished">Cronologia degli Appunti</translation>
+        <translation>Cronologia degli Appunti</translation>
+    </message>
+    <message>
+        <source>Emoji and more</source>
+        <translation>Emoji e altro</translation>
     </message>
     <message>
         <source>Sound output and volume mixer</source>
-        <translation type="unfinished"></translation>
+        <translation>Uscita audio e mixer del volume</translation>
     </message>
     <message>
         <source>Snipping tool</source>
-        <translation type="unfinished"></translation>
+        <translation>Strumento di cattura</translation>
     </message>
     <message>
         <source>Copy text from the screen</source>
-        <translation type="unfinished"></translation>
+        <translation>Copia il testo dallo schermo</translation>
     </message>
     <message>
         <source>Switch windows</source>
-        <translation type="unfinished"></translation>
+        <translation>Cambia finestra</translation>
     </message>
     <message>
         <source>Snap left / right</source>
-        <translation type="unfinished"></translation>
+        <translation>Aggancia a sinistra / destra</translation>
     </message>
     <message>
         <source>Maximize / restore, then minimize</source>
-        <translation type="unfinished"></translation>
+        <translation>Ingrandisci / ripristina, poi riduci a icona</translation>
     </message>
     <message>
         <source>Snap layouts</source>
-        <translation type="unfinished"></translation>
+        <translation>Layout di aggancio</translation>
     </message>
     <message>
         <source>Previous / next desktop</source>
-        <translation type="unfinished"></translation>
+        <translation>Desktop precedente / successivo</translation>
     </message>
     <message>
         <source>Move the window to the previous / next desktop</source>
-        <translation type="unfinished"></translation>
+        <translation>Sposta la finestra sul desktop precedente / successivo</translation>
     </message>
     <message>
         <source>New desktop</source>
-        <translation type="unfinished"></translation>
+        <translation>Nuovo desktop</translation>
     </message>
     <message>
         <source>Close desktop</source>
-        <translation type="unfinished"></translation>
+        <translation>Chiudi desktop</translation>
     </message>
     <message>
         <source>Window menu</source>
-        <translation type="unfinished"></translation>
+        <translation>Menu della finestra</translation>
     </message>
     <message>
         <source>Next keyboard layout</source>
-        <translation type="unfinished"></translation>
+        <translation>Layout di tastiera successivo</translation>
     </message>
     <message>
         <source>Magnifier in / out / off</source>
-        <translation type="unfinished"></translation>
+        <translation>Lente: ingrandisci / riduci / disattiva</translation>
     </message>
     <message>
         <source>Quit Vela</source>
-        <translation type="unfinished"></translation>
+        <translation>Esci da Vela</translation>
     </message>
     <message>
         <source>%1 already uses %2</source>
-        <translation type="unfinished"></translation>
+        <translation>%1 usa già %2</translation>
     </message>
     <message>
         <source>Another shortcut already uses %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Un&apos;altra scorciatoia usa già %1</translation>
     </message>
     <message>
         <source>Unknown shortcut</source>
-        <translation type="unfinished"></translation>
+        <translation>Scorciatoia sconosciuta</translation>
     </message>
     <message>
         <source>Use modifiers and a key, for example Super+Q</source>
-        <translation type="unfinished"></translation>
+        <translation>Usa dei modificatori e un tasto, ad esempio Super+Q</translation>
     </message>
     <message>
         <source>Use modifiers and a key, for example Super+T</source>
-        <translation type="unfinished"></translation>
+        <translation>Usa dei modificatori e un tasto, ad esempio Super+T</translation>
     </message>
     <message>
         <source>Type the command to run</source>
-        <translation type="unfinished"></translation>
+        <translation>Scrivi il comando da eseguire</translation>
     </message>
 </context>
 <context>
@@ -2186,83 +2413,83 @@ Specifiche sistema
     <name>ShortcutsPage</name>
     <message>
         <source>New shortcut</source>
-        <translation type="unfinished"></translation>
+        <translation>Nuova scorciatoia</translation>
     </message>
     <message>
         <source>Change shortcut</source>
-        <translation type="unfinished"></translation>
+        <translation>Cambia scorciatoia</translation>
     </message>
     <message>
         <source>Change </source>
-        <translation type="unfinished"></translation>
+        <translation>Cambia </translation>
     </message>
     <message>
         <source>Shortcuts</source>
-        <translation type="unfinished"></translation>
+        <translation>Scorciatoie</translation>
     </message>
     <message>
         <source>Off</source>
-        <translation type="unfinished"></translation>
+        <translation>Disattivata</translation>
     </message>
     <message>
         <source>Default: </source>
-        <translation type="unfinished"></translation>
+        <translation>Predefinita: </translation>
     </message>
     <message>
         <source>Change</source>
-        <translation type="unfinished"></translation>
+        <translation>Cambia</translation>
     </message>
     <message>
         <source>Reset</source>
-        <translation type="unfinished">Reimposta</translation>
+        <translation>Reimposta</translation>
     </message>
     <message>
         <source>Your shortcuts</source>
-        <translation type="unfinished"></translation>
+        <translation>Le tue scorciatoie</translation>
     </message>
     <message>
         <source>Add a shortcut</source>
-        <translation type="unfinished"></translation>
+        <translation>Aggiungi una scorciatoia</translation>
     </message>
     <message>
         <source>Run a program or a command with a key combination</source>
-        <translation type="unfinished"></translation>
+        <translation>Esegui un programma o un comando con una combinazione di tasti</translation>
     </message>
     <message>
         <source>Add</source>
-        <translation type="unfinished"></translation>
+        <translation>Aggiungi</translation>
     </message>
     <message>
         <source>Not valid</source>
-        <translation type="unfinished"></translation>
+        <translation>Non valido</translation>
     </message>
     <message>
         <source>Remove</source>
-        <translation type="unfinished">Rimuovi</translation>
+        <translation>Rimuovi</translation>
     </message>
     <message>
         <source>Also available</source>
-        <translation type="unfinished"></translation>
+        <translation>Disponibili anche</translation>
     </message>
     <message>
         <source>Save</source>
-        <translation type="unfinished"></translation>
+        <translation>Salva</translation>
     </message>
     <message>
         <source>Click the box and press the keys. Leave it empty to turn this shortcut off.</source>
-        <translation type="unfinished"></translation>
+        <translation>Fai clic sulla casella e premi i tasti. Lasciala vuota per disattivare questa scorciatoia.</translation>
     </message>
     <message>
         <source>Click the first box and press the keys, then type the command to run.</source>
-        <translation type="unfinished"></translation>
+        <translation>Fai clic sulla prima casella e premi i tasti, poi scrivi il comando da eseguire.</translation>
     </message>
     <message>
         <source>For example Super+Q</source>
-        <translation type="unfinished"></translation>
+        <translation>Ad esempio Super+Q</translation>
     </message>
     <message>
         <source>Command, for example foot or xdg-open https://velade.org</source>
-        <translation type="unfinished"></translation>
+        <translation>Comando, ad esempio foot o xdg-open https://velade.org</translation>
     </message>
 </context>
 <context>
@@ -2661,6 +2888,14 @@ Specifiche sistema
         <translation>Schermo e sospensione, modalità di risparmio energia</translation>
     </message>
     <message>
+        <source>Multitasking</source>
+        <translation>Multitasking</translation>
+    </message>
+    <message>
+        <source>Snap layouts, Task View hot corner, window rules</source>
+        <translation>Layout di aggancio, angolo attivo della Vista attività, regole delle finestre</translation>
+    </message>
+    <message>
         <source>Clipboard</source>
         <translation>Appunti</translation>
     </message>
@@ -2702,70 +2937,6 @@ Specifiche sistema
     <message>
         <source>Apps&apos; icons go behind the arrow next to the system icons</source>
         <translation>Le icone delle app vanno dietro la freccia accanto alle icone di sistema</translation>
-    </message>
-    <message>
-        <source>Task View</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Hot corner</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Moving the pointer into the top-left corner opens Task View</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Glow when the pointer is near</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Animation when it triggers</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Screen sharing</source>
-        <translation>Condivisione dello schermo</translation>
-    </message>
-    <message>
-        <source>Show an indicator while my screen is shared or recorded</source>
-        <translation>Mostra un indicatore mentre lo schermo è condiviso o registrato</translation>
-    </message>
-    <message>
-        <source>Silence notifications while sharing</source>
-        <translation>Silenzia le notifiche durante la condivisione</translation>
-    </message>
-    <message>
-        <source>Snap windows</source>
-        <translation>Aggancia le finestre</translation>
-    </message>
-    <message>
-        <source>Show snap layouts when I drag a window to the top of my screen</source>
-        <translation>Mostra i layout di aggancio quando trascino una finestra nella parte superiore dello schermo</translation>
-    </message>
-    <message>
-        <source>How close to the top</source>
-        <translation>Distanza dal bordo superiore</translation>
-    </message>
-    <message>
-        <source>%1 px from the top of the screen</source>
-        <translation>%1 px dal bordo superiore dello schermo</translation>
-    </message>
-    <message>
-        <source>How far to the sides</source>
-        <translation>Distanza dai lati</translation>
-    </message>
-    <message>
-        <source>%1 px beside the layouts</source>
-        <translation>%1 px a lato dei layout</translation>
-    </message>
-    <message>
-        <source>Size of the layouts</source>
-        <translation>Dimensione dei layout</translation>
-    </message>
-    <message>
-        <source>%1%</source>
-        <translation>%1%</translation>
     </message>
     <message>
         <source>Taskbar behaviors</source>
@@ -3012,174 +3183,174 @@ Specifiche sistema
     <name>WindowBlurPage</name>
     <message>
         <source>Window blur</source>
-        <translation type="unfinished"></translation>
+        <translation>Sfocatura delle finestre</translation>
     </message>
     <message>
         <source>Blur what is behind see-through windows</source>
-        <translation type="unfinished"></translation>
+        <translation>Sfoca ciò che sta dietro le finestre trasparenti</translation>
     </message>
     <message>
         <source>Blur</source>
-        <translation type="unfinished"></translation>
+        <translation>Sfocatura</translation>
     </message>
     <message>
         <source>Every window, except the apps below</source>
-        <translation type="unfinished"></translation>
+        <translation>Ogni finestra, tranne le app qui sotto</translation>
     </message>
     <message>
         <source>Apps that ask for it, and the apps you add below</source>
-        <translation type="unfinished"></translation>
+        <translation>Le app che la richiedono e quelle che aggiungi qui sotto</translation>
     </message>
     <message>
         <source>Only apps that ask for it</source>
-        <translation type="unfinished"></translation>
+        <translation>Solo le app che la richiedono</translation>
     </message>
     <message>
         <source>All windows</source>
-        <translation type="unfinished"></translation>
+        <translation>Tutte le finestre</translation>
     </message>
     <message>
         <source>Window opacity</source>
-        <translation type="unfinished"></translation>
+        <translation>Opacità delle finestre</translation>
     </message>
     <message>
         <source>%1%</source>
-        <translation type="unfinished">%1%</translation>
+        <translation>%1%</translation>
     </message>
     <message>
         <source>Also blur these apps</source>
-        <translation type="unfinished"></translation>
+        <translation>Sfoca anche queste app</translation>
     </message>
     <message>
         <source>No apps added</source>
-        <translation type="unfinished"></translation>
+        <translation>Nessuna app aggiunta</translation>
     </message>
     <message>
         <source>Never blur these apps</source>
-        <translation type="unfinished"></translation>
+        <translation>Non sfocare mai queste app</translation>
     </message>
     <message>
         <source>No apps excluded</source>
-        <translation type="unfinished"></translation>
+        <translation>Nessuna app esclusa</translation>
     </message>
     <message>
         <source>Where blur shows</source>
-        <translation type="unfinished"></translation>
+        <translation>Dove si vede la sfocatura</translation>
     </message>
     <message>
         <source>Only behind the see-through parts of a window, never behind its shadow. Opaque and fullscreen windows aren&apos;t blurred, unless window opacity makes them see-through; fullscreen windows always stay opaque. Apps that ask for blur themselves keep it.</source>
-        <translation type="unfinished"></translation>
+        <translation>Solo dietro le parti trasparenti di una finestra, mai dietro la sua ombra. Le finestre opache e a schermo intero non vengono sfocate, a meno che l&apos;opacità non le renda trasparenti; le finestre a schermo intero restano sempre opache. Le app che richiedono da sole la sfocatura la mantengono.</translation>
     </message>
     <message>
         <source> app</source>
-        <translation type="unfinished"></translation>
+        <translation> app</translation>
     </message>
     <message>
         <source> apps</source>
-        <translation type="unfinished"></translation>
+        <translation> app</translation>
     </message>
     <message>
         <source>Add an app</source>
-        <translation type="unfinished"></translation>
+        <translation>Aggiungi un&apos;app</translation>
     </message>
     <message>
         <source>Remove</source>
-        <translation type="unfinished">Rimuovi</translation>
+        <translation>Rimuovi</translation>
     </message>
     <message>
         <source>Never blur an app</source>
-        <translation type="unfinished"></translation>
+        <translation>Non sfocare mai un&apos;app</translation>
     </message>
     <message>
         <source>Blur an app</source>
-        <translation type="unfinished"></translation>
+        <translation>Sfoca un&apos;app</translation>
     </message>
     <message>
         <source>Add</source>
-        <translation type="unfinished"></translation>
+        <translation>Aggiungi</translation>
     </message>
     <message>
         <source>No open windows</source>
-        <translation type="unfinished"></translation>
+        <translation>Nessuna finestra aperta</translation>
     </message>
     <message>
         <source>Open windows</source>
-        <translation type="unfinished"></translation>
+        <translation>Finestre aperte</translation>
     </message>
     <message>
         <source>Or type an app id (e.g. org.kde.konsole)</source>
-        <translation type="unfinished"></translation>
+        <translation>Oppure scrivi l&apos;id di un&apos;app (ad es. org.kde.konsole)</translation>
     </message>
 </context>
 <context>
     <name>WindowRulesPage</name>
     <message>
         <source>No rules</source>
-        <translation type="unfinished"></translation>
+        <translation>Nessuna regola</translation>
     </message>
     <message>
         <source> rule</source>
-        <translation type="unfinished"></translation>
+        <translation> regola</translation>
     </message>
     <message>
         <source> rules</source>
-        <translation type="unfinished"></translation>
+        <translation> regole</translation>
     </message>
     <message>
         <source>Add a rule</source>
-        <translation type="unfinished"></translation>
+        <translation>Aggiungi una regola</translation>
     </message>
     <message>
         <source>Remove</source>
-        <translation type="unfinished">Rimuovi</translation>
+        <translation>Rimuovi</translation>
     </message>
     <message>
         <source>When rules apply</source>
-        <translation type="unfinished"></translation>
+        <translation>Quando si applicano le regole</translation>
     </message>
     <message>
         <source>Once, when a window opens: you can still move it afterwards. Changes affect windows opened from now on, not the ones already open. The first rule that matches an app wins.</source>
-        <translation type="unfinished"></translation>
+        <translation>Una volta, quando si apre una finestra: puoi comunque spostarla dopo. Le modifiche valgono per le finestre aperte da ora in poi, non per quelle già aperte. Vince la prima regola che corrisponde a un&apos;app.</translation>
     </message>
     <message>
         <source>Add a window rule</source>
-        <translation type="unfinished"></translation>
+        <translation>Aggiungi una regola per le finestre</translation>
     </message>
     <message>
         <source>Add</source>
-        <translation type="unfinished"></translation>
+        <translation>Aggiungi</translation>
     </message>
     <message>
         <source>App id (e.g. discord) or pick an open window above</source>
-        <translation type="unfinished"></translation>
+        <translation>Id dell&apos;app (ad es. discord) o scegli una finestra aperta qui sopra</translation>
     </message>
     <message>
         <source>Output: name (HDMI-A-1) or number (1, 2, ...)</source>
-        <translation type="unfinished"></translation>
+        <translation>Uscita: nome (HDMI-A-1) o numero (1, 2, ...)</translation>
     </message>
     <message>
         <source>Desktop number (1, 2, ...)</source>
-        <translation type="unfinished"></translation>
+        <translation>Numero del desktop (1, 2, ...)</translation>
     </message>
     <message>
         <source>Size: 900x600</source>
-        <translation type="unfinished"></translation>
+        <translation>Dimensione: 900x600</translation>
     </message>
     <message>
         <source>Position from the output&apos;s corner: 100,80</source>
-        <translation type="unfinished"></translation>
+        <translation>Posizione dall&apos;angolo dell&apos;uscita: 100,80</translation>
     </message>
     <message>
         <source>Centered</source>
-        <translation type="unfinished"></translation>
+        <translation>Centrata</translation>
     </message>
     <message>
         <source>Maximized</source>
-        <translation type="unfinished"></translation>
+        <translation>Ingrandita</translation>
     </message>
     <message>
         <source>Always on top</source>
-        <translation type="unfinished"></translation>
+        <translation>Sempre in primo piano</translation>
     </message>
 </context>
 </TS>
