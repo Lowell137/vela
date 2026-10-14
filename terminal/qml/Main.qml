@@ -86,7 +86,7 @@ Window {
         const p = profile || profiles[settings.defaultProfile] || profiles[0]
         const pane = paneComponent.createObject(parent, { win: root, page: page, profile: p })
         // Once it has its size: the program is told the right one from the start.
-        Qt.callLater(() => pane.term.start(command || p.command, directory || p.directory || Host.directory))
+        Qt.callLater(() => pane.term.start(command || p.command, directory || p.directory)) // the first tab gets the folder it was started in
         return pane
     }
     function newTab(profile, command, directory) {
