@@ -160,9 +160,10 @@ Page {
             icon: "go-up"
             title: qsTr("Taskbar position")
             trailing: Choice {
-                model: [qsTr("Bottom"), qsTr("Top")]
-                currentIndex: Prefs.taskbarPosition === "top" ? 1 : 0
-                onChosen: index => Prefs.taskbarPosition = index === 1 ? "top" : "bottom"
+                readonly property var positions: ["bottom", "top", "left", "right"]
+                model: [qsTr("Bottom"), qsTr("Top"), qsTr("Left"), qsTr("Right")]
+                currentIndex: Math.max(0, positions.indexOf(Prefs.taskbarPosition))
+                onChosen: index => Prefs.taskbarPosition = positions[index]
             }
         }
         Card {
