@@ -175,6 +175,9 @@ const Panel panels[] = {
     { "TaskbarPreview", "vela-taskbar-preview", layerTop, bottomLeft, 0, keysNone },
     // Above the taskbar too, placed the same way; the mouse goes through.
     { "TaskbarTooltip", "vela-taskbar-tooltip", layerTop, bottomLeft, 0, keysNone, {}, true },
+    // The hidden tray icons: the whole output, transparent, so a click
+    // outside the flyout (the "^" button too) closes it. Esc.
+    { "TrayOverflow", "vela-tray-overflow", layerOverlay, fill, -1, keysOnDemand },
     { "FileDialogs", "vela-file-dialogs", layerTop, centered, 0, keysOnDemand },
     { "ClipboardPanel", "vela-clipboard", layerTop, bottomRight, 0, keysOnDemand },
 };
