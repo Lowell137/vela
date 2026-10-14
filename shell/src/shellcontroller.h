@@ -34,6 +34,9 @@ class ShellController : public QObject {
     // "capture on dnd": the compositor also asks for notifications to be
     // silenced while it lasts (capture-dnd=yes).
     Q_PROPERTY(bool captureSilence READ captureSilence NOTIFY screenCapturedChanged)
+    // "fullscreen on" / "fullscreen off": a visible window is full screen and
+    // fullscreen-dnd=yes (the compositor only sends it then).
+    Q_PROPERTY(bool fullscreenActive READ fullscreenActive NOTIFY fullscreenActiveChanged)
 
 public:
     explicit ShellController(QObject* parent = nullptr);
@@ -77,6 +80,7 @@ public:
     QString userInitial() const;
 
     bool screenCaptured() const { return m_screenCaptured; }
+    bool fullscreenActive() const { return m_fullscreenActive; }
     bool captureSilence() const { return m_screenCaptured && m_captureDnd; }
     bool startMenuOpen() const { return m_startMenuOpen; }
     void setStartMenuOpen(bool open)
@@ -124,6 +128,7 @@ signals:
     void startPinsChanged();
     void primaryScreenChanged();
     void screenCapturedChanged();
+    void fullscreenActiveChanged();
     void chooseSourceRequested();
     void chooseSourceCancelled();
     // Windows shortcuts arriving from the compositor.
@@ -184,5 +189,6 @@ private:
     bool m_startMenuOpen = false;
     bool m_screenCaptured = false;
     bool m_captureDnd = false;
+    bool m_fullscreenActive = false;
     QStringList m_startPins;
 };

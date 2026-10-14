@@ -22,4 +22,28 @@ Page {
             }
         }
     }
+
+    CardGroup {
+        title: qsTr("Do not disturb")
+        Card {
+            icon: "view-fullscreen"
+            title: qsTr("Silence notifications during full-screen apps")
+            description: qsTr("Popups wait in the notification center while a window is full screen")
+            trailing: Toggle {
+                checked: Prefs.fullscreenDnd
+                onToggled: on => Prefs.fullscreenDnd = on
+            }
+        }
+        Card {
+            icon: "notifications-disabled"
+            enabled: Prefs.captureIndicator
+            opacity: enabled ? 1 : 0.45
+            title: qsTr("Silence notifications while sharing the screen")
+            description: qsTr("Needs the screen sharing indicator (Taskbar settings)")
+            trailing: Toggle {
+                checked: Prefs.captureDnd
+                onToggled: on => Prefs.captureDnd = on
+            }
+        }
+    }
 }

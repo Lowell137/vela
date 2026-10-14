@@ -45,6 +45,29 @@ private Q_SLOTS:
         s.setDoNotDisturb(false);
         QVERIFY(!s.silenced());
     }
+    void fullscreenSilencesAndRestores()
+    {
+        NotificationServer s;
+        s.setFullscreenSilenced(true);
+        QVERIFY(s.silenced());
+        QVERIFY(s.fullscreenSilenced());
+        QVERIFY(!s.doNotDisturb());
+        s.Notify("a", 0, "", "one", "", {}, {}, 5000);
+        QCOMPARE(s.count(), 0);
+        s.setFullscreenSilenced(false);
+        QVERIFY(!s.silenced());
+        s.Notify("a", 0, "", "two", "", {}, {}, 5000);
+        QCOMPARE(s.count(), 1);
+    }
+    void manualChoiceSurvivesFullscreen()
+    {
+        NotificationServer s;
+        s.setDoNotDisturb(true);
+        s.setFullscreenSilenced(true);
+        s.setFullscreenSilenced(false);
+        QVERIFY(s.doNotDisturb());
+        QVERIFY(s.silenced());
+    }
     // Notifications of one app are one group (contiguous, the newest group on
     // top), counted per app and cleared per app.
     void groupsByApp()

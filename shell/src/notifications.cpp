@@ -351,6 +351,14 @@ void NotificationServer::setCaptureSilenced(bool on)
     }
 }
 
+void NotificationServer::setFullscreenSilenced(bool on)
+{
+    if (on != m_fullscreenSilenced) {
+        m_fullscreenSilenced = on;
+        Q_EMIT silencedChanged();
+    }
+}
+
 void NotificationServer::invokeFromHistory(uint id, const QString& action)
 {
     if (historyRow(id) >= 0) {

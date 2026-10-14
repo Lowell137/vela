@@ -41,6 +41,8 @@
 //   capture-indicator=yes    a taskbar indicator while the screen is shared or
 //                            recorded (capture_watch.c)
 //   capture-dnd=yes          and notifications are silenced meanwhile
+//   fullscreen-dnd=yes       notifications are silenced while a window is
+//                            fullscreen (capture_watch.c)
 //   snap-drag-layouts=yes    dragging a window to the top opens the snap layouts
 //                            (snap.c)
 //   snap-drag-trigger-distance=64  how close to the top they open (px, 4-200):

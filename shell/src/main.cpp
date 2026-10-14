@@ -331,6 +331,8 @@ int main(int argc, char* argv[])
     auto silenceForSharing = [&] { notifications.setCaptureSilenced(shell.captureSilence()); };
     QObject::connect(&shell, &ShellController::screenCapturedChanged, &notifications, silenceForSharing);
     silenceForSharing();
+    QObject::connect(&shell, &ShellController::fullscreenActiveChanged, &notifications,
+        [&] { notifications.setFullscreenSilenced(shell.fullscreenActive()); });
     TrayModel tray;
     tray.start();
     SystemActions system;

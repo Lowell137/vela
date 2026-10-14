@@ -1518,6 +1518,17 @@ bool vela_views_fullscreen_on(struct vela_server *server, struct vela_output *ou
     return false;
 }
 
+bool vela_views_any_fullscreen(struct vela_server *server)
+{
+    struct vela_view *view;
+    wl_list_for_each (view, &server->views, link) {
+        if (view->mapped && view->fullscreen && !view->minimized && vela_view_on_current_workspace(view)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 static const struct vela_seen_output *seen_output(const struct vela_seen_output *list, int count, const char *name)
 {
     for (int i = 0; i < count; ++i) {

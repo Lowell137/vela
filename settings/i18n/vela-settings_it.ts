@@ -423,6 +423,58 @@ Specifiche sistema
         <translation>Salva più elementi negli Appunti da usare in seguito. Premi Win+V per vederli e incollarli</translation>
     </message>
     <message>
+        <source>Open next to the pointer</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The clipboard and emoji panel (Win+V, Win+.) opens where the mouse pointer is. Off: at the bottom right of the screen</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>History</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keep the history after restarting</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>What you copied is still there after you sign out or restart. Off: only pinned items are kept. Copied passwords are stored too</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Delete items after</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Older items leave the history by themselves; pinned items stay</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Never</source>
+        <translation type="unfinished">Mai</translation>
+    </message>
+    <message>
+        <source>1 day</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>1 week</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>1 month</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Number of items</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Past this many, the oldest item leaves when a new one is copied</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Clear clipboard data</source>
         <translation>Cancella dati degli Appunti</translation>
     </message>
@@ -1858,6 +1910,22 @@ Specifiche sistema
         <source>Notifications go straight to the notification center, without popping up</source>
         <translation>Le notifiche vanno direttamente nel centro notifiche, senza comparire</translation>
     </message>
+    <message>
+        <source>Silence notifications during full-screen apps</source>
+        <translation>Silenzia le notifiche con le app a schermo intero</translation>
+    </message>
+    <message>
+        <source>Popups wait in the notification center while a window is full screen</source>
+        <translation>I popup restano nel centro notifiche mentre una finestra è a schermo intero</translation>
+    </message>
+    <message>
+        <source>Silence notifications while sharing the screen</source>
+        <translation>Silenzia le notifiche durante la condivisione dello schermo</translation>
+    </message>
+    <message>
+        <source>Needs the screen sharing indicator (Taskbar settings)</source>
+        <translation>Richiede l&apos;indicatore di condivisione dello schermo (impostazioni Barra delle applicazioni)</translation>
+    </message>
 </context>
 <context>
     <name>PersonalizationPage</name>
@@ -2089,6 +2157,10 @@ Specifiche sistema
     <message>
         <source>Clipboard history</source>
         <translation type="unfinished">Cronologia degli Appunti</translation>
+    </message>
+    <message>
+        <source>Emoji and more</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Sound output and volume mixer</source>
@@ -2730,10 +2802,6 @@ Specifiche sistema
     <message>
         <source>Show an indicator while my screen is shared or recorded</source>
         <translation>Mostra un indicatore mentre lo schermo è condiviso o registrato</translation>
-    </message>
-    <message>
-        <source>Silence notifications while sharing</source>
-        <translation>Silenzia le notifiche durante la condivisione</translation>
     </message>
     <message>
         <source>Snap windows</source>
