@@ -316,6 +316,10 @@
         <translation>Impossibile eliminare &quot;%1&quot;.</translation>
     </message>
     <message>
+        <source>Couldn&apos;t empty the Recycle Bin (%1 items could not be deleted).</source>
+        <translation>Impossibile svuotare il Cestino (%1 elementi non eliminati).</translation>
+    </message>
+    <message>
         <source>Compress</source>
         <translation>Comprimi</translation>
     </message>
@@ -620,6 +624,21 @@
     <message>
         <source>% complete</source>
         <translation>% completato</translation>
+    </message>
+</context>
+<context>
+    <name>QuickPeek</name>
+    <message>
+        <source> items, </source>
+        <translation> elementi, </translation>
+    </message>
+    <message>
+        <source> x </source>
+        <translation> x </translation>
+    </message>
+    <message>
+        <source>first 64 KB</source>
+        <translation>primi 64 KB</translation>
     </message>
 </context>
 <context>

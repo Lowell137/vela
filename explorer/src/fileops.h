@@ -100,8 +100,13 @@ public:
     // and whether it's an image Qt can read.
     Q_INVOKABLE QString previewText(const QString& path) const;
     Q_INVOKABLE bool isImage(const QString& path) const;
+    // Quick preview (Space): asynchronous, answered by peekReady with {kind,
+    // text, truncated, items, sizeText, ...} (details() plus the content).
+    Q_INVOKABLE void peek(const QString& path);
+    Q_INVOKABLE bool pdfSupported() const;
 
 signals:
+    void peekReady(const QString& path, const QVariantMap& result);
     void clipboardChanged();
     void undoChanged();
     void jobsChanged();
