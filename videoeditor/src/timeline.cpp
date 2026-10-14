@@ -381,6 +381,28 @@ void Timeline::set(int track, int index, const QString& key, const QVariant& val
     });
 }
 
+void Timeline::detachAudio(int index)
+{
+    if (index < 0 || index >= m_tracks.video.size() || m_tracks.video[index].kind != Clip::Video
+        || !m_tracks.video[index].hasAudio || m_tracks.video[index].muted) {
+        return;
+    }
+    const double at = start(VideoTrack, index);
+    edit([&] {
+        Clip& video = m_tracks.video[index];
+        Clip sound = video;
+        sound.kind = Clip::Audio;
+        sound.start = at;
+        sound.rotate = 0;
+        sound.flipH = sound.flipV = false;
+        sound.crop.clear();
+        sound.width = sound.height = 0;
+        sound.fps = 0;
+        video.muted = true;
+        m_tracks.audio.append(sound);
+    });
+}
+
 void Timeline::undo()
 {
     if (m_undo.isEmpty()) {

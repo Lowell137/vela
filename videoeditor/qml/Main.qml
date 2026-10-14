@@ -362,14 +362,18 @@ Window {
             { text: qsTr("Save &as..."), shortcut: "Ctrl+Shift+S", icon: "document-save-as", action: () => root.saveAs() },
             { separator: true },
             { text: qsTr("&Export..."), shortcut: "Ctrl+E", enabled: Project.video.length > 0, action: () => exportDialog.start() },
-            { text: qsTr("Se&ttings"), icon: "configure", action: () => root.showSettings = true }
+            { text: qsTr("Se&ttings"), icon: "configure", action: () => root.showSettings = true },
+            { text: qsTr("&Keyboard shortcuts"), shortcut: "F1", action: () => shortcutsDialog.open() }
         ]
     }
     function clipEntries() {
         return [
             { text: qsTr("Split at the playhead"), shortcut: "S", icon: "edit-cut", enabled: !!selected && selected.kind !== "gap", action: () => root.split() },
             { text: qsTr("Delete"), shortcut: "Del", icon: "edit-delete", action: () => root.removeSelected(true) },
-            { text: qsTr("Delete and leave a gap"), shortcut: "Shift+Del", enabled: selTrack === 0, action: () => root.removeSelected(false) }
+            { text: qsTr("Delete and leave a gap"), shortcut: "Shift+Del", enabled: selTrack === 0, action: () => root.removeSelected(false) },
+            { separator: true },
+            { text: qsTr("Detach the audio"), icon: "audio-x-generic", enabled: selTrack === 0 && !!selected && selected.kind === "video" && selected.hasAudio && !selected.muted,
+              action: () => Project.detachAudio(selIndex) }
         ]
     }
     function openClipMenu(x, y) { menuLayer.open(clipEntries(), x, y) }
@@ -398,6 +402,7 @@ Window {
     Shortcut { sequences: ["Ctrl+=", "Ctrl++"]; onActivated: timeline.zoomTo(timeline.pps * 1.25, timeline.width / 2) }
     Shortcut { sequence: "Ctrl+-"; onActivated: timeline.zoomTo(timeline.pps * 0.8, timeline.width / 2) }
     Shortcut { sequence: "Escape"; onActivated: root.select(-1, -1) }
+    Shortcut { sequence: "F1"; onActivated: shortcutsDialog.open() }
 
     // --- the title bar ---
     Item {
@@ -898,6 +903,42 @@ Window {
                             if (relinkDialog.files.length === 0) relinkDialog.close("cancel")
                         })
                     }
+                }
+            }
+        }
+    }
+
+    Dialog {
+        id: shortcutsDialog
+        title: qsTr("Keyboard shortcuts")
+        buttons: [{ text: qsTr("Close"), accent: true, value: "cancel" }]
+        Grid {
+            columns: 2
+            columnSpacing: 24
+            rowSpacing: 6
+            Repeater {
+                model: [
+                    "Space", qsTr("Play or pause"),
+                    ", .", qsTr("Previous or next frame"),
+                    "Home End", qsTr("To the start or the end"),
+                    "S", qsTr("Split at the playhead"),
+                    "Del", qsTr("Delete and close the gap"),
+                    "Shift+Del", qsTr("Delete and leave a gap"),
+                    "T", qsTr("Add a text"),
+                    "Ctrl+Z", qsTr("Undo"),
+                    "Ctrl+Shift+Z", qsTr("Redo"),
+                    "Ctrl+= Ctrl+-", qsTr("Zoom the timeline"),
+                    "Ctrl+I", qsTr("Add media"),
+                    "Ctrl+S", qsTr("Save"),
+                    "Ctrl+E", qsTr("Export")
+                ]
+                delegate: Text {
+                    required property string modelData
+                    required property int index
+                    text: modelData
+                    color: index % 2 ? Theme.text : Theme.textSecondary
+                    font.pixelSize: Theme.fontBody
+                    font.weight: index % 2 ? Font.Normal : Font.DemiBold
                 }
             }
         }

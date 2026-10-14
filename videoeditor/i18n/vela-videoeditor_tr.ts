@@ -316,6 +316,10 @@
         <translation>&amp;Ayarlar</translation>
     </message>
     <message>
+        <source>&amp;Keyboard shortcuts</source>
+        <translation>&amp;Klavye kısayolları</translation>
+    </message>
+    <message>
         <source>Split at the playhead</source>
         <translation>Oynatma çizgisinde böl</translation>
     </message>
@@ -326,6 +330,10 @@
     <message>
         <source>Delete and leave a gap</source>
         <translation>Sil ve boşluk bırak</translation>
+    </message>
+    <message>
+        <source>Detach the audio</source>
+        <translation>Sesi ayır</translation>
     </message>
     <message>
         <source>Add media</source>
@@ -498,6 +506,42 @@
     <message>
         <source>%1 (%1)</source>
         <translation>%1 (%1)</translation>
+    </message>
+    <message>
+        <source>Keyboard shortcuts</source>
+        <translation>Klavye kısayolları</translation>
+    </message>
+    <message>
+        <source>Play or pause</source>
+        <translation>Oynat veya duraklat</translation>
+    </message>
+    <message>
+        <source>Previous or next frame</source>
+        <translation>Önceki veya sonraki kare</translation>
+    </message>
+    <message>
+        <source>To the start or the end</source>
+        <translation>Başa veya sona</translation>
+    </message>
+    <message>
+        <source>Delete and close the gap</source>
+        <translation>Sil ve boşluğu kapat</translation>
+    </message>
+    <message>
+        <source>Add a text</source>
+        <translation>Metin ekle</translation>
+    </message>
+    <message>
+        <source>Undo</source>
+        <translation>Geri al</translation>
+    </message>
+    <message>
+        <source>Redo</source>
+        <translation>Yinele</translation>
+    </message>
+    <message>
+        <source>Zoom the timeline</source>
+        <translation>Zaman çizelgesini yakınlaştır</translation>
     </message>
 </context>
 <context>

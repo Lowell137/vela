@@ -316,6 +316,10 @@
         <translation>&amp;Impostazioni</translation>
     </message>
     <message>
+        <source>&amp;Keyboard shortcuts</source>
+        <translation>&amp;Scorciatoie da tastiera</translation>
+    </message>
+    <message>
         <source>Split at the playhead</source>
         <translation>Dividi alla testina</translation>
     </message>
@@ -326,6 +330,10 @@
     <message>
         <source>Delete and leave a gap</source>
         <translation>Elimina lasciando uno spazio</translation>
+    </message>
+    <message>
+        <source>Detach the audio</source>
+        <translation>Separa l&apos;audio</translation>
     </message>
     <message>
         <source>Add media</source>
@@ -498,6 +506,42 @@
     <message>
         <source>%1 (%1)</source>
         <translation>%1 (%1)</translation>
+    </message>
+    <message>
+        <source>Keyboard shortcuts</source>
+        <translation>Scorciatoie da tastiera</translation>
+    </message>
+    <message>
+        <source>Play or pause</source>
+        <translation>Riproduci o metti in pausa</translation>
+    </message>
+    <message>
+        <source>Previous or next frame</source>
+        <translation>Fotogramma precedente o successivo</translation>
+    </message>
+    <message>
+        <source>To the start or the end</source>
+        <translation>All&apos;inizio o alla fine</translation>
+    </message>
+    <message>
+        <source>Delete and close the gap</source>
+        <translation>Elimina e chiudi lo spazio</translation>
+    </message>
+    <message>
+        <source>Add a text</source>
+        <translation>Aggiungi un testo</translation>
+    </message>
+    <message>
+        <source>Undo</source>
+        <translation>Annulla</translation>
+    </message>
+    <message>
+        <source>Redo</source>
+        <translation>Ripeti</translation>
+    </message>
+    <message>
+        <source>Zoom the timeline</source>
+        <translation>Zoom della timeline</translation>
     </message>
 </context>
 <context>

@@ -122,6 +122,8 @@ public:
     // Ripple closes the hole; otherwise a video clip leaves a gap.
     Q_INVOKABLE void remove(int track, int index, bool ripple);
     Q_INVOKABLE void set(int track, int index, const QString& key, const QVariant& value);
+    // A video clip's sound becomes a clip of its own on the audio track.
+    Q_INVOKABLE void detachAudio(int index);
     Q_INVOKABLE void undo();
     Q_INVOKABLE void redo();
     void clear();

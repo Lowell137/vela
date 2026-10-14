@@ -156,6 +156,28 @@ private slots:
         QCOMPARE(t.tracks().texts[0].start, 2.0);
     }
 
+    void detachesTheSound()
+    {
+        Timeline t;
+        t.insertMedia(video("/a.mp4", 10));
+        t.insertMedia(video("/b.mp4", 10));
+        t.trim(Timeline::VideoTrack, 1, true, 13);
+        t.set(Timeline::VideoTrack, 1, "volume", 0.5);
+        t.detachAudio(1);
+        QVERIFY(t.tracks().video[1].muted);
+        const Clip& sound = t.tracks().audio.at(0);
+        QCOMPARE(sound.kind, Clip::Audio);
+        QCOMPARE(sound.source, "/b.mp4");
+        QCOMPARE(sound.start, 10.0);
+        QCOMPARE(sound.in, 3.0);
+        QCOMPARE(sound.volume, 0.5);
+        t.detachAudio(1); // already muted: nothing more
+        QCOMPARE(t.tracks().audio.size(), 1);
+        t.undo();
+        QVERIFY(t.tracks().audio.isEmpty());
+        QVERIFY(!t.tracks().video[1].muted);
+    }
+
     void undoesAndRedoes()
     {
         Timeline t;
