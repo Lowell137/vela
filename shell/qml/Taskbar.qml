@@ -718,7 +718,7 @@ Window {
     Item {
         id: clock
         anchors { right: parent.right; top: parent.top; bottom: parent.bottom; rightMargin: 12 }
-        width: clockColumn.implicitWidth + 16 + (Notifications.history.count > 0 || Notifications.doNotDisturb ? 22 : 0)
+        width: clockColumn.implicitWidth + 16 + (Notifications.history.count > 0 || Notifications.silenced ? 22 : 0)
 
         property date now: new Date()
 
