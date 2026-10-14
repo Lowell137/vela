@@ -61,7 +61,7 @@ class Preferences : public QObject {
     // --- Power ---
     Q_PROPERTY(int screenOffMinutes READ screenOffMinutes WRITE setScreenOffMinutes NOTIFY idleChanged)
     Q_PROPERTY(bool lockOnIdle READ lockOnIdle WRITE setLockOnIdle NOTIFY idleChanged)
-    // Vela's language (language= in vela.conf): "", "it" or "en". Empty: like
+    // Vela's language (language= in vela.conf): "", "it", "en" or "tr". Empty: like
     // the system. The apps apply it themselves (shell/src/language.h).
     Q_PROPERTY(QString language READ language WRITE setLanguage NOTIFY languageChanged)
     // --- Keyboard ---

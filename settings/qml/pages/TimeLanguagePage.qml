@@ -18,9 +18,9 @@ Page {
             description: qsTr("The language of Vela's menus, windows and settings")
             // Language names stay in their own language, like on Windows.
             trailing: Choice {
-                model: [qsTr("Same as the system"), "Italiano", "English"]
-                currentIndex: Prefs.language === "it" ? 1 : Prefs.language === "en" ? 2 : 0
-                onChosen: index => Prefs.language = ["", "it", "en"][index]
+                model: [qsTr("Same as the system"), "Italiano", "English", "Türkçe"]
+                currentIndex: Math.max(0, ["", "it", "en", "tr"].indexOf(Prefs.language))
+                onChosen: index => Prefs.language = ["", "it", "en", "tr"][index]
             }
         }
         LinkCard {
