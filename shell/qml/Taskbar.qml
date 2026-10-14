@@ -293,7 +293,8 @@ Window {
         // vertical), like earlier versions of Windows.
         columns: root.vertical ? 1 : 1000
         x: root.vertical ? Math.round((parent.width - width) / 2)
-            : Config.taskbarAlignment === "left" ? 12 : Math.round((parent.width - width) / 2)
+            : Config.taskbarAlignment === "left" ? 12 + weather.width + (weather.width > 0 ? 8 : 0)
+              : Math.round((parent.width - width) / 2)
         y: root.vertical ? (Config.taskbarAlignment === "left" ? 12 : Math.max(12, Math.round((parent.height - height) / 2)))
             : Math.round((parent.height - height) / 2)
         spacing: 4
@@ -576,15 +577,17 @@ Window {
         }
     }
 
-    // The weather (WeatherWidget.qml), left of everything else in the notification area.
+    // The weather (WeatherWidget.qml): at the left end of a horizontal
+    // taskbar, like Windows 11; at the tray end of a vertical one.
     WeatherWidget {
+        id: weather
         visible: root.primary && Weather.shown
         vertical: root.vertical
         screenName: root.screenName
-        anchors.right: root.vertical ? undefined : overflowButton.left
+        anchors.left: parent.left
+        anchors.leftMargin: root.vertical ? 0 : 8
         anchors.top: root.vertical ? undefined : parent.top
         anchors.bottom: root.vertical ? overflowButton.top : undefined
-        anchors.left: root.vertical ? parent.left : undefined
     }
 
     // The screen being shared or recorded, like Windows 11: a red dot over a
