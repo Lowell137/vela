@@ -195,6 +195,7 @@ voicerecorder/      vela-voicerecorder (pw-record records, libmpv plays, ffmpeg 
 terminal/           vela-terminal (libvterm reads what the programs write)
 eventviewer/        vela-eventviewer (journalctl's entries, filtered and followed)
 calendar/           vela-calendar (local events, repeats, .ics, reminders)
+videoeditor/        vela-videoeditor (mpv previews the timeline, ffmpeg exports it)
 common/fluent/      the four apps above draw their commands with Fluent icons (MIT)
 settings/           vela-settings
 lock/               vela-lock

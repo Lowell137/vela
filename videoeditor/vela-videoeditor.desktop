@@ -1,0 +1,17 @@
+# SPDX-FileCopyrightText: 2026 Vela contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[Desktop Entry]
+Type=Application
+Name=Video Editor
+Name[tr]=Video Düzenleyici
+Name[it]=Editor video
+GenericName=Video Editor
+GenericName[tr]=Video Düzenleyici
+Comment=Cut, join and export your videos
+Comment[tr]=Videolarını kes, birleştir ve dışa aktar
+Exec=vela-videoeditor %f
+Icon=kdenlive
+Categories=AudioVideo;Video;AudioVideoEditing;
+Keywords=video;editor;cut;trim;timeline;export;movie;
+StartupNotify=true
