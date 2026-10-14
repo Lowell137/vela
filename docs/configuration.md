@@ -89,6 +89,8 @@ The shell's own settings (`~/.config/Vela/vela-shell.conf`, Qt's INI format) are
 | `weather-lat`, `weather-lon` | empty | The coordinates the forecast is for. Written by Settings > Personalization > Taskbar > Weather after a city search (geocoding by Open-Meteo, only while typing there). The location is never guessed from the IP: with no coordinates the widget stays hidden. |
 | `weather-unit` | `c` | `c` (°C, km/h) or `f` (°F, mph). |
 
+The taskbar's window previews have a media strip under a window whose app plays through MPRIS (Spotify, a browser's video, VLC, mpv...): the track, previous, play/pause and next. It is there while the player plays, or is paused with a track, and not otherwise (no room is left for it). The player is matched to the window by its `DesktopEntry` against the app id, then by its bus name (`org.mpris.MediaPlayer2.<name>[.instanceN]`) against the app id; when an app has several windows (browsers), only the one whose title holds the track's gets the strip. There is no setting.
+
 ## Window rules
 
 `window-rule` is the one repeatable key: one line per rule, in `vela.conf` (Settings > Personalization > Window rules writes them).
