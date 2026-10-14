@@ -67,7 +67,7 @@ direction, not a promise.
 - Keyboard backlight control.
 
 ### Snipping tool
-- **Screen recording**, with or without sound.
+- Screen recording (done): Record mode in the bar, area or whole output, with the microphone or without sound (needs `wf-recorder`). System sound is not offered yet.
 - Annotations (pen, highlighter, arrows, crop) before saving.
 - Copying text from a capture (OCR).
 

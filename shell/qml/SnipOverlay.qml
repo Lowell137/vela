@@ -23,7 +23,7 @@ Window {
     // Color mode: the color under the mouse, shown beside it.
     property string hoverColor: ""
     property point hoverAt
-    readonly property bool dragMode: Snip.mode === "rect" || Snip.mode === "text"
+    readonly property bool dragMode: Snip.mode === "rect" || Snip.mode === "text" || Snip.mode === "record"
     readonly property bool hasSelection: selection.width > 0 && selection.height > 0
 
     // The Text mode: the chosen rectangle stays, with the words found in it
@@ -215,6 +215,8 @@ Window {
                 root.dragging = false
                 if (Snip.mode === "text") {
                     root.beginText(root.selection)
+                } else if (Snip.mode === "record" && root.selection.width < 6 && root.selection.height < 6) {
+                    root.finish(Qt.rect(0, 0, root.width, root.height)) // a click: the whole output
                 } else {
                     root.finish(root.selection)
                 }
@@ -372,7 +374,8 @@ Window {
                     { mode: "window", icon: "window", tip: qsTr("Window") },
                     { mode: "screen", icon: "view-fullscreen", tip: qsTr("Full screen") },
                     { mode: "text", icon: "edit-select-text", tip: qsTr("Text") },
-                    { mode: "color", icon: "color-picker", tip: qsTr("Color picker") }
+                    { mode: "color", icon: "color-picker", tip: qsTr("Color picker") },
+                    { mode: "record", icon: "media-record", tip: qsTr("Record") }
                 ]
                 delegate: Rectangle {
                     id: tool
@@ -416,6 +419,22 @@ Window {
                     font.pixelSize: Theme.fontBody
                 }
                 MouseArea { id: copyAllMouse; anchors.fill: parent; hoverEnabled: true; onClicked: root.copyAll() }
+            }
+            // Record mode: drag an area or click for the whole output; sound off or microphone.
+            Rectangle {
+                visible: Snip.mode === "record"
+                width: micText.width + 24
+                height: 36
+                radius: Theme.radius
+                color: micMouse.containsMouse ? Theme.subtleHover : "transparent"
+                Text {
+                    id: micText
+                    anchors.centerIn: parent
+                    text: Snip.microphone ? qsTr("Sound: microphone") : qsTr("Sound: off")
+                    color: Theme.text
+                    font.pixelSize: Theme.fontBody
+                }
+                MouseArea { id: micMouse; anchors.fill: parent; hoverEnabled: true; onClicked: Snip.toggleMicrophone() }
             }
             Rectangle { width: 1; height: 24; anchors.verticalCenter: parent.verticalCenter; color: Theme.stroke }
             // The delay: click to cycle None, 3, 5, 10 seconds.

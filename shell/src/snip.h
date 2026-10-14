@@ -33,6 +33,10 @@ class Snip : public QObject {
     // "rect", "window", "screen" or "text" (a rectangle whose text is copied)
     // Delay before the capture, seconds: 0, 3, 5 or 10.
     Q_PROPERTY(int delay READ delay NOTIFY delayChanged)
+    // "record": a rectangle (or a click: the output) is recorded with wf-recorder.
+    Q_PROPERTY(bool recording READ recording NOTIFY recordingChanged)
+    Q_PROPERTY(int recordSeconds READ recordSeconds NOTIFY recordSecondsChanged)
+    Q_PROPERTY(bool microphone READ microphone NOTIFY microphoneChanged)
     Q_PROPERTY(QString mode READ mode WRITE setMode NOTIFY modeChanged)
     // The visible windows, topmost first: [{x, y, w, h, title}] in the layout.
     Q_PROPERTY(QVariantList windows READ windows NOTIFY activeChanged)
@@ -48,7 +52,13 @@ public:
     void setMode(const QString& mode);
     QVariantList windows() const { return m_windows; }
 
-    void start();
+    bool recording() const { return m_recorder != nullptr; }
+    int recordSeconds() const { return m_recordSeconds; }
+    bool microphone() const { return m_microphone; }
+    Q_INVOKABLE void toggleMicrophone();
+    Q_INVOKABLE void stopRecording();
+
+    void start(); // while recording: stops the recording instead
     void startText(); // the Text mode from the start
     Q_INVOKABLE void cancel();
     // The snip, in logical coordinates of output `screen`.
@@ -66,6 +76,9 @@ signals:
     void activeChanged();
     void modeChanged();
     void delayChanged();
+    void recordingChanged();
+    void recordSecondsChanged();
+    void microphoneChanged();
     // [{text, x, y, w, h, line}] in the output's logical coordinates.
     void wordsReady(const QString& screen, const QVariantList& words);
     void recognizeFailed(const QString& screen, const QString& reason);
@@ -78,6 +91,9 @@ private:
     void finishNow(const QString& screen, qreal x, qreal y, qreal width, qreal height);
     void tickCountdown();
     void captured();
+    void startRecording(const QString& screen, const QRectF& area);
+    void launchRecorder(bool webm);
+    void recorderFinished(int code, bool crashed);
 
     QQmlComponent m_component;
     WindowCapture* m_capture;
@@ -100,6 +116,19 @@ private:
     QVariantList m_windows;
     QList<QPointer<QQuickWindow>> m_overlays;
     QHash<uint, QString> m_saved; // notification -> saved file
+
+    // wf-recorder, and what it was asked to record.
+    QProcess* m_recorder = nullptr;
+    QString m_recordFile;
+    QString m_recordOutput;
+    QRect m_recordArea;
+    bool m_recordWebm = false;
+    bool m_microphone = false;
+    bool m_stopping = false;
+    int m_recordSeconds = 0;
+    QTimer m_recordClock;
+    QPointer<QQuickWindow> m_bar;
+    QQmlComponent m_barComponent;
 
     // The vela-ocr worker and the image it is reading.
     struct Pending {
