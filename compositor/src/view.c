@@ -767,6 +767,7 @@ void vela_views_load_settings(struct vela_server *server)
     server->window_opacity = vela_clamp(atoi(vela_config_get(&settings, "window-opacity", "100")), 30, 100);
     const char *inactive = vela_config_get(&settings, "window-opacity-inactive", "");
     server->window_opacity_inactive = *inactive ? vela_clamp(atoi(inactive), 30, 100) : server->window_opacity;
+    vela_window_rules_load(&server->window_rules);
     free(server->ssd_include);
     const char *ssd = vela_config_get(&settings, "decoration-ssd", "kitty");
     server->ssd_include = *ssd ? strdup(ssd) : NULL;
@@ -1066,7 +1067,33 @@ void vela_view_mapped(struct vela_view *view)
     if (view->xdg) {
         vela_view_update_decoration(view); // the bar is part of the frame to place
     }
-    struct vela_output *output = vela_output_under_cursor(server);
+    // Window rules (window_rules.h): once, now; the user can move it later.
+    const struct vela_window_rule *rule
+        = vela_window_rules_find(&server->window_rules, vela_view_app_id(view), vela_view_title(view));
+    struct vela_output *output = NULL;
+    if (rule && rule->output) {
+        output = vela_output_named(server, rule->output);
+        int index = atoi(rule->output);
+        struct vela_output *candidate;
+        wl_list_for_each (candidate, &server->outputs, link) {
+            if (!output && index > 0 && --index == 0) {
+                output = candidate;
+            }
+        }
+    }
+    if (!output) {
+        output = vela_output_under_cursor(server);
+    }
+    if (rule && rule->fullscreen == 0 && view->fullscreen) {
+        vela_view_set_fullscreen(view, false);
+    }
+    if (rule && rule->maximized == 1 && !view->maximized && !view->fullscreen && output) {
+        // Put it on the chosen output first: that's where it maximizes.
+        struct wlr_box g = vela_view_geometry(view);
+        vela_node_set_position(&view->tree->node, output->usable.x + (output->usable.width - g.width) / 2 - g.x,
+            output->usable.y + (output->usable.height - g.height) / 2 - g.y);
+        vela_view_set_maximized(view, true, false);
+    }
     struct wlr_box geometry = vela_view_geometry(view);
     if (output && (view->fullscreen || view->maximized)) {
         struct vela_placement place = vela_output_place(output,
@@ -1078,17 +1105,47 @@ void vela_view_mapped(struct vela_view *view)
         // larger than it (some apps remember the size they had on another
         // output or in another session).
         const struct wlr_box area = output->usable;
-        struct wlr_box frame = vela_output_fit(output, (struct wlr_box) { 0, 0, geometry.width, geometry.height });
-        if (frame.width < geometry.width || frame.height < geometry.height) {
+        int width = geometry.width;
+        int height = geometry.height;
+        if (rule && rule->has_size) {
+            width = rule->width;
+            height = rule->height;
+        }
+        struct wlr_box frame = vela_output_fit(output, (struct wlr_box) { 0, 0, width, height });
+        if (frame.width != geometry.width || frame.height != geometry.height) {
             vela_view_configure_size(view, frame.width, frame.height);
         }
-        view->target_x = area.x + (area.width - frame.width) / 2 - geometry.x;
-        view->target_y = area.y + (area.height - frame.height) / 2 - geometry.y;
+        int x = area.x + (area.width - frame.width) / 2;
+        int y = area.y + (area.height - frame.height) / 2;
+        if (rule && rule->has_position && rule->center != 1) {
+            frame.x = area.x + rule->x;
+            frame.y = area.y + rule->y;
+            frame = vela_output_fit(output, frame);
+            x = frame.x;
+            y = frame.y;
+        }
+        view->target_x = x - geometry.x;
+        view->target_y = y - geometry.y;
     }
     wl_list_insert(&server->views, &view->link);
     vela_workspaces_view_mapped(server, view);
+    bool elsewhere = false;
+    if (rule && rule->desktop > 0 && rule->desktop <= server->workspaces->count) {
+        // Not through move_view: the handles don't exist yet. No focus either,
+        // so the desktop doesn't switch under the user.
+        view->workspace = rule->desktop - 1;
+        elsewhere = !vela_view_on_current_workspace(view);
+        if (elsewhere) {
+            vela_node_set_enabled(&view->tree->node, false);
+        }
+    }
     create_handles(view);
-    vela_focus_new_view(server, view);
+    if (!elsewhere) {
+        vela_focus_new_view(server, view);
+    }
+    if (rule && rule->always_on_top == 1 && !view->fullscreen) {
+        vela_view_set_always_on_top(view, true);
+    }
     start_open_animation(view);
     vela_workspaces_announce(server);
 }
@@ -1426,6 +1483,7 @@ void vela_views_finish(struct vela_server *server)
     free(server->window_blur_include);
     free(server->window_blur_exclude);
     server->window_blur_include = server->window_blur_exclude = NULL;
+    vela_window_rules_free(&server->window_rules);
     free(server->ssd_include);
     server->ssd_include = NULL;
 }

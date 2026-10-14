@@ -71,6 +71,36 @@ Vela Settings preserves unrelated lines when it updates a key and asks the compo
 | `window-opacity` | `100` | The same windows drawn translucent, in percent (30–100), so the blur shows through them; title bar included, shadow and fullscreen windows not. `100` changes nothing. |
 | `window-opacity-inactive` | `window-opacity` | The same for windows that aren't active. |
 
+## Window rules
+
+`window-rule` is the one repeatable key: one line per rule, in `vela.conf` (Settings > Personalization > Window rules writes them).
+
+```text
+window-rule=<app-id>|<key>=<value>,<key>=<value>
+```
+
+```text
+window-rule=discord|output=HDMI-A-1,desktop=2
+window-rule=kitty|size=900x600,center=yes
+window-rule=mpv|always-on-top=yes
+```
+
+The app id (or X11 class) matches ignoring case; the first matching rule wins. Keys:
+
+| Key | Meaning |
+| --- | --- |
+| `title~=text` | Only windows whose title contains `text` (ignoring case), checked when the window opens. |
+| `output=NAME` | The output's name (`HDMI-A-1`) or its 1-based number. An unknown output is ignored. |
+| `desktop=N` | Virtual desktop, 1-based. The window opens there without switching to it (and without taking focus); ignored if the desktop doesn't exist. |
+| `position=X,Y` | Frame position from the corner of the output's usable area, kept inside it. |
+| `size=WxH` | Size of the whole frame, title bar included; never larger than the usable area. |
+| `center=yes` | Centered on the output (wins over `position`). |
+| `maximized=yes` | Opens maximized on the output. |
+| `fullscreen=no` | A window that asks to open fullscreen opens as a normal window. |
+| `always-on-top=yes` | Starts always on top (not kept when the window closes). |
+
+Unknown keys and unusable values are ignored and logged. Rules apply once, when a window opens: you can move it afterwards. `reload-config` (and Settings) change the rules for windows opened from then on, not for windows already open.
+
 The Settings app is the preferred way to edit these values because it applies validation and reloads the compositor at the correct time.
 
 ## Display configuration

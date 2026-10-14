@@ -60,6 +60,8 @@
 //   window-opacity=100       the forced windows translucent (percent, 30-100;
 //                            not fullscreen; title bar too, not the shadow)
 //   window-opacity-inactive= the same when not active (empty: window-opacity)
+//   window-rule=app|k=v,k=v  repeatable: how a new window of that app opens (see
+//                            window_rules.h)
 //
 // The old Italian names are still read (legacy_names.h).
 
@@ -91,6 +93,10 @@ bool vela_config_flag(const struct vela_config *config, const char *key, bool fa
 // Whether a comma-separated list (spaces around items allowed) has `item`,
 // ignoring case: X11 classes and app ids differ in case for the same app.
 bool vela_config_list_has(const char *list, const char *item);
+
+// Calls `callback` for every line of the file with this key, in order (the
+// reader above keeps only the last): for repeatable keys such as window-rule.
+void vela_config_each(const char *key, void (*callback)(const char *value, void *data), void *data);
 
 // Changes one key in the file and leaves the rest as it is (comments too): for
 // what is also turned on outside Settings (quick settings, shortcuts).

@@ -308,6 +308,13 @@ void Preferences::reloadCompositor()
     m_windowBlurExclude = cleanAppIds(value(QStringLiteral("window-blur-exclude"), {}).split(u','));
     m_windowOpacity = std::clamp(value(QStringLiteral("window-opacity"), QStringLiteral("100")).toInt(), 30, 100);
     emit windowBlurChanged();
+    m_windowRules.clear();
+    for (const auto& [key, rule] : std::as_const(m_compositor)) {
+        if (key == QLatin1String("window-rule") && !rule.trimmed().isEmpty()) {
+            m_windowRules << rule;
+        }
+    }
+    emit windowRulesChanged();
 
     m_layouts.clear();
     const QStringList layouts = value(QStringLiteral("keyboard-layout"), {}).split(u',', Qt::SkipEmptyParts);
@@ -558,6 +565,17 @@ void Preferences::setWindowBlurInclude(const QStringList& apps)
     m_windowBlurInclude = clean;
     saveCompositor({ { QStringLiteral("window-blur-include"), clean.isEmpty() ? QString() : clean.join(u',') } });
     emit windowBlurChanged();
+}
+
+void Preferences::setWindowRules(const QStringList& rules)
+{
+    if (rules == m_windowRules) {
+        return;
+    }
+    m_windowRules = rules;
+    // One window-rule line per rule: saveCompositor replaces all of them.
+    saveCompositor({ { QStringLiteral("window-rule"), rules.isEmpty() ? QString() : rules.join(u'\n') } });
+    emit windowRulesChanged();
 }
 
 void Preferences::setWindowBlurExclude(const QStringList& apps)
@@ -827,6 +845,16 @@ void Preferences::saveCompositor(const QList<QPair<QString, QString>>& changes)
             lines.erase(std::remove_if(lines.begin(), lines.end(),
                             [&](const QString& line) { return line.startsWith(key + u'='); }),
                 lines.end());
+            continue;
+        }
+        if (key == QLatin1String("window-rule")) {
+            // Repeatable: all the old lines out, one new line per rule.
+            lines.erase(std::remove_if(lines.begin(), lines.end(),
+                            [&](const QString& line) { return line.startsWith(key + u'='); }),
+                lines.end());
+            for (const QString& rule : value.split(u'\n', Qt::SkipEmptyParts)) {
+                lines << key + u'=' + rule;
+            }
             continue;
         }
         bool found = false;
