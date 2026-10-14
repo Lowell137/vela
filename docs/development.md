@@ -194,6 +194,7 @@ stickynotes/        vela-stickynotes
 voicerecorder/      vela-voicerecorder (pw-record records, libmpv plays, ffmpeg trims)
 terminal/           vela-terminal (libvterm reads what the programs write)
 eventviewer/        vela-eventviewer (journalctl's entries, filtered and followed)
+calendar/           vela-calendar (local events, repeats, .ics, reminders)
 common/fluent/      the four apps above draw their commands with Fluent icons (MIT)
 settings/           vela-settings
 lock/               vela-lock
