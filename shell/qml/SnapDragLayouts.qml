@@ -114,7 +114,7 @@ Window {
         onXChanged: root.updateBlur()
         onWidthChanged: root.updateBlur()
         onHeightChanged: root.updateBlur()
-        radius: height / 2
+        radius: Theme.radiusOverlay * root.s
         color: Theme.popup
         border.width: 1
         border.color: Theme.stroke
