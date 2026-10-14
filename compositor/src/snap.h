@@ -91,6 +91,11 @@ struct vela_snapping {
     // Snap layouts with the mouse resting on Maximize.
     struct vela_view *layouts_hover;
     struct wl_event_source *layouts_timer;
+    // Snap layouts while dragging to the top: the output they're open on
+    // (NULL: closed), the zone under the cursor (-1: none), closed with Esc.
+    struct vela_output *drag_output;
+    int drag_layout, drag_zone;
+    bool drag_dismissed;
     uint32_t next_group;
 };
 
@@ -106,6 +111,9 @@ bool vela_snap_tick_preview(struct vela_server *server, double now_ms);
 bool vela_snap_preview_shown(const struct vela_server *server);
 // End of the drag; apply: the window snaps where it points.
 void vela_snap_end_zone(struct vela_server *server, bool apply);
+// Esc while dragging closes the snap layouts at the top: true if the key was
+// for them (its release too).
+bool vela_snap_drag_key(struct vela_server *server, uint32_t sym, bool pressed);
 // After a snap: Snap Assist offers the other windows in the free spaces.
 void vela_snap_offer_assist(struct vela_server *server, struct vela_view *view);
 // Snap Assist put `view` next to `origin`: same group.

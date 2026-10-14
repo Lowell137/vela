@@ -6,10 +6,12 @@
 #include "buffer.h"
 #include "decoration.h"
 #include "focus.h"
+#include "interact.h"
 #include "output.h"
 #include "scene/scene.h"
 #include "shell.h"
 #include "server.h"
+#include "shortcuts.h"
 #include "view.h"
 #include "workspace.h"
 
@@ -200,6 +202,7 @@ struct vela_snapping *vela_snapping_create(void)
     struct vela_snapping *snapping = calloc(1, sizeof(*snapping));
     snapping->tween = (struct vela_tween) { -1.0, 1.0, NULL };
     snapping->next_group = 1;
+    snapping->drag_layout = snapping->drag_zone = -1;
     return snapping;
 }
 
@@ -255,6 +258,178 @@ static void remove_preview(struct vela_snapping *snapping)
     }
 }
 
+// ------------------------------------------- layouts while dragging --
+// Dragging a window to the top of an output opens the snap layouts there,
+// like Windows 11; released on a zone, it snaps there. The compositor has the
+// pointer during the drag, so it finds the zone; the shell only draws
+// (SnapDragLayouts.qml) what it's sent: "snap-drag show <output> <json>" (the
+// panel's top left on the output, its scale, sizes and layouts),
+// "snap-drag hover <layout> <zone>" (-1 -1: none), "snap-drag hide", and
+// "snap-drag drop <window> <layout>" just before the snap, so that Snap
+// Assist offers the layout's other zones.
+
+#define DRAG_KEEP 32 // once open, this much farther they stay open
+// The panel at 100%: one row of 64x40 cards, 8 apart, 16 from the ends and 8
+// from the top and bottom of the pill, which is 8 below the top of the output;
+// zones 3 inside the card.
+#define DRAG_CARD_W 64
+#define DRAG_CARD_H 40
+#define DRAG_GAP 8
+#define DRAG_PAD_X 16
+#define DRAG_PAD_Y 8
+#define DRAG_INSET 3
+#define DRAG_COUNT 8
+#define DRAG_PANEL_W (DRAG_COUNT * DRAG_CARD_W + (DRAG_COUNT - 1) * DRAG_GAP + 2 * DRAG_PAD_X)
+#define DRAG_PANEL_H (DRAG_CARD_H + 2 * DRAG_PAD_Y)
+#define DRAG_PANEL_TOP 8
+
+// In twelfths (x1 == 0: no zone).
+static const struct vela_snap drag_layouts[DRAG_COUNT][4] = {
+    { { 0, 0, 6, 12 }, { 6, 0, 12, 12 } },
+    { { 0, 0, 8, 12 }, { 8, 0, 12, 12 } },
+    { { 0, 0, 4, 12 }, { 4, 0, 12, 12 } },
+    { { 0, 0, 4, 12 }, { 4, 0, 8, 12 }, { 8, 0, 12, 12 } },
+    { { 0, 0, 6, 12 }, { 6, 0, 12, 6 }, { 6, 6, 12, 12 } },
+    { { 0, 0, 6, 6 }, { 6, 0, 12, 6 }, { 0, 6, 6, 12 }, { 6, 6, 12, 12 } },
+    { { 0, 0, 3, 12 }, { 3, 0, 9, 12 }, { 9, 0, 12, 12 } },
+    { { 0, 0, 6, 6 }, { 0, 6, 6, 12 }, { 6, 0, 12, 12 } },
+};
+
+// The panel on an output: its top left (layout coordinates) and scale
+// ("snap-drag-scale", but at most 90% of the output's width).
+struct drag_panel {
+    double x, y, scale;
+};
+
+static struct drag_panel drag_panel_on(const struct vela_output *output)
+{
+    struct wlr_box box = vela_output_box(output);
+    double scale = fmin(vela_snap_drag_config()->scale / 100.0, 0.9 * box.width / DRAG_PANEL_W);
+    return (struct drag_panel) { box.x + (box.width - DRAG_PANEL_W * scale) / 2.0, box.y + DRAG_PANEL_TOP * scale,
+        scale };
+}
+
+// The zone at (x, y) from the panel's top left, at 100%: anywhere on a card
+// counts, its inset and the gaps between zones too.
+static bool drag_zone_at(double x, double y, int *layout, int *zone)
+{
+    *layout = *zone = -1;
+    int l = (int)floor((x - DRAG_PAD_X) / (DRAG_CARD_W + DRAG_GAP));
+    double cx = DRAG_PAD_X + l * (DRAG_CARD_W + DRAG_GAP);
+    if (l < 0 || l >= DRAG_COUNT || x >= cx + DRAG_CARD_W || y < DRAG_PAD_Y || y >= DRAG_PAD_Y + DRAG_CARD_H) {
+        return false;
+    }
+    double u = fmin(fmax((x - cx - DRAG_INSET) * 12.0 / (DRAG_CARD_W - 2 * DRAG_INSET), 0.0), 11.999);
+    double v = fmin(fmax((y - DRAG_PAD_Y - DRAG_INSET) * 12.0 / (DRAG_CARD_H - 2 * DRAG_INSET), 0.0), 11.999);
+    for (int z = 0; z < 4 && drag_layouts[l][z].x1; ++z) {
+        struct vela_snap s = drag_layouts[l][z];
+        if (u >= s.x0 && u < s.x1 && v >= s.y0 && v < s.y1) {
+            *layout = l;
+            *zone = z;
+            return true;
+        }
+    }
+    return false;
+}
+
+// "snap-drag show": all the shell needs to draw what drag_zone_at hits.
+static void drag_send_show(struct vela_server *server, struct vela_output *output, struct drag_panel panel)
+{
+    struct wlr_box box = vela_output_box(output);
+    struct vela_buffer line = { 0 };
+    vela_buffer_appendf(&line,
+        "snap-drag show %s {\"x\":%.2f,\"y\":%.2f,\"scale\":%.3f,\"card\":[%d,%d],\"gap\":%d,\"pad\":[%d,%d],"
+        "\"inset\":%d,\"layouts\":[",
+        output->wlr->name, panel.x - box.x, panel.y - box.y, panel.scale, DRAG_CARD_W, DRAG_CARD_H, DRAG_GAP,
+        DRAG_PAD_X, DRAG_PAD_Y, DRAG_INSET);
+    for (int l = 0; l < DRAG_COUNT; ++l) {
+        vela_buffer_appendf(&line, "%s[", l ? "," : "");
+        for (int z = 0; z < 4 && drag_layouts[l][z].x1; ++z) {
+            struct vela_snap s = drag_layouts[l][z];
+            vela_buffer_appendf(&line, "%s[%d,%d,%d,%d]", z ? "," : "", s.x0, s.y0, s.x1, s.y1);
+        }
+        vela_buffer_appendf(&line, "]");
+    }
+    vela_buffer_appendf(&line, "]}");
+    vela_shell_send(server, vela_buffer_text(&line));
+    vela_buffer_finish(&line);
+}
+
+static const char *view_id(const struct vela_view *view);
+
+// Opens, follows and closes the layouts; the zone under the cursor, or none.
+static struct vela_snap drag_layouts_update(struct vela_server *server, struct vela_output *output)
+{
+    struct vela_snapping *snapping = server->snapping;
+    struct wlr_cursor *cursor = server->cursor;
+    struct vela_view *grabbed = server->grabbed;
+    const struct vela_snap_drag_config *config = vela_snap_drag_config();
+    // Only dragging with the mouse: a keyboard Move can't drop on a zone.
+    bool allowed = output && grabbed && server->cursor_mode == VELA_CURSOR_MOVE && !server->interaction->keyboard.view
+        && !grabbed->fullscreen && view_id(grabbed) && config->enabled;
+    struct vela_output *open = NULL;
+    struct drag_panel panel = { 0 };
+    if (output) {
+        struct wlr_box box = vela_output_box(output);
+        panel = drag_panel_on(output);
+        double width = DRAG_PANEL_W * panel.scale;
+        double height = DRAG_PANEL_H * panel.scale;
+        double x = cursor->x;
+        double y = cursor->y;
+        // Near the top, beside the panel too. Once open they stay open
+        // DRAG_KEEP farther, below the panel too: no flicker at the border.
+        bool at_top = x >= panel.x - config->width && x < panel.x + width + config->width
+            && y < box.y + config->distance;
+        bool around = x >= panel.x - config->width - DRAG_KEEP && x < panel.x + width + config->width + DRAG_KEEP
+            && y < fmax(box.y + config->distance, panel.y + height) + DRAG_KEEP;
+        if (!around) {
+            snapping->drag_dismissed = false; // Esc lasts until the pointer goes away
+        }
+        if (allowed && !snapping->drag_dismissed && (at_top || (around && snapping->drag_output == output))) {
+            open = output;
+        }
+    }
+    if (open != snapping->drag_output) {
+        if (open) {
+            drag_send_show(server, open, panel);
+        } else {
+            vela_shell_send(server, "snap-drag hide");
+        }
+        snapping->drag_output = open;
+        snapping->drag_layout = snapping->drag_zone = -1;
+    }
+    int layout = -1;
+    int zone = -1;
+    if (open) {
+        drag_zone_at((cursor->x - panel.x) / panel.scale, (cursor->y - panel.y) / panel.scale, &layout, &zone);
+        if (layout != snapping->drag_layout || zone != snapping->drag_zone) {
+            char line[64];
+            snprintf(line, sizeof(line), "snap-drag hover %d %d", layout, zone);
+            vela_shell_send(server, line);
+        }
+    }
+    snapping->drag_layout = layout;
+    snapping->drag_zone = zone;
+    return layout >= 0 ? drag_layouts[layout][zone] : vela_snap_none;
+}
+
+bool vela_snap_drag_key(struct vela_server *server, uint32_t sym, bool pressed)
+{
+    struct vela_snapping *snapping = server->snapping;
+    if (sym != XKB_KEY_Escape) {
+        return false;
+    }
+    if (!pressed) {
+        return snapping->drag_dismissed && server->cursor_mode == VELA_CURSOR_MOVE;
+    }
+    if (!snapping->drag_output) {
+        return false;
+    }
+    snapping->drag_dismissed = true;
+    vela_snap_update_zone(server);
+    return true;
+}
+
 void vela_snap_update_zone(struct vela_server *server)
 {
     struct vela_snapping *snapping = server->snapping;
@@ -263,7 +438,11 @@ void vela_snap_update_zone(struct vela_server *server)
     struct vela_output *output = vela_output_at(server, cursor->x, cursor->y);
     enum vela_snap_zone zone = VELA_SNAP_ZONE_NONE;
     struct vela_snap tile = vela_snap_none;
-    if (output && grabbed && !grabbed->fullscreen) {
+    struct vela_snap chosen = drag_layouts_update(server, output);
+    if (!vela_snap_is_none(chosen)) {
+        zone = VELA_SNAP_ZONE_TILE;
+        tile = chosen;
+    } else if (output && grabbed && !grabbed->fullscreen) {
         struct wlr_box box = vela_output_box(output);
         bool left = cursor->x <= box.x + EDGE_THRESHOLD;
         bool right = cursor->x >= box.x + box.width - 1 - EDGE_THRESHOLD;
@@ -322,11 +501,23 @@ void vela_snap_end_zone(struct vela_server *server, bool apply)
     enum vela_snap_zone zone = snapping->zone;
     struct vela_snap tile = snapping->tile;
     struct vela_output *output = snapping->output;
+    struct vela_view *grabbed = server->grabbed;
     remove_preview(snapping);
     snapping->zone = VELA_SNAP_ZONE_NONE;
     snapping->tile = vela_snap_none;
     snapping->output = NULL;
-    struct vela_view *grabbed = server->grabbed;
+    if (snapping->drag_output) {
+        // Dropped on a zone: the shell learns the layout before Snap Assist.
+        char line[256];
+        bool drop = apply && grabbed && snapping->drag_layout >= 0 && zone == VELA_SNAP_ZONE_TILE;
+        if (drop) {
+            snprintf(line, sizeof(line), "snap-drag drop %s %d", view_id(grabbed), snapping->drag_layout);
+        }
+        vela_shell_send(server, drop ? line : "snap-drag hide");
+        snapping->drag_output = NULL;
+        snapping->drag_layout = snapping->drag_zone = -1;
+    }
+    snapping->drag_dismissed = false;
     if (!apply || !grabbed || zone == VELA_SNAP_ZONE_NONE) {
         return;
     }

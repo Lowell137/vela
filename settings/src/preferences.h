@@ -94,6 +94,13 @@ class Preferences : public QObject {
     Q_PROPERTY(bool hotCorner READ hotCorner WRITE setHotCorner NOTIFY shortcutsChanged)
     Q_PROPERTY(bool hotCornerGlow READ hotCornerGlow WRITE setHotCornerGlow NOTIFY shortcutsChanged)
     Q_PROPERTY(bool hotCornerAnimation READ hotCornerAnimation WRITE setHotCornerAnimation NOTIFY shortcutsChanged)
+    // Dragging a window to the top of the screen opens the snap layouts.
+    Q_PROPERTY(bool snapDragLayouts READ snapDragLayouts WRITE setSnapDragLayouts NOTIFY shortcutsChanged)
+    // How close to the top (px, 4-200) and how far beside them (px, 0-960)
+    // they open, and their size (percent, 60-200).
+    Q_PROPERTY(int snapDragDistance READ snapDragDistance WRITE setSnapDragDistance NOTIFY shortcutsChanged)
+    Q_PROPERTY(int snapDragWidth READ snapDragWidth WRITE setSnapDragWidth NOTIFY shortcutsChanged)
+    Q_PROPERTY(int snapDragScale READ snapDragScale WRITE setSnapDragScale NOTIFY shortcutsChanged)
     Q_PROPERTY(bool touchpadNatural READ touchpadNatural WRITE setTouchpadNatural NOTIFY inputChanged)
     // "app", "desktop" or "no"
     Q_PROPERTY(QString threeFingers READ threeFingers WRITE setThreeFingers NOTIFY inputChanged)
@@ -253,6 +260,14 @@ public:
     void setHotCornerGlow(bool on);
     bool hotCornerAnimation() const { return m_hotCornerAnimation; }
     void setHotCornerAnimation(bool on);
+    bool snapDragLayouts() const { return m_snapDragLayouts; }
+    void setSnapDragLayouts(bool on);
+    int snapDragDistance() const { return m_snapDragDistance; }
+    void setSnapDragDistance(int value);
+    int snapDragWidth() const { return m_snapDragWidth; }
+    void setSnapDragWidth(int value);
+    int snapDragScale() const { return m_snapDragScale; }
+    void setSnapDragScale(int value);
     bool touchpadNatural() const { return m_touchpadNatural; }
     void setTouchpadNatural(bool on);
     QString threeFingers() const { return m_threeFingers; }
@@ -355,6 +370,10 @@ private:
     bool m_hotCorner = true;
     bool m_hotCornerGlow = true;
     bool m_hotCornerAnimation = true;
+    bool m_snapDragLayouts = true;
+    int m_snapDragDistance = 64;
+    int m_snapDragWidth = 160;
+    int m_snapDragScale = 100;
     QString m_threeFingers = QStringLiteral("app");
     QString m_fourFingers = QStringLiteral("desktop");
     bool m_clipboardHistory = false;

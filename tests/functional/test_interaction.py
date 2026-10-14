@@ -4,9 +4,11 @@
 """Pointer and keyboard on windows (interact.c, bindings.c, snap.c): the
 invisible resize borders, keyboard "Move" and "Size", the window menu (right
 click on the title, Alt+Space), snapping by dragging against the edge with
-Snap Assist, snap layouts (Win+Z) and snap groups. The shell is a FakeShell
-collecting the messages."""
+Snap Assist, snap layouts (Win+Z, and dragging to the top) and snap groups.
+The shell is a FakeShell collecting the messages."""
 
+import json
+import os
 import time
 import unittest
 
@@ -116,6 +118,77 @@ class Interaction(unittest.TestCase):
         line = self.shell.wait_for("snap-assist ")
         self.assertIn(f'"window":"{window}"', line)
         self.assertIn(f'"candidates":["{other}"]', line)
+
+    def drag_to_top(self, window, then=(), top=4):
+        """Grabs the title bar and drags to the top center of the output."""
+        x, y, _, _ = self.frame(window)
+        grab_x, grab_y = x + 100, y + 16
+        self.vela.input("move", grab_x, grab_y, "sleep", "50", "down", "sleep", "50",
+                        "move", grab_x + 50, grab_y + 50, "sleep", "50", "move", 960, top, "sleep", "100", *then)
+
+    def drag_messages(self):
+        """The "snap-drag" lines, the "show" one as (output, its JSON)."""
+        out = []
+        for line in self.shell.received("snap-drag"):
+            if line.startswith("snap-drag show "):
+                _, _, output, data = line.split(" ", 3)
+                line = ("show", output, json.loads(data))
+            out.append(line)
+        return out
+
+    def check_show(self, message, x, y, scale):
+        self.assertEqual(message[:2], ("show", "HEADLESS-1"))
+        data = message[2]
+        self.assertEqual((data["x"], data["y"], data["scale"]), (x, y, scale))
+        self.assertEqual(len(data["layouts"]), 8)
+        self.assertEqual(data["layouts"][3], [[0, 0, 4, 12], [4, 0, 8, 12], [8, 0, 12, 12]])
+
+    def test_drag_to_top_opens_layouts_and_drops_on_a_zone(self):
+        self.vela.open_window(401, 301)
+        window = self.vela.open_window(300, 200, decorated=True)
+        # The pill, 600 wide, centered 8 below the top; then the fourth
+        # layout (three columns), its middle zone. One gesture: vela-input
+        # lets the button go when it exits.
+        self.drag_to_top(window, ["move", 924, 36, "sleep", "100", "up"])
+        self.vela.wait_for(lambda s: s.window(window)["snap"] == [4, 0, 8, 12], what="snapped in the middle")
+        messages = self.drag_messages()
+        self.check_show(messages[0], 660, 8, 1)
+        self.assertEqual(messages[1:], ["snap-drag hover 3 1", f"snap-drag drop {window} 3"])
+        self.shell.wait_for("snap-assist ")
+
+    def test_drag_layouts_trigger_distance_and_scale(self):
+        os.makedirs(os.path.dirname(self.vela.config_path()), exist_ok=True)
+        with open(self.vela.config_path(), "w") as f:
+            f.write("snap-drag-trigger-distance=100\nsnap-drag-scale=150\n")
+        self.vela.command("reload-config")
+        window = self.vela.open_window(300, 200, decorated=True)
+        # 90 from the top opens them now; at 150% the pill is 900 wide, 12
+        # below the top, the same zone farther right and lower.
+        self.drag_to_top(window, ["move", 906, 54, "sleep", "100", "up"], top=90)
+        self.vela.wait_for(lambda s: s.window(window)["snap"] == [4, 0, 8, 12], what="snapped in the middle")
+        messages = self.drag_messages()
+        self.check_show(messages[0], 510, 12, 1.5)
+        self.assertEqual(messages[1:], ["snap-drag hover 3 1", f"snap-drag drop {window} 3"])
+
+    def test_drag_layouts_esc_and_setting(self):
+        window = self.vela.open_window(300, 200, decorated=True)
+        # Esc closes the layouts; released at the top outside them it
+        # maximizes, as before.
+        self.drag_to_top(window, ["key", "escape", "sleep", "60", "move", 961, 3, "sleep", "100", "up"])
+        self.vela.wait_for(lambda s: s.window(window)["maximized"], what="maximized")
+        messages = self.drag_messages()
+        self.check_show(messages[0], 660, 8, 1)
+        self.assertEqual(messages[1:], ["snap-drag hide"])
+        os.makedirs(os.path.dirname(self.vela.config_path()), exist_ok=True)
+        with open(self.vela.config_path(), "w") as f:
+            f.write("snap-drag-layouts=no\n")
+        self.vela.command("reload-config")
+        self.shell.clear()
+        other = self.vela.open_window(300, 200, decorated=True)
+        self.drag_to_top(other, ["move", 924, 36, "sleep", "100", "up"])
+        self.vela.wait_still(other)
+        self.assertEqual(self.vela.state().window(other)["snap"], None)
+        self.assertEqual(self.shell.received("snap-drag"), [])
 
     def test_snap_layouts_and_groups(self):
         first = self.vela.open_window(401, 301)

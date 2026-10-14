@@ -8,6 +8,7 @@
 #include "process.h"
 #include "server.h"
 #include "shell.h"
+#include "util.h"
 #include "view.h"
 
 #include <ctype.h>
@@ -60,6 +61,7 @@ static bool overridden[ACTION_COUNT]; // the user has a "shortcut-<action>" line
 static bool hot_corner = true; // "hot-corner=no" in vela.conf turns it off
 static bool hot_corner_glow = true; // "hot-corner-glow=no": no glow while near
 static bool hot_corner_animation = true; // "hot-corner-animation=no": no ripples
+static struct vela_snap_drag_config snap_drag = { true, 64, 160, 100 }; // "snap-drag-*" in vela.conf
 
 bool vela_shortcut_parse(const char *text, uint32_t *modifiers, uint32_t *sym)
 {
@@ -184,6 +186,10 @@ void vela_shortcuts_load(void)
     hot_corner = vela_config_flag(&config, "hot-corner", true);
     hot_corner_glow = vela_config_flag(&config, "hot-corner-glow", true);
     hot_corner_animation = vela_config_flag(&config, "hot-corner-animation", true);
+    snap_drag.enabled = vela_config_flag(&config, "snap-drag-layouts", true);
+    snap_drag.distance = vela_clamp(atoi(vela_config_get(&config, "snap-drag-trigger-distance", "64")), 4, 200);
+    snap_drag.width = vela_clamp(atoi(vela_config_get(&config, "snap-drag-trigger-width", "160")), 0, 960);
+    snap_drag.scale = vela_clamp(atoi(vela_config_get(&config, "snap-drag-scale", "100")), 60, 200);
     vela_config_finish(&config);
     wlr_log(WLR_INFO, "Shortcuts: %d from vela.conf", shortcut_count);
 }
@@ -201,6 +207,11 @@ bool vela_hot_corner_glow_enabled(void)
 bool vela_hot_corner_animation_enabled(void)
 {
     return hot_corner_animation;
+}
+
+const struct vela_snap_drag_config *vela_snap_drag_config(void)
+{
+    return &snap_drag;
 }
 
 bool vela_shortcuts_default_enabled(const char *action)

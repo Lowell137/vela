@@ -36,6 +36,17 @@ bool vela_hot_corner_enabled(void);
 bool vela_hot_corner_glow_enabled(void);
 bool vela_hot_corner_animation_enabled(void);
 
+// Dragging a window to the top of an output opens the snap layouts (snap.c):
+// "snap-drag-layouts=no" turns it off; how close to the top (px) and how far
+// to the sides of the panel (px) the pointer opens them, and their size (%).
+struct vela_snap_drag_config {
+    bool enabled;
+    int distance; // snap-drag-trigger-distance, 4-200
+    int width; // snap-drag-trigger-width, 0-960
+    int scale; // snap-drag-scale, 60-200
+};
+const struct vela_snap_drag_config *vela_snap_drag_config(void);
+
 // false if the user remapped (or turned off) the built-in key of this action.
 bool vela_shortcuts_default_enabled(const char *action);
 

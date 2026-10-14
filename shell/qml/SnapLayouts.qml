@@ -41,24 +41,33 @@ Window {
     Connections {
         target: Shell
         function onSnapLayoutsRequested(window, output, x, y, keyboard) {
-            const screen = Qt.application.screens.find(s => s.name === output)
-            if (screen && screen !== root.screen) {
-                root.visible = false
-                Shell.placeOnScreen(root, screen.name)
-            }
-            root.window = window
-            root.keyboard = keyboard
-            root.anchorX = x
-            root.anchorY = y
-            root.focusIndex = keyboard ? 0 : -1
-            root.visible = true
-            panel.opacity = 0
-            panel.y = Qt.binding(() => panelY - 6)
-            appear.restart()
-            content.forceActiveFocus()
-            leaveTimer.stop()
-            root.updateBlur()
+            root.open(window, output, x, y, keyboard)
         }
+    }
+    function open(window, output, x, y, keyboard) {
+        const screen = Qt.application.screens.find(s => s.name === output)
+        if (screen && screen !== root.screen) {
+            // Only while hidden: hiding and showing again at once breaks the
+            // layer surface's configure handshake ("wrong configure serial").
+            if (root.visible) {
+                root.visible = false
+                Qt.callLater(root.open, window, output, x, y, keyboard)
+                return
+            }
+            Shell.placeOnScreen(root, screen.name)
+        }
+        root.window = window
+        root.keyboard = keyboard
+        root.anchorX = x
+        root.anchorY = y
+        root.focusIndex = keyboard ? 0 : -1
+        root.visible = true
+        panel.opacity = 0
+        panel.y = Qt.binding(() => panelY - 6)
+        appear.restart()
+        content.forceActiveFocus()
+        leaveTimer.stop()
+        root.updateBlur()
     }
     function updateBlur() {
         if (visible) {
