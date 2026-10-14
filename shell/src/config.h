@@ -18,6 +18,11 @@ class Config : public QObject {
     Q_PROPERTY(QString wallpaper READ wallpaper NOTIFY wallpaperChanged)
     // "center" or "left", like "Taskbar alignment".
     Q_PROPERTY(QString taskbarAlignment READ taskbarAlignment NOTIFY taskbarChanged)
+    Q_PROPERTY(QString taskbarPosition READ taskbarPosition NOTIFY taskbarChanged)
+    Q_PROPERTY(bool taskbarTop READ taskbarTop NOTIFY taskbarChanged)
+    Q_PROPERTY(bool taskbarLeft READ taskbarLeft NOTIFY taskbarChanged)
+    Q_PROPERTY(bool taskbarRight READ taskbarRight NOTIFY taskbarChanged)
+    Q_PROPERTY(bool taskbarVertical READ taskbarVertical NOTIFY taskbarChanged)
     // "End task" in the taskbar buttons' menu.
     Q_PROPERTY(bool endTask READ endTask NOTIFY taskbarChanged)
     // The Task View button on the taskbar.
@@ -42,6 +47,11 @@ public:
 
     QString wallpaper() const { return m_wallpaper; }
     QString taskbarAlignment() const { return m_taskbarAlignment; }
+    QString taskbarPosition() const { return m_taskbarPosition; }
+    bool taskbarTop() const { return m_taskbarPosition == QLatin1String("top"); }
+    bool taskbarLeft() const { return m_taskbarPosition == QLatin1String("left"); }
+    bool taskbarRight() const { return m_taskbarPosition == QLatin1String("right"); }
+    bool taskbarVertical() const { return taskbarLeft() || taskbarRight(); }
     bool endTask() const { return m_endTask; }
     bool taskView() const { return m_taskView; }
     bool trayOverflow() const { return m_trayOverflow; }
@@ -69,6 +79,7 @@ private:
     QString m_path;
     QString m_wallpaper;
     QString m_taskbarAlignment;
+    QString m_taskbarPosition = QStringLiteral("bottom");
     bool m_endTask = true;
     bool m_taskView = true;
     bool m_trayOverflow = true;

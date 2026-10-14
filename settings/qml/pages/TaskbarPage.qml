@@ -157,6 +157,16 @@ Page {
             }
         }
         Card {
+            icon: "go-up"
+            title: qsTr("Taskbar position")
+            trailing: Choice {
+                readonly property var positions: ["bottom", "top", "left", "right"]
+                model: [qsTr("Bottom"), qsTr("Top"), qsTr("Left"), qsTr("Right")]
+                currentIndex: Math.max(0, positions.indexOf(Prefs.taskbarPosition))
+                onChosen: index => Prefs.taskbarPosition = positions[index]
+            }
+        }
+        Card {
             icon: "video-display"
             title: qsTr("Show the taskbar on all displays")
             description: qsTr("With multiple monitors: Start, apps and the clock on each one; notification area on the main one")

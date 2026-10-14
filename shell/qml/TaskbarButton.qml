@@ -30,7 +30,9 @@ Item {
 
     // While dragged it follows the mouse, above the other buttons.
     z: mouse.dragging ? 10 : 0
-    transform: Translate { x: mouse.dragging ? mouse.dragX : 0 }
+    // Along a vertical taskbar it is dragged up and down (dropped: by how far).
+    readonly property bool vertical: Config.taskbarVertical
+    transform: Translate { x: !root.vertical && mouse.dragging ? mouse.dragX : 0; y: root.vertical && mouse.dragging ? mouse.dragX : 0 }
 
     width: 44
     height: 40
@@ -58,18 +60,23 @@ Item {
         }
     }
 
-    // Indicator under the icon: app open / active (or Start menu open)
+    // Indicator under the icon (at the screen's edge side along a vertical
+    // taskbar): app open / active (or Start menu open)
     Rectangle {
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: 2
-        height: 3
+        property real length: root.progress >= 0 ? 24 : root.active ? 16 : root.running ? 6 : 0
+        anchors.horizontalCenter: root.vertical ? undefined : parent.horizontalCenter
+        anchors.verticalCenter: root.vertical ? parent.verticalCenter : undefined
+        anchors.bottom: root.vertical ? undefined : parent.bottom
+        anchors.left: root.vertical && Config.taskbarLeft ? parent.left : undefined
+        anchors.right: root.vertical && Config.taskbarRight ? parent.right : undefined
+        anchors.margins: 2
+        width: root.vertical ? 3 : length
+        height: root.vertical ? length : 3
         radius: 1.5
-        width: root.progress >= 0 ? 24 : root.active ? 16 : root.running ? 6 : 0
         color: root.progress >= 0 ? Theme.textSecondary : root.active ? Theme.accent : Theme.textSecondary
         opacity: root.progress >= 0 ? 0.4 : root.active || root.running ? 1 : 0
 
-        Behavior on width {
+        Behavior on length {
             NumberAnimation { duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
         }
         Behavior on color {
@@ -81,15 +88,15 @@ Item {
     }
 
     Rectangle {
+        property real length: 24 * Math.min(1, Math.max(0, root.progress))
         visible: root.progress >= 0
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: 2
-        x: (parent.width - 24) / 2
-        height: 3
+        x: root.vertical ? (Config.taskbarLeft ? 2 : parent.width - 5) : (parent.width - 24) / 2
+        y: root.vertical ? (parent.height - 24) / 2 : parent.height - 5
+        width: root.vertical ? 3 : length
+        height: root.vertical ? length : 3
         radius: 1.5
-        width: 24 * Math.min(1, Math.max(0, root.progress))
         color: Theme.accent
-        Behavior on width { NumberAnimation { duration: Theme.fast } }
+        Behavior on length { NumberAnimation { duration: Theme.fast } }
     }
 
     MouseArea {
@@ -103,13 +110,13 @@ Item {
         property bool dragged: false // releasing a drag isn't a click
         // In window coordinates: the button moves with the mouse, they don't.
         onPressed: mouse => {
-            pressX = mapToItem(null, mouse.x, mouse.y).x
+            pressX = root.vertical ? mapToItem(null, mouse.x, mouse.y).y : mapToItem(null, mouse.x, mouse.y).x
             dragX = 0
             dragged = false
         }
         onPositionChanged: mouse => {
             if (!pressed || !root.draggable || !(pressedButtons & Qt.LeftButton)) return
-            dragX = mapToItem(null, mouse.x, mouse.y).x - pressX
+            dragX = (root.vertical ? mapToItem(null, mouse.x, mouse.y).y : mapToItem(null, mouse.x, mouse.y).x) - pressX
             if (!dragging && Math.abs(dragX) > 8) dragging = true
         }
         onReleased: mouse => {

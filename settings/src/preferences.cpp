@@ -216,6 +216,11 @@ void Preferences::reload()
     m_taskbarAlignment = settings.value(QStringLiteral("taskbar/alignment")).toString() == QLatin1String("left")
         ? QStringLiteral("left")
         : QStringLiteral("center");
+    m_taskbarPosition = settings.value(QStringLiteral("taskbar/position")).toString();
+    if (m_taskbarPosition != QLatin1String("top") && m_taskbarPosition != QLatin1String("left")
+        && m_taskbarPosition != QLatin1String("right")) {
+        m_taskbarPosition = QStringLiteral("bottom");
+    }
     m_endTask = settings.value(QStringLiteral("taskbar/endTask"), true).toBool();
     m_taskView = settings.value(QStringLiteral("taskbar/taskView"), true).toBool();
     m_trayOverflow = settings.value(QStringLiteral("taskbar/trayOverflow"), true).toBool();
@@ -753,6 +758,15 @@ void Preferences::setTaskbarAlignment(const QString& alignment)
     if (alignment != m_taskbarAlignment) {
         m_taskbarAlignment = alignment;
         setShell(QStringLiteral("taskbar/alignment"), alignment);
+        emit taskbarChanged();
+    }
+}
+
+void Preferences::setTaskbarPosition(const QString& position)
+{
+    if (position != m_taskbarPosition) {
+        m_taskbarPosition = position;
+        setShell(QStringLiteral("taskbar/position"), position);
         emit taskbarChanged();
     }
 }

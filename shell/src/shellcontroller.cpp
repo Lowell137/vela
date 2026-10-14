@@ -391,10 +391,161 @@ void ShellController::placeAtLeft(QWindow* window, int left)
 
 void ShellController::setBottomMargin(QWindow* window, int margin)
 {
+    // The taskbar's own edge, whichever it is.
+    if (auto* layer = window ? LayerShellQt::Window::get(window) : nullptr) {
+        const QMargins m = layer->margins();
+        QMargins next(0, 0, 0, 0);
+        switch (m_position) {
+        case Position::Top: next.setTop(-margin); break;
+        case Position::Left: next.setLeft(-margin); break;
+        case Position::Right: next.setRight(-margin); break;
+        case Position::Bottom: next.setBottom(-margin); break;
+        }
+        if (next != m) {
+            layer->setMargins(next);
+        }
+    }
+}
+
+using LayerAnchors = LayerShellQt::Window::Anchors;
+using LayerAnchor = LayerShellQt::Window::Anchor;
+
+// The anchors and margins a window with the base ones (what it has at the
+// bottom taskbar) takes for each edge of the taskbar.
+static void followEdge(QWindow* window, const ShellController::Follower& f, ShellController::Position position)
+{
+    using P = ShellController::Position;
+    using K = ShellController::FollowKind;
+    auto* layer = window ? LayerShellQt::Window::get(window) : nullptr;
+    if (!layer) {
+        return;
+    }
+    const LayerAnchors base = f.anchors;
+    const bool left = base.testFlag(LayerAnchor::AnchorLeft);
+    const bool right = base.testFlag(LayerAnchor::AnchorRight);
+    const bool sideless = !left && !right;
+    LayerAnchors a = base;
+    auto vertical = [&](bool top) {
+        a.setFlag(LayerAnchor::AnchorTop, top);
+        a.setFlag(LayerAnchor::AnchorBottom, !top);
+    };
+    auto horizontal = [&](bool toLeft) {
+        a.setFlag(LayerAnchor::AnchorLeft, toLeft);
+        a.setFlag(LayerAnchor::AnchorRight, !toLeft);
+    };
+    const bool vertTaskbar = position == P::Left || position == P::Right;
+    switch (f.kind) {
+    case K::Taskbar:
+        a = LayerAnchors();
+        if (vertTaskbar) {
+            a = LayerAnchors(LayerAnchor::AnchorTop) | LayerAnchor::AnchorBottom
+                | (position == P::Left ? LayerAnchor::AnchorLeft : LayerAnchor::AnchorRight);
+        } else {
+            a = LayerAnchors(LayerAnchor::AnchorLeft) | LayerAnchor::AnchorRight
+                | (position == P::Top ? LayerAnchor::AnchorTop : LayerAnchor::AnchorBottom);
+        }
+        break;
+    case K::HotCorner: // the corner the Start button doesn't take
+        a = LayerAnchors(position == P::Top ? LayerAnchor::AnchorBottom : LayerAnchor::AnchorTop)
+            | (position == P::Left ? LayerAnchor::AnchorRight : LayerAnchor::AnchorLeft);
+        break;
+    case K::Start:
+    case K::Beside:
+        if (vertTaskbar) {
+            a = LayerAnchors(LayerAnchor::AnchorTop) | (position == P::Left ? LayerAnchor::AnchorLeft : LayerAnchor::AnchorRight);
+        } else {
+            vertical(position == P::Top);
+        }
+        break;
+    case K::Panel:
+        if (position == P::Top) {
+            vertical(true);
+        } else if (vertTaskbar && !sideless) {
+            horizontal(position == P::Left);
+        }
+        break;
+    }
+    // Margins: the base ones, mirrored along the axes that flipped.
+    QMargins m = f.margins;
+    if (f.kind == K::Taskbar) {
+        m = QMargins();
+    } else {
+        const bool wasTop = base.testFlag(LayerAnchor::AnchorTop);
+        const bool wasBottom = base.testFlag(LayerAnchor::AnchorBottom);
+        const bool nowTop = a.testFlag(LayerAnchor::AnchorTop);
+        const bool nowBottom = a.testFlag(LayerAnchor::AnchorBottom);
+        if ((wasTop && nowBottom && !wasBottom && !nowTop) || (wasBottom && nowTop && !wasTop && !nowBottom)) {
+            m = QMargins(m.left(), m.bottom(), m.right(), m.top());
+        }
+        const bool wasLeft = left;
+        const bool nowLeft = a.testFlag(LayerAnchor::AnchorLeft);
+        const bool nowRight = a.testFlag(LayerAnchor::AnchorRight);
+        if ((wasLeft && nowRight && !right && !nowLeft) || (right && nowLeft && !wasLeft && !nowRight)) {
+            m = QMargins(m.right(), m.top(), m.left(), m.bottom());
+        }
+    }
+    if (f.kind == K::Taskbar) {
+        // Auto-hide: how far it is slid, now from the new edge.
+        const QMargins old = layer->margins();
+        const int slid = std::max({ -old.left(), -old.top(), -old.right(), -old.bottom(), 0 });
+        switch (position) {
+        case P::Top: m.setTop(-slid); break;
+        case P::Left: m.setLeft(-slid); break;
+        case P::Right: m.setRight(-slid); break;
+        case P::Bottom: m.setBottom(-slid); break;
+        }
+    }
+    if (layer->anchors() != a) {
+        layer->setAnchors(a);
+    }
+    if (layer->margins() != m) {
+        layer->setMargins(m);
+    }
+}
+
+void ShellController::followTaskbar(QWindow* window, FollowKind kind)
+{
+    auto* layer = window ? LayerShellQt::Window::get(window) : nullptr;
+    if (!layer) {
+        return;
+    }
+    // The anchors it has now are its base ones (at the bottom taskbar).
+    Follower fresh { window, kind, layer->anchors(), layer->margins() };
+    bool known = false;
+    for (Follower& f : m_followers) {
+        if (f.window == window) {
+            f = fresh;
+            known = true;
+        }
+    }
+    if (!known) {
+        m_followers.append(fresh);
+    }
+    followEdge(window, fresh, m_position);
+}
+
+void ShellController::setTaskbarPosition(const QString& position)
+{
+    const Position next = position == QLatin1String("top") ? Position::Top
+        : position == QLatin1String("left")               ? Position::Left
+        : position == QLatin1String("right")              ? Position::Right
+                                                          : Position::Bottom;
+    if (next == m_position) {
+        return;
+    }
+    m_position = next;
+    m_followers.removeIf([](const Follower& f) { return f.window.isNull(); });
+    for (const Follower& f : std::as_const(m_followers)) {
+        followEdge(f.window, f, m_position);
+    }
+}
+
+void ShellController::placeAtTop(QWindow* window, int top)
+{
     if (auto* layer = window ? LayerShellQt::Window::get(window) : nullptr) {
         const QMargins margins = layer->margins();
-        if (margins.bottom() != -margin) {
-            layer->setMargins(QMargins(margins.left(), margins.top(), margins.right(), -margin));
+        if (margins.top() != top) {
+            layer->setMargins(QMargins(margins.left(), top, margins.right(), margins.bottom()));
         }
     }
 }
@@ -423,7 +574,8 @@ QPoint ShellController::placeAtPoint(QWindow* window, int x, int y)
     }
     using Anchor = LayerShellQt::Window::Anchor;
     if (x < 0) {
-        layer->setAnchors(LayerShellQt::Window::Anchors(Anchor::AnchorBottom) | Anchor::AnchorRight);
+        layer->setAnchors(LayerShellQt::Window::Anchors(m_position == Position::Top ? Anchor::AnchorTop : Anchor::AnchorBottom)
+            | (m_position == Position::Left ? Anchor::AnchorLeft : Anchor::AnchorRight));
         layer->setMargins({});
         return { -1, -1 };
     }
@@ -433,13 +585,16 @@ QPoint ShellController::placeAtPoint(QWindow* window, int x, int y)
     }
     window->setScreen(screen);
     layer->setScreen(screen);
-    // The margins are from the output's corner; the taskbar's room isn't ours.
     const QRect area = screen->geometry();
-    const int left = std::clamp(x - area.x(), 0, std::max(0, area.width() - window->width()));
-    const int top = std::clamp(y - area.y(), 0, std::max(0, area.height() - window->height() - 56));
+    // The margins count from the usable area: after a taskbar at the top or
+    // on the left (Theme.taskbarHeight).
+    const int barX = m_position == Position::Left ? 48 : 0;
+    const int barY = m_position == Position::Top ? 48 : 0;
+    const int left = std::clamp(x - area.x() - barX, 0, std::max(0, area.width() - window->width() - (m_position == Position::Right ? 48 : barX)));
+    const int top = std::clamp(y - area.y() - barY, 0, std::max(0, area.height() - window->height() - (m_position == Position::Bottom ? 56 : barY)));
     layer->setAnchors(LayerShellQt::Window::Anchors(Anchor::AnchorTop) | Anchor::AnchorLeft);
     layer->setMargins(QMargins(left, top, 0, 0));
-    return { left, top };
+    return { left + barX, top + barY }; // on the output
 }
 
 QString ShellController::primaryScreen() const

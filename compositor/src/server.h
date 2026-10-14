@@ -140,6 +140,12 @@ struct vela_server {
     // The taskbar hides by itself ("taskbar-autohide", from the shell): windows
     // use the space it reserves for the panels.
     bool taskbar_autohide;
+    // The taskbar's edge ("taskbar-position top|bottom|left|right", from the
+    // shell). The panels are placed by their anchors; this only moves what
+    // the compositor puts near the taskbar itself: the hot corner (it leaves
+    // the corner the Start button is in) and the minimize target of windows
+    // without a button.
+    enum { VELA_TASKBAR_BOTTOM, VELA_TASKBAR_TOP, VELA_TASKBAR_LEFT, VELA_TASKBAR_RIGHT } taskbar_edge;
     // The desktop wallpaper's tint (Mica, docs/renderer.md §9.4): the average
     // color, in sRGB, sent by the shell. The version changes with it and with
     // the theme: title bars redraw.

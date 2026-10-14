@@ -80,7 +80,8 @@ The shell's own settings (`~/.config/Vela/vela-shell.conf`, Qt's INI format) are
 
 | Key | Default | Effect |
 |---|---|---|
-| `autoHide` | `false` | Hide the taskbar automatically: it slides down leaving 2 px at the bottom edge of the screen, comes back when the pointer touches them, and goes away 0.5 s after the pointer leaves. It stays while the Start menu, a menu, a flyout or Task View is open. Maximized and snapped windows use the whole output; panels still sit above the taskbar's reserved space. The shell tells the compositor with `taskbar-autohide yes\|no`. |
+| `position` | `bottom` | The screen edge the taskbar sits on: `bottom`, `top`, `left` or `right`. At the sides it is 48 px wide, the Start button and apps go from the top, the clock (time, and day and month) at the bottom, and the buttons are dragged up and down. Start, quick settings, the notification center, menus, previews and tooltips open next to it; the hot corner moves to the corner its Start button doesn't take (bottom-left with the taskbar at the top, top-right on the left). Windows, snaps and Task View use the output minus the taskbar's side. The shell tells the compositor with `taskbar-position top\|bottom\|left\|right`. |
+| `autoHide` | `false` | Hide the taskbar automatically: it slides out of its edge (down, up, or sideways) leaving 2 px at that edge of the screen, comes back when the pointer touches them, and goes away 0.5 s after the pointer leaves. It stays while the Start menu, a menu, a flyout or Task View is open. Maximized and snapped windows use the whole output; panels still sit next to the taskbar's reserved space. The shell tells the compositor with `taskbar-autohide yes\|no`. |
 | `combine` | `always` | `always`: one button per app; `never`: one button per window (the app's first window keeps the pinned button, the others get their own). |
 
 ## Window rules

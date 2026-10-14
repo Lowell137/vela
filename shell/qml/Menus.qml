@@ -72,6 +72,23 @@ QtObject {
         Shell.placeOnScreen(window, screen.name)
         return true
     }
+    // The output point of point `p` of a panel (window `w` x `h`) that sits in
+    // a bottom corner of the usable area next to the taskbar: bottom right
+    // (`baseRight`) or bottom left at the bottom taskbar, and at the side of a
+    // vertical one (main.cpp: ShellController::followTaskbar). `inset` is its
+    // margin to the taskbar.
+    function cornerPoint(p, w, h, screenW, screenH, baseRight, inset) {
+        const rightSide = baseRight ? !Config.taskbarLeft : Config.taskbarRight
+        const x0 = Config.taskbarLeft ? Theme.taskbarHeight : 0
+        const x1 = screenW - (Config.taskbarRight ? Theme.taskbarHeight : 0)
+        const bottomBar = !Config.taskbarTop && !Config.taskbarVertical
+        const x = rightSide ? x1 - inset - w + p.x : x0 + inset + p.x
+        const y = Config.taskbarTop ? Theme.taskbarHeight + inset + p.y
+            : screenH - (bottomBar ? Theme.taskbarHeight : 0) - (bottomBar ? inset : 0) - h + p.y
+        return Qt.point(x, y)
+    }
+    // Where a tray icon was clicked along a vertical taskbar (TrayIcon.qml).
+    property real trayAnchorY: 0
     property bool previewHovered: false
     property bool previewButtonHovered: false
 

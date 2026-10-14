@@ -12,10 +12,10 @@ Window {
     id: root
 
     visible: false
-    width: 660
+    width: Config.taskbarVertical ? 672 : 660
     // On short outputs it gets shorter: the search at the top must stay
     // visible.
-    height: Math.min(732, Screen.height - Theme.taskbarHeight - 12)
+    height: Math.min(732, Screen.height - (Config.taskbarVertical ? 0 : Theme.taskbarHeight) - 12)
     color: "transparent"
 
     property bool closing: false
@@ -128,8 +128,12 @@ Window {
     // coordinates to the output's, for right-click menus.
     function screenPoint(item, x, y) {
         const p = item.mapToItem(null, x, y)
+        if (Config.taskbarVertical) {
+            // At the top, next to the taskbar (placeStartMenu).
+            return Qt.point((Config.taskbarLeft ? Theme.taskbarHeight : Screen.width - Theme.taskbarHeight - root.width) + p.x, p.y)
+        }
         const left = Config.taskbarAlignment === "left" ? 12 : (Screen.width - root.width) / 2 // placeStartMenu
-        return Qt.point(left + p.x, Screen.height - Theme.taskbarHeight - root.height + p.y)
+        return Qt.point(left + p.x, Config.taskbarTop ? Theme.taskbarHeight + p.y : Screen.height - Theme.taskbarHeight - root.height + p.y)
     }
 
     // An app's menu (docs/renderer.md §14.7): recent files and tasks at the
@@ -226,10 +230,12 @@ Window {
 
     // The blurred background under the panel (which rises while opening).
     function updateBlur() {
-        Effects.setBlur(root, [Qt.rect(panel.x, Math.max(0, panel.y), panel.width, Math.max(0, Math.min(panel.height, root.height - panel.y)))])
+        const top = Math.max(0, panel.y)
+        Effects.setBlur(root, [Qt.rect(panel.x, top, panel.width, Math.max(0, Math.min(panel.y + panel.height, root.height) - top))])
     }
     Connections {
         target: panel
+        function onXChanged() { root.updateBlur() }
         function onYChanged() { root.updateBlur() }
         function onHeightChanged() { root.updateBlur() }
         function onWidthChanged() { root.updateBlur() }
@@ -248,7 +254,7 @@ Window {
         grid.keyNav = false
         grid.positionViewAtBeginning()
         panel.opacity = 0
-        panel.y = panel.restY + panel.slide
+        panel.offset = panel.slide
         if (!Menus.placeOnTargetScreen(root)) {
             Qt.callLater(root.open)
             return
@@ -326,7 +332,7 @@ Window {
     ParallelAnimation {
         id: openAnimation
         NumberAnimation {
-            target: panel; property: "y"; to: panel.restY
+            target: panel; property: "offset"; to: 0
             duration: Theme.slow
             easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate
         }
@@ -341,7 +347,7 @@ Window {
         id: closeAnimation
         ParallelAnimation {
             NumberAnimation {
-                target: panel; property: "y"; to: panel.restY + panel.slide
+                target: panel; property: "offset"; to: panel.slide
                 duration: Theme.normal
                 easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.accelerate
             }
@@ -371,14 +377,22 @@ Window {
     Rectangle {
         id: panel
 
-        readonly property real restY: 10
-        // How far it rises while opening. The part sticking out below the
-        // window is cut at the taskbar's edge.
-        readonly property real slide: 140
-        x: 10
-        y: restY
-        width: root.width - 20
-        height: root.height - 32 // 10 above, 22 below: 12 of gap from the taskbar
+        // 10 above and 22 below (12 of gap from the taskbar); the other way
+        // round with the taskbar at the top.
+        // Next to a vertical taskbar it is 10 from the top and the same on the
+        // far side, 22 from the taskbar.
+        readonly property bool side: Config.taskbarVertical
+        readonly property real restY: side ? 10 : (Config.taskbarTop ? 22 : 10)
+        readonly property real restX: side && Config.taskbarLeft ? 22 : 10
+        // How far it rises while opening (falls, at the top, comes in from
+        // the side next to a vertical taskbar). The part sticking out is cut
+        // at the taskbar's edge.
+        readonly property real slide: side ? (Config.taskbarLeft ? -140 : 140) : (Config.taskbarTop ? -140 : 140)
+        property real offset: 0
+        x: restX + (side ? offset : 0)
+        y: restY + (side ? 0 : offset)
+        width: root.width - (side ? 32 : 20)
+        height: root.height - (side ? 20 : 32) // 10 above, 22 below: 12 of gap from the taskbar
         radius: Theme.radiusOverlay
         color: Theme.surface
         border.width: 1

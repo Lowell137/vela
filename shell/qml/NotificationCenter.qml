@@ -31,7 +31,7 @@ Window {
         visible = true
         Menus.notificationCenterOpen = true
         column.opacity = 0
-        slide.x = 24
+        slide.x = Config.taskbarLeft ? -24 : 24
         appear.restart()
         column.forceActiveFocus()
         updateBlur()
