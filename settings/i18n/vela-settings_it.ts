@@ -1448,8 +1448,8 @@ Specifiche sistema
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>rules monitor output desktop position size always on top maximized app window placement</source>
-        <translation type="unfinished"></translation>
+        <source>rules monitor output desktop position size always on top maximized app window placement hide screen capture recording sharing privacy</source>
+        <translation>regole monitor uscita desktop posizione dimensione sempre in primo piano ingrandita app finestra posizionamento nascondi acquisizione schermo registrazione condivisione privacy</translation>
     </message>
     <message>
         <source>programs applications</source>
@@ -3140,6 +3140,14 @@ Specifiche sistema
     <message>
         <source>Once, when a window opens: you can still move it afterwards. Changes affect windows opened from now on, not the ones already open. The first rule that matches an app wins.</source>
         <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Hide from screen capture</source>
+        <translation>Nascondi dalle acquisizioni dello schermo</translation>
+    </message>
+    <message>
+        <source>Applies at once to windows already open too, and follows title changes. The window stays on your screen, but screenshots, recordings and screen sharing show what is behind it. The window&apos;s title can still appear on the taskbar and in notifications.</source>
+        <translation>Vale subito anche per le finestre già aperte e segue i cambi di titolo. La finestra resta sul tuo schermo, ma screenshot, registrazioni e condivisione dello schermo mostrano ciò che c&apos;è dietro. Il titolo della finestra può comunque comparire sulla barra delle applicazioni e nelle notifiche.</translation>
     </message>
     <message>
         <source>Add a window rule</source>

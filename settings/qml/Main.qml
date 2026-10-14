@@ -192,7 +192,7 @@ Window {
         { page: "icons", text: qsTr("Icon theme"), keys: qsTr("icons theme papirus breeze") },
         { page: "pointer", text: qsTr("Mouse pointer"), keys: qsTr("cursor pointer theme size arrow xcursor") },
         { page: "window-blur", text: qsTr("Window blur"), keys: qsTr("blur acrylic transparency translucent glass effects") },
-        { page: "window-rules", text: qsTr("Window rules"), keys: qsTr("rules monitor output desktop position size always on top maximized app window placement") },
+        { page: "window-rules", text: qsTr("Window rules"), keys: qsTr("rules monitor output desktop position size always on top maximized app window placement hide screen capture recording sharing privacy") },
         { page: "apps", text: qsTr("Apps"), keys: qsTr("programs applications") },
         { page: "installed-apps", text: qsTr("Installed apps"), keys: qsTr("uninstall remove programs") },
         { page: "default-apps", text: qsTr("Default apps"), keys: qsTr("browser mail player open with default") },

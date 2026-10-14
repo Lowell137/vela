@@ -8,6 +8,8 @@ import Vela.Controls
 // desktop, position, size, always on top; window-rule= lines in vela.conf). A
 // rule applies when the window opens, to new windows only: the user can move
 // it afterwards, and a changed rule doesn't touch windows already open.
+// Except "Hide from screen capture" (capture=no): a privacy rule reaches the
+// open windows too (docs/renderer.md §15).
 Page {
     id: page
 
@@ -50,6 +52,11 @@ Page {
             title: qsTr("When rules apply")
             description: qsTr("Once, when a window opens: you can still move it afterwards. Changes affect windows opened from now on, not the ones already open. The first rule that matches an app wins.")
         }
+        Card {
+            icon: "security-high"
+            title: qsTr("Hide from screen capture")
+            description: qsTr("Applies at once to windows already open too, and follows title changes. The window stays on your screen, but screenshots, recordings and screen sharing show what is behind it. The window's title can still appear on the taskbar and in notifications.")
+        }
     }
 
     Dialog {
@@ -70,6 +77,7 @@ Page {
             centerToggle.checked = false
             maximizedToggle.checked = false
             topToggle.checked = false
+            captureToggle.checked = false
             open()
         }
         onAccepted: {
@@ -81,6 +89,7 @@ Page {
             if (centerToggle.checked) parts.push("center=yes")
             if (maximizedToggle.checked) parts.push("maximized=yes")
             if (topToggle.checked) parts.push("always-on-top=yes")
+            if (captureToggle.checked) parts.push("capture=no")
             if (parts.length === 0) return
             Prefs.windowRules = Prefs.windowRules.concat([appId.text.trim().replace(/[|\n]/g, "") + "|" + parts.join(",")])
         }
@@ -135,6 +144,11 @@ Page {
                 Toggle { id: maximizedToggle; onToggled: on => maximizedToggle.checked = on }
                 Text { text: qsTr("Always on top"); color: Theme.text; font.pixelSize: Theme.fontBody; anchors.verticalCenter: parent.verticalCenter }
                 Toggle { id: topToggle; onToggled: on => topToggle.checked = on }
+            }
+            Row {
+                spacing: 12
+                Text { text: qsTr("Hide from screen capture"); color: Theme.text; font.pixelSize: Theme.fontBody; anchors.verticalCenter: parent.verticalCenter }
+                Toggle { id: captureToggle; onToggled: on => captureToggle.checked = on }
             }
         }
     }
