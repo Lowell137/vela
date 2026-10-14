@@ -4,6 +4,7 @@
 #include "systemactions.h"
 #include "appmodel.h"
 #include "mimeapps.h"
+#include "terminalexec.h"
 #include "velatool.h"
 
 #include <QCoreApplication>
@@ -73,11 +74,17 @@ QString velaSettings()
 }
 
 
+// The terminal program with the flag that makes it run `command`.
+QString terminalRun(const QString& command)
+{
+    return vela::terminalCommand(terminalProgram()).join(u' ') + u' ' + command;
+}
+
 // A command in a terminal that stays open to show how it went.
 QString inTerminal(const QString& command)
 {
     const QString script = command + QCoreApplication::translate("System", "; echo; read -r -p 'Press Enter to close' _");
-    return terminalProgram() + QStringLiteral(" -e sh -c ") + quote(script);
+    return terminalRun(QStringLiteral("sh -c ") + quote(script));
 }
 
 } // namespace
@@ -192,7 +199,7 @@ QString SystemActions::command(const QString& name) const
     if (name == QLatin1String("terminal-admin")) {
         // Like "Terminal (Admin)": a root shell, the password asked by polkit
         // (run0) or sudo.
-        return terminalProgram() + (has(QStringLiteral("run0")) ? QStringLiteral(" -e run0") : QStringLiteral(" -e sudo -i"));
+        return terminalRun(has(QStringLiteral("run0")) ? QStringLiteral("run0") : QStringLiteral("sudo -i"));
     }
     if (name == QLatin1String("task-manager")) {
         // The Settings choice (Default apps): a monitor GUI as is, a console
@@ -200,7 +207,7 @@ QString SystemActions::command(const QString& name) const
         const QString choice = compositorValue(QStringLiteral("task-manager"));
         if (!choice.isEmpty() && has(choice)) {
             return (choice == QLatin1String("btop") || choice == QLatin1String("htop") || choice == QLatin1String("top"))
-                ? terminalProgram() + QStringLiteral(" -e ") + choice
+                ? terminalRun(choice)
                 : choice;
         }
         const QString gui = first({ { "plasma-systemmonitor", "plasma-systemmonitor" },
@@ -208,13 +215,13 @@ QString SystemActions::command(const QString& name) const
         if (!gui.isEmpty()) {
             return gui;
         }
-        return has(QStringLiteral("btop")) ? terminalProgram() + QStringLiteral(" -e btop")
-            : has(QStringLiteral("htop"))  ? terminalProgram() + QStringLiteral(" -e htop")
-                                           : terminalProgram() + QStringLiteral(" -e top");
+        return has(QStringLiteral("btop")) ? terminalRun(QStringLiteral("btop"))
+            : has(QStringLiteral("htop"))  ? terminalRun(QStringLiteral("htop"))
+                                           : terminalRun(QStringLiteral("top"));
     }
     if (name == QLatin1String("events")) {
         const QString gui = first({ { "kjournaldbrowser", "kjournaldbrowser" } });
-        return !gui.isEmpty() ? gui : terminalProgram() + QStringLiteral(" -e journalctl -b -e");
+        return !gui.isEmpty() ? gui : terminalRun(QStringLiteral("journalctl -b -e"));
     }
     if (name == QLatin1String("files")) {
         // Vela's Explorer, if present.

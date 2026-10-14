@@ -4,6 +4,7 @@
 #include "appmodel.h"
 #include "desktopexec.h"
 #include "mimeapps.h"
+#include "terminalexec.h"
 #include "velatool.h"
 
 #include <QCollator>
@@ -678,8 +679,7 @@ bool AppModel::launchEntry(const Entry& entry, const QList<QUrl>& files) const
             arguments[0] = vela::desktopExecutable(arguments.first(), QCoreApplication::applicationDirPath());
         }
         if (entry.terminal) {
-            arguments = QStringList { qEnvironmentVariable("VELA_TERMINAL", QStringLiteral("konsole")),
-                            QStringLiteral("-e") }
+            arguments = vela::terminalCommand(qEnvironmentVariable("VELA_TERMINAL", QStringLiteral("konsole")))
                 + arguments;
         }
         if (arguments.isEmpty()) {

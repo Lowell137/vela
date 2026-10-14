@@ -17,6 +17,7 @@ qt_add_executable(vela-shell
     src/appmodel.h
     src/audioapps.h
     src/desktopexec.h
+    src/terminalexec.h
     src/mimeapps.h
     src/clipboard.cpp
     src/clipboard.h
@@ -181,6 +182,12 @@ if(VELA_BUILD_TOOLS)
     target_compile_options(vela-desktopexec-test PRIVATE -Wall -Wextra)
     target_link_libraries(vela-desktopexec-test PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME shell-exec-desktop COMMAND vela-desktopexec-test)
+
+    qt_add_executable(vela-terminalexec-test tests/terminalexec.cpp src/terminalexec.h)
+    target_include_directories(vela-terminalexec-test PRIVATE src)
+    target_compile_options(vela-terminalexec-test PRIVATE -Wall -Wextra)
+    target_link_libraries(vela-terminalexec-test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME shell-terminalexec COMMAND vela-terminalexec-test)
 
     qt_add_executable(vela-mimeapps-test tests/mimeapps.cpp src/mimeapps.h)
     target_include_directories(vela-mimeapps-test PRIVATE src)
