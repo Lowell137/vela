@@ -167,6 +167,7 @@ bool parseDesktopFile(const QString& path, const QStringList& localeKeys, AppMod
     entry.wmClass = values.value(QStringLiteral("StartupWMClass"));
     entry.mimeTypes = values.value(QStringLiteral("MimeType")).split(u';', Qt::SkipEmptyParts);
     entry.terminal = isTrue("Terminal");
+    entry.categories = values.value(QStringLiteral("Categories")).split(u';', Qt::SkipEmptyParts);
     return !entry.name.isEmpty() && !entry.exec.isEmpty();
 }
 

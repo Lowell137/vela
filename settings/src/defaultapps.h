@@ -60,9 +60,10 @@ private:
     QVariantList candidatesFor(const QStringList& mimes, const QString& current) const;
     QVariantMap appInfo(const QString& appId) const;
     // A system tool (terminal, task manager): the vela.conf program choice,
-    // "" for automatic, among the installed programs (plus console tools).
+    // "" for automatic, among the installed apps whose Categories hold all of
+    // `categories` or are one of `programs`, plus console tools.
     QVariantMap toolCategory(const QString& key, const char* label, const char* icon,
-        const QStringList& programs, const QStringList& cli) const;
+        const QStringList& categories, const QStringList& programs, const QStringList& cli) const;
 
     AppModel* m_apps;
     Preferences* m_prefs = nullptr;
