@@ -102,7 +102,22 @@ Page {
             if (parts.length === 0) return
             Prefs.windowRules = Prefs.windowRules.concat([appId.text.trim().replace(/[|\n]/g, "") + "|" + parts.join(",")])
         }
+        QtObject { id: centerToggle; property bool checked: false }
+        QtObject { id: maximizedToggle; property bool checked: false }
+        QtObject { id: topToggle; property bool checked: false }
+        QtObject { id: captureToggle; property bool checked: false }
+        // Scrolls when the window is too small for all the fields; the
+        // buttons below always stay in view.
+        Flickable {
+            id: fields
+            width: parent.width
+            height: Math.min(fields.contentHeight, Math.max(120, addDialog.height - 250))
+            contentWidth: width
+            contentHeight: form.height
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
         Column {
+            id: form
             width: parent.width
             spacing: 8
             Flow {
@@ -145,20 +160,42 @@ Page {
                 width: parent.width
                 placeholderText: qsTr("Position from the output's corner: 100,80")
             }
-            Row {
-                spacing: 12
-                Text { text: qsTr("Centered"); color: Theme.text; font.pixelSize: Theme.fontBody; anchors.verticalCenter: parent.verticalCenter }
-                Toggle { id: centerToggle; onToggled: on => centerToggle.checked = on }
-                Text { text: qsTr("Maximized"); color: Theme.text; font.pixelSize: Theme.fontBody; anchors.verticalCenter: parent.verticalCenter }
-                Toggle { id: maximizedToggle; onToggled: on => maximizedToggle.checked = on }
-                Text { text: qsTr("Always on top"); color: Theme.text; font.pixelSize: Theme.fontBody; anchors.verticalCenter: parent.verticalCenter }
-                Toggle { id: topToggle; onToggled: on => topToggle.checked = on }
+            Grid {
+                width: parent.width
+                columns: 2
+                columnSpacing: 16
+                rowSpacing: 4
+                Repeater {
+                    model: [
+                        { label: qsTr("Centered"), toggle: centerToggle },
+                        { label: qsTr("Maximized"), toggle: maximizedToggle },
+                        { label: qsTr("Always on top"), toggle: topToggle },
+                        { label: qsTr("Hide from screen capture"), toggle: captureToggle }
+                    ]
+                    delegate: Item {
+                        id: cell
+                        required property var modelData
+                        width: (form.width - 16) / 2
+                        height: Math.max(36, cellText.implicitHeight + 8)
+                        Text {
+                            id: cellText
+                            anchors { left: parent.left; right: cellToggle.left; rightMargin: 8; verticalCenter: parent.verticalCenter }
+                            text: cell.modelData.label
+                            color: Theme.text
+                            font.pixelSize: Theme.fontBody
+                            wrapMode: Text.Wrap
+                        }
+                        Toggle {
+                            id: cellToggle
+                            anchors { right: parent.right; verticalCenter: parent.verticalCenter }
+                            showLabel: false
+                            checked: cell.modelData.toggle.checked
+                            onToggled: on => cell.modelData.toggle.checked = on
+                        }
+                    }
+                }
             }
-            Row {
-                spacing: 12
-                Text { text: qsTr("Hide from screen capture"); color: Theme.text; font.pixelSize: Theme.fontBody; anchors.verticalCenter: parent.verticalCenter }
-                Toggle { id: captureToggle; onToggled: on => captureToggle.checked = on }
-            }
+        }
         }
     }
 }
