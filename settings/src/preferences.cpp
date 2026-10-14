@@ -230,6 +230,12 @@ void Preferences::reload()
     m_taskbarCombine = settings.value(QStringLiteral("taskbar/combine")).toString() == QLatin1String("never")
         ? QStringLiteral("never")
         : QStringLiteral("always");
+    const QString weather = settings.value(QStringLiteral("taskbar/weather")).toString().toLower();
+    m_weather = weather == QLatin1String("on") || weather == QLatin1String("true") || weather == QLatin1String("1");
+    m_weatherCity = settings.value(QStringLiteral("taskbar/weather-city")).toString();
+    m_weatherUnit = settings.value(QStringLiteral("taskbar/weather-unit")).toString().toLower() == QLatin1String("f")
+        ? QStringLiteral("f")
+        : QStringLiteral("c");
     emit taskbarChanged();
     m_doNotDisturb = settings.value(QStringLiteral("notifications/doNotDisturb"), false).toBool();
     emit doNotDisturbChanged();
@@ -854,6 +860,36 @@ void Preferences::setTrayOverflow(bool on)
         setShell(QStringLiteral("taskbar/trayOverflow"), on);
         emit taskbarChanged();
     }
+}
+
+void Preferences::setWeather(bool on)
+{
+    if (on != m_weather) {
+        m_weather = on;
+        setShell(QStringLiteral("taskbar/weather"), on ? QStringLiteral("on") : QStringLiteral("off"));
+        emit taskbarChanged();
+    }
+}
+
+void Preferences::setWeatherUnit(const QString& unit)
+{
+    const QString value = unit == QLatin1String("f") ? QStringLiteral("f") : QStringLiteral("c");
+    if (value != m_weatherUnit) {
+        m_weatherUnit = value;
+        setShell(QStringLiteral("taskbar/weather-unit"), value);
+        emit taskbarChanged();
+    }
+}
+
+void Preferences::setWeatherPlace(const QString& city, const QString& lat, const QString& lon)
+{
+    m_weatherCity = city;
+    QSettings settings = shellSettings();
+    settings.setValue(QStringLiteral("taskbar/weather-city"), city);
+    settings.setValue(QStringLiteral("taskbar/weather-lat"), lat);
+    settings.setValue(QStringLiteral("taskbar/weather-lon"), lon);
+    settings.sync();
+    emit taskbarChanged();
 }
 
 void Preferences::setDoNotDisturb(bool on)

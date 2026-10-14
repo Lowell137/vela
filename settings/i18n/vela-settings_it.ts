@@ -1524,6 +1524,14 @@ Specifiche sistema
         <translation>nascondi automaticamente barra applicazioni pannello bordo</translation>
     </message>
     <message>
+        <source>Weather</source>
+        <translation>Meteo</translation>
+    </message>
+    <message>
+        <source>weather forecast temperature city celsius fahrenheit taskbar widget</source>
+        <translation>meteo previsioni temperatura città celsius fahrenheit barra widget</translation>
+    </message>
+    <message>
         <source>Combine taskbar buttons</source>
         <translation>Raggruppa i pulsanti della barra delle applicazioni</translation>
     </message>
@@ -2951,6 +2959,54 @@ Specifiche sistema
         <translation>Le icone in più restano dietro una freccia, per tenere in ordine la barra</translation>
     </message>
     <message>
+        <source>Weather</source>
+        <translation>Meteo</translation>
+    </message>
+    <message>
+        <source>Show the weather on the taskbar</source>
+        <translation>Mostra il meteo nella barra delle applicazioni</translation>
+    </message>
+    <message>
+        <source>Asks open-meteo.com for the forecast of the city you choose below, every 30 minutes. Off, nothing is requested</source>
+        <translation>Chiede a open-meteo.com le previsioni della città scelta qui sotto, ogni 30 minuti. Se disattivato, non viene richiesto nulla</translation>
+    </message>
+    <message>
+        <source>City</source>
+        <translation>Città</translation>
+    </message>
+    <message>
+        <source>No city chosen. The location is never guessed</source>
+        <translation>Nessuna città scelta. La posizione non viene mai dedotta</translation>
+    </message>
+    <message>
+        <source>Search for a city</source>
+        <translation>Cerca una città</translation>
+    </message>
+    <message>
+        <source>Couldn&apos;t search</source>
+        <translation>Ricerca non riuscita</translation>
+    </message>
+    <message>
+        <source>Check the network connection and try again</source>
+        <translation>Controlla la connessione di rete e riprova</translation>
+    </message>
+    <message>
+        <source>No cities found</source>
+        <translation>Nessuna città trovata</translation>
+    </message>
+    <message>
+        <source>Temperature unit</source>
+        <translation>Unità di temperatura</translation>
+    </message>
+    <message>
+        <source>Celsius (°C)</source>
+        <translation>Celsius (°C)</translation>
+    </message>
+    <message>
+        <source>Fahrenheit (°F)</source>
+        <translation>Fahrenheit (°F)</translation>
+    </message>
+    <message>
         <source>Taskbar behaviors</source>
         <translation>Comportamenti della barra delle applicazioni</translation>
     </message>
@@ -3208,6 +3264,13 @@ Specifiche sistema
     </message>
 </context>
 <context>
+    <name>Weather</name>
+    <message>
+        <source>Today</source>
+        <translation>Oggi</translation>
+    </message>
+</context>
+<context>
     <name>WindowBlurPage</name>
     <message>
         <source>Window blur</source>
@@ -3399,6 +3462,89 @@ Specifiche sistema
     <message>
         <source>Always on top</source>
         <translation>Sempre in primo piano</translation>
+    </message>
+</context>
+<context>
+    <name>vela::weather</name>
+    <message>
+        <source>Clear</source>
+        <translation type="unfinished">Cancella</translation>
+    </message>
+    <message>
+        <source>Mostly clear</source>
+        <translation>Prevalentemente sereno</translation>
+    </message>
+    <message>
+        <source>Partly cloudy</source>
+        <translation>Parzialmente nuvoloso</translation>
+    </message>
+    <message>
+        <source>Overcast</source>
+        <translation>Coperto</translation>
+    </message>
+    <message>
+        <source>Fog</source>
+        <translation>Nebbia</translation>
+    </message>
+    <message>
+        <source>Drizzle</source>
+        <translation>Pioviggine</translation>
+    </message>
+    <message>
+        <source>Freezing drizzle</source>
+        <translation>Pioviggine gelata</translation>
+    </message>
+    <message>
+        <source>Light rain</source>
+        <translation>Pioggia leggera</translation>
+    </message>
+    <message>
+        <source>Rain</source>
+        <translation>Pioggia</translation>
+    </message>
+    <message>
+        <source>Heavy rain</source>
+        <translation>Pioggia forte</translation>
+    </message>
+    <message>
+        <source>Freezing rain</source>
+        <translation>Pioggia gelata</translation>
+    </message>
+    <message>
+        <source>Light snow</source>
+        <translation>Neve debole</translation>
+    </message>
+    <message>
+        <source>Snow</source>
+        <translation>Neve</translation>
+    </message>
+    <message>
+        <source>Heavy snow</source>
+        <translation>Neve forte</translation>
+    </message>
+    <message>
+        <source>Snow grains</source>
+        <translation>Granelli di neve</translation>
+    </message>
+    <message>
+        <source>Rain showers</source>
+        <translation>Rovesci di pioggia</translation>
+    </message>
+    <message>
+        <source>Snow showers</source>
+        <translation>Rovesci di neve</translation>
+    </message>
+    <message>
+        <source>Thunderstorm</source>
+        <translation>Temporale</translation>
+    </message>
+    <message>
+        <source>Thunderstorm with hail</source>
+        <translation>Temporale con grandine</translation>
+    </message>
+    <message>
+        <source>Unknown</source>
+        <translation>Sconosciuto</translation>
     </message>
 </context>
 </TS>

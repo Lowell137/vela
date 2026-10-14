@@ -44,6 +44,12 @@ class Preferences : public QObject {
     // taskbar/autoHide, and taskbar/combine: "always" or "never".
     Q_PROPERTY(bool taskbarAutoHide READ taskbarAutoHide WRITE setTaskbarAutoHide NOTIFY taskbarChanged)
     Q_PROPERTY(QString taskbarCombine READ taskbarCombine WRITE setTaskbarCombine NOTIFY taskbarChanged)
+    // The taskbar's weather (taskbar/weather, weather-city, weather-lat,
+    // weather-lon, weather-unit "c"|"f"). Off by default; the place is chosen
+    // with setWeatherPlace from a city search, never guessed.
+    Q_PROPERTY(bool weather READ weather WRITE setWeather NOTIFY taskbarChanged)
+    Q_PROPERTY(QString weatherCity READ weatherCity NOTIFY taskbarChanged)
+    Q_PROPERTY(QString weatherUnit READ weatherUnit WRITE setWeatherUnit NOTIFY taskbarChanged)
     // icon-theme= in vela.conf: an icon theme's directory name, "" for the
     // automatic one (Breeze). The apps apply it themselves (applyIconTheme).
     Q_PROPERTY(QString iconTheme READ iconTheme WRITE setIconTheme NOTIFY iconThemeChanged)
@@ -170,6 +176,13 @@ public:
     void setTaskbarAutoHide(bool on);
     QString taskbarCombine() const { return m_taskbarCombine; }
     void setTaskbarCombine(const QString& mode);
+
+    bool weather() const { return m_weather; }
+    void setWeather(bool on);
+    QString weatherCity() const { return m_weatherCity; }
+    QString weatherUnit() const { return m_weatherUnit; }
+    void setWeatherUnit(const QString& unit);
+    Q_INVOKABLE void setWeatherPlace(const QString& city, const QString& lat, const QString& lon);
 
     QString iconTheme() const { return m_iconTheme; }
     void setIconTheme(const QString& theme);
@@ -383,6 +396,9 @@ private:
     bool m_taskbarAllScreens = true;
     bool m_taskbarAutoHide = false;
     QString m_taskbarCombine = QStringLiteral("always");
+    bool m_weather = false;
+    QString m_weatherCity;
+    QString m_weatherUnit = QStringLiteral("c");
     QString m_iconTheme;
     QString m_cursorTheme;
     int m_cursorSize = 24;

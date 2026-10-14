@@ -27,6 +27,7 @@
 #include "preferences.h"
 #include "systemactions.h"
 #include "systemstatus.h"
+#include "weather.h"
 
 #include <QCommandLineParser>
 #include <QGuiApplication>
@@ -166,6 +167,7 @@ int main(int argc, char* argv[])
     vela::audio::Audio audio;
     audio.setAppResolver(audioAppResolver(apps));
     Network network;
+    PlaceSearch places; // the weather's city search (no request until used)
     Bluetooth bluetooth;
     About about;
     DateTime dateTime;
@@ -188,6 +190,7 @@ int main(int argc, char* argv[])
     context->setContextProperty(QStringLiteral("Audio"), &audio);
     qmlRegisterType<vela::audio::LevelMeter>("Vela.Audio", 1, 0, "LevelMeter");
     context->setContextProperty(QStringLiteral("Network"), &network);
+    context->setContextProperty(QStringLiteral("Places"), &places);
     context->setContextProperty(QStringLiteral("Bluetooth"), &bluetooth);
     context->setContextProperty(QStringLiteral("About"), &about);
     context->setContextProperty(QStringLiteral("DateTime"), &dateTime);
