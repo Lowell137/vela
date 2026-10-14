@@ -34,10 +34,6 @@ Page {
             description: qsTr("Blur behind see-through windows")
             onClicked: root.navigate("window-blur")
         }
-    }
-
-    CardGroup {
-        title: qsTr("Taskbar")
         LinkCard {
             icon: "preferences-system-windows"
             title: qsTr("Taskbar")

@@ -26,7 +26,7 @@ menu's search, the shell's menu entries) are the keys of `pages` in
 | System | Display (Night light), Sound, Notifications, Power, **Multitasking** (Window rules), Clipboard, About | new Multitasking page; Window rules moved here |
 | Bluetooth & devices | Mouse, Touchpad | |
 | Network & internet | | |
-| Personalization | Background, Colors, Icons, Window blur, Taskbar | link list split into "Appearance" and "Taskbar"; pointer, rules and shortcuts are "Related settings" links |
+| Personalization | Background, Colors, Icons, Window blur, Taskbar | link list grouped under "Appearance"; pointer, rules and shortcuts are "Related settings" links |
 | Apps | Installed apps, Default apps | |
 | Time & language | Date & time, Keyboard (Keyboard shortcuts) | Keyboard shortcuts moved under Keyboard |
 | Accessibility | Mouse pointer | Mouse pointer moved here, like Windows 11 |
