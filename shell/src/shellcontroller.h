@@ -27,6 +27,9 @@ class ShellController : public QObject {
     Q_PROPERTY(QStringList startPins READ startPins NOTIFY startPinsChanged)
     // The main output's name (panels asked for from the keyboard open there).
     Q_PROPERTY(QString primaryScreen READ primaryScreen NOTIFY primaryScreenChanged)
+    // The screen is being shared or recorded (the taskbar's indicator): the
+    // compositor's "capture on" and "capture off".
+    Q_PROPERTY(bool screenCaptured READ screenCaptured NOTIFY screenCapturedChanged)
 
 public:
     explicit ShellController(QObject* parent = nullptr);
@@ -62,6 +65,7 @@ public:
     QString primaryScreen() const;
     QString userInitial() const;
 
+    bool screenCaptured() const { return m_screenCaptured; }
     bool startMenuOpen() const { return m_startMenuOpen; }
     void setStartMenuOpen(bool open)
     {
@@ -107,6 +111,7 @@ signals:
     void startMenuOpenChanged();
     void startPinsChanged();
     void primaryScreenChanged();
+    void screenCapturedChanged();
     void chooseSourceRequested();
     void chooseSourceCancelled();
     // Windows shortcuts arriving from the compositor.
@@ -163,5 +168,6 @@ private:
 
     QLocalServer m_server;
     bool m_startMenuOpen = false;
+    bool m_screenCaptured = false;
     QStringList m_startPins;
 };

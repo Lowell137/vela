@@ -305,6 +305,12 @@ void ShellController::handleCommand(const QByteArray& command)
         emit hotCornerChanged(QString::fromLatin1(parts.at(1)),
             parts.size() > 2 ? QString::fromUtf8(parts.at(2)) : QString(),
             parts.size() > 3 ? parts.at(3).toDouble() : 1.0);
+    } else if (parts.first() == "capture" && parts.size() >= 2) {
+        const bool on = parts.at(1) == "on";
+        if (on != m_screenCaptured) {
+            m_screenCaptured = on;
+            emit screenCapturedChanged();
+        }
     } else if (command == "task-view") {
         emit taskViewRequested();
     } else if (parts.first() == "workspaces") {

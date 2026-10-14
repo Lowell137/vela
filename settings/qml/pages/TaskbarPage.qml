@@ -67,6 +67,18 @@ Page {
     }
 
     CardGroup {
+        title: qsTr("Screen sharing")
+        Card {
+            icon: "video-display"
+            title: qsTr("Show an indicator while my screen is shared or recorded")
+            trailing: Toggle {
+                checked: Prefs.captureIndicator
+                onToggled: on => Prefs.captureIndicator = on
+            }
+        }
+    }
+
+    CardGroup {
         title: qsTr("Snap windows")
         Card {
             icon: "view-split-left-right"
