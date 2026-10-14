@@ -4,7 +4,7 @@
 import QtQuick
 import Vela.Controls
 
-// Personalization > Mouse pointer: the cursor theme and size (cursor-theme=,
+// Accessibility > Mouse pointer: the cursor theme and size (cursor-theme=,
 // cursor-size= in vela.conf). The compositor's pointer switches right away;
 // apps get it when they start again.
 Page {

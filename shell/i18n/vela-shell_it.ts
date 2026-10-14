@@ -17,31 +17,31 @@
     </message>
     <message>
         <source>Most recently used</source>
-        <translation type="unfinished"></translation>
+        <translation>Usati di recente</translation>
     </message>
     <message>
         <source>Emoji</source>
-        <translation type="unfinished"></translation>
+        <translation>Emoji</translation>
     </message>
     <message>
         <source>Kaomoji</source>
-        <translation type="unfinished"></translation>
+        <translation>Kaomoji</translation>
     </message>
     <message>
         <source>Symbols</source>
-        <translation type="unfinished"></translation>
+        <translation>Simboli</translation>
     </message>
     <message>
         <source>The emoji, kaomoji and symbols you use will show up here.</source>
-        <translation type="unfinished"></translation>
+        <translation>Le emoji, i kaomoji e i simboli che usi compariranno qui.</translation>
     </message>
     <message>
         <source>Search emoji</source>
-        <translation type="unfinished"></translation>
+        <translation>Cerca emoji</translation>
     </message>
     <message>
         <source>No emoji found.</source>
-        <translation type="unfinished"></translation>
+        <translation>Nessuna emoji trovata.</translation>
     </message>
     <message>
         <source>You can&apos;t see your clipboard history. Turn it on to find what you copy here and paste it again.</source>
@@ -956,6 +956,14 @@
         <translation>non disturbare avvisi</translation>
     </message>
     <message>
+        <source>Multitasking</source>
+        <translation>Multitasking</translation>
+    </message>
+    <message>
+        <source>snap layouts windows hot corner task view arrange</source>
+        <translation>layout aggancio finestre angolo attivo vista attività disponi</translation>
+    </message>
+    <message>
         <source>Power</source>
         <translation>Alimentazione</translation>
     </message>
@@ -1018,6 +1026,30 @@
     <message>
         <source>taskbar alignment left center end task</source>
         <translation>taskbar allineamento sinistra centro termina attività</translation>
+    </message>
+    <message>
+        <source>Window rules</source>
+        <translation>Regole delle finestre</translation>
+    </message>
+    <message>
+        <source>rules monitor output desktop position size always on top maximized app window placement</source>
+        <translation>regole monitor uscita desktop posizione dimensione sempre in primo piano ingrandita app finestra posizionamento</translation>
+    </message>
+    <message>
+        <source>Keyboard shortcuts</source>
+        <translation>Scorciatoie da tastiera</translation>
+    </message>
+    <message>
+        <source>keys hotkeys keybindings shortcut super close window command</source>
+        <translation>tasti scorciatoie combinazioni super chiudi finestra comando</translation>
+    </message>
+    <message>
+        <source>Mouse pointer</source>
+        <translation>Puntatore del mouse</translation>
+    </message>
+    <message>
+        <source>cursor pointer theme size arrow xcursor</source>
+        <translation>cursore puntatore tema dimensione freccia xcursor</translation>
     </message>
     <message>
         <source>Apps</source>

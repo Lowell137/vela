@@ -70,6 +70,12 @@ Page {
             onClicked: root.navigate("touchpad")
         }
         LinkCard {
+            icon: "cursor-arrow"
+            title: qsTr("Mouse pointer")
+            description: qsTr("Cursor theme and size")
+            onClicked: root.navigate("pointer")
+        }
+        LinkCard {
             icon: "preferences-desktop-accessibility"
             title: qsTr("Accessibility")
             description: qsTr("Magnifier, color filters, sticky keys")

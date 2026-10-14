@@ -9,6 +9,7 @@ Page {
     DesktopPreview {}
 
     CardGroup {
+        title: qsTr("Appearance")
         LinkCard {
             icon: "preferences-desktop-wallpaper"
             title: qsTr("Background")
@@ -22,28 +23,33 @@ Page {
             onClicked: root.navigate("colors")
         }
         LinkCard {
-            icon: "preferences-system-windows"
-            title: qsTr("Taskbar")
-            description: qsTr("Alignment, taskbar behaviors")
-            onClicked: root.navigate("taskbar")
-        }
-        LinkCard {
             icon: "preferences-desktop-icons"
             title: qsTr("Icons")
             description: qsTr("Icon theme")
             onClicked: root.navigate("icons")
         }
         LinkCard {
-            icon: "cursor-arrow"
-            title: qsTr("Mouse pointer")
-            description: qsTr("Cursor theme and size")
-            onClicked: root.navigate("pointer")
-        }
-        LinkCard {
             icon: "preferences-desktop-effects"
             title: qsTr("Window blur")
             description: qsTr("Blur behind see-through windows")
             onClicked: root.navigate("window-blur")
+        }
+        LinkCard {
+            icon: "preferences-system-windows"
+            title: qsTr("Taskbar")
+            description: qsTr("Alignment, taskbar behaviors")
+            onClicked: root.navigate("taskbar")
+        }
+    }
+
+    // Set elsewhere, like on Windows 11: linked here so they are easy to find.
+    CardGroup {
+        title: qsTr("Related settings")
+        LinkCard {
+            icon: "cursor-arrow"
+            title: qsTr("Mouse pointer")
+            description: qsTr("Cursor theme and size")
+            onClicked: root.navigate("pointer")
         }
         LinkCard {
             icon: "window"
