@@ -255,6 +255,10 @@ Window {
             anchors { left: parent.left; right: parent.right; top: parent.top }
             height: 1
             color: Theme.stroke
+            // Sliding changes only the layer-shell margin, which takes effect
+            // at the next commit: this barely visible change makes every step
+            // render (and so commit), otherwise it jumps or lags.
+            opacity: 1 - 0.02 * root.slide
         }
     }
 
