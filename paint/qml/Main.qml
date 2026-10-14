@@ -36,6 +36,17 @@ Window {
         view.contentX = Math.max(0, Math.min(Math.max(0, view.contentWidth - view.width), sheet.x + x * zoom - view.width / 2))
         view.contentY = Math.max(0, Math.min(Math.max(0, view.contentHeight - view.height), sheet.y + y * zoom - view.height / 2))
     }
+    // The wheel: closer or further around the pointer, so what's under it
+    // stays there. (vx, vy) is the pointer in the view.
+    function wheelZoom(vx, vy, notches) {
+        const before = zoom
+        const px = (view.contentX + vx - sheet.x) / before
+        const py = (view.contentY + vy - sheet.y) / before
+        zoomTo(before * Math.pow(1.1, notches))
+        if (zoom === before) return
+        view.contentX = Math.max(0, Math.min(Math.max(0, view.contentWidth - view.width), sheet.x + px * zoom - vx))
+        view.contentY = Math.max(0, Math.min(Math.max(0, view.contentHeight - view.height), sheet.y + py * zoom - vy))
+    }
     Settings {
         id: settings
         property bool gridlines: false
@@ -865,6 +876,25 @@ Window {
         color: Theme.background
         clip: true
 
+        // The wheel zooms around the pointer; Shift moves along the picture
+        // and Alt up and down. Buttons go through to what is below.
+        MouseArea {
+            z: 10
+            anchors.fill: parent
+            acceptedButtons: Qt.NoButton
+            onWheel: wheel => {
+                const p = mapToItem(view, wheel.x, wheel.y)
+                const along = wheel.angleDelta.y !== 0 ? wheel.angleDelta.y : wheel.angleDelta.x
+                if ((wheel.modifiers & Qt.ShiftModifier) || wheel.angleDelta.y === 0) {
+                    view.contentX = Math.max(0, Math.min(Math.max(0, view.contentWidth - view.width), view.contentX - along))
+                } else if (wheel.modifiers & Qt.AltModifier) {
+                    view.contentY = Math.max(0, Math.min(Math.max(0, view.contentHeight - view.height), view.contentY - along))
+                } else {
+                    root.wheelZoom(Math.max(0, Math.min(view.width, p.x)), Math.max(0, Math.min(view.height, p.y)), wheel.angleDelta.y / 120)
+                }
+            }
+        }
+
         Flickable {
             id: view
             anchors { fill: parent; leftMargin: root.rulerSize; topMargin: root.rulerSize }
@@ -1000,18 +1030,6 @@ Window {
                 }
             }
 
-            WheelHandler {
-                onWheel: event => {
-                    const step = event.angleDelta.y
-                    if (event.modifiers & Qt.ControlModifier) {
-                        root.zoomTo(step > 0 ? root.zoom * 2 : root.zoom / 2)
-                    } else if (event.modifiers & Qt.ShiftModifier) {
-                        view.contentX = Math.max(0, Math.min(Math.max(0, view.contentWidth - view.width), view.contentX - step))
-                    } else {
-                        view.contentY = Math.max(0, Math.min(Math.max(0, view.contentHeight - view.height), view.contentY - step))
-                    }
-                }
-            }
         }
         ScrollBar {
             flickable: view
