@@ -17,9 +17,10 @@ from harness import Session, tool
 BAR = 48
 
 
-def shell(vela, blur=True, autohide=False):
+def shell(vela, blur=True, autohide=False, position="bottom"):
     """Wallpaper and taskbar, and the time to appear."""
     taskbar = ["taskbar"] + (["--blur"] if blur else []) + (["--autohide"] if autohide else [])
+    taskbar += ["--position", position]
     for args in (["wallpaper"], taskbar):
         vela.clients.append(subprocess.Popen([tool("vela-panel"), *args], env=vela.client_env))
     vela.wait_for(lambda s: s.output["frames"] > 0)
@@ -50,6 +51,27 @@ class Layers(unittest.TestCase):
             state = vela.wait_for(lambda s: s.window(window)["maximized"], what="maximized")
             w, out = state.window(window), state.output
             self.assertEqual((w["y"], w["h"]), (out["y"], out["h"] - BAR))
+
+    def test_taskbar_at_any_edge_reserves_its_space_there(self):
+        """taskbar/position: a maximized window uses the output minus the
+        taskbar's 48 px on whichever edge it is, and the taskbar's own layer
+        sits there."""
+        for position in ("bottom", "top", "left", "right"):
+            with self.subTest(position=position), Session() as vela:
+                shell(vela, position=position)
+                window = vela.open_window()
+                vela.keys("super+Up")
+                state = vela.wait_for(lambda s: s.window(window)["maximized"], what="maximized")
+                w, out = state.window(window), state.output
+                x0 = BAR if position == "left" else 0
+                y0 = BAR if position == "top" else 0
+                dw = BAR if position in ("left", "right") else 0
+                dh = BAR if position in ("top", "bottom") else 0
+                self.assertEqual((w["x"], w["y"], w["w"], w["h"]), (x0, y0, out["w"] - dw, out["h"] - dh))
+                bar = next(layer for layer in state["layers"] if layer["namespace"] == "vela-taskbar")
+                expected = {"bottom": (0, out["h"] - BAR, out["w"], BAR), "top": (0, 0, out["w"], BAR),
+                            "left": (0, 0, BAR, out["h"]), "right": (out["w"] - BAR, 0, BAR, out["h"])}[position]
+                self.assertEqual((bar["x"], bar["y"], bar["w"], bar["h"]), expected)
 
     def test_auto_hidden_taskbar_gives_windows_the_whole_output(self):
         """taskbar-autohide: the taskbar slid down still reserves its space
