@@ -24,6 +24,7 @@
 #include "jumplists.h"
 #include "language.h"
 #include "levelmeter.h"
+#include "launcherbadges.h"
 #include "mediakeys.h"
 #include "network.h"
 #include "notifications.h"
@@ -343,6 +344,7 @@ int main(int argc, char* argv[])
     SoundKeys sound(&audio);
     QObject::connect(&shell, &ShellController::volumeKeyPressed, &sound, &SoundKeys::press);
     MediaKeys media;
+    LauncherBadges badges;
     QObject::connect(&shell, &ShellController::mediaKeyPressed, &media, &MediaKeys::press);
 
     QQmlApplicationEngine engine;
@@ -381,6 +383,7 @@ int main(int argc, char* argv[])
     engine.rootContext()->setContextProperty(QStringLiteral("Audio"), &audio);
     engine.rootContext()->setContextProperty(QStringLiteral("Sound"), &sound);
     engine.rootContext()->setContextProperty(QStringLiteral("Media"), &media);
+    engine.rootContext()->setContextProperty(QStringLiteral("Badges"), &badges);
     // The apps' level bars in the quick settings mixer (docs/audio.md §7.1).
     qmlRegisterType<vela::audio::LevelMeter>("Vela.Audio", 1, 0, "LevelMeter");
     engine.rootContext()->setContextProperty(QStringLiteral("Access"), &accessibility);
