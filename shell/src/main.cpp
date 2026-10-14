@@ -380,6 +380,7 @@ int main(int argc, char* argv[])
     engine.rootContext()->setContextProperty(QStringLiteral("Status"), &status);
     engine.rootContext()->setContextProperty(QStringLiteral("Audio"), &audio);
     engine.rootContext()->setContextProperty(QStringLiteral("Sound"), &sound);
+    engine.rootContext()->setContextProperty(QStringLiteral("Media"), &media);
     // The apps' level bars in the quick settings mixer (docs/audio.md §7.1).
     qmlRegisterType<vela::audio::LevelMeter>("Vela.Audio", 1, 0, "LevelMeter");
     engine.rootContext()->setContextProperty(QStringLiteral("Access"), &accessibility);

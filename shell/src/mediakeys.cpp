@@ -6,8 +6,10 @@
 #include <QDBusConnection>
 #include <QDBusConnectionInterface>
 #include <QDBusMessage>
+#include <QDBusPendingCallWatcher>
+#include <QDBusPendingReply>
 #include <QDBusVariant>
-#include <QHash>
+#include <QUrl>
 
 namespace {
 
@@ -15,6 +17,29 @@ const QString mprisPrefix = QStringLiteral("org.mpris.MediaPlayer2.");
 const QString mprisPath = QStringLiteral("/org/mpris/MediaPlayer2");
 const QString playerInterface = QStringLiteral("org.mpris.MediaPlayer2.Player");
 const QString propertiesInterface = QStringLiteral("org.freedesktop.DBus.Properties");
+const QString rootInterface = QStringLiteral("org.mpris.MediaPlayer2");
+
+QString method(const QString& key)
+{
+    static const QHash<QString, QString> methods {
+        { QStringLiteral("play-pause"), QStringLiteral("PlayPause") },
+        { QStringLiteral("pause"), QStringLiteral("Pause") },
+        { QStringLiteral("stop"), QStringLiteral("Stop") },
+        { QStringLiteral("next"), QStringLiteral("Next") },
+        { QStringLiteral("previous"), QStringLiteral("Previous") },
+    };
+    return methods.value(key);
+}
+
+// Values nested in a variant (Metadata, xesam:artist) come still marshalled.
+QVariantMap toMap(const QVariant& v)
+{
+    return v.canConvert<QDBusArgument>() ? qdbus_cast<QVariantMap>(v.value<QDBusArgument>()) : v.toMap();
+}
+QStringList toStringList(const QVariant& v)
+{
+    return v.canConvert<QDBusArgument>() ? qdbus_cast<QStringList>(v.value<QDBusArgument>()) : v.toStringList();
+}
 
 // "Playing", "Paused" or "Stopped"; empty if the player doesn't answer in time
 // (a hung player mustn't freeze the shell).
@@ -37,12 +62,127 @@ MediaKeys::MediaKeys(QObject* parent)
     // Every player's changes (any sender): which one started playing.
     QDBusConnection::sessionBus().connect(QString(), mprisPath, propertiesInterface, QStringLiteral("PropertiesChanged"),
         this, SLOT(onPropertiesChanged(QString, QVariantMap, QStringList)));
+    // Players coming and going, for the card.
+    QDBusConnection::sessionBus().connect(QStringLiteral("org.freedesktop.DBus"), QStringLiteral("/org/freedesktop/DBus"),
+        QStringLiteral("org.freedesktop.DBus"), QStringLiteral("NameOwnerChanged"),
+        this, SLOT(onNameOwnerChanged(QString, QString, QString)));
+    if (QDBusConnectionInterface* bus = QDBusConnection::sessionBus().interface()) {
+        for (const QString& name : bus->registeredServiceNames().value()) {
+            if (name.startsWith(mprisPrefix)) {
+                add(name, bus->serviceOwner(name).value());
+            }
+        }
+    }
 }
 
-void MediaKeys::onPropertiesChanged(const QString& interface, const QVariantMap& changed, const QStringList&)
+void MediaKeys::onNameOwnerChanged(const QString& name, const QString& oldOwner, const QString& newOwner)
+{
+    if (!name.startsWith(mprisPrefix)) {
+        return;
+    }
+    if (!oldOwner.isEmpty() && m_players.value(oldOwner).name == name) {
+        m_players.remove(oldOwner);
+    }
+    add(name, newOwner);
+    update();
+}
+
+void MediaKeys::add(const QString& name, const QString& owner)
+{
+    // playerctld only mirrors the other players: the card would show one twice.
+    if (owner.isEmpty() || name == mprisPrefix + QLatin1String("playerctld")) {
+        return;
+    }
+    m_players[owner].name = name;
+    fetch(owner, rootInterface);
+    fetch(owner, playerInterface);
+}
+
+void MediaKeys::fetch(const QString& owner, const QString& interface)
+{
+    QDBusMessage getAll = QDBusMessage::createMethodCall(owner, mprisPath, propertiesInterface, QStringLiteral("GetAll"));
+    getAll << interface;
+    auto* watcher = new QDBusPendingCallWatcher(QDBusConnection::sessionBus().asyncCall(getAll, 2000), this);
+    connect(watcher, &QDBusPendingCallWatcher::finished, this, [this, owner, interface](QDBusPendingCallWatcher* w) {
+        w->deleteLater();
+        const QDBusPendingReply<QVariantMap> reply = *w;
+        auto it = m_players.find(owner);
+        if (reply.isError() || it == m_players.end()) {
+            return;
+        }
+        (interface == rootInterface ? it->root : it->player) = reply.value();
+        update();
+    });
+}
+
+void MediaKeys::onPropertiesChanged(const QString& interface, const QVariantMap& changed, const QStringList& invalidated)
 {
     if (interface == playerInterface && changed.value(QStringLiteral("PlaybackStatus")).toString() == QLatin1String("Playing")) {
         m_lastPlaying = message().service();
+    }
+    auto it = m_players.find(message().service());
+    if (it == m_players.end() || (interface != playerInterface && interface != rootInterface)) {
+        return;
+    }
+    QVariantMap& properties = interface == rootInterface ? it->root : it->player;
+    properties.insert(changed);
+    if (!invalidated.isEmpty()) {
+        fetch(it.key(), interface);
+    }
+    update();
+}
+
+void MediaKeys::update()
+{
+    // Like target(): the one playing (the last to start, if more do), the
+    // last to play, a paused one, any.
+    QString playing, last, paused, any;
+    for (auto it = m_players.cbegin(); it != m_players.cend(); ++it) {
+        if (it->player.isEmpty()) {
+            continue; // not answered (yet): nothing to show
+        }
+        const QString status = it->player.value(QStringLiteral("PlaybackStatus")).toString();
+        const bool wasLast = it.key() == m_lastPlaying;
+        if (status == QLatin1String("Playing") && (playing.isEmpty() || wasLast)) {
+            playing = it.key();
+        }
+        if (wasLast) {
+            last = it.key();
+        }
+        if (status == QLatin1String("Paused") && paused.isEmpty()) {
+            paused = it.key();
+        }
+        if (any.isEmpty()) {
+            any = it.key();
+        }
+    }
+    QVariantMap current;
+    for (const QString& owner : { playing, last, paused, any }) {
+        if (owner.isEmpty()) {
+            continue;
+        }
+        const Player& p = m_players[owner];
+        const QVariantMap metadata = toMap(p.player.value(QStringLiteral("Metadata")));
+        // Cover art only from files and the web: a player's metadata is no
+        // place for other schemes (image providers, qrc...).
+        const QUrl art(metadata.value(QStringLiteral("mpris:artUrl")).toString());
+        const bool artOk = art.isLocalFile() || art.scheme() == QLatin1String("http") || art.scheme() == QLatin1String("https");
+        current = {
+            { QStringLiteral("service"), p.name },
+            { QStringLiteral("identity"), p.root.value(QStringLiteral("Identity")).toString() },
+            { QStringLiteral("desktopEntry"), p.root.value(QStringLiteral("DesktopEntry")).toString() },
+            { QStringLiteral("title"), metadata.value(QStringLiteral("xesam:title")).toString() },
+            { QStringLiteral("artist"), toStringList(metadata.value(QStringLiteral("xesam:artist"))).join(QStringLiteral(", ")) },
+            { QStringLiteral("artUrl"), artOk ? art.toString() : QString() },
+            { QStringLiteral("playing"), p.player.value(QStringLiteral("PlaybackStatus")).toString() == QLatin1String("Playing") },
+            { QStringLiteral("canGoNext"), p.player.value(QStringLiteral("CanGoNext"), true).toBool() },
+            { QStringLiteral("canGoPrevious"), p.player.value(QStringLiteral("CanGoPrevious"), true).toBool() },
+        };
+        break;
+    }
+    if (current != m_current) {
+        m_current = current;
+        Q_EMIT currentChanged();
     }
 }
 
@@ -82,17 +222,19 @@ QString MediaKeys::target() const
 
 void MediaKeys::press(const QString& key)
 {
-    static const QHash<QString, QString> methods {
-        { QStringLiteral("play-pause"), QStringLiteral("PlayPause") },
-        { QStringLiteral("pause"), QStringLiteral("Pause") },
-        { QStringLiteral("stop"), QStringLiteral("Stop") },
-        { QStringLiteral("next"), QStringLiteral("Next") },
-        { QStringLiteral("previous"), QStringLiteral("Previous") },
-    };
-    const QString method = methods.value(key);
-    const QString service = method.isEmpty() ? QString() : target();
+    const QString name = method(key);
+    const QString service = name.isEmpty() ? QString() : target();
     if (service.isEmpty()) {
         return;
     }
-    QDBusConnection::sessionBus().asyncCall(QDBusMessage::createMethodCall(service, mprisPath, playerInterface, method));
+    QDBusConnection::sessionBus().asyncCall(QDBusMessage::createMethodCall(service, mprisPath, playerInterface, name));
+}
+
+void MediaKeys::command(const QString& key)
+{
+    const QString name = method(key);
+    const QString service = m_current.value(QStringLiteral("service")).toString();
+    if (!name.isEmpty() && !service.isEmpty()) {
+        QDBusConnection::sessionBus().asyncCall(QDBusMessage::createMethodCall(service, mprisPath, playerInterface, name));
+    }
 }
