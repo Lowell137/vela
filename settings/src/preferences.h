@@ -105,6 +105,7 @@ class Preferences : public QObject {
     // An indicator on the taskbar while the screen is shared or recorded.
     Q_PROPERTY(bool captureIndicator READ captureIndicator WRITE setCaptureIndicator NOTIFY shortcutsChanged)
     Q_PROPERTY(bool captureDnd READ captureDnd WRITE setCaptureDnd NOTIFY shortcutsChanged)
+    Q_PROPERTY(bool fullscreenDnd READ fullscreenDnd WRITE setFullscreenDnd NOTIFY shortcutsChanged)
     // Dragging a window to the top of the screen opens the snap layouts.
     Q_PROPERTY(bool rememberWindowPositions READ rememberWindowPositions WRITE setRememberWindowPositions NOTIFY shortcutsChanged)
     Q_PROPERTY(bool snapDragLayouts READ snapDragLayouts WRITE setSnapDragLayouts NOTIFY shortcutsChanged)
@@ -293,6 +294,8 @@ public:
     void setCaptureIndicator(bool on);
     bool captureDnd() const { return m_captureDnd; }
     void setCaptureDnd(bool on);
+    bool fullscreenDnd() const { return m_fullscreenDnd; }
+    void setFullscreenDnd(bool on);
     bool hotCornerGlow() const { return m_hotCornerGlow; }
     void setHotCornerGlow(bool on);
     bool hotCornerAnimation() const { return m_hotCornerAnimation; }
@@ -423,6 +426,7 @@ private:
     bool m_hotCornerGlow = true;
     bool m_captureIndicator = true;
     bool m_captureDnd = true;
+    bool m_fullscreenDnd = true;
     bool m_hotCornerAnimation = true;
     bool m_rememberWindowPositions = true;
     bool m_snapDragLayouts = true;

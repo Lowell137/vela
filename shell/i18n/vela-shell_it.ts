@@ -16,6 +16,34 @@
         <translation>Cronologia degli Appunti</translation>
     </message>
     <message>
+        <source>Most recently used</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Emoji</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Kaomoji</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Symbols</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The emoji, kaomoji and symbols you use will show up here.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Search emoji</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No emoji found.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>You can&apos;t see your clipboard history. Turn it on to find what you copy here and paste it again.</source>
         <translation>Non puoi vedere la cronologia degli Appunti. Attivala per ritrovare qui ciò che copi e incollarlo di nuovo.</translation>
     </message>
@@ -308,6 +336,10 @@
     <message>
         <source>Silenced while your screen is shared</source>
         <translation>Silenziate mentre lo schermo è condiviso</translation>
+    </message>
+    <message>
+        <source>Silenced while a window is full screen</source>
+        <translation>Silenziate mentre una finestra è a schermo intero</translation>
     </message>
     <message>
         <source>Clear all</source>

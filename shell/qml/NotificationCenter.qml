@@ -144,6 +144,12 @@ Window {
                         color: Theme.textSecondary
                         font.pixelSize: Theme.fontCaption
                     }
+                    Text {
+                        visible: Notifications.fullscreenSilenced && !Notifications.captureSilenced
+                        text: qsTr("Silenced while a window is full screen")
+                        color: Theme.textSecondary
+                        font.pixelSize: Theme.fontCaption
+                    }
                 }
                 Row {
                     anchors { right: parent.right; verticalCenter: parent.verticalCenter }

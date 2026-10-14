@@ -365,6 +365,7 @@ void Preferences::reloadCompositor()
     m_hotCorner = flag(QStringLiteral("hot-corner"), true);
     m_captureIndicator = flag(QStringLiteral("capture-indicator"), true);
     m_captureDnd = flag(QStringLiteral("capture-dnd"), true);
+    m_fullscreenDnd = flag(QStringLiteral("fullscreen-dnd"), true);
     m_hotCornerGlow = flag(QStringLiteral("hot-corner-glow"), true);
     m_hotCornerAnimation = flag(QStringLiteral("hot-corner-animation"), true);
     m_rememberWindowPositions = flag(QStringLiteral("remember-window-positions"), true);
@@ -1237,6 +1238,15 @@ void Preferences::setCaptureDnd(bool on)
     if (on != m_captureDnd) {
         m_captureDnd = on;
         saveCompositor({ { QStringLiteral("capture-dnd"), yesNo(on) } });
+        emit shortcutsChanged();
+    }
+}
+
+void Preferences::setFullscreenDnd(bool on)
+{
+    if (on != m_fullscreenDnd) {
+        m_fullscreenDnd = on;
+        saveCompositor({ { QStringLiteral("fullscreen-dnd"), yesNo(on) } });
         emit shortcutsChanged();
     }
 }

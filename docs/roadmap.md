@@ -58,9 +58,9 @@ direction, not a promise.
 - Widgets: a board with weather, calendar, news and system status.
 - Taskbar: progress and unread badges, auto-hide, never combining buttons and
   the position (bottom, top, left or right, vertical included) are done.
-- Do Not Disturb turned on automatically during fullscreen games.
-  (Notifications grouped by app, with fold and per-group clear, and silencing
-  while the screen is shared are done.)
+- Do Not Disturb on a schedule or per app (silencing while the screen is shared
+  or a window is full screen, and notifications grouped by app with fold and
+  per-group clear, are done).
 - Calendar events in the notification center.
 - An indicator when the screen is being shared or recorded.
 - Brightness keys with an on-screen indicator, on the monitor under the pointer.

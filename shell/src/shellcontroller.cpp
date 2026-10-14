@@ -314,6 +314,12 @@ void ShellController::handleCommand(const QByteArray& command)
             m_captureDnd = dnd;
             emit screenCapturedChanged();
         }
+    } else if (parts.first() == "fullscreen" && parts.size() >= 2) {
+        const bool on = parts.at(1) == "on";
+        if (on != m_fullscreenActive) {
+            m_fullscreenActive = on;
+            emit fullscreenActiveChanged();
+        }
     } else if (command == "task-view") {
         emit taskViewRequested();
     } else if (parts.first() == "workspaces") {
