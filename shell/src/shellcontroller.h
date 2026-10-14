@@ -148,7 +148,7 @@ signals:
     // The window menu (right click on the title bar, Alt+Space): on which
     // output and where, in output coordinates.
     void windowMenuRequested(const QString& window, const QString& output, int x, int y, bool maximized,
-        bool resizable, bool keyboard);
+        bool resizable, bool keyboard, bool onTop);
 
 private Q_SLOTS:
     void onPrepareForSleep(bool starting);

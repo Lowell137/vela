@@ -32,6 +32,7 @@ static const struct action {
     { "close", KIND_NATIVE, NULL },
     { "terminal", KIND_NATIVE, NULL },
     { "lock", KIND_NATIVE, NULL },
+    { "always-on-top", KIND_NATIVE, NULL },
     { "start", KIND_SHELL, "toggle-start" },
     { "winx", KIND_SHELL, "winx" },
     { "run", KIND_SHELL, "run" },
@@ -244,6 +245,11 @@ static void run_native(struct vela_server *server, const char *id)
         vela_spawn(terminal && *terminal ? terminal : "konsole || foot || kitty || alacritty || xterm");
     } else if (strcmp(id, "lock") == 0) {
         vela_lock_screen(server->lock);
+    } else if (strcmp(id, "always-on-top") == 0) {
+        struct vela_view *active = vela_views_focused(server);
+        if (active) {
+            vela_view_set_always_on_top(active, !active->always_on_top);
+        }
     }
 }
 

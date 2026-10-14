@@ -1051,6 +1051,8 @@ Right click on the title bar (or on its icon), Alt+Space, or Shift+right click o
 the taskbar button:
 
 - "Restore", "Move", "Size", "Minimize", "Maximize"
+- "Always on top" (checked when on; not in the taskbar button's menu, which
+  does not know the state; Task View has it too)
 - ---
 - "Close" (Alt+F4)
 
