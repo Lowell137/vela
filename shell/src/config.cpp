@@ -71,7 +71,23 @@ void Config::reload()
     const QString combine = settings.value(QStringLiteral("taskbar/combine")).toString() == QLatin1String("never")
         ? QStringLiteral("never")
         : QStringLiteral("always");
-    if (autoHide != m_taskbarAutoHide || combine != m_taskbarCombine || alignment != m_taskbarAlignment || position != m_taskbarPosition || endTask != m_endTask || taskView != m_taskView
+    // weather=on|off ("true"/"false" too: a QSettings bool would read "off" as true).
+    const QString weatherValue = settings.value(QStringLiteral("taskbar/weather")).toString().toLower();
+    const bool weather = weatherValue == QLatin1String("on") || weatherValue == QLatin1String("true") || weatherValue == QLatin1String("1");
+    const QString weatherCity = settings.value(QStringLiteral("taskbar/weather-city")).toString();
+    const QString weatherLat = settings.value(QStringLiteral("taskbar/weather-lat")).toString();
+    const QString weatherLon = settings.value(QStringLiteral("taskbar/weather-lon")).toString();
+    const QString weatherUnit = settings.value(QStringLiteral("taskbar/weather-unit")).toString().toLower() == QLatin1String("f")
+        ? QStringLiteral("f")
+        : QStringLiteral("c");
+    const bool weatherChanged = weather != m_weather || weatherCity != m_weatherCity || weatherLat != m_weatherLat
+        || weatherLon != m_weatherLon || weatherUnit != m_weatherUnit;
+    m_weather = weather;
+    m_weatherCity = weatherCity;
+    m_weatherLat = weatherLat;
+    m_weatherLon = weatherLon;
+    m_weatherUnit = weatherUnit;
+    if (weatherChanged || autoHide != m_taskbarAutoHide || combine != m_taskbarCombine || alignment != m_taskbarAlignment || position != m_taskbarPosition || endTask != m_endTask || taskView != m_taskView
         || trayOverflow != m_trayOverflow || allScreens != m_taskbarAllScreens) {
         m_taskbarAutoHide = autoHide;
         m_taskbarCombine = combine;

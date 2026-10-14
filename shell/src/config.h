@@ -58,6 +58,13 @@ public:
     bool taskbarAllScreens() const { return m_taskbarAllScreens; }
     bool taskbarAutoHide() const { return m_taskbarAutoHide; }
     QString taskbarCombine() const { return m_taskbarCombine; }
+    // The weather widget (taskbar/weather*): off by default, no location is
+    // ever guessed. Changes are signalled with taskbarChanged.
+    bool weather() const { return m_weather; }
+    QString weatherCity() const { return m_weatherCity; }
+    QString weatherLat() const { return m_weatherLat; }
+    QString weatherLon() const { return m_weatherLon; }
+    QString weatherUnit() const { return m_weatherUnit; }
     bool clipboardHistory() const { return m_clipboardHistory; }
     bool doNotDisturb() const { return m_doNotDisturb; }
     QString shellTheme() const { return m_shellTheme; }
@@ -86,6 +93,9 @@ private:
     bool m_taskbarAllScreens = true;
     bool m_taskbarAutoHide = false;
     QString m_taskbarCombine = QStringLiteral("always");
+    bool m_weather = false;
+    QString m_weatherCity, m_weatherLat, m_weatherLon;
+    QString m_weatherUnit = QStringLiteral("c");
     bool m_clipboardHistory = false;
     bool m_doNotDisturb = false;
     QString m_shellTheme = QStringLiteral("dark");
