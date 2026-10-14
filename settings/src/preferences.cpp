@@ -362,6 +362,7 @@ void Preferences::reloadCompositor()
     m_captureDnd = flag(QStringLiteral("capture-dnd"), true);
     m_hotCornerGlow = flag(QStringLiteral("hot-corner-glow"), true);
     m_hotCornerAnimation = flag(QStringLiteral("hot-corner-animation"), true);
+    m_rememberWindowPositions = flag(QStringLiteral("remember-window-positions"), true);
     m_snapDragLayouts = flag(QStringLiteral("snap-drag-layouts"), true);
     m_snapDragDistance = std::clamp(value(QStringLiteral("snap-drag-trigger-distance"), QStringLiteral("64")).toInt(), 4, 200);
     m_snapDragWidth = std::clamp(value(QStringLiteral("snap-drag-trigger-width"), QStringLiteral("160")).toInt(), 0, 960);
@@ -1249,6 +1250,15 @@ void Preferences::setHotCornerAnimation(bool on)
     if (on != m_hotCornerAnimation) {
         m_hotCornerAnimation = on;
         saveCompositor({ { QStringLiteral("hot-corner-animation"), yesNo(on) } });
+        emit shortcutsChanged();
+    }
+}
+
+void Preferences::setRememberWindowPositions(bool on)
+{
+    if (on != m_rememberWindowPositions) {
+        m_rememberWindowPositions = on;
+        saveCompositor({ { QStringLiteral("remember-window-positions"), yesNo(on) } });
         emit shortcutsChanged();
     }
 }

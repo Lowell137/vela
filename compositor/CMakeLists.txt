@@ -123,6 +123,7 @@ add_library(vela-pure STATIC
     src/motion.c
     src/output_config.c
     src/output_key.c
+    src/window_memory.c
     src/window_rules.c
     src/path_security.c
     src/sun.c

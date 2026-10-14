@@ -105,6 +105,7 @@ class Preferences : public QObject {
     Q_PROPERTY(bool captureIndicator READ captureIndicator WRITE setCaptureIndicator NOTIFY shortcutsChanged)
     Q_PROPERTY(bool captureDnd READ captureDnd WRITE setCaptureDnd NOTIFY shortcutsChanged)
     // Dragging a window to the top of the screen opens the snap layouts.
+    Q_PROPERTY(bool rememberWindowPositions READ rememberWindowPositions WRITE setRememberWindowPositions NOTIFY shortcutsChanged)
     Q_PROPERTY(bool snapDragLayouts READ snapDragLayouts WRITE setSnapDragLayouts NOTIFY shortcutsChanged)
     // How close to the top (px, 4-200) and how far beside them (px, 0-960)
     // they open, and their size (percent, 60-200).
@@ -293,6 +294,8 @@ public:
     void setHotCornerGlow(bool on);
     bool hotCornerAnimation() const { return m_hotCornerAnimation; }
     void setHotCornerAnimation(bool on);
+    bool rememberWindowPositions() const { return m_rememberWindowPositions; }
+    void setRememberWindowPositions(bool on);
     bool snapDragLayouts() const { return m_snapDragLayouts; }
     void setSnapDragLayouts(bool on);
     int snapDragDistance() const { return m_snapDragDistance; }
@@ -417,6 +420,7 @@ private:
     bool m_captureIndicator = true;
     bool m_captureDnd = true;
     bool m_hotCornerAnimation = true;
+    bool m_rememberWindowPositions = true;
     bool m_snapDragLayouts = true;
     int m_snapDragDistance = 64;
     int m_snapDragWidth = 160;

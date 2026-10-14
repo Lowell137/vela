@@ -20,6 +20,7 @@
 #include "process.h"
 #include "scene/ready.h"
 #include "shell.h"
+#include "window_memory.h"
 #include "window_rules.h"
 
 struct vela_a11y;
@@ -155,6 +156,10 @@ struct vela_server {
     // window-rule lines of vela.conf (window_rules.h), applied when a window
     // maps; a reload affects new windows only.
     struct vela_window_rules window_rules;
+    // remember-window-positions: where each app's window closed
+    // (window_memory.h), used when it maps again.
+    bool remember_window_positions;
+    struct vela_window_memory window_memory;
     // The same windows drawn translucent (window-opacity*, percent 30-100;
     // 100: opaque), when active and when not.
     int window_opacity;

@@ -3114,6 +3114,16 @@ Specifiche sistema
 <context>
     <name>WindowRulesPage</name>
     <message>
+        <location filename="../qml/pages/WindowRulesPage.qml" line="23"/>
+        <source>Remember window positions</source>
+        <translation>Ricorda la posizione delle finestre</translation>
+    </message>
+    <message>
+        <location filename="../qml/pages/WindowRulesPage.qml" line="24"/>
+        <source>Apps reopen where you closed them, with the same size. Rules below win.</source>
+        <translation>Le app si riaprono dove le hai chiuse, con la stessa dimensione. Le regole qui sotto hanno la precedenza.</translation>
+    </message>
+    <message>
         <source>No rules</source>
         <translation type="unfinished"></translation>
     </message>
