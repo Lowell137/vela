@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <QDir>
 #include <QObject>
 #include <QString>
 #include <QStringList>
@@ -46,10 +47,13 @@ public:
     // "Open file location": the folder in the file manager, with the file
     // selected.
     Q_INVOKABLE void showInFolder(const QString& pathOrUrl) const;
+    // Vela Settings on a page (`vela-settings --page`).
+    Q_INVOKABLE bool openSettingsPage(const QString& page) const;
     Q_INVOKABLE void openUrl(const QString& url) const;
     Q_INVOKABLE void openTerminal(const QString& directory) const;
     // The Desktop folder (or home, if there is none).
     Q_INVOKABLE QString desktopDirectory() const;
+    Q_INVOKABLE QString homeDirectory() const { return QDir::homePath(); }
 
     // "Uninstall": with the app's manager (Discover, Flatpak or the package
     // manager in a terminal, where it's confirmed like in Windows).

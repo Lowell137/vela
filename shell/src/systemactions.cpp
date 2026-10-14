@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Brando Giuffrida
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <QRegularExpression>
 #include "systemactions.h"
 #include "appmodel.h"
 #include "mimeapps.h"
@@ -362,6 +363,16 @@ void SystemActions::showInFolder(const QString& pathOrUrl) const
     if (!QDBusConnection::sessionBus().send(call) && url.isLocalFile()) {
         qWarning("vela-shell: no file manager available to show %s", qPrintable(url.toLocalFile()));
     }
+}
+
+bool SystemActions::openSettingsPage(const QString& page) const
+{
+    const QString program = velaSettings();
+    static const QRegularExpression valid(QStringLiteral("^[a-z-]*$"));
+    if (program.isEmpty() || !valid.match(page).hasMatch()) {
+        return false;
+    }
+    return spawn(quote(program) + (page.isEmpty() ? QString() : QStringLiteral(" --page ") + page));
 }
 
 void SystemActions::openUrl(const QString& url) const

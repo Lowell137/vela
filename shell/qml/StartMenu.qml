@@ -40,6 +40,84 @@ Window {
     }
     readonly property bool showPinned: search.text.length === 0 && pinned.length > 0
 
+    // Vela Settings pages searchable from here; texts and keys follow the
+    // Settings window's own search index (settings/qml/Main.qml).
+    readonly property var settingsIndex: [
+        { page: "display", text: qsTr("Display"), keys: qsTr("resolution scale refresh rate hz orientation monitor multiple displays arrangement") },
+        { page: "sound", text: qsTr("Sound"), keys: qsTr("volume speakers headphones microphone output input sound") },
+        { page: "volume-mixer", text: qsTr("Volume mixer"), keys: qsTr("app volume apps sound output input per app mixer reset") },
+        { page: "notifications", text: qsTr("Notifications"), keys: qsTr("do not disturb alerts") },
+        { page: "power", text: qsTr("Power"), keys: qsTr("screen off sleep idle battery energy saver lock") },
+        { page: "about", text: qsTr("About"), keys: qsTr("specifications processor ram memory pc name rename version kernel graphics card") },
+        { page: "bluetooth", text: qsTr("Bluetooth"), keys: qsTr("devices headphones mouse keyboard pair add") },
+        { page: "network", text: qsTr("Network & internet"), keys: qsTr("wifi wi-fi ethernet cable ip dns connection") },
+        { page: "personalization", text: qsTr("Personalization"), keys: qsTr("theme appearance") },
+        { page: "background", text: qsTr("Background"), keys: qsTr("picture desktop photo wallpaper") },
+        { page: "colors", text: qsTr("Colors"), keys: qsTr("accent color theme dark light mode") },
+        { page: "taskbar", text: qsTr("Taskbar"), keys: qsTr("taskbar alignment left center end task") },
+        { page: "apps", text: qsTr("Apps"), keys: qsTr("programs applications") },
+        { page: "installed-apps", text: qsTr("Installed apps"), keys: qsTr("uninstall remove programs") },
+        { page: "default-apps", text: qsTr("Default apps"), keys: qsTr("browser mail player open with default") },
+        { page: "datetime", text: qsTr("Date & time"), keys: qsTr("clock time zone sync ntp") },
+        { page: "time-language", text: qsTr("Language"), keys: qsTr("language english italian italiano inglese translation") },
+        { page: "keyboard", text: qsTr("Keyboard"), keys: qsTr("layout language input typing key repeat") },
+        { page: "night-light", text: qsTr("Night light"), keys: qsTr("night warm colors blue evening schedule sunset") },
+        { page: "accessibility", text: qsTr("Accessibility"), keys: qsTr("low vision color blindness") }
+    ]
+
+    // The extra results of a search, in screen order: files, then settings.
+    readonly property var extras: {
+        const q = search.text.trim().toLowerCase()
+        if (q.length === 0) {
+            return []
+        }
+        const out = []
+        for (const f of FileSearch.results) {
+            out.push({ kind: "file", name: f.name, detail: f.path.replace(System.homeDirectory(), "~"), path: f.path })
+        }
+        let n = 0
+        for (const e of settingsIndex) {
+            if (n < 4 && (e.text.toLowerCase().indexOf(q) >= 0 || e.keys.toLowerCase().indexOf(q) >= 0)) {
+                out.push({ kind: "setting", name: e.text, detail: qsTr("Settings"), page: e.page })
+                n++
+            }
+        }
+        return out
+    }
+    // The selected extra result; -1: the selection is in the app grid.
+    property int extraIndex: -1
+
+    function openExtra(i) {
+        const e = extras[i]
+        if (!e) {
+            return
+        }
+        if (e.kind === "file") {
+            System.openUrl(e.path)
+        } else {
+            System.openSettingsPage(e.page)
+        }
+        close()
+    }
+    function moveExtra(delta) {
+        const next = extraIndex + delta
+        if (extraIndex >= 0 && next >= extras.length) {
+            extraIndex = -1
+            grid.currentIndex = 0
+        } else if (extraIndex < 0 && delta < 0 && extras.length > 0 && grid.currentIndex < 6) {
+            extraIndex = extras.length - 1
+        } else if (extraIndex >= 0) {
+            extraIndex = Math.max(0, next)
+        } else {
+            return false
+        }
+        return true
+    }
+    onExtrasChanged: {
+        // No app matches: the keyboard goes to the first extra.
+        extraIndex = extras.length > 0 && grid.count === 0 ? 0 : -1
+    }
+
     // The Start menu is above the taskbar, centered or at the left: from its
     // coordinates to the output's, for right-click menus.
     function screenPoint(item, x, y) {
@@ -158,6 +236,7 @@ Window {
         closing = false
         powerButton.menuOpen = false
         Apps.query = ""
+        extraIndex = -1
         search.text = ""
         grid.currentIndex = 0
         grid.keyNav = false
@@ -182,6 +261,14 @@ Window {
         Shell.startMenuOpen = false
         openAnimation.stop()
         closeAnimation.restart()
+    }
+
+    function launchCurrent() {
+        if (extraIndex >= 0) {
+            openExtra(extraIndex)
+        } else {
+            launch(grid.currentIndex)
+        }
     }
 
     function launch(row) {
@@ -304,7 +391,7 @@ Window {
             Text {
                 anchors { left: parent.left; leftMargin: 18; verticalCenter: parent.verticalCenter }
                 visible: search.text.length === 0
-                text: qsTr("Search apps")
+                text: qsTr("Search apps, files and settings")
                 color: Theme.textSecondary
                 font.pixelSize: Theme.fontBody
             }
@@ -316,16 +403,18 @@ Window {
 
                 onTextChanged: {
                     Apps.query = text
+                    FileSearch.query = text
+                    root.extraIndex = -1
                     grid.currentIndex = 0
                     grid.positionViewAtBeginning()
                 }
 
                 // The keyboard stays in the search; the arrows move the grid.
                 Keys.onEscapePressed: root.close()
-                Keys.onReturnPressed: root.launch(grid.currentIndex)
-                Keys.onEnterPressed: root.launch(grid.currentIndex)
-                Keys.onDownPressed: { grid.keyNav = true; grid.moveCurrentIndexDown() }
-                Keys.onUpPressed: { grid.keyNav = true; grid.moveCurrentIndexUp() }
+                Keys.onReturnPressed: root.launchCurrent()
+                Keys.onEnterPressed: root.launchCurrent()
+                Keys.onDownPressed: { grid.keyNav = true; if (!root.moveExtra(1)) grid.moveCurrentIndexDown() }
+                Keys.onUpPressed: { grid.keyNav = true; if (!root.moveExtra(-1)) grid.moveCurrentIndexUp() }
                 Keys.onTabPressed: { grid.keyNav = true; grid.moveCurrentIndexRight() }
                 Keys.onBacktabPressed: { grid.keyNav = true; grid.moveCurrentIndexLeft() }
                 // Left and Right move the caret while there is text to edit.
@@ -377,7 +466,7 @@ Window {
                 required property string appId
                 width: grid.cellWidth
                 height: grid.cellHeight
-                current: index === grid.currentIndex && (search.text.length > 0 || grid.keyNav)
+                current: root.extraIndex < 0 && index === grid.currentIndex && (search.text.length > 0 || grid.keyNav)
                 onActivated: root.launch(index)
                 onContextRequested: (x, y) => root.openAppMenu(tile, x, y, tile.appId, false)
             }
@@ -385,11 +474,81 @@ Window {
             // Above all apps, those pinned to Start.
             header: Item {
                 width: grid.width
-                height: root.showPinned ? pinnedGrid.height + allTitle.height + 24 : 0
-                visible: root.showPinned
+                height: root.showPinned ? pinnedGrid.height + allTitle.height + 24 : extraColumn.height
+                visible: root.showPinned || root.extras.length > 0
+
+                // Files and Settings matches, above the apps.
+                Column {
+                    id: extraColumn
+                    width: parent.width
+                    visible: !root.showPinned
+                    bottomPadding: root.extras.length > 0 ? 8 : 0
+
+                    Repeater {
+                        model: root.extras
+
+                        delegate: Column {
+                            id: extraRow
+                            required property var modelData
+                            required property int index
+                            width: extraColumn.width
+                            readonly property bool first: index === 0 || root.extras[index - 1].kind !== modelData.kind
+
+                            Text {
+                                visible: extraRow.first
+                                leftPadding: 12
+                                topPadding: index === 0 ? 0 : 8
+                                bottomPadding: 4
+                                text: extraRow.modelData.kind === "file" ? qsTr("Files") : qsTr("Settings")
+                                color: Theme.text
+                                font.pixelSize: Theme.fontBody
+                                font.weight: Font.DemiBold
+                            }
+                            Item {
+                                width: parent.width
+                                height: 36
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 3
+                                    anchors.rightMargin: 3
+                                    radius: Theme.radius
+                                    color: extraMouse.pressed ? Theme.subtlePressed : Theme.subtleHover
+                                    opacity: extraMouse.containsMouse || root.extraIndex === extraRow.index ? 1 : 0
+                                    border.width: root.extraIndex === extraRow.index ? 1 : 0
+                                    border.color: Theme.stroke
+                                }
+                                Text {
+                                    id: extraName
+                                    x: 12
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: Math.min(implicitWidth, parent.width * 0.5)
+                                    text: extraRow.modelData.name
+                                    color: Theme.text
+                                    font.pixelSize: Theme.fontBody
+                                    elide: Text.ElideRight
+                                }
+                                Text {
+                                    anchors { left: extraName.right; leftMargin: 10; right: parent.right; rightMargin: 12; verticalCenter: parent.verticalCenter }
+                                    text: extraRow.modelData.detail
+                                    color: Theme.textSecondary
+                                    font.pixelSize: Theme.fontCaption
+                                    elide: Text.ElideMiddle
+                                }
+                                MouseArea {
+                                    id: extraMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    onClicked: root.openExtra(extraRow.index)
+                                }
+                            }
+                        }
+                    }
+                }
 
                 Grid {
                     id: pinnedGrid
+                    visible: root.showPinned
                     columns: 6
 
                     Repeater {
@@ -414,6 +573,7 @@ Window {
                 }
                 Text {
                     id: allTitle
+                    visible: root.showPinned
                     anchors { top: pinnedGrid.bottom; topMargin: 16; left: parent.left; leftMargin: 12 }
                     text: qsTr("All apps")
                     color: Theme.text
@@ -424,7 +584,7 @@ Window {
 
             Text {
                 anchors.centerIn: parent
-                visible: grid.count === 0
+                visible: grid.count === 0 && root.extras.length === 0
                 text: qsTr("No apps found")
                 color: Theme.textSecondary
                 font.pixelSize: Theme.fontBody

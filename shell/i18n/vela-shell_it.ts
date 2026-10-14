@@ -833,6 +833,170 @@
 <context>
     <name>StartMenu</name>
     <message>
+        <source>Display</source>
+        <translation>Schermo</translation>
+    </message>
+    <message>
+        <source>resolution scale refresh rate hz orientation monitor multiple displays arrangement</source>
+        <translation>risoluzione scala frequenza aggiornamento hz orientamento monitor più schermi disposizione</translation>
+    </message>
+    <message>
+        <source>Sound</source>
+        <translation>Audio</translation>
+    </message>
+    <message>
+        <source>volume speakers headphones microphone output input sound</source>
+        <translation>volume altoparlanti cuffie microfono uscita ingresso suono</translation>
+    </message>
+    <message>
+        <source>Volume mixer</source>
+        <translation>Mixer volume</translation>
+    </message>
+    <message>
+        <source>app volume apps sound output input per app mixer reset</source>
+        <translation>app volume applicazioni audio uscita ingresso output input per app mixer ripristina reimposta</translation>
+    </message>
+    <message>
+        <source>Notifications</source>
+        <translation>Notifiche</translation>
+    </message>
+    <message>
+        <source>do not disturb alerts</source>
+        <translation>non disturbare avvisi</translation>
+    </message>
+    <message>
+        <source>Power</source>
+        <translation>Alimentazione</translation>
+    </message>
+    <message>
+        <source>screen off sleep idle battery energy saver lock</source>
+        <translation>schermo spento sospensione inattività batteria risparmio energia blocco</translation>
+    </message>
+    <message>
+        <source>About</source>
+        <translation>Informazioni</translation>
+    </message>
+    <message>
+        <source>specifications processor ram memory pc name rename version kernel graphics card</source>
+        <translation>specifiche processore ram memoria nome pc rinomina versione kernel scheda video</translation>
+    </message>
+    <message>
+        <source>Bluetooth</source>
+        <translation>Bluetooth</translation>
+    </message>
+    <message>
+        <source>devices headphones mouse keyboard pair add</source>
+        <translation>dispositivi cuffie mouse tastiera associa aggiungi</translation>
+    </message>
+    <message>
+        <source>Network &amp; internet</source>
+        <translation>Rete e Internet</translation>
+    </message>
+    <message>
+        <source>wifi wi-fi ethernet cable ip dns connection</source>
+        <translation>wifi wi-fi ethernet cavo ip dns connessione</translation>
+    </message>
+    <message>
+        <source>Personalization</source>
+        <translation>Personalizzazione</translation>
+    </message>
+    <message>
+        <source>theme appearance</source>
+        <translation>tema aspetto</translation>
+    </message>
+    <message>
+        <source>Background</source>
+        <translation>Sfondo</translation>
+    </message>
+    <message>
+        <source>picture desktop photo wallpaper</source>
+        <translation>immagine desktop foto wallpaper</translation>
+    </message>
+    <message>
+        <source>Colors</source>
+        <translation>Colori</translation>
+    </message>
+    <message>
+        <source>accent color theme dark light mode</source>
+        <translation>accento colore principale tema scuro chiaro modalità</translation>
+    </message>
+    <message>
+        <source>Taskbar</source>
+        <translation>Barra delle applicazioni</translation>
+    </message>
+    <message>
+        <source>taskbar alignment left center end task</source>
+        <translation>taskbar allineamento sinistra centro termina attività</translation>
+    </message>
+    <message>
+        <source>Apps</source>
+        <translation>App</translation>
+    </message>
+    <message>
+        <source>programs applications</source>
+        <translation>programmi applicazioni</translation>
+    </message>
+    <message>
+        <source>Installed apps</source>
+        <translation>App installate</translation>
+    </message>
+    <message>
+        <source>uninstall remove programs</source>
+        <translation>disinstalla rimuovi programmi</translation>
+    </message>
+    <message>
+        <source>Default apps</source>
+        <translation>App predefinite</translation>
+    </message>
+    <message>
+        <source>browser mail player open with default</source>
+        <translation>browser posta lettore apri con predefinito</translation>
+    </message>
+    <message>
+        <source>Date &amp; time</source>
+        <translation>Data e ora</translation>
+    </message>
+    <message>
+        <source>clock time zone sync ntp</source>
+        <translation>orologio fuso orario sincronizza ntp</translation>
+    </message>
+    <message>
+        <source>Language</source>
+        <translation>Lingua</translation>
+    </message>
+    <message>
+        <source>language english italian italiano inglese translation</source>
+        <translation>lingua inglese italiano english language traduzione</translation>
+    </message>
+    <message>
+        <source>Keyboard</source>
+        <translation>Tastiera</translation>
+    </message>
+    <message>
+        <source>layout language input typing key repeat</source>
+        <translation>layout lingua input digitazione ripetizione tasti</translation>
+    </message>
+    <message>
+        <source>Night light</source>
+        <translation>Luce notturna</translation>
+    </message>
+    <message>
+        <source>night warm colors blue evening schedule sunset</source>
+        <translation>notte colori caldi blu sera pianifica tramonto</translation>
+    </message>
+    <message>
+        <source>Accessibility</source>
+        <translation>Accessibilità</translation>
+    </message>
+    <message>
+        <source>low vision color blindness</source>
+        <translation>ipovedenti daltonismo</translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation>Impostazioni</translation>
+    </message>
+    <message>
         <source>Recent</source>
         <translation>Recenti</translation>
     </message>
@@ -877,8 +1041,8 @@
         <translation>A&amp;ltro</translation>
     </message>
     <message>
-        <source>Search apps</source>
-        <translation>Cerca app</translation>
+        <source>Search apps, files and settings</source>
+        <translation>Cerca app, file e impostazioni</translation>
     </message>
     <message>
         <source>Results</source>
@@ -891,6 +1055,10 @@
     <message>
         <source>All apps</source>
         <translation>Tutte le app</translation>
+    </message>
+    <message>
+        <source>Files</source>
+        <translation>File</translation>
     </message>
     <message>
         <source>No apps found</source>
@@ -1136,6 +1304,10 @@
     <message>
         <source>Show hidden icons</source>
         <translation>Mostra icone nascoste</translation>
+    </message>
+    <message>
+        <source>Your screen is being shared</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>%1 is using your microphone</source>

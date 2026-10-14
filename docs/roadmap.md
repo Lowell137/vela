@@ -53,7 +53,7 @@ direction, not a promise.
 ### Shell
 - **Input methods and an emoji panel**: `text-input` and `input-method`, with
   an emoji picker on Super+. .
-- **Start menu search** across files and settings, and Recommended files.
+- Start menu: Recommended files (search across files and settings is done).
 - Folders in the Start menu's pinned apps.
 - Widgets: a board with weather, calendar, news and system status.
 - Taskbar: progress and unread badges on app buttons, auto-hide, vertical

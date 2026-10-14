@@ -4,7 +4,7 @@
 # GuiPrivate is needed for a single private API (the taskbar's wl_surface, see
 # foreigntoplevels.cpp): after a Qt update the shell must be rebuilt.
 set(QT_NO_PRIVATE_MODULE_WARNING ON)
-find_package(Qt6 6.5 REQUIRED COMPONENTS DBus Gui GuiPrivate Qml Quick QuickControls2 Svg WaylandClient)
+find_package(Qt6 6.5 REQUIRED COMPONENTS Concurrent DBus Gui GuiPrivate Qml Quick QuickControls2 Svg WaylandClient)
 find_package(LayerShellQt REQUIRED)
 
 qt_standard_project_setup(REQUIRES 6.5)
@@ -31,6 +31,8 @@ qt_add_executable(vela-shell
     src/filethumbnails.h
     src/fileactions.cpp
     src/fileactions.h
+    src/filesearch.cpp
+    src/filesearch.h
     src/fileproperties.cpp
     src/fileproperties.h
     src/desktopmodel.cpp
@@ -155,6 +157,7 @@ qt_add_qml_module(vela-shell
 
 target_compile_options(vela-shell PRIVATE -Wall -Wextra)
 target_link_libraries(vela-shell PRIVATE
+    Qt6::Concurrent
     Qt6::DBus
     Qt6::Gui
     Qt6::Qml
@@ -213,6 +216,12 @@ if(VELA_BUILD_TOOLS)
     target_compile_options(vela-appmodel-watch-test PRIVATE -Wall -Wextra)
     target_link_libraries(vela-appmodel-watch-test PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME shell-appmodel-watch COMMAND vela-appmodel-watch-test)
+
+    qt_add_executable(vela-filesearch-test tests/filesearch.cpp src/filesearch.cpp src/filesearch.h)
+    target_include_directories(vela-filesearch-test PRIVATE src)
+    target_compile_options(vela-filesearch-test PRIVATE -Wall -Wextra)
+    target_link_libraries(vela-filesearch-test PRIVATE Qt6::Concurrent Qt6::Core Qt6::Test)
+    add_test(NAME shell-filesearch COMMAND vela-filesearch-test)
 
     qt_add_executable(vela-private-files-test tests/privatefiles.cpp)
     target_compile_options(vela-private-files-test PRIVATE -Wall -Wextra)

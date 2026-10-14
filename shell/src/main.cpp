@@ -17,6 +17,7 @@
 #include "controls.h"
 #include "desktopmodel.h"
 #include "fileactions.h"
+#include "filesearch.h"
 #include "fileproperties.h"
 #include "filethumbnails.h"
 #include "foreigntoplevels.h"
@@ -330,6 +331,7 @@ int main(int argc, char* argv[])
     ServiceMenus serviceMenus;
     FileProperties properties;
     FileActions fileActions;
+    FileSearch fileSearch;
     Clipboard clipboard;
     QObject::connect(&shell, &ShellController::clipboardClearRequested, &clipboard, &Clipboard::clear);
     // History turned on or off from Settings (vela-shell.conf).
@@ -377,6 +379,7 @@ int main(int argc, char* argv[])
     engine.rootContext()->setContextProperty(QStringLiteral("ServiceMenus"), &serviceMenus);
     engine.rootContext()->setContextProperty(QStringLiteral("Properties"), &properties);
     engine.rootContext()->setContextProperty(QStringLiteral("FileActions"), &fileActions);
+    engine.rootContext()->setContextProperty(QStringLiteral("FileSearch"), &fileSearch);
     engine.rootContext()->setContextProperty(QStringLiteral("Clip"), &clipboard);
     engine.rootContext()->setContextProperty(QStringLiteral("Snip"), &snip);
     engine.rootContext()->setContextProperty(QStringLiteral("Status"), &status);
