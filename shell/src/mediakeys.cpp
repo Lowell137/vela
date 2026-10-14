@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "mediakeys.h"
+#include "mediamatch.h"
 
 #include <QDBusConnection>
 #include <QDBusConnectionInterface>
@@ -198,6 +199,27 @@ void MediaKeys::update()
         };
         break;
     }
+    QVariantList list;
+    for (const QString& owner : ready) {
+        const Player& p = m_players[owner];
+        const QVariantMap metadata = toMap(p.player.value(QStringLiteral("Metadata")));
+        const QString status = p.player.value(QStringLiteral("PlaybackStatus")).toString();
+        list << QVariantMap {
+            { QStringLiteral("service"), p.name },
+            { QStringLiteral("desktopEntry"), p.root.value(QStringLiteral("DesktopEntry")).toString() },
+            { QStringLiteral("identity"), p.root.value(QStringLiteral("Identity")).toString() },
+            { QStringLiteral("title"), metadata.value(QStringLiteral("xesam:title")).toString() },
+            { QStringLiteral("artist"), toStringList(metadata.value(QStringLiteral("xesam:artist"))).join(QStringLiteral(", ")) },
+            { QStringLiteral("status"), status },
+            { QStringLiteral("playing"), status == QLatin1String("Playing") },
+            { QStringLiteral("canGoNext"), p.player.value(QStringLiteral("CanGoNext"), true).toBool() },
+            { QStringLiteral("canGoPrevious"), p.player.value(QStringLiteral("CanGoPrevious"), true).toBool() },
+        };
+    }
+    if (list != m_playersList) {
+        m_playersList = list;
+        Q_EMIT playersChanged();
+    }
     if (current != m_current) {
         m_current = current;
         Q_EMIT currentChanged();
@@ -272,6 +294,19 @@ void MediaKeys::command(const QString& key)
     const QString name = method(key);
     const QString service = m_current.value(QStringLiteral("service")).toString();
     if (!name.isEmpty() && !service.isEmpty()) {
+        QDBusConnection::sessionBus().asyncCall(QDBusMessage::createMethodCall(service, mprisPath, playerInterface, name));
+    }
+}
+
+QVariantMap MediaKeys::playerFor(const QString& appId, const QString& title, int sameAppWindows) const
+{
+    return MediaMatch::pick(m_playersList, appId, title, sameAppWindows);
+}
+
+void MediaKeys::commandTo(const QString& service, const QString& key)
+{
+    const QString name = method(key);
+    if (!name.isEmpty() && service.startsWith(mprisPrefix)) {
         QDBusConnection::sessionBus().asyncCall(QDBusMessage::createMethodCall(service, mprisPath, playerInterface, name));
     }
 }

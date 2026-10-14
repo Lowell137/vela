@@ -8,6 +8,7 @@
 #include <QObject>
 #include <QString>
 #include <QStringList>
+#include <QVariantList>
 #include <QVariantMap>
 
 // The keyboard's media keys, whatever window has the focus, like Windows: they
@@ -20,6 +21,8 @@
 class MediaKeys : public QObject, protected QDBusContext {
     Q_OBJECT
     Q_PROPERTY(QVariantMap current READ current NOTIFY currentChanged)
+    // Every player: [{service, desktopEntry, identity, title, artist, status, playing, canGoNext, canGoPrevious}]
+    Q_PROPERTY(QVariantList players READ players NOTIFY playersChanged)
 
 public:
     explicit MediaKeys(QObject* parent = nullptr);
@@ -34,9 +37,16 @@ public:
     Q_INVOKABLE void cycle(int delta);
 
     QVariantMap current() const { return m_current; }
+    QVariantList players() const { return m_playersList; }
+
+    // The player of a window (taskbar preview's strip): {} for none.
+    Q_INVOKABLE QVariantMap playerFor(const QString& appId, const QString& title, int sameAppWindows) const;
+    // `key` (see command) for one player, by its bus name.
+    Q_INVOKABLE void commandTo(const QString& service, const QString& key);
 
 Q_SIGNALS:
     void currentChanged();
+    void playersChanged();
 
 private Q_SLOTS:
     void onPropertiesChanged(const QString& interface, const QVariantMap& changed, const QStringList& invalidated);
@@ -54,6 +64,7 @@ private:
 
     QHash<QString, Player> m_players; // by unique bus name
     QVariantMap m_current;
+    QVariantList m_playersList;
 
     // The bus name of the player the keys are for; empty if there is none.
     QString target() const;

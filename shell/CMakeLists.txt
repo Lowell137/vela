@@ -49,6 +49,7 @@ qt_add_executable(vela-shell
     src/launcherbadges.h
     src/mediakeys.cpp
     src/mediakeys.h
+    src/mediamatch.h
     src/asyncprocess.h
     src/network.cpp
     src/network.h
@@ -206,6 +207,12 @@ if(VELA_BUILD_TOOLS)
     target_compile_options(vela-terminalexec-test PRIVATE -Wall -Wextra)
     target_link_libraries(vela-terminalexec-test PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME shell-terminalexec COMMAND vela-terminalexec-test)
+
+    qt_add_executable(vela-mediamatch-test tests/mediamatch.cpp src/mediamatch.h)
+    target_include_directories(vela-mediamatch-test PRIVATE src)
+    target_compile_options(vela-mediamatch-test PRIVATE -Wall -Wextra)
+    target_link_libraries(vela-mediamatch-test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME shell-mediamatch COMMAND vela-mediamatch-test)
 
     qt_add_executable(vela-mimeapps-test tests/mimeapps.cpp src/mimeapps.h)
     target_include_directories(vela-mimeapps-test PRIVATE src)
