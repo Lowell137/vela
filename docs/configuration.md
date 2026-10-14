@@ -118,6 +118,8 @@ The app id (or X11 class) matches ignoring case; the first matching rule wins. K
 
 Unknown keys and unusable values are ignored and logged. Rules apply once, when a window opens: you can move it afterwards. `reload-config` (and Settings) change the rules for windows opened from then on, not for windows already open.
 
+The Add a rule dialog in Settings has a "Pick a window" button: it sends `pick-window` on the command socket, the pointer becomes a crosshair, and the next left click on a window (the click reaches nobody) answers with its app id, title and output as one JSON line. Esc, a right click or 30 seconds without a click answer `cancel`; panels and the desktop are ignored.
+
 The exception is `capture=no`, a privacy rule: it is checked again on `reload-config` for the windows already open (adding the rule hides them, removing it shows them again) and whenever a window's title changes (so `title~=` follows the title). The window menu's "Hide from screen capture" (title bar, Alt+Space, Task View) overrides the rule for that window until it closes. The command socket accepts `window <id|active> capture-hide on|off|toggle`.
 
 The Settings app is the preferred way to edit these values because it applies validation and reloads the compositor at the correct time.

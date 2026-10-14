@@ -27,7 +27,7 @@ Page {
         Card {
             icon: "go-up"
             title: qsTr("Hidden icon menu")
-            description: qsTr("Apps' icons go behind the arrow next to the system icons")
+            description: qsTr("Extra icons wait behind an arrow, to keep the taskbar tidy")
             trailing: Toggle {
                 checked: Prefs.trayOverflow
                 onToggled: on => Prefs.trayOverflow = on
@@ -59,7 +59,7 @@ Page {
         Card {
             icon: "video-display"
             title: qsTr("Show the taskbar on all displays")
-            description: qsTr("With multiple monitors: Start, apps and the clock on each one; notification area on the main one")
+            description: qsTr("With more than one monitor, each gets its own taskbar")
             trailing: Toggle {
                 checked: Prefs.taskbarAllScreens
                 onToggled: on => Prefs.taskbarAllScreens = on
@@ -68,7 +68,7 @@ Page {
         Card {
             icon: "view-fullscreen"
             title: qsTr("Automatically hide the taskbar")
-            description: qsTr("It slides away, and comes back when the pointer reaches the edge of the screen")
+            description: qsTr("Hides until you move the pointer to the screen edge")
             trailing: Toggle {
                 checked: Prefs.taskbarAutoHide
                 onToggled: on => Prefs.taskbarAutoHide = on
@@ -77,7 +77,7 @@ Page {
         Card {
             icon: "view-list-icons"
             title: qsTr("Combine taskbar buttons")
-            description: qsTr("Windows of the same app under one button, or each with its own")
+            description: qsTr("Group an app's windows under one button, or keep one per window")
             trailing: Choice {
                 model: [qsTr("Always"), qsTr("Never")]
                 currentIndex: Prefs.taskbarCombine === "never" ? 1 : 0
@@ -87,7 +87,7 @@ Page {
         Card {
             icon: "process-stop"
             title: qsTr("End task")
-            description: qsTr("In the taskbar buttons' menu, to close an app that isn't responding right away")
+            description: qsTr("Adds End task to the right-click menu, for apps that stop responding")
             trailing: Toggle {
                 checked: Prefs.endTask
                 onToggled: on => Prefs.endTask = on

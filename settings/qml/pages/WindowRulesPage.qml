@@ -23,7 +23,7 @@ Page {
         Card {
             icon: "window"
             title: qsTr("Remember window positions")
-            description: qsTr("Apps reopen where you closed them, with the same size. Rules below win.")
+            description: qsTr("Apps open where you left them. Your rules below come first.")
             trailing: Toggle {
                 checked: Prefs.rememberWindowPositions
                 onToggled: on => Prefs.rememberWindowPositions = on
@@ -59,12 +59,12 @@ Page {
         Card {
             icon: "dialog-information"
             title: qsTr("When rules apply")
-            description: qsTr("Once, when a window opens: you can still move it afterwards. Changes affect windows opened from now on, not the ones already open. The first rule that matches an app wins.")
+            description: qsTr("A rule works when a window opens, not on windows that are already open. You can still move the window after.")
         }
         Card {
             icon: "security-high"
             title: qsTr("Hide from screen capture")
-            description: qsTr("Applies at once to windows already open too, and follows title changes. The window stays on your screen, but screenshots, recordings and screen sharing show what is behind it. The window's title can still appear on the taskbar and in notifications.")
+            description: qsTr("These windows don't show in screen sharing, recordings or screenshots. You still see them as usual. Their name and taskbar icon can still show.")
         }
     }
 
@@ -160,7 +160,7 @@ Page {
                 TextBox {
                     id: appId
                     width: parent.width - pickButton.width - parent.spacing
-                    placeholderText: qsTr("App id (e.g. discord) or pick an open window above")
+                    placeholderText: qsTr("App (e.g. discord)")
                 }
                 Button {
                     id: pickButton
@@ -171,7 +171,7 @@ Page {
             TextBox {
                 id: outputBox
                 width: parent.width
-                placeholderText: qsTr("Output: name (HDMI-A-1) or number (1, 2, ...)")
+                placeholderText: qsTr("Screen: name (HDMI-A-1) or number (1, 2, ...)")
             }
             TextBox {
                 id: desktopBox
@@ -188,7 +188,7 @@ Page {
                 id: positionBox
                 property bool valid: text.trim() === "" || /^-?[0-9]+\s*,\s*-?[0-9]+$/.test(text.trim())
                 width: parent.width
-                placeholderText: qsTr("Position from the output's corner: 100,80")
+                placeholderText: qsTr("Position from the screen's corner: 100,80")
             }
             Grid {
                 width: parent.width

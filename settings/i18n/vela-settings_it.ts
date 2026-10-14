@@ -2074,16 +2074,16 @@ Specifiche sistema
         <translation>Silenzia le notifiche con le app a schermo intero</translation>
     </message>
     <message>
-        <source>Popups wait in the notification center while a window is full screen</source>
-        <translation>I popup restano nel centro notifiche mentre una finestra è a schermo intero</translation>
+        <source>Notifications wait quietly while an app is full screen</source>
+        <translation>Le notifiche aspettano in silenzio mentre un&apos;app è a schermo intero</translation>
+    </message>
+    <message>
+        <source>Needs the sharing indicator, in Display settings</source>
+        <translation>Richiede l&apos;indicatore di condivisione, nelle impostazioni Schermo</translation>
     </message>
     <message>
         <source>Silence notifications while sharing the screen</source>
         <translation>Silenzia le notifiche durante la condivisione dello schermo</translation>
-    </message>
-    <message>
-        <source>Needs the screen sharing indicator (Taskbar settings)</source>
-        <translation>Richiede l&apos;indicatore di condivisione dello schermo (impostazioni Barra delle applicazioni)</translation>
     </message>
 </context>
 <context>
@@ -2947,8 +2947,8 @@ Specifiche sistema
         <translation>Menu delle icone nascoste</translation>
     </message>
     <message>
-        <source>Apps&apos; icons go behind the arrow next to the system icons</source>
-        <translation>Le icone delle app vanno dietro la freccia accanto alle icone di sistema</translation>
+        <source>Extra icons wait behind an arrow, to keep the taskbar tidy</source>
+        <translation>Le icone in più restano dietro una freccia, per tenere in ordine la barra</translation>
     </message>
     <message>
         <source>Taskbar behaviors</source>
@@ -2987,24 +2987,28 @@ Specifiche sistema
         <translation>Mostra la barra delle applicazioni su tutti gli schermi</translation>
     </message>
     <message>
-        <source>With multiple monitors: Start, apps and the clock on each one; notification area on the main one</source>
-        <translation>Con più monitor: Start, le app e l&apos;orologio su ognuno; area di notifica sul principale</translation>
+        <source>With more than one monitor, each gets its own taskbar</source>
+        <translation>Con più di un monitor, ognuno ha la sua barra delle applicazioni</translation>
+    </message>
+    <message>
+        <source>Hides until you move the pointer to the screen edge</source>
+        <translation>Si nasconde finché non porti il puntatore sul bordo dello schermo</translation>
+    </message>
+    <message>
+        <source>Group an app&apos;s windows under one button, or keep one per window</source>
+        <translation>Raggruppa le finestre di un&apos;app sotto un pulsante, o tieni un pulsante per finestra</translation>
+    </message>
+    <message>
+        <source>Adds End task to the right-click menu, for apps that stop responding</source>
+        <translation>Aggiunge Termina attività al menu del clic destro, per le app che non rispondono</translation>
     </message>
     <message>
         <source>Automatically hide the taskbar</source>
         <translation>Nascondi automaticamente la barra delle applicazioni</translation>
     </message>
     <message>
-        <source>It slides away, and comes back when the pointer reaches the edge of the screen</source>
-        <translation>Scorre via e ricompare quando il puntatore raggiunge il bordo dello schermo</translation>
-    </message>
-    <message>
         <source>Combine taskbar buttons</source>
         <translation>Raggruppa i pulsanti della barra delle applicazioni</translation>
-    </message>
-    <message>
-        <source>Windows of the same app under one button, or each with its own</source>
-        <translation>Le finestre della stessa app sotto un solo pulsante, oppure ognuna con il suo</translation>
     </message>
     <message>
         <source>Always</source>
@@ -3017,10 +3021,6 @@ Specifiche sistema
     <message>
         <source>End task</source>
         <translation>Termina attività</translation>
-    </message>
-    <message>
-        <source>In the taskbar buttons&apos; menu, to close an app that isn&apos;t responding right away</source>
-        <translation>Nel menu dei pulsanti della barra delle applicazioni, per chiudere subito un&apos;app che non risponde</translation>
     </message>
 </context>
 <context>
@@ -3317,8 +3317,8 @@ Specifiche sistema
         <translation>Ricorda la posizione delle finestre</translation>
     </message>
     <message>
-        <source>Apps reopen where you closed them, with the same size. Rules below win.</source>
-        <translation>Le app si riaprono dove le hai chiuse, con la stessa dimensione. Le regole qui sotto hanno la precedenza.</translation>
+        <source>Apps open where you left them. Your rules below come first.</source>
+        <translation>Le app si aprono dove le hai lasciate. Le tue regole qui sotto hanno la precedenza.</translation>
     </message>
     <message>
         <source>No rules</source>
@@ -3345,16 +3345,28 @@ Specifiche sistema
         <translation>Quando si applicano le regole</translation>
     </message>
     <message>
-        <source>Once, when a window opens: you can still move it afterwards. Changes affect windows opened from now on, not the ones already open. The first rule that matches an app wins.</source>
-        <translation>Una volta, quando si apre una finestra: puoi comunque spostarla dopo. Le modifiche valgono per le finestre aperte da ora in poi, non per quelle già aperte. Vince la prima regola che corrisponde a un&apos;app.</translation>
+        <source>A rule works when a window opens, not on windows that are already open. You can still move the window after.</source>
+        <translation>Una regola vale quando una finestra si apre, non per quelle già aperte. Puoi comunque spostare la finestra dopo.</translation>
+    </message>
+    <message>
+        <source>These windows don&apos;t show in screen sharing, recordings or screenshots. You still see them as usual. Their name and taskbar icon can still show.</source>
+        <translation>Queste finestre non compaiono nella condivisione dello schermo, nelle registrazioni e negli screenshot. Tu le vedi normalmente. Il nome e l&apos;icona nella barra possono comunque comparire.</translation>
+    </message>
+    <message>
+        <source>App (e.g. discord)</source>
+        <translation>App (ad es. discord)</translation>
+    </message>
+    <message>
+        <source>Screen: name (HDMI-A-1) or number (1, 2, ...)</source>
+        <translation>Schermo: nome (HDMI-A-1) o numero (1, 2, ...)</translation>
+    </message>
+    <message>
+        <source>Position from the screen&apos;s corner: 100,80</source>
+        <translation>Posizione dall&apos;angolo dello schermo: 100,80</translation>
     </message>
     <message>
         <source>Hide from screen capture</source>
         <translation>Nascondi dalle acquisizioni dello schermo</translation>
-    </message>
-    <message>
-        <source>Applies at once to windows already open too, and follows title changes. The window stays on your screen, but screenshots, recordings and screen sharing show what is behind it. The window&apos;s title can still appear on the taskbar and in notifications.</source>
-        <translation>Vale subito anche per le finestre già aperte e segue i cambi di titolo. La finestra resta sul tuo schermo, ma screenshot, registrazioni e condivisione dello schermo mostrano ciò che c&apos;è dietro. Il titolo della finestra può comunque comparire sulla barra delle applicazioni e nelle notifiche.</translation>
     </message>
     <message>
         <source>Add a window rule</source>
@@ -3365,16 +3377,8 @@ Specifiche sistema
         <translation>Aggiungi</translation>
     </message>
     <message>
-        <source>App id (e.g. discord) or pick an open window above</source>
-        <translation>Id dell&apos;app (ad es. discord) o scegli una finestra aperta qui sopra</translation>
-    </message>
-    <message>
         <source>Pick a window</source>
         <translation>Scegli una finestra</translation>
-    </message>
-    <message>
-        <source>Output: name (HDMI-A-1) or number (1, 2, ...)</source>
-        <translation>Uscita: nome (HDMI-A-1) o numero (1, 2, ...)</translation>
     </message>
     <message>
         <source>Desktop number (1, 2, ...)</source>
@@ -3383,10 +3387,6 @@ Specifiche sistema
     <message>
         <source>Size: 900x600</source>
         <translation>Dimensione: 900x600</translation>
-    </message>
-    <message>
-        <source>Position from the output&apos;s corner: 100,80</source>
-        <translation>Posizione dall&apos;angolo dell&apos;uscita: 100,80</translation>
     </message>
     <message>
         <source>Centered</source>
