@@ -15,7 +15,7 @@
 // to the one that played last, otherwise to a paused one.
 // The same player, for the quick settings' media card: `current` is its
 // {service, identity, desktopEntry, title, artist, artUrl, playing,
-// canGoNext, canGoPrevious}, empty without a player. Kept from the players'
+// canGoNext, canGoPrevious, index, count}, empty without a player. Kept from the players'
 // signals and asynchronous calls, so a hung player can't freeze the card.
 class MediaKeys : public QObject, protected QDBusContext {
     Q_OBJECT
@@ -28,6 +28,10 @@ public:
     void press(const QString& key);
     // The same, for the player the card shows.
     Q_INVOKABLE void command(const QString& key);
+
+    // The card's previous (-1) / next (+1) player; the pick stays until that
+    // player is gone.
+    Q_INVOKABLE void cycle(int delta);
 
     QVariantMap current() const { return m_current; }
 
@@ -54,5 +58,7 @@ private:
     // The bus name of the player the keys are for; empty if there is none.
     QString target() const;
 
+    QString m_selected; // the unique bus name the user picked for the card, or empty
+    QString m_shown; // the one the card shows
     QString m_lastPlaying; // the unique bus name of the player that played last
 };

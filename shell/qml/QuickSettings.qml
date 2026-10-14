@@ -703,11 +703,48 @@ Window {
                         sourceSize: Qt.size(width, height)
                     }
                     Text {
-                        anchors { left: mediaApp.right; leftMargin: 8; right: cover.left; rightMargin: 12; verticalCenter: mediaApp.verticalCenter }
+                        anchors { left: mediaApp.right; leftMargin: 8; right: mediaSwitch.visible ? mediaSwitch.left : cover.left; rightMargin: 12; verticalCenter: mediaApp.verticalCenter }
                         text: media.player.identity || ""
                         color: Theme.text
                         font.pixelSize: Theme.fontCaption
                         elide: Text.ElideRight
+                    }
+                    // Several players: the previous / next one, and which.
+                    Row {
+                        id: mediaSwitch
+                        visible: media.player.count > 1
+                        anchors { right: cover.left; rightMargin: 12; verticalCenter: mediaApp.verticalCenter }
+                        spacing: 4
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: media.player.index + "/" + media.player.count
+                            color: Theme.textSecondary
+                            font.pixelSize: Theme.fontCaption
+                        }
+                        Repeater {
+                            model: [{ t: "\u2039", d: -1, n: qsTr("Previous player") }, { t: "\u203a", d: 1, n: qsTr("Next player") }]
+                            Rectangle {
+                                width: 20
+                                height: 20
+                                radius: Theme.radius
+                                color: switchMouse.containsMouse ? Theme.subtleHover : "transparent"
+                                Accessible.role: Accessible.Button
+                                Accessible.name: modelData.n
+                                Accessible.onPressAction: Media.cycle(modelData.d)
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: modelData.t
+                                    color: Theme.text
+                                    font.pixelSize: Theme.fontBody
+                                }
+                                MouseArea {
+                                    id: switchMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    onClicked: Media.cycle(modelData.d)
+                                }
+                            }
+                        }
                     }
                     Text {
                         id: mediaTitle

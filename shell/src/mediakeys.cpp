@@ -11,6 +11,8 @@
 #include <QDBusVariant>
 #include <QUrl>
 
+#include <algorithm>
+
 namespace {
 
 const QString mprisPrefix = QStringLiteral("org.mpris.MediaPlayer2.");
@@ -156,11 +158,25 @@ void MediaKeys::update()
             any = it.key();
         }
     }
+    // The card's player: the one the user picked, while it is there.
+    QStringList ready;
+    for (auto it = m_players.cbegin(); it != m_players.cend(); ++it) {
+        if (!it->player.isEmpty()) {
+            ready << it.key();
+        }
+    }
+    std::sort(ready.begin(), ready.end(), [this](const QString& a, const QString& b) {
+        return m_players[a].name != m_players[b].name ? m_players[a].name < m_players[b].name : a < b;
+    });
+    if (!ready.contains(m_selected)) {
+        m_selected.clear();
+    }
     QVariantMap current;
-    for (const QString& owner : { playing, last, paused, any }) {
+    for (const QString& owner : { m_selected, playing, last, paused, any }) {
         if (owner.isEmpty()) {
             continue;
         }
+        m_shown = owner;
         const Player& p = m_players[owner];
         const QVariantMap metadata = toMap(p.player.value(QStringLiteral("Metadata")));
         // Cover art only from files and the web: a player's metadata is no
@@ -169,6 +185,8 @@ void MediaKeys::update()
         const bool artOk = art.isLocalFile() || art.scheme() == QLatin1String("http") || art.scheme() == QLatin1String("https");
         current = {
             { QStringLiteral("service"), p.name },
+            { QStringLiteral("index"), int(ready.indexOf(owner)) + 1 },
+            { QStringLiteral("count"), int(ready.size()) },
             { QStringLiteral("identity"), p.root.value(QStringLiteral("Identity")).toString() },
             { QStringLiteral("desktopEntry"), p.root.value(QStringLiteral("DesktopEntry")).toString() },
             { QStringLiteral("title"), metadata.value(QStringLiteral("xesam:title")).toString() },
@@ -228,6 +246,25 @@ void MediaKeys::press(const QString& key)
         return;
     }
     QDBusConnection::sessionBus().asyncCall(QDBusMessage::createMethodCall(service, mprisPath, playerInterface, name));
+}
+
+void MediaKeys::cycle(int delta)
+{
+    QStringList ready;
+    for (auto it = m_players.cbegin(); it != m_players.cend(); ++it) {
+        if (!it->player.isEmpty()) {
+            ready << it.key();
+        }
+    }
+    const int n = ready.size();
+    if (n < 2 || !ready.contains(m_shown)) {
+        return;
+    }
+    std::sort(ready.begin(), ready.end(), [this](const QString& a, const QString& b) {
+        return m_players[a].name != m_players[b].name ? m_players[a].name < m_players[b].name : a < b;
+    });
+    m_selected = ready.at((ready.indexOf(m_shown) + delta % n + n) % n);
+    update();
 }
 
 void MediaKeys::command(const QString& key)
