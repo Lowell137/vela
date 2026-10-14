@@ -697,18 +697,15 @@ Window {
         visible: root.primary
         anchors { right: parent.right; top: parent.top; bottom: parent.bottom }
         // Invisible at rest and over the clock's margin: it takes no room. Only
-        // under the pointer a thin line (and a faint tint) shows, like Windows.
+        // under the pointer a short line shows, like Windows.
         width: visible ? 8 : 0
 
+        // A short, 2 px line, only while hovered.
         Rectangle {
-            anchors.fill: parent
-            color: Theme.textSecondary
-            opacity: showDesktopMouse.containsMouse ? 0.12 : 0
-            Behavior on opacity { NumberAnimation { duration: Theme.fast } }
-        }
-        Rectangle {
-            anchors { right: parent.right; top: parent.top; bottom: parent.bottom }
-            width: 1
+            anchors { right: parent.right; rightMargin: 2; verticalCenter: parent.verticalCenter }
+            width: 2
+            height: 18
+            radius: 1
             color: Theme.textSecondary
             opacity: showDesktopMouse.containsMouse ? 0.9 : 0
             Behavior on opacity { NumberAnimation { duration: Theme.fast } }
