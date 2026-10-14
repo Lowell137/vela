@@ -40,8 +40,9 @@ class Preferences : public QObject {
     // The apps' tray icons behind the "^" button (taskbar/trayOverflow).
     Q_PROPERTY(bool trayOverflow READ trayOverflow WRITE setTrayOverflow NOTIFY taskbarChanged)
     Q_PROPERTY(bool taskbarAllScreens READ taskbarAllScreens WRITE setTaskbarAllScreens NOTIFY taskbarChanged)
-    // taskbar/autoHide.
+    // taskbar/autoHide, and taskbar/combine: "always" or "never".
     Q_PROPERTY(bool taskbarAutoHide READ taskbarAutoHide WRITE setTaskbarAutoHide NOTIFY taskbarChanged)
+    Q_PROPERTY(QString taskbarCombine READ taskbarCombine WRITE setTaskbarCombine NOTIFY taskbarChanged)
     // icon-theme= in vela.conf: an icon theme's directory name, "" for the
     // automatic one (Breeze). The apps apply it themselves (applyIconTheme).
     Q_PROPERTY(QString iconTheme READ iconTheme WRITE setIconTheme NOTIFY iconThemeChanged)
@@ -155,6 +156,8 @@ public:
     void setTaskbarAllScreens(bool on);
     bool taskbarAutoHide() const { return m_taskbarAutoHide; }
     void setTaskbarAutoHide(bool on);
+    QString taskbarCombine() const { return m_taskbarCombine; }
+    void setTaskbarCombine(const QString& mode);
 
     QString iconTheme() const { return m_iconTheme; }
     void setIconTheme(const QString& theme);
@@ -350,6 +353,7 @@ private:
     bool m_trayOverflow = true;
     bool m_taskbarAllScreens = true;
     bool m_taskbarAutoHide = false;
+    QString m_taskbarCombine = QStringLiteral("always");
     QString m_iconTheme;
     QString m_cursorTheme;
     int m_cursorSize = 24;

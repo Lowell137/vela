@@ -175,6 +175,16 @@ Page {
             }
         }
         Card {
+            icon: "view-list-icons"
+            title: qsTr("Combine taskbar buttons")
+            description: qsTr("Windows of the same app under one button, or each with its own")
+            trailing: Choice {
+                model: [qsTr("Always"), qsTr("Never")]
+                currentIndex: Prefs.taskbarCombine === "never" ? 1 : 0
+                onChosen: index => Prefs.taskbarCombine = index === 1 ? "never" : "always"
+            }
+        }
+        Card {
             icon: "process-stop"
             title: qsTr("End task")
             description: qsTr("In the taskbar buttons' menu, to close an app that isn't responding right away")

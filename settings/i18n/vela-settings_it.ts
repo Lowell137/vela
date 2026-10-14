@@ -2800,6 +2800,22 @@ Specifiche sistema
         <translation>Scorre via e ricompare quando il puntatore raggiunge il bordo dello schermo</translation>
     </message>
     <message>
+        <source>Combine taskbar buttons</source>
+        <translation>Raggruppa i pulsanti della barra delle applicazioni</translation>
+    </message>
+    <message>
+        <source>Windows of the same app under one button, or each with its own</source>
+        <translation>Le finestre della stessa app sotto un solo pulsante, oppure ognuna con il suo</translation>
+    </message>
+    <message>
+        <source>Always</source>
+        <translation>Sempre</translation>
+    </message>
+    <message>
+        <source>Never</source>
+        <translation>Mai</translation>
+    </message>
+    <message>
         <source>End task</source>
         <translation>Termina attività</translation>
     </message>

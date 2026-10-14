@@ -318,6 +318,9 @@ int main(int argc, char* argv[])
 
     ForeignToplevelManager windows;
     TaskbarModel tasks(&apps, &windows);
+    tasks.setCombine(config.taskbarCombine() != QLatin1String("never"));
+    QObject::connect(&config, &Config::taskbarChanged, &tasks,
+        [&config, &tasks] { tasks.setCombine(config.taskbarCombine() != QLatin1String("never")); });
     WindowCapture capture;
     NotificationServer notifications;
     notifications.registerService();
