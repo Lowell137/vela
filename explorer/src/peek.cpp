@@ -1,0 +1,57 @@
+// SPDX-FileCopyrightText: 2026 Brando Giuffrida
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+#include "peek.h"
+
+#include <QMimeDatabase>
+
+namespace peek {
+
+QString classify(const QString& mime, bool isDir, bool imageReadable, bool pdfSupported)
+{
+    static const QMimeDatabase mimes;
+    if (isDir) {
+        return QStringLiteral("folder");
+    }
+    if (imageReadable) {
+        return QStringLiteral("image");
+    }
+    if (pdfSupported && mime == QLatin1String("application/pdf")) {
+        return QStringLiteral("pdf");
+    }
+    const QMimeType type = mimes.mimeTypeForName(mime);
+    if ((type.isValid() && type.inherits(QStringLiteral("text/plain"))) || mime == QLatin1String("application/json")
+        || mime == QLatin1String("application/xml") || mime == QLatin1String("application/x-shellscript")) {
+        return QStringLiteral("text");
+    }
+    return QStringLiteral("other");
+}
+
+QString truncateText(const QByteArray& head, qint64 fileSize, int maxBytes, bool* truncated)
+{
+    QByteArray bytes = head.left(maxBytes);
+    const bool cut = fileSize > bytes.size();
+    if (truncated) {
+        *truncated = cut;
+    }
+    if (cut) {
+        // Drop an incomplete UTF-8 sequence at the end (up to 3 bytes).
+        int i = bytes.size() - 1, back = 0;
+        while (i >= 0 && back < 3 && (uchar(bytes[i]) & 0xC0) == 0x80) {
+            --i;
+            ++back;
+        }
+        if (i >= 0 && uchar(bytes[i]) >= 0xC0) {
+            const uchar lead = uchar(bytes[i]);
+            const int need = lead >= 0xF0 ? 4 : lead >= 0xE0 ? 3 : 2;
+            if (back + 1 < need) {
+                bytes.truncate(i);
+            }
+        }
+    }
+    QString text = QString::fromUtf8(bytes);
+    text.replace(u'\t', QStringLiteral("    "));
+    return text;
+}
+
+} // namespace peek
