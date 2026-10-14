@@ -72,6 +72,32 @@ class X11(unittest.TestCase):
         self.assertEqual(image.at(105, 125), GREEN)
         self.assertNotEqual(image.at(95, 160), GREEN)
 
+    def test_screen_sized_override_redirect_stays_below_the_taskbar(self):
+        """An override-redirect window as large as the screen, opened after
+        the app's window (the Steam overlay over a game), neither covers the taskbar nor keeps the
+        keyboard: the app's window keeps it and Alt+Tab still switches."""
+        self.vela.clients.append(subprocess.Popen([tool("vela-panel"), "taskbar"], env=self.vela.client_env))
+        time.sleep(0.4)
+        window = self.open_x11("--cover", 300, 200)
+        time.sleep(0.4)
+        state = self.vela.wait_for(lambda s: s["focused"] == window, what="the X11 window keeps the keyboard")
+        out = state.output
+        image = self.vela.pixels()
+        self.assertEqual(image.at(out["w"] // 2, out["h"] // 2), GREEN)  # it is shown
+        self.assertNotEqual(image.at(out["w"] // 2, out["h"] - 24), GREEN)  # the taskbar is above it
+        other = self.vela.open_window(300, 200)
+        self.vela.wait_for(lambda s: s["focused"] == other, what="the new window has focus")
+        self.vela.keys("alt+Tab")
+        self.vela.wait_for(lambda s: s["focused"] == window, what="Alt+Tab back to the X11 window")
+
+    def test_screen_sized_override_redirect_stays_above_a_fullscreen_game(self):
+        self.open_x11("--cover", 300, 200)
+        game = self.vela.open_window(command=[tool("vela-pattern"), "--fullscreen"])
+        state = self.vela.wait_for(lambda s: s.window(game)["fullscreen"], what="fullscreen")
+        time.sleep(0.4)
+        out = state.output
+        self.assertEqual(self.vela.pixels().at(out["w"] // 2, out["h"] // 2), GREEN)
+
 
 if __name__ == "__main__":
     unittest.main()

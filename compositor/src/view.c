@@ -578,6 +578,7 @@ void vela_views_update_capture_hidden(struct vela_server *server)
     }
     // X11 menus and the dragged icon don't know their window (§15.2).
     server->layers.x11_popups->node.capture_hidden = x11;
+    server->layers.x11_covers->node.capture_hidden = x11;
     server->layers.drag->node.capture_hidden = count > 0;
     bool count_changed = count != server->capture_hidden_count;
     server->capture_hidden_count = count;

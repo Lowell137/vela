@@ -4,12 +4,13 @@
 // vela-x11: a test X11 app (through Xwayland), so the X11 window tests do
 // not depend on installed programs.
 //
-// Usage: vela-x11 [--menu X,Y] [WIDTH HEIGHT]   (default 300x200)
+// Usage: vela-x11 [--menu X,Y | --cover] [WIDTH HEIGHT]   (default 300x200)
 //
 // Opens an orange window with class "vela.x11" and title "vela-x11", which
 // closes on WM_DELETE_WINDOW (Alt+F4). --menu also opens a green 120x80
 // override-redirect menu at (X, Y) on the screen, like the drop-down menus
-// of X11 apps. Like most apps, it draws only when the server asks (Expose).
+// of X11 apps; --cover instead opens a green override-redirect window as
+// large as the X screen, like the Steam overlay over a game. Like most apps, it draws only when the server asks (Expose).
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,10 +44,14 @@ int main(int argc, char** argv)
     int menu = 0;
     int menuX = 0;
     int menuY = 0;
+    int cover = 0;
     int arg = 1;
     if (arg + 1 < argc && !strcmp(argv[arg], "--menu") && sscanf(argv[arg + 1], "%d,%d", &menuX, &menuY) == 2) {
         menu = 1;
         arg += 2;
+    } else if (arg < argc && !strcmp(argv[arg], "--cover")) {
+        cover = 1;
+        arg += 1;
     }
     if (arg + 1 < argc) {
         width = atoi(argv[arg]);
@@ -82,6 +87,12 @@ int main(int argc, char** argv)
         int type = event->response_type & 0x7f;
         if (type == XCB_EXPOSE) {
             const xcb_expose_event_t* expose = (const xcb_expose_event_t*)event;
+            // The overlay comes once the window is on screen (and focused).
+            if (cover == 1 && expose->window == window) {
+                cover = 2;
+                xcb_map_window(connection,
+                    create(connection, screen, 0, 0, screen->width_in_pixels, screen->height_in_pixels, 0x00c000, 1));
+            }
             xcb_gcontext_t* gc = expose->window == window ? &orange : &green;
             if (*gc == XCB_NONE) {
                 uint32_t color = expose->window == window ? 0xff8000 : 0x00c000;
