@@ -30,6 +30,9 @@ class ShellController : public QObject {
     // The screen is being shared or recorded (the taskbar's indicator): the
     // compositor's "capture on" and "capture off".
     Q_PROPERTY(bool screenCaptured READ screenCaptured NOTIFY screenCapturedChanged)
+    // "capture on dnd": the compositor also asks for notifications to be
+    // silenced while it lasts (capture-dnd=yes).
+    Q_PROPERTY(bool captureSilence READ captureSilence NOTIFY screenCapturedChanged)
 
 public:
     explicit ShellController(QObject* parent = nullptr);
@@ -66,6 +69,7 @@ public:
     QString userInitial() const;
 
     bool screenCaptured() const { return m_screenCaptured; }
+    bool captureSilence() const { return m_screenCaptured && m_captureDnd; }
     bool startMenuOpen() const { return m_startMenuOpen; }
     void setStartMenuOpen(bool open)
     {
@@ -169,5 +173,6 @@ private:
     QLocalServer m_server;
     bool m_startMenuOpen = false;
     bool m_screenCaptured = false;
+    bool m_captureDnd = false;
     QStringList m_startPins;
 };

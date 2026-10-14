@@ -48,6 +48,24 @@ class CaptureIndicator(unittest.TestCase):
                 self.stop(recorder)
             shell.wait_for("capture off", timeout=8)
 
+    def test_dnd_flag_follows_config(self):
+        with Session() as vela:
+            shell = vela.fake_shell()
+            os.makedirs(os.path.dirname(vela.config_path()), exist_ok=True)
+            vela.open_window(300, 200)
+            recorder = self.record(vela)
+            try:
+                shell.wait_for("capture on dnd", timeout=8)
+                with open(vela.config_path(), "a") as config:
+                    config.write("capture-dnd=no\n")
+                vela.command("reload-config")
+                deadline = time.time() + 8
+                while time.time() < deadline and not [m for m in shell.received("capture") if m.strip() == "capture on"]:
+                    time.sleep(0.2)
+                self.assertTrue([m for m in shell.received("capture") if m.strip() == "capture on"])
+            finally:
+                self.stop(recorder)
+
     def test_one_screenshot_is_silent(self):
         with Session() as vela:
             shell = vela.fake_shell()

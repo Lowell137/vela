@@ -1216,6 +1216,10 @@ Specifiche sistema
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Window rules</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Apps</source>
         <translation>App</translation>
     </message>
@@ -1441,6 +1445,10 @@ Specifiche sistema
     </message>
     <message>
         <source>blur acrylic transparency translucent glass effects</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>rules monitor output desktop position size always on top maximized app window placement</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1899,6 +1907,14 @@ Specifiche sistema
     </message>
     <message>
         <source>Blur behind see-through windows</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Window rules</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Where and how an app&apos;s windows open</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2708,6 +2724,18 @@ Specifiche sistema
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Screen sharing</source>
+        <translation>Condivisione dello schermo</translation>
+    </message>
+    <message>
+        <source>Show an indicator while my screen is shared or recorded</source>
+        <translation>Mostra un indicatore mentre lo schermo è condiviso o registrato</translation>
+    </message>
+    <message>
+        <source>Silence notifications while sharing</source>
+        <translation>Silenzia le notifiche durante la condivisione</translation>
+    </message>
+    <message>
         <source>Snap windows</source>
         <translation>Aggancia le finestre</translation>
     </message>
@@ -2992,7 +3020,7 @@ Specifiche sistema
     </message>
     <message>
         <source>%1%</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">%1%</translation>
     </message>
     <message>
         <source>Also blur these apps</source>
@@ -3056,6 +3084,77 @@ Specifiche sistema
     </message>
     <message>
         <source>Or type an app id (e.g. org.kde.konsole)</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>WindowRulesPage</name>
+    <message>
+        <source>No rules</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source> rule</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source> rules</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Add a rule</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <translation type="unfinished">Rimuovi</translation>
+    </message>
+    <message>
+        <source>When rules apply</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Once, when a window opens: you can still move it afterwards. Changes affect windows opened from now on, not the ones already open. The first rule that matches an app wins.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Add a window rule</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Add</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>App id (e.g. discord) or pick an open window above</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Output: name (HDMI-A-1) or number (1, 2, ...)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Desktop number (1, 2, ...)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Size: 900x600</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Position from the output&apos;s corner: 100,80</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Centered</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Maximized</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Always on top</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
