@@ -1,0 +1,17 @@
+# SPDX-FileCopyrightText: 2026 Vela contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[Desktop Entry]
+Type=Application
+Name=Task Manager
+Name[tr]=Görev Yöneticisi
+Name[it]=Gestione attività
+GenericName=System Monitor
+GenericName[tr]=Sistem İzleyici
+Comment=Processes, performance, startup apps and services
+Comment[tr]=İşlemler, performans, başlangıç uygulamaları ve hizmetler
+Exec=vela-taskmanager
+Icon=utilities-system-monitor
+Categories=System;Monitor;
+Keywords=process;performance;cpu;memory;kill;task;monitor;
+StartupNotify=true
