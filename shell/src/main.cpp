@@ -57,6 +57,7 @@
 #include <QtDebug>
 #include <QtQml/QQmlExtensionPlugin>
 
+#include <algorithm>
 #include <cstdio>
 #include <memory>
 
@@ -95,9 +96,9 @@ void setupTaskbar(QQuickWindow* window, QScreen* screen)
     layer->setLayer(LayerWindow::LayerTop);
     layer->setAnchors(LayerWindow::Anchors(LayerWindow::AnchorBottom) | LayerWindow::AnchorLeft
         | LayerWindow::AnchorRight);
-    layer->setExclusiveZone(window->height()); // maximized windows don't cover it
+    layer->setExclusiveZone(std::min(window->width(), window->height())); // its thickness; maximized windows don't cover it
     layer->setKeyboardInteractivity(LayerWindow::KeyboardInteractivityNone);
-    taskbarShell->followTaskbar(window);
+    taskbarShell->followTaskbar(window, ShellController::FollowKind::Taskbar);
 }
 
 void setupWallpaper(QQuickWindow* window, QScreen* screen)
@@ -221,13 +222,13 @@ QQuickWindow* loadPanel(QQmlApplicationEngine& engine, const Panel& panel)
 }
 
 // With the taskbar aligned left, Start opens at the bottom left.
-void placeStartMenu(QQuickWindow* window, const QString& alignment, ShellController& shell)
+void placeStartMenu(QQuickWindow* window, const QString& alignment, bool vertical, ShellController& shell)
 {
     LayerWindow* layer = LayerWindow::get(window);
-    const bool left = alignment == QLatin1String("left");
+    const bool left = alignment == QLatin1String("left") && !vertical;
     layer->setAnchors(left ? bottomLeft : bottom);
     layer->setMargins(QMargins(left ? 12 : 0, 0, 0, 0));
-    shell.followTaskbar(window); // the edge it was just put back from
+    shell.followTaskbar(window, ShellController::FollowKind::Start); // the edge it was just put back from
 }
 
 } // namespace
@@ -323,10 +324,10 @@ int main(int argc, char* argv[])
     QObject::connect(&config, &Config::taskbarChanged, &shell, sendAutoHide);
     // The edge: the panels it opens follow it (ShellController::followTaskbar).
     taskbarShell = &shell;
-    shell.setTaskbarTop(config.taskbarTop());
+    shell.setTaskbarPosition(config.taskbarPosition());
     auto sendPosition = [&config, &shell] {
-        shell.setTaskbarTop(config.taskbarTop());
-        ShellController::sendToCompositor(config.taskbarTop() ? "taskbar-position top" : "taskbar-position bottom");
+        shell.setTaskbarPosition(config.taskbarPosition());
+        ShellController::sendToCompositor("taskbar-position " + config.taskbarPosition().toLatin1());
     };
     sendPosition();
     QObject::connect(&config, &Config::taskbarChanged, &shell, sendPosition);
@@ -433,16 +434,18 @@ int main(int argc, char* argv[])
         if (qstrcmp(panel.qml, "StartMenu") == 0) {
             startMenu = window;
         }
-        // The ones at one vertical edge sit at the taskbar's; the hot corner
-        // at the other one, which its Start button doesn't take.
-        const bool vertical = panel.anchors.testFlag(LayerWindow::AnchorTop) != panel.anchors.testFlag(LayerWindow::AnchorBottom);
-        if (vertical) {
-            shell.followTaskbar(window, qstrcmp(panel.qml, "HotCorner") == 0);
+        // The ones at the bottom edge follow the taskbar's; the hot corner
+        // leaves the corner of its Start button.
+        if (qstrcmp(panel.qml, "HotCorner") == 0) {
+            shell.followTaskbar(window, ShellController::FollowKind::HotCorner);
+        } else if (panel.anchors.testFlag(LayerWindow::AnchorBottom) && !panel.anchors.testFlag(LayerWindow::AnchorTop)) {
+            const bool beside = qstrcmp(panel.qml, "TaskbarPreview") == 0 || qstrcmp(panel.qml, "TaskbarTooltip") == 0;
+            shell.followTaskbar(window, beside ? ShellController::FollowKind::Beside : ShellController::FollowKind::Panel);
         }
     }
-    placeStartMenu(startMenu, config.taskbarAlignment(), shell);
+    placeStartMenu(startMenu, config.taskbarAlignment(), config.taskbarVertical(), shell);
     QObject::connect(&config, &Config::taskbarChanged, startMenu, [&config, startMenu, &shell] {
-        placeStartMenu(startMenu, config.taskbarAlignment(), shell);
+        placeStartMenu(startMenu, config.taskbarAlignment(), config.taskbarVertical(), shell);
     });
     // Wallpapers on every output; the taskbar too, like in Windows (or only on
     // the main one, if the user wants that).

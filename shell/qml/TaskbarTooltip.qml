@@ -41,14 +41,20 @@ Window {
             Shell.placeOnScreen(root, screen.name)
         }
         const screenWidth = screen ? screen.width : Screen.width
-        Shell.placeAtLeft(root, Math.round(Math.max(0, Math.min(screenWidth - width, info.center - width / 2))))
+        if (Config.taskbarVertical) {
+            // Beside the taskbar, level with the item.
+            const screenHeight = screen ? screen.height : Screen.height
+            Shell.placeAtTop(root, Math.round(Math.max(0, Math.min(screenHeight - height, info.centerY - height / 2))))
+        } else {
+            Shell.placeAtLeft(root, Math.round(Math.max(0, Math.min(screenWidth - width, info.center - width / 2))))
+        }
         visible = true
     }
 
     Rectangle {
         id: panel
         x: 8
-        y: Config.taskbarTop ? 8 : 0 // the gap is towards the taskbar
+        y: Config.taskbarVertical ? 4 : (Config.taskbarTop ? 8 : 0) // the gap is towards the taskbar
         width: label.width + 20
         height: label.height + 14
         radius: Theme.radius

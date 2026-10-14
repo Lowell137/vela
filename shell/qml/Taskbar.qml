@@ -18,8 +18,10 @@ Window {
     // It stays invisible until main.cpp has turned it into a layer-shell
     // panel. The compositor decides the width (anchored to the sides).
     visible: false
-    width: 1280
-    height: Theme.taskbarHeight
+    // The compositor decides the length (anchored to the sides).
+    readonly property bool vertical: Config.taskbarVertical
+    width: vertical ? Theme.taskbarHeight : 1280
+    height: vertical ? 720 : Theme.taskbarHeight
     color: "transparent"
 
     // The apps pinned at first start (.desktop ids; those not installed are
@@ -67,7 +69,7 @@ Window {
     }
     property real slide: concealed ? 1 : 0
     Behavior on slide { NumberAnimation { duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate } }
-    readonly property int bottomMargin: Math.round(slide * (height - 2))
+    readonly property int bottomMargin: Math.round(slide * (Theme.taskbarHeight - 2))
     onBottomMarginChanged: Shell.setBottomMargin(root, bottomMargin)
     Item {
         anchors.fill: parent
@@ -89,7 +91,7 @@ Window {
         onTriggered: {
             if (!task || !task.hovered || task.windowCount === 0) return
             const p = task.mapToItem(null, task.width / 2, 0)
-            Menus.preview = { key: task.key, appIds: Tasks.appIds(task.index), center: p.x, screen: root.screenName }
+            Menus.preview = { key: task.key, appIds: Tasks.appIds(task.index), center: p.x, centerY: p.y + task.height / 2, screen: root.screenName }
         }
     }
 
@@ -99,7 +101,23 @@ Window {
     // from its coordinates to the output's.
     function screenPoint(item, x, y) {
         const p = item.mapToItem(null, x, y)
+        if (vertical) {
+            return Qt.point(Config.taskbarLeft ? p.x : Screen.width - root.width + p.x, p.y)
+        }
         return Qt.point(p.x, Config.taskbarTop ? p.y : Screen.height - root.height + p.y)
+    }
+    // A menu next to the taskbar from the point `p` (screenPoint): rising from
+    // the bottom one, hanging from the top one, at the side of a vertical one
+    // (at the height of p, towards the screen).
+    function edgeMenu(entries, p, options) {
+        if (vertical) {
+            const x = Config.taskbarLeft ? root.width + 4 : Screen.width - root.width - 4
+            const side = Object.assign({}, options || {})
+            side.centered = false
+            root.openMenu(entries, x, p.y, side)
+        } else {
+            root.openMenu(entries, p.x, menuBottom, Object.assign({ above: !Config.taskbarTop }, options || {}))
+        }
     }
     // Taskbar menus rise from its top edge, or at the top they hang from its
     // bottom one (`above: false`).
@@ -107,7 +125,7 @@ Window {
 
     function openAbove(entries, item, centered, options) {
         const p = screenPoint(item, centered ? item.width / 2 : 0, 0)
-        root.openMenu(entries, p.x, menuBottom, Object.assign({ above: !Config.taskbarTop, centered: centered }, options || {}))
+        root.edgeMenu(entries, p, Object.assign({ centered: centered }, options || {}))
     }
     // Taskbar menus open on its output; the panels it opens (Start, quick
     // settings...) go there too.
@@ -220,7 +238,7 @@ Window {
     }
     function openWinX(keyboard) {
         const p = screenPoint(startButton, 0, 0)
-        root.openMenu(winXEntries(), p.x, menuBottom, { above: !Config.taskbarTop, keyboard: keyboard })
+        root.edgeMenu(winXEntries(), p, { keyboard: keyboard })
     }
 
     // The menu of a notification area icon (the app decides it). Those in the
@@ -229,7 +247,7 @@ Window {
         target: Tray
         enabled: root.primary && !Menus.trayOverflow
         function onMenuReady(row, anchorX, entries) {
-            root.openMenu(Menus.trayEntries(row, entries), anchorX, root.menuBottom, { above: !Config.taskbarTop, centered: true })
+            root.edgeMenu(Menus.trayEntries(row, entries), Qt.point(anchorX, Menus.trayAnchorY), { centered: true })
         }
     }
 
@@ -243,18 +261,22 @@ Window {
             anchors.fill: parent
             acceptedButtons: Qt.RightButton
             onClicked: mouse => {
-                const p = root.screenPoint(emptyArea, mouse.x, 0)
-                root.openMenu([
+                const p = root.screenPoint(emptyArea, mouse.x, mouse.y)
+                root.edgeMenu([
                     { text: qsTr("Task &manager"), icon: "utilities-system-monitor", enabled: System.available("task-manager"), action: () => System.trigger("task-manager") },
                     { text: qsTr("Taskbar &settings"), icon: "configure", enabled: System.available("taskbar-settings"), action: () => System.trigger("taskbar-settings") }
-                ], p.x, root.menuBottom, { above: !Config.taskbarTop })
+                ], p)
             }
         }
 
-        // A thin line of light on the top edge, like glass.
+        // A thin line of light on the edge towards the screen, like glass.
         Rectangle {
-            anchors { left: parent.left; right: parent.right; top: parent.top }
-            height: 1
+            anchors.left: root.vertical && Config.taskbarLeft ? undefined : parent.left
+            anchors.right: root.vertical && Config.taskbarLeft ? parent.right : undefined
+            anchors.top: !root.vertical && Config.taskbarTop ? undefined : parent.top
+            anchors.bottom: !root.vertical && Config.taskbarTop ? parent.bottom : undefined
+            width: root.vertical ? 1 : parent.width
+            height: root.vertical ? parent.height : 1
             color: Theme.stroke
             // Sliding changes only the layer-shell margin, which takes effect
             // at the next commit: this barely visible change makes every step
@@ -263,16 +285,23 @@ Window {
         }
     }
 
-    Row {
+    Grid {
         id: buttons
-        // Centered by hand instead of with anchors: so when an app opens or
-        // closes, the row slides to the new center instead of jumping. Or on
-        // the left, like earlier versions of Windows.
-        x: Config.taskbarAlignment === "left" ? 12 : Math.round((parent.width - width) / 2)
-        anchors.verticalCenter: parent.verticalCenter
+        // A row (a column along a vertical taskbar), centered by hand instead
+        // of with anchors: so when an app opens or closes, it slides to the
+        // new center instead of jumping. Or at the left (the top, if
+        // vertical), like earlier versions of Windows.
+        columns: root.vertical ? 1 : 1000
+        x: root.vertical ? Math.round((parent.width - width) / 2)
+            : Config.taskbarAlignment === "left" ? 12 : Math.round((parent.width - width) / 2)
+        y: root.vertical ? (Config.taskbarAlignment === "left" ? 12 : Math.max(12, Math.round((parent.height - height) / 2)))
+            : Math.round((parent.height - height) / 2)
         spacing: 4
 
         Behavior on x {
+            NumberAnimation { duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+        }
+        Behavior on y {
             NumberAnimation { duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
         }
         // The button of an app just opened comes in growing.
@@ -285,7 +314,7 @@ Window {
         }
         move: Transition {
             NumberAnimation {
-                property: "x"; duration: Theme.normal
+                properties: "x,y"; duration: Theme.normal
                 easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate
             }
         }
@@ -339,7 +368,7 @@ Window {
                 // Dropped further away: it moves by as many places as buttons
                 // it passed.
                 onDropped: dx => {
-                    const to = Math.max(0, Math.min(taskRepeater.count - 1, index + Math.round(dx / (width + buttons.spacing))))
+                    const to = Math.max(0, Math.min(taskRepeater.count - 1, index + Math.round(dx / ((root.vertical ? height : width) + buttons.spacing))))
                     if (to !== index) Tasks.move(index, to)
                 }
                 onDraggingChanged: if (dragging) Menus.preview = null
@@ -411,10 +440,12 @@ Window {
                     }
                 }
                 onXChanged: reportGeometry()
+                onYChanged: reportGeometry()
                 onWindowCountChanged: reportGeometry()
                 Connections {
                     target: buttons
                     function onXChanged() { task.reportGeometry() }
+                    function onYChanged() { task.reportGeometry() }
                 }
 
                 Image {
@@ -428,8 +459,8 @@ Window {
                 // Unread count, top right of the button; red if urgent.
                 Rectangle {
                     visible: task.badge.count > 0 || task.badge.urgent
-                    x: parent.width - width + 5
-                    y: -5
+                    x: parent.width - width + (root.vertical ? 1 : 5)
+                    y: root.vertical ? -3 : -5
                     width: Math.max(13, countText.implicitWidth + 6)
                     height: 13
                     radius: 6.5
@@ -448,13 +479,27 @@ Window {
         }
     }
 
+    // From here on, the end of the taskbar (the bottom, along a vertical one),
+    // each item against the next: tray, "^", screen share, microphone, system
+    // icons, clock and show desktop. Horizontally they hang from the right
+    // edge; vertically from the bottom one, with the same names for what is
+    // "before" (left/top) and "after" (right/bottom).
+
     // Notification area: the apps' icons (Telegram, Discord, Steam...), left
     // of the clock like on Windows. With the overflow on (the default) only
     // those asking for attention stay here, the others are behind the "^".
-    Row {
+    Grid {
         id: tray
         visible: root.primary
-        anchors { right: screenShare.left; top: parent.top; bottom: parent.bottom; rightMargin: 4 }
+        columns: root.vertical ? 1 : 1000
+        width: root.vertical ? parent.width : implicitWidth
+        height: root.vertical ? implicitHeight : parent.height
+        anchors.right: root.vertical ? undefined : screenShare.left
+        anchors.top: root.vertical ? undefined : parent.top
+        anchors.bottom: root.vertical ? screenShare.top : undefined
+        anchors.left: root.vertical ? parent.left : undefined
+        anchors.rightMargin: 4
+        anchors.bottomMargin: 4
         // Read in a binding: it follows the icons coming, going and changing.
         readonly property int hiddenCount: {
             let n = 0
@@ -468,23 +513,31 @@ Window {
             model: Tray
             delegate: TrayIcon {
                 readonly property bool hidden: icon !== "" && Config.trayOverflow && !attention
-                height: tray.height
+                width: root.vertical ? tray.width : 32
+                height: root.vertical ? 32 : tray.height
                 visible: icon !== "" && !hidden
             }
         }
     }
 
-    // The "^" button: the hidden icons in a flyout; it points down while open.
+    // The "^" button: the hidden icons in a flyout; it points down while open
+    // (towards the screen's inside along a vertical taskbar it points the way
+    // the flyout opens).
     Item {
         id: overflowButton
         visible: root.primary && Config.trayOverflow && tray.hiddenCount > 0
-        anchors { right: tray.left; top: parent.top; bottom: parent.bottom }
-        width: visible ? 32 : 0
+        anchors.right: root.vertical ? undefined : tray.left
+        anchors.top: root.vertical ? undefined : parent.top
+        anchors.bottom: root.vertical ? tray.top : undefined
+        anchors.left: root.vertical ? parent.left : undefined
+        width: root.vertical ? parent.width : (visible ? 32 : 0)
+        height: root.vertical ? (visible ? 32 : 0) : parent.height
         readonly property bool open: !!Menus.trayOverflow && Menus.trayOverflow.screen === root.screenName
         onVisibleChanged: if (!visible && open) Menus.trayOverflow = null
 
         Rectangle {
-            anchors { fill: parent; topMargin: 8; bottomMargin: 8 }
+            anchors { fill: parent; topMargin: root.vertical ? 0 : 8; bottomMargin: root.vertical ? 0 : 8
+                      leftMargin: root.vertical ? 8 : 0; rightMargin: root.vertical ? 8 : 0 }
             radius: Theme.radius
             color: overflowMouse.pressed ? Theme.subtlePressed : Theme.subtleHover
             opacity: overflowMouse.containsMouse || overflowButton.open ? 1 : 0
@@ -494,7 +547,7 @@ Window {
             anchors.centerIn: parent
             width: 10
             height: 6
-            rotation: overflowButton.open ? 180 : 0
+            rotation: (root.vertical ? (Config.taskbarLeft ? 90 : -90) : 0) + (overflowButton.open ? 180 : 0)
             Behavior on rotation {
                 NumberAnimation { duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
             }
@@ -517,8 +570,8 @@ Window {
             Accessible.role: Accessible.Button
             Accessible.name: qsTr("Show hidden icons")
             onClicked: {
-                const p = overflowButton.mapToItem(null, overflowButton.width / 2, 0)
-                Menus.trayOverflow = overflowButton.open ? null : { center: p.x, screen: root.screenName }
+                const p = overflowButton.mapToItem(null, overflowButton.width / 2, overflowButton.height / 2)
+                Menus.trayOverflow = overflowButton.open ? null : { center: p.x, centerY: p.y, screen: root.screenName }
             }
         }
     }
@@ -529,12 +582,16 @@ Window {
     Item {
         id: screenShare
         visible: root.primary && Shell.screenCaptured
-        anchors { right: microphone.left; top: parent.top; bottom: parent.bottom }
-        width: visible ? 32 : 0
+        anchors.right: root.vertical ? undefined : microphone.left
+        anchors.top: root.vertical ? undefined : parent.top
+        anchors.bottom: root.vertical ? microphone.top : undefined
+        anchors.left: root.vertical ? parent.left : undefined
+        width: root.vertical ? parent.width : (visible ? 32 : 0)
+        height: root.vertical ? (visible ? 32 : 0) : parent.height
 
         function showTooltip() {
-            const p = screenShare.mapToItem(null, screenShare.width / 2, 0)
-            Menus.tooltip = { text: Notifications.captureSilenced ? qsTr("Your screen is being shared. Notifications are silenced.") : qsTr("Your screen is being shared"), center: p.x, screen: root.screenName, owner: "screenShare" }
+            const p = screenShare.mapToItem(null, screenShare.width / 2, screenShare.height / 2)
+            Menus.tooltip = { text: Notifications.captureSilenced ? qsTr("Your screen is being shared. Notifications are silenced.") : qsTr("Your screen is being shared"), center: p.x, centerY: p.y, screen: root.screenName, owner: "screenShare" }
         }
         function hideTooltip() {
             shareTooltipDelay.stop()
@@ -550,7 +607,8 @@ Window {
             onTriggered: screenShare.showTooltip()
         }
         Rectangle {
-            anchors { fill: parent; topMargin: 8; bottomMargin: 8 }
+            anchors { fill: parent; topMargin: root.vertical ? 0 : 8; bottomMargin: root.vertical ? 0 : 8
+                      leftMargin: root.vertical ? 8 : 0; rightMargin: root.vertical ? 8 : 0 }
             radius: Theme.radius
             color: shareMouse.pressed ? Theme.subtlePressed : Theme.subtleHover
             opacity: shareMouse.containsMouse ? 1 : 0
@@ -585,8 +643,12 @@ Window {
     Item {
         id: microphone
         visible: root.primary && Audio.microphoneUsers.length > 0
-        anchors { right: systemIcons.left; top: parent.top; bottom: parent.bottom }
-        width: visible ? 32 : 0
+        anchors.right: root.vertical ? undefined : systemIcons.left
+        anchors.top: root.vertical ? undefined : parent.top
+        anchors.bottom: root.vertical ? systemIcons.top : undefined
+        anchors.left: root.vertical ? parent.left : undefined
+        width: root.vertical ? parent.width : (visible ? 32 : 0)
+        height: root.vertical ? (visible ? 32 : 0) : parent.height
 
         readonly property string tooltipText: {
             const users = Audio.microphoneUsers
@@ -596,8 +658,8 @@ Window {
             return [qsTr("These apps are using your microphone:")].concat(users.map(u => u.name)).join("\n")
         }
         function showTooltip() {
-            const p = microphone.mapToItem(null, microphone.width / 2, 0)
-            Menus.tooltip = { text: microphone.tooltipText, center: p.x, screen: root.screenName, owner: "microphone" }
+            const p = microphone.mapToItem(null, microphone.width / 2, microphone.height / 2)
+            Menus.tooltip = { text: microphone.tooltipText, center: p.x, centerY: p.y, screen: root.screenName, owner: "microphone" }
         }
         function hideTooltip() {
             tooltipDelay.stop()
@@ -614,7 +676,8 @@ Window {
             onTriggered: microphone.showTooltip()
         }
         Rectangle {
-            anchors { fill: parent; topMargin: 8; bottomMargin: 8 }
+            anchors { fill: parent; topMargin: root.vertical ? 0 : 8; bottomMargin: root.vertical ? 0 : 8
+                      leftMargin: root.vertical ? 8 : 0; rightMargin: root.vertical ? 8 : 0 }
             radius: Theme.radius
             color: microphoneMouse.pressed ? Theme.subtlePressed : Theme.subtleHover
             opacity: microphoneMouse.containsMouse ? 1 : 0
@@ -645,19 +708,27 @@ Window {
     Item {
         id: systemIcons
         visible: root.primary
-        anchors { right: clock.left; top: parent.top; bottom: parent.bottom; rightMargin: 2 }
-        width: visible ? iconsRow.width + 16 : 0
+        anchors.right: root.vertical ? undefined : clock.left
+        anchors.top: root.vertical ? undefined : parent.top
+        anchors.bottom: root.vertical ? clock.top : undefined
+        anchors.left: root.vertical ? parent.left : undefined
+        anchors.rightMargin: 2
+        anchors.bottomMargin: 2
+        width: root.vertical ? parent.width : (visible ? iconsRow.width + 16 : 0)
+        height: root.vertical ? (visible ? iconsRow.height + 16 : 0) : parent.height
 
         Rectangle {
-            anchors { fill: parent; topMargin: 4; bottomMargin: 4 }
+            anchors { fill: parent; topMargin: root.vertical ? 0 : 4; bottomMargin: root.vertical ? 0 : 4
+                      leftMargin: root.vertical ? 4 : 0; rightMargin: root.vertical ? 4 : 0 }
             radius: Theme.radius
             color: systemMouse.pressed ? Theme.subtlePressed : Theme.subtleHover
             opacity: systemMouse.containsMouse || Menus.quickSettingsOpen ? 1 : 0
             Behavior on opacity { NumberAnimation { duration: Theme.fast } }
         }
-        Row {
+        Grid {
             id: iconsRow
             anchors.centerIn: parent
+            columns: root.vertical ? 1 : 3
             spacing: 10
             Image {
                 id: networkIcon
@@ -694,16 +765,17 @@ Window {
                     return
                 }
                 // The menu of the icon under the mouse: volume or network.
-                const p = root.screenPoint(systemMouse, mouse.x, 0)
-                const overVolume = volumeIcon.visible && mouse.x >= volumeIcon.x + iconsRow.x - 5
-                    && mouse.x < volumeIcon.x + iconsRow.x + volumeIcon.width + 5
-                root.openMenu(overVolume ? [
+                const p = root.screenPoint(systemMouse, mouse.x, mouse.y)
+                const along = root.vertical ? mouse.y : mouse.x
+                const start = root.vertical ? volumeIcon.y + iconsRow.y : volumeIcon.x + iconsRow.x
+                const overVolume = volumeIcon.visible && along >= start - 5 && along < start + 16 + 5
+                root.edgeMenu(overVolume ? [
                     { text: qsTr("Open volume &mixer"), icon: "audio-volume-high", enabled: Audio.available, action: () => { root.fromHere(); Shell.soundOutputRequested() } },
                     { text: qsTr("&Sound settings"), icon: "preferences-desktop-sound", enabled: System.available("sound-settings"), action: () => System.trigger("sound-settings") }
                 ] : [
                     { text: qsTr("&Troubleshoot network problems"), icon: "network-workgroup", enabled: false },
                     { text: qsTr("&Network and Internet settings"), icon: "preferences-system-network", enabled: System.available("network"), action: () => System.trigger("network") }
-                ], p.x, root.menuBottom, { above: !Config.taskbarTop })
+                ], p)
             }
             // Like the keyboard's volume keys, with the indicator: a step every
             // notch (120), touchpads add up their small ones.
@@ -719,11 +791,19 @@ Window {
         }
     }
 
-    // Clock: time on top, date below.
+    // Clock: time on top, date below (day and month only along a vertical
+    // taskbar, which is narrow).
     Item {
         id: clock
-        anchors { right: parent.right; top: parent.top; bottom: parent.bottom; rightMargin: 12 }
-        width: clockColumn.implicitWidth + 16 + (Notifications.history.count > 0 || Notifications.silenced ? 22 : 0)
+        anchors.right: root.vertical ? undefined : parent.right
+        anchors.top: root.vertical ? undefined : parent.top
+        anchors.bottom: root.vertical ? showDesktop.top : undefined
+        anchors.left: root.vertical ? parent.left : undefined
+        anchors.rightMargin: 12
+        anchors.bottomMargin: 4
+        readonly property bool badge: Notifications.history.count > 0 || Notifications.silenced
+        width: root.vertical ? parent.width : clockColumn.implicitWidth + 16 + (badge ? 22 : 0)
+        height: root.vertical ? clockColumn.implicitHeight + 16 + (badge ? 22 : 0) : parent.height
 
         property date now: new Date()
 
@@ -735,17 +815,19 @@ Window {
         }
 
         Rectangle {
-            anchors { fill: parent; topMargin: 4; bottomMargin: 4 }
+            anchors { fill: parent; topMargin: root.vertical ? 0 : 4; bottomMargin: root.vertical ? 0 : 4
+                      leftMargin: root.vertical ? 4 : 0; rightMargin: root.vertical ? 4 : 0 }
             radius: Theme.radius
             color: Theme.subtleHover
             opacity: clockMouse.containsMouse || Menus.notificationCenterOpen ? 1 : 0
             Behavior on opacity { NumberAnimation { duration: Theme.fast } }
         }
         // Notifications to read: a number next to the clock, like Windows 11
-        // (with "Do not disturb" a muted bell).
+        // (with "Do not disturb" a muted bell); below it along a vertical taskbar.
         Rectangle {
-            visible: Notifications.history.count > 0 || Notifications.silenced
-            anchors { right: parent.right; rightMargin: -2; verticalCenter: parent.verticalCenter }
+            visible: clock.badge
+            x: root.vertical ? (parent.width - width) / 2 : parent.width - width + 2
+            y: root.vertical ? parent.height - height - 4 : (parent.height - height) / 2
             width: 18
             height: 18
             radius: 9
@@ -770,7 +852,8 @@ Window {
 
         Column {
             id: clockColumn
-            anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
+            x: root.vertical ? (parent.width - width) / 2 : 8
+            y: root.vertical ? 8 : (parent.height - height) / 2
             spacing: 1
 
             Text {
@@ -781,7 +864,7 @@ Window {
             }
             Text {
                 anchors.right: parent.right
-                text: Qt.formatDate(clock.now, "dd/MM/yyyy")
+                text: Qt.formatDate(clock.now, root.vertical ? "dd/MM" : "dd/MM/yyyy")
                 color: Theme.text
                 font.pixelSize: Theme.fontCaption
             }
@@ -798,30 +881,36 @@ Window {
                     Shell.notificationCenterRequested()
                     return
                 }
-                const p = root.screenPoint(clock, mouse.x, 0)
-                root.openMenu([
+                const p = root.screenPoint(clock, mouse.x, mouse.y)
+                root.edgeMenu([
                     { text: qsTr("&Adjust date and time"), icon: "preferences-system-time", enabled: System.available("datetime"), action: () => System.trigger("datetime") },
                     { text: qsTr("&Notification settings"), icon: "preferences-desktop-notification", enabled: System.available("notification-settings"), action: () => System.trigger("notification-settings") }
-                ], p.x, root.menuBottom, { above: !Config.taskbarTop })
+                ], p)
             }
         }
     }
 
-    // Show desktop, at the far right edge like Windows 11: a click does what
-    // Win+D does (Tasks.toggleDesktop); the thin line lights up on hover.
+    // Show desktop, at the far end like Windows 11 (the bottom edge along a
+    // vertical taskbar): a click does what Win+D does (Tasks.toggleDesktop);
+    // the thin line lights up on hover.
     Item {
         id: showDesktop
         visible: root.primary
-        anchors { right: parent.right; top: parent.top; bottom: parent.bottom }
+        anchors.right: root.vertical ? undefined : parent.right
+        anchors.top: root.vertical ? undefined : parent.top
+        anchors.bottom: root.vertical ? parent.bottom : undefined
+        anchors.left: root.vertical ? parent.left : undefined
         // Invisible at rest and over the clock's margin: it takes no room. Only
         // under the pointer a short line shows, like Windows.
-        width: visible ? 8 : 0
+        width: root.vertical ? parent.width : (visible ? 8 : 0)
+        height: root.vertical ? (visible ? 8 : 0) : parent.height
 
         // A short, 2 px line, only while hovered.
         Rectangle {
-            anchors { right: parent.right; rightMargin: 2; verticalCenter: parent.verticalCenter }
-            width: 2
-            height: 18
+            x: root.vertical ? (parent.width - width) / 2 : parent.width - width - 2
+            y: root.vertical ? parent.height - height - 2 : (parent.height - height) / 2
+            width: root.vertical ? 18 : 2
+            height: root.vertical ? 2 : 18
             radius: 1
             color: Theme.textSecondary
             opacity: showDesktopMouse.containsMouse ? 0.9 : 0
@@ -833,8 +922,8 @@ Window {
             hoverEnabled: true
             acceptedButtons: Qt.LeftButton
             onEntered: {
-                const p = showDesktop.mapToItem(null, showDesktop.width / 2, 0)
-                Menus.tooltip = { text: qsTr("Show desktop"), center: p.x, screen: root.screenName, owner: "show-desktop" }
+                const p = showDesktop.mapToItem(null, showDesktop.width / 2, showDesktop.height / 2)
+                Menus.tooltip = { text: qsTr("Show desktop"), center: p.x, centerY: p.y, screen: root.screenName, owner: "show-desktop" }
             }
             onExited: {
                 if (Menus.tooltip && Menus.tooltip.owner === "show-desktop") Menus.tooltip = null

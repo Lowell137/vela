@@ -15,9 +15,15 @@ Window {
     height: 160
     color: "transparent"
 
-    // At the bottom-left corner while the taskbar is at the top (main.cpp
+    // Away from the taskbar's Start button: at the bottom-left corner while
+    // the taskbar is at the top, top-right while it is on the left (main.cpp
     // puts the window there): the same drawing, flipped.
-    contentItem.transform: Scale { yScale: Config.taskbarTop ? -1 : 1; origin.y: root.height / 2 }
+    contentItem.transform: Scale {
+        xScale: Config.taskbarLeft ? -1 : 1
+        yScale: Config.taskbarTop ? -1 : 1
+        origin.x: root.width / 2
+        origin.y: root.height / 2
+    }
 
     property bool near: false
     property real progress: 0 // how close to the corner while near, 0..1

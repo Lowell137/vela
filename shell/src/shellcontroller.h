@@ -6,7 +6,9 @@
 #include <QDBusUnixFileDescriptor>
 #include <QLocalServer>
 #include <QLocalSocket>
+#include <LayerShellQt/Window>
 #include <QList>
+#include <QMargins>
 #include <QPointer>
 #include <QObject>
 #include <QPoint>
@@ -62,14 +64,25 @@ public:
     Q_INVOKABLE void placeAtLeft(QWindow* window, int left);
     // Slides the taskbar out of its edge by `margin` px (auto-hide).
     Q_INVOKABLE void setBottomMargin(QWindow* window, int margin);
-    // The taskbar is at the top edge (taskbar/position): the windows that
-    // follow it (followTaskbar) move to the top edge too, with their margins.
-    void setTaskbarTop(bool top);
-    // `window` is anchored at one vertical edge, the taskbar's side: bottom
-    // while the taskbar is at the bottom, top otherwise. `opposite`: the other
-    // one (the hot corner, which leaves the Start button's corner). Call it
-    // again after changing the anchors by hand.
-    void followTaskbar(QWindow* window, bool opposite = false);
+    enum class Position { Bottom, Top, Left, Right };
+    // How a window follows the taskbar's edge (taskbar/position). Panel: the
+    // bottom corner it has (bottom, or the side of the taskbar). Start: at the
+    // top, next to a vertical taskbar. Beside: tooltips and previews, placed
+    // along a vertical taskbar with placeAtTop. HotCorner: the corner the Start
+    // button doesn't take. Taskbar: the taskbar itself.
+    enum class FollowKind { Panel, Start, Beside, HotCorner, Taskbar };
+    struct Follower {
+        QPointer<QWindow> window;
+        FollowKind kind;
+        QFlags<LayerShellQt::Window::Anchor> anchors; // at the bottom taskbar
+        QMargins margins;
+    };
+    void setTaskbarPosition(const QString& position);
+    // Call it with the window's anchors and margins as they are at the bottom
+    // taskbar, and again after changing them by hand.
+    void followTaskbar(QWindow* window, FollowKind kind = FollowKind::Panel);
+    // A window along a vertical taskbar: `top` px from the top of the output.
+    Q_INVOKABLE void placeAtTop(QWindow* window, int top);
     // A (hidden) shell panel on output `name`: it appears there the next time
     // it opens.
     Q_INVOKABLE void placeOnScreen(QWindow* window, const QString& name);
@@ -191,11 +204,7 @@ private:
 
     QLocalServer m_server;
     bool m_startMenuOpen = false;
-    bool m_taskbarTop = false;
-    struct Follower {
-        QPointer<QWindow> window;
-        bool opposite;
-    };
+    Position m_position = Position::Bottom;
     QList<Follower> m_followers;
     bool m_screenCaptured = false;
     bool m_captureDnd = false;

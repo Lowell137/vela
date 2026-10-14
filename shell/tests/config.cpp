@@ -41,6 +41,7 @@ private Q_SLOTS:
         Config config;
         QVERIFY(config.taskbarAutoHide());
         QVERIFY(config.taskbarTop());
+        QVERIFY(!config.taskbarVertical());
         QCOMPARE(config.taskbarCombine(), QStringLiteral("never"));
     }
     void unknownCombineIsAlways()

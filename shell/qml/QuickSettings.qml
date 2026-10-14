@@ -33,7 +33,8 @@ Window {
         visible = true
         Menus.quickSettingsOpen = true
         panel.opacity = 0
-        slide.y = Config.taskbarTop ? -12 : 12
+        slide.y = Config.taskbarVertical ? 0 : (Config.taskbarTop ? -12 : 12)
+        slide.x = Config.taskbarLeft ? -12 : (Config.taskbarRight ? 12 : 0)
         appear.restart()
         panel.forceActiveFocus()
         updateBlur()
@@ -74,7 +75,7 @@ Window {
     // coordinates.
     function screenPoint(item, x, y) {
         const p = item.mapToItem(null, x, y)
-        return Qt.point(Screen.width - root.width + p.x, Config.taskbarTop ? Theme.taskbarHeight + p.y : Screen.height - Theme.taskbarHeight - root.height + p.y)
+        return Menus.cornerPoint(p, root.width, root.height, Screen.width, Screen.height, true, 0)
     }
     // The outputs (or inputs) for one app (the mixer), in a menu under its
     // button.
@@ -156,6 +157,7 @@ Window {
         id: appear
         NumberAnimation { target: panel; property: "opacity"; to: 1; duration: Theme.fast; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
         NumberAnimation { target: slide; property: "y"; to: 0; duration: Theme.slow; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+        NumberAnimation { target: slide; property: "x"; to: 0; duration: Theme.slow; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
     }
     // A page comes in from the right (back: like the others, it's short).
     ParallelAnimation {

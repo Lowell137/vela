@@ -109,11 +109,18 @@ Window {
         }
         const screenWidth = screen ? screen.width : Screen.width
         const w = (windows.length + groups.length) * (cardWidth + 4) + 12 + 32
-        Shell.placeAtLeft(root, Math.round(Math.max(0, Math.min(screenWidth - w, info.center - w / 2))))
+        if (Config.taskbarVertical) {
+            // Beside the taskbar, level with the button.
+            const screenHeight = screen ? screen.height : Screen.height
+            Shell.placeAtTop(root, Math.round(Math.max(0, Math.min(screenHeight - root.height, info.centerY - root.height / 2))))
+        } else {
+            Shell.placeAtLeft(root, Math.round(Math.max(0, Math.min(screenWidth - w, info.center - w / 2))))
+        }
         if (!visible) {
             visible = true
             panel.opacity = 0
-            slide.y = Config.taskbarTop ? -8 : 8
+            slide.y = Config.taskbarVertical ? 0 : (Config.taskbarTop ? -8 : 8)
+            slide.x = Config.taskbarLeft ? -8 : (Config.taskbarRight ? 8 : 0)
             appear.restart()
         }
         updateBlur()
@@ -132,6 +139,7 @@ Window {
         id: appear
         NumberAnimation { target: panel; property: "opacity"; to: 1; duration: Theme.fast; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
         NumberAnimation { target: slide; property: "y"; to: 0; duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+        NumberAnimation { target: slide; property: "x"; to: 0; duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
     }
 
     // A card: icon, title, Close; the thumbnail (or the group) below.
@@ -220,7 +228,7 @@ Window {
     Rectangle {
         id: panel
         x: 16
-        y: Config.taskbarTop ? 12 : 4 // the gap is towards the taskbar
+        y: Config.taskbarVertical ? 8 : (Config.taskbarTop ? 12 : 4) // the gap is towards the taskbar
         width: cards.width + 12
         height: root.cardHeight + 12
         radius: Theme.radiusOverlay

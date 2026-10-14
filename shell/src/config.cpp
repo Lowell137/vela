@@ -59,9 +59,10 @@ void Config::reload()
     const QString alignment = settings.value(QStringLiteral("taskbar/alignment")).toString() == QLatin1String("left")
         ? QStringLiteral("left")
         : QStringLiteral("center");
-    const QString position = settings.value(QStringLiteral("taskbar/position")).toString() == QLatin1String("top")
-        ? QStringLiteral("top")
-        : QStringLiteral("bottom");
+    QString position = settings.value(QStringLiteral("taskbar/position")).toString();
+    if (position != QLatin1String("top") && position != QLatin1String("left") && position != QLatin1String("right")) {
+        position = QStringLiteral("bottom");
+    }
     const bool endTask = settings.value(QStringLiteral("taskbar/endTask"), true).toBool();
     const bool taskView = settings.value(QStringLiteral("taskbar/taskView"), true).toBool();
     const bool trayOverflow = settings.value(QStringLiteral("taskbar/trayOverflow"), true).toBool();

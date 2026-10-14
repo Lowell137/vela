@@ -37,7 +37,7 @@ Window {
     // output's.
     function screenPoint(item, x, y) {
         const p = item.mapToItem(null, x, y)
-        return Qt.point(12 + p.x, Config.taskbarTop ? Theme.taskbarHeight + 12 + p.y : Screen.height - Theme.taskbarHeight - 12 - root.height + p.y)
+        return Menus.cornerPoint(p, root.width, root.height, Screen.width, Screen.height, false, 12)
     }
 
     Connections {
