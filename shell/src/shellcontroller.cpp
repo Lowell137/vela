@@ -456,10 +456,6 @@ static void followEdge(QWindow* window, const ShellController::Follower& f, Shel
                 | (position == P::Top ? LayerAnchor::AnchorTop : LayerAnchor::AnchorBottom);
         }
         break;
-    case K::HotCorner: // the corner the Start button doesn't take
-        a = LayerAnchors(position == P::Top ? LayerAnchor::AnchorBottom : LayerAnchor::AnchorTop)
-            | (position == P::Left ? LayerAnchor::AnchorRight : LayerAnchor::AnchorLeft);
-        break;
     case K::Start:
     case K::Beside:
         if (vertTaskbar) {

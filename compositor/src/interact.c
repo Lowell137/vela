@@ -129,8 +129,7 @@ static void unhover_decoration(struct vela_interaction *interaction)
     }
 }
 
-// The hot corner: the pointer reaching the top-left corner (bottom-left with
-// the taskbar at the top, top-right on the left) of an output opens
+// The hot corner: the pointer reaching the top-left corner of an output opens
 // Task View, once; it arms again when the pointer leaves the corner. The shell
 // shows it (HotCorner.qml): "hot-corner near <output> <progress>" (0 at the
 // edge of the near zone, 1 at the corner, in steps of 0.05) and "hot-corner
@@ -148,10 +147,11 @@ static void hot_corner_check(struct vela_server *server)
     }
     struct wlr_box box;
     wlr_output_layout_get_box(server->output_layout, wlr, &box);
-    // Away from the corner of the Start button: bottom-left with the taskbar
-    // at the top, top-right with it on the left.
-    double dx = server->taskbar_edge == VELA_TASKBAR_LEFT ? box.x + box.width - 1 - cursor->x : cursor->x - box.x;
-    double dy = server->taskbar_edge == VELA_TASKBAR_TOP ? box.y + box.height - 1 - cursor->y : cursor->y - box.y;
+    // Always the top-left corner, whichever edge the taskbar is on: only the
+    // 2 px corner fires; the glow surface lets the pointer through, so the
+    // Start button under it keeps working.
+    double dx = cursor->x - box.x;
+    double dy = cursor->y - box.y;
     bool allowed = false;
     if (dx < 48.0 && dy < 48.0) {
         struct vela_view *focused = vela_views_focused(server);

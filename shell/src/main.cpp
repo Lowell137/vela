@@ -437,10 +437,8 @@ int main(int argc, char* argv[])
             startMenu = window;
         }
         // The ones at the bottom edge follow the taskbar's; the hot corner
-        // leaves the corner of its Start button.
-        if (qstrcmp(panel.qml, "HotCorner") == 0) {
-            shell.followTaskbar(window, ShellController::FollowKind::HotCorner);
-        } else if (panel.anchors.testFlag(LayerWindow::AnchorBottom) && !panel.anchors.testFlag(LayerWindow::AnchorTop)) {
+        // stays at the top left, whichever edge the taskbar is on.
+        if (panel.anchors.testFlag(LayerWindow::AnchorBottom) && !panel.anchors.testFlag(LayerWindow::AnchorTop)) {
             const bool beside = qstrcmp(panel.qml, "TaskbarPreview") == 0 || qstrcmp(panel.qml, "TaskbarTooltip") == 0;
             shell.followTaskbar(window, beside ? ShellController::FollowKind::Beside : ShellController::FollowKind::Panel);
         }

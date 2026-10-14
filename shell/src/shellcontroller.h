@@ -74,9 +74,8 @@ public:
     // How a window follows the taskbar's edge (taskbar/position). Panel: the
     // bottom corner it has (bottom, or the side of the taskbar). Start: at the
     // top, next to a vertical taskbar. Beside: tooltips and previews, placed
-    // along a vertical taskbar with placeAtTop. HotCorner: the corner the Start
-    // button doesn't take. Taskbar: the taskbar itself.
-    enum class FollowKind { Panel, Start, Beside, HotCorner, Taskbar };
+    // along a vertical taskbar with placeAtTop. Taskbar: the taskbar itself.
+    enum class FollowKind { Panel, Start, Beside, Taskbar };
     struct Follower {
         QPointer<QWindow> window;
         FollowKind kind;
