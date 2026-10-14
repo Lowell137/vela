@@ -23,6 +23,7 @@ qt_add_executable(vela-shell
     src/clipboard.h
     src/snip.cpp
     src/snip.h
+    src/snipextras.h
     src/soundkeys.cpp
     src/soundkeys.h
     src/config.cpp
@@ -140,7 +141,8 @@ set(VELA_QML_FILES
     qml/TaskbarTooltip.qml
     qml/FileDialogs.qml
     qml/ClipboardPanel.qml
-    qml/SnipOverlay.qml)
+    qml/SnipOverlay.qml
+    qml/SnipCountdown.qml)
 
 # The files are in qml/ for tidiness, but in the module they must be at the
 # root: so they see each other without imports.
@@ -227,6 +229,12 @@ if(VELA_BUILD_TOOLS)
     target_compile_options(vela-private-files-test PRIVATE -Wall -Wextra)
     target_link_libraries(vela-private-files-test PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME shell-private-files COMMAND vela-private-files-test)
+
+    qt_add_executable(vela-snipextras-test tests/snipextras.cpp src/snipextras.h)
+    target_include_directories(vela-snipextras-test PRIVATE src)
+    target_compile_options(vela-snipextras-test PRIVATE -Wall -Wextra)
+    target_link_libraries(vela-snipextras-test PRIVATE Qt6::Gui Qt6::Test)
+    add_test(NAME shell-snipextras COMMAND vela-snipextras-test)
 
     qt_add_executable(vela-volumesteps-test tests/volumesteps.cpp ${PROJECT_SOURCE_DIR}/common/audio/volumesteps.h)
     target_include_directories(vela-volumesteps-test PRIVATE ${PROJECT_SOURCE_DIR}/common/audio)

@@ -68,9 +68,7 @@ direction, not a promise.
 ### Snipping tool
 - **Screen recording**, with or without sound.
 - Annotations (pen, highlighter, arrows, crop) before saving.
-- A delay timer.
 - Copying text from a capture (OCR).
-- A color picker.
 
 ### Settings
 - An Updates page, with a notification when a new version is out.

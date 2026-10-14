@@ -20,6 +20,9 @@ Window {
     property point origin
     property bool dragging: false
     // Text, like Rectangle, drags a rectangle; it copies the text in it.
+    // Color mode: the color under the mouse, shown beside it.
+    property string hoverColor: ""
+    property point hoverAt
     readonly property bool dragMode: Snip.mode === "rect" || Snip.mode === "text"
     readonly property bool hasSelection: selection.width > 0 && selection.height > 0
 
@@ -182,6 +185,10 @@ Window {
                 Snip.cancel()
                 return
             }
+            if (Snip.mode === "color") {
+                Snip.pickColor(root.screenName, mouse.x, mouse.y)
+                return
+            }
             if (root.dragMode) {
                 root.origin = Qt.point(mouse.x, mouse.y)
                 root.dragging = true
@@ -189,7 +196,10 @@ Window {
             }
         }
         onPositionChanged: mouse => {
-            if (root.dragMode && root.dragging) {
+            if (Snip.mode === "color") {
+                root.hoverAt = Qt.point(mouse.x, mouse.y)
+                root.hoverColor = Snip.colorAt(root.screenName, mouse.x, mouse.y)
+            } else if (root.dragMode && root.dragging) {
                 root.selection = Qt.rect(Math.min(root.origin.x, mouse.x), Math.min(root.origin.y, mouse.y),
                     Math.abs(mouse.x - root.origin.x), Math.abs(mouse.y - root.origin.y))
             } else if (Snip.mode === "window") {
@@ -200,7 +210,7 @@ Window {
         }
         onExited: if (!root.dragMode) root.selection = Qt.rect(0, 0, 0, 0)
         onReleased: mouse => {
-            if (mouse.button !== Qt.LeftButton) return
+            if (mouse.button !== Qt.LeftButton || Snip.mode === "color") return
             if (root.dragMode) {
                 root.dragging = false
                 if (Snip.mode === "text") {
@@ -326,6 +336,21 @@ Window {
         }
     }
 
+    // Color mode: the hex of the pixel, with a swatch, near the mouse.
+    Rectangle {
+        visible: Snip.mode === "color" && root.hoverColor !== ""
+        x: Math.min(root.hoverAt.x + 18, root.width - width - 8)
+        y: Math.min(root.hoverAt.y + 18, root.height - height - 8)
+        width: swatchText.width + 44
+        height: 30
+        radius: Theme.radius
+        color: Theme.dialog
+        border.width: 1
+        border.color: Theme.stroke
+        Rectangle { x: 6; anchors.verticalCenter: parent.verticalCenter; width: 18; height: 18; radius: 3; color: root.hoverColor; border.width: 1; border.color: Theme.stroke }
+        Text { id: swatchText; x: 32; anchors.verticalCenter: parent.verticalCenter; text: root.hoverColor; color: Theme.text; font.pixelSize: Theme.fontBody }
+    }
+
     // The mode bar, at the top center.
     Rectangle {
         id: toolbar
@@ -346,7 +371,8 @@ Window {
                     { mode: "rect", icon: "select-rectangular", tip: qsTr("Rectangle") },
                     { mode: "window", icon: "window", tip: qsTr("Window") },
                     { mode: "screen", icon: "view-fullscreen", tip: qsTr("Full screen") },
-                    { mode: "text", icon: "edit-select-text", tip: qsTr("Text") }
+                    { mode: "text", icon: "edit-select-text", tip: qsTr("Text") },
+                    { mode: "color", icon: "color-picker", tip: qsTr("Color picker") }
                 ]
                 delegate: Rectangle {
                     id: tool
@@ -390,6 +416,22 @@ Window {
                     font.pixelSize: Theme.fontBody
                 }
                 MouseArea { id: copyAllMouse; anchors.fill: parent; hoverEnabled: true; onClicked: root.copyAll() }
+            }
+            Rectangle { width: 1; height: 24; anchors.verticalCenter: parent.verticalCenter; color: Theme.stroke }
+            // The delay: click to cycle None, 3, 5, 10 seconds.
+            Rectangle {
+                width: delayText.width + 24
+                height: 36
+                radius: Theme.radius
+                color: delayMouse.containsMouse ? Theme.subtleHover : "transparent"
+                Text {
+                    id: delayText
+                    anchors.centerIn: parent
+                    text: Snip.delay === 0 ? qsTr("Delay: none") : qsTr("Delay: %1 s").arg(Snip.delay)
+                    color: Theme.text
+                    font.pixelSize: Theme.fontBody
+                }
+                MouseArea { id: delayMouse; anchors.fill: parent; hoverEnabled: true; onClicked: Snip.cycleDelay() }
             }
             Rectangle { width: 1; height: 24; anchors.verticalCenter: parent.verticalCenter; color: Theme.stroke }
             Rectangle {

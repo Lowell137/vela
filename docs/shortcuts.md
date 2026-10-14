@@ -40,6 +40,8 @@ Those nested alternatives are active only in nested mode; in a normal Vela sessi
 | Terminal | <kbd>Super</kbd>+<kbd>Enter</kbd> | <kbd>Alt</kbd>+<kbd>Enter</kbd> |
 | Lock | <kbd>Super</kbd>+<kbd>L</kbd> | <kbd>Alt</kbd>+<kbd>L</kbd> |
 
+In the snipping tool's bar, **Delay** cycles none, 3, 5 and 10 seconds (a countdown shows after you choose the area, then a fresh photo is cut), and **Color picker** copies the clicked pixel as `#RRGGBB`.
+
 ## Input and accessibility
 
 | Action | Shortcut |
