@@ -1222,7 +1222,8 @@ libwayland consumes and unsets the variable on the first connect, so the apps
 the shell launches, and anything that connects through `WAYLAND_DISPLAY`
 (Settings, a second shell instance, a Qt reconnection after a crash), are not
 trusted. A shell started any other way is untrusted: its previews of hidden
-windows are just empty.
+windows are just empty. The command socket's `state` marks the trusted
+connection's layer surfaces with `"shell": true`.
 
 The distinction between *internal preview* and *user output* is made by the
 kind of capture, not by the client:

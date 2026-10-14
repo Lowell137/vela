@@ -94,6 +94,8 @@ window-rule=<app-id>|<key>=<value>,<key>=<value>
 window-rule=discord|output=HDMI-A-1,desktop=2
 window-rule=kitty|size=900x600,center=yes
 window-rule=mpv|always-on-top=yes
+window-rule=org.keepassxc.KeePassXC|capture=no
+window-rule=firefox|title~=Private Browsing,capture=no
 ```
 
 The app id (or X11 class) matches ignoring case; the first matching rule wins. Keys:
@@ -109,8 +111,11 @@ The app id (or X11 class) matches ignoring case; the first matching rule wins. K
 | `maximized=yes` | Opens maximized on the output. |
 | `fullscreen=no` | A window that asks to open fullscreen opens as a normal window. |
 | `always-on-top=yes` | Starts always on top (not kept when the window closes). |
+| `capture=no` | Hidden from screen capture: the window stays on screen, but screenshots, recordings and screen sharing (and the Snipping Tool) show what lies under it; its popups, dialogs and child windows too. Default `yes`. See [renderer §15](renderer.md#15-hiding-a-window-from-screen-capture) for what it does and doesn't cover. |
 
 Unknown keys and unusable values are ignored and logged. Rules apply once, when a window opens: you can move it afterwards. `reload-config` (and Settings) change the rules for windows opened from then on, not for windows already open.
+
+The exception is `capture=no`, a privacy rule: it is checked again on `reload-config` for the windows already open (adding the rule hides them, removing it shows them again) and whenever a window's title changes (so `title~=` follows the title). The window menu's "Hide from screen capture" (title bar, Alt+Space, Task View) overrides the rule for that window until it closes. The command socket accepts `window <id|active> capture-hide on|off|toggle`.
 
 The Settings app is the preferred way to edit these values because it applies validation and reloads the compositor at the correct time.
 

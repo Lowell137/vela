@@ -45,6 +45,9 @@ direction, not a promise.
 ### Windows and multitasking
 - Always on top, from the window menu.
 - Window rules per app: position, size, desktop, monitor.
+- Hiding a window from screen capture: next, its title out of the window
+  lists other clients read and of the taskbar while recording, and the
+  same for X11 capture clients ([renderer §15.5](renderer.md#155-not-covered)).
 - Windows that reopen where they were, and session restore after login.
 - Moving a window to another monitor or desktop from the keyboard.
 - Per-monitor virtual desktops, as an option.
@@ -140,6 +143,9 @@ Decisions already taken. Each design document explains why.
   tearing control, explicit sync, Night Light in the gamma LUT.
 - **Desktop**: Settings, Files, desktop icons, virtual desktops, Task View,
   snap layouts and Snap Assist, modern context menus, light mode.
+- **Privacy**: windows hidden from screen capture (`capture=no` rule, window
+  menu), for screenshots, recordings, sharing and the Snipping Tool
+  ([renderer §15](renderer.md#15-hiding-a-window-from-screen-capture)).
 - **Daily comfort**: clipboard history, snipping tool, touchpad gestures,
   mouse and touchpad settings.
 - **Audio**: one [native backend](audio.md) for the shell and Settings, with
