@@ -42,6 +42,8 @@ Window {
         "colors": { title: qsTr("Colors"), parent: "personalization", file: "ColorsPage.qml", icon: "preferences-desktop-color" },
         "taskbar": { title: qsTr("Taskbar"), parent: "personalization", file: "TaskbarPage.qml", icon: "preferences-system-windows" },
         "shortcuts": { title: qsTr("Keyboard shortcuts"), parent: "personalization", file: "ShortcutsPage.qml", icon: "preferences-desktop-keyboard-shortcuts" },
+        "icons": { title: qsTr("Icons"), parent: "personalization", file: "IconsPage.qml", icon: "preferences-desktop-icons" },
+        "pointer": { title: qsTr("Mouse pointer"), parent: "personalization", file: "PointerPage.qml", icon: "cursor-arrow" },
         "apps": { title: qsTr("Apps"), parent: "", file: "AppsPage.qml", icon: "preferences-desktop-default-applications" },
         "installed-apps": { title: qsTr("Installed apps"), parent: "apps", file: "InstalledAppsPage.qml", icon: "view-list-details" },
         "default-apps": { title: qsTr("Default apps"), parent: "apps", file: "DefaultAppsPage.qml", icon: "preferences-desktop-default-applications" },
@@ -185,6 +187,8 @@ Window {
         { page: "colors", text: qsTr("Choose your mode"), keys: qsTr("dark light theme apps mode") },
         { page: "taskbar", text: qsTr("Taskbar"), keys: qsTr("taskbar alignment left center end task") },
         { page: "shortcuts", text: qsTr("Keyboard shortcuts"), keys: qsTr("keys hotkeys keybindings shortcut super close window command") },
+        { page: "icons", text: qsTr("Icon theme"), keys: qsTr("icons theme papirus breeze") },
+        { page: "pointer", text: qsTr("Mouse pointer"), keys: qsTr("cursor pointer theme size arrow xcursor") },
         { page: "apps", text: qsTr("Apps"), keys: qsTr("programs applications") },
         { page: "installed-apps", text: qsTr("Installed apps"), keys: qsTr("uninstall remove programs") },
         { page: "default-apps", text: qsTr("Default apps"), keys: qsTr("browser mail player open with default") },
@@ -314,7 +318,7 @@ Window {
                     anchors.verticalCenter: parent.verticalCenter
                     width: 16
                     height: 16
-                    source: "image://fileicon/" + encodeURIComponent(root.pages[entry.modelData].icon)
+                    source: "image://fileicon/" + Style.iconMode + encodeURIComponent(root.pages[entry.modelData].icon)
                     sourceSize: Qt.size(width, height)
                 }
                 Text {
@@ -365,7 +369,7 @@ Window {
                             anchors.verticalCenter: parent.verticalCenter
                             width: 16
                             height: 16
-                            source: "image://fileicon/" + encodeURIComponent(root.pages[result.modelData.page].icon)
+                            source: "image://fileicon/" + Style.iconMode + encodeURIComponent(root.pages[result.modelData.page].icon)
                             sourceSize: Qt.size(width, height)
                         }
                         Text {

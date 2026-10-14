@@ -3,6 +3,8 @@
 
 #include "icons.h"
 
+#include "config.h"
+
 #include "util.h"
 #include "path_security.h"
 
@@ -12,6 +14,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+#include <strings.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <wlr/util/log.h>
@@ -217,23 +220,77 @@ static void kdeglobals_path(char *out, size_t size)
     }
 }
 
-struct vela_icons *vela_icons_create(void)
+// A theme with index.theme in one of the icon directories.
+static bool theme_installed(const struct vela_icons *icons, const char *name)
+{
+    char path[PATH_MAX];
+    for (int i = 0; i < icons->icon_dirs.count; ++i) {
+        if (vela_format(path, sizeof(path), "%s/%s/index.theme", icons->icon_dirs.items[i], name) && exists(path)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// icon-theme= of vela.conf, like the shell (shell/src/iconprovider.h): "X"
+// with its "X-dark"/"X-Dark" in dark mode, "X" in light mode, when both are
+// installed. false (KDE's theme) if missing or not installed.
+static bool configured_theme(const struct vela_icons *icons, bool light, char *out, size_t size)
+{
+    struct vela_config config;
+    vela_config_read(&config);
+    snprintf(out, size, "%s", vela_config_get(&config, "icon-theme", ""));
+    vela_config_finish(&config);
+    if (!vela_path_component_safe(out) || !theme_installed(icons, out)) {
+        return false;
+    }
+    char plain[256];
+    snprintf(plain, sizeof(plain), "%s", out);
+    size_t n = strlen(plain);
+    if (n > 5 && strcasecmp(plain + n - 5, "-dark") == 0) {
+        plain[n - 5] = '\0';
+    }
+    if (light && theme_installed(icons, plain)) {
+        snprintf(out, size, "%s", plain);
+    } else if (!light) {
+        static const char *const suffixes[] = { "-dark", "-Dark" };
+        char dark[256];
+        for (int i = 0; i < 2; ++i) {
+            if (vela_format(dark, sizeof(dark), "%s%s", plain, suffixes[i]) && theme_installed(icons, dark)
+                && vela_format(out, size, "%s", dark)) {
+                break;
+            }
+        }
+    }
+    return true;
+}
+
+struct vela_icons *vela_icons_create(bool light)
 {
     struct vela_icons *icons = calloc(1, sizeof(*icons));
     struct strings dirs = { 0 };
     data_dirs(&dirs);
     char path[PATH_MAX];
+    // ~/.icons first (freedesktop spec), then the XDG data directories.
+    const char *home = getenv("HOME");
+    if (home) {
+        snprintf(path, sizeof(path), "%s/.icons", home);
+        strings_push(&icons->icon_dirs, path);
+    }
     for (int i = 0; i < dirs.count; ++i) {
         snprintf(path, sizeof(path), "%s/icons", dirs.items[i]);
         strings_push(&icons->icon_dirs, path);
     }
     strings_free(&dirs);
 
-    // The theme chosen in KDE ([Icons] Theme in kdeglobals), otherwise Breeze.
+    // The theme chosen in Settings (icon-theme=), otherwise the one chosen in
+    // KDE ([Icons] Theme in kdeglobals), otherwise Breeze.
     static const char *const theme_key[] = { "Theme" };
     char theme[1][256];
-    kdeglobals_path(path, sizeof(path));
-    read_section(path, "Icons", theme_key, theme, 1);
+    if (!configured_theme(icons, light, theme[0], sizeof(theme[0]))) {
+        kdeglobals_path(path, sizeof(path));
+        read_section(path, "Icons", theme_key, theme, 1);
+    }
     // The chain: the theme, those it inherits (Inherits), finally hicolor.
     struct strings pending = { 0 };
     strings_push(&pending, vela_path_component_safe(theme[0]) ? theme[0] : "breeze");
@@ -262,6 +319,11 @@ struct vela_icons *vela_icons_create(void)
         strings_push(&icons->theme_chain, "hicolor");
     }
     return icons;
+}
+
+const char *vela_icons_theme(const struct vela_icons *icons)
+{
+    return icons->theme_chain.items[0];
 }
 
 void vela_icons_destroy(struct vela_icons *icons)

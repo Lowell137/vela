@@ -6,6 +6,7 @@
 #include <QDBusConnection>
 #include <QDBusMessage>
 #include <QDir>
+#include <QFile>
 #include <QFileInfo>
 #include <QGuiApplication>
 #include <QIcon>
@@ -14,13 +15,44 @@
 #include <QPixmap>
 #include <QPixmapCache>
 #include <QQuickImageProvider>
+#include <QStandardPaths>
 #include <QUrl>
 
 #include <algorithm>
 
+// icon-theme= of ~/.config/vela/vela.conf (Settings > Personalization >
+// Icons), empty if missing: then the automatic theme (KDE's, or Breeze).
+inline QString configuredIconTheme()
+{
+    QFile file(QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + QStringLiteral("/vela/vela.conf"));
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        return {};
+    }
+    QString value;
+    while (!file.atEnd()) {
+        const QString line = QString::fromUtf8(file.readLine()).trimmed();
+        if (line.startsWith(QLatin1String("icon-theme="))) {
+            value = line.mid(11).trimmed();
+        }
+    }
+    return value;
+}
+
+// A theme installed in one of Qt's icon directories (a name, not a path).
+inline bool iconThemeExists(const QString& name)
+{
+    if (name.isEmpty() || name.contains(u'/') || name == QLatin1String("..")) {
+        return false;
+    }
+    const QStringList paths = QIcon::themeSearchPaths();
+    return std::any_of(paths.begin(), paths.end(),
+        [&](const QString& dir) { return QFileInfo::exists(dir + u'/' + name + QStringLiteral("/index.theme")); });
+}
+
 // The icon theme matching the light or dark mode: the "-dark" variant
 // (breeze-dark) on dark, the normal one (breeze) on light, starting from the
-// theme chosen in KDE. Call at startup and when the mode changes. With KDE's
+// theme chosen in Settings (icon-theme=, if installed) or else in KDE; also
+// "X-Dark" for "X". Call at startup and when the mode changes. With KDE's
 // platform the icons come from KIconLoader, which colors the monochrome ones
 // with the app's palette: that follows the mode too.
 inline void applyIconTheme(bool light)
@@ -41,35 +73,36 @@ inline void applyIconTheme(bool light)
         QGuiApplication::setPalette(palette);
     }
 
-    static const QString base = [] {
+    static const QString automatic = [] {
         QString theme = QIcon::themeName();
         if (theme.isEmpty() || theme == QLatin1String("hicolor")) {
             theme = qEnvironmentVariable("VELA_ICON_THEME", QStringLiteral("breeze-dark"));
         }
         return theme;
     }();
-    auto exists = [](const QString& name) {
-        const QStringList paths = QIcon::themeSearchPaths();
-        return std::any_of(paths.begin(), paths.end(),
-            [&](const QString& dir) { return QFileInfo::exists(dir + u'/' + name + QStringLiteral("/index.theme")); });
-    };
+    const QString configured = configuredIconTheme();
+    // A theme no longer installed: the automatic one.
+    const QString base = iconThemeExists(configured) ? configured : automatic;
     QString plain = base;
-    if (plain.endsWith(QLatin1String("-dark"))) {
+    if (plain.endsWith(QLatin1String("-dark"), Qt::CaseInsensitive)) {
         plain.chop(5);
     }
-    const QString dark = plain + QStringLiteral("-dark");
     QString chosen = base;
-    if (light && plain != base && exists(plain)) {
+    if (light && plain != base && iconThemeExists(plain)) {
         chosen = plain;
-    } else if (!light && dark != base && exists(dark)) {
-        chosen = dark;
+    } else if (!light) {
+        for (const QString& dark : { plain + QStringLiteral("-dark"), plain + QStringLiteral("-Dark") }) {
+            if (dark == base || iconThemeExists(dark)) {
+                chosen = dark;
+                break;
+            }
+        }
     }
-    if (QIcon::themeName() != chosen) {
-        QIcon::setThemeName(chosen);
-    } else if (changed) {
+    const bool themeChanged = QIcon::themeName() != chosen;
+    if (themeChanged || changed) {
         QIcon::setThemeName(chosen);
     }
-    if (changed) {
+    if (changed || themeChanged) {
         // Already loaded icons have the old colors: they're reloaded.
         // KIconLoader (KDE's platform) empties its cache when it gets the
         // signal KDE's icon module sends.
@@ -94,7 +127,8 @@ inline void applyIconTheme(bool light)
 //
 // A prefix before the name: "l/" and "d/" say for which mode (light or dark)
 // the icon is asked, so changing mode changes the address and QML reloads
-// it; "w/" wants it white (on the accent).
+// it; "w/" wants it white (on the accent). It can be followed by "~N/" (N
+// changes with the icon theme, for the same reason).
 class IconProvider : public QQuickImageProvider {
 public:
     explicit IconProvider(int designSize = 0)
@@ -112,7 +146,12 @@ public:
         bool white = false;
         if (id.size() > 2 && id[1] == u'/' && (id[0] == u'l' || id[0] == u'd' || id[0] == u'w')) {
             white = id[0] == u'w';
-            name = QUrl::fromPercentEncoding(id.mid(2).toUtf8());
+            QString rest = id.mid(2);
+            // "~N/": the icon theme's generation (Appearance::iconMode).
+            if (rest.startsWith(u'~') && rest.indexOf(u'/') > 0) {
+                rest = rest.mid(rest.indexOf(u'/') + 1);
+            }
+            name = QUrl::fromPercentEncoding(rest.toUtf8());
         }
 
         QIcon icon = name.startsWith(u'/') ? QIcon(name) : QIcon::fromTheme(name);

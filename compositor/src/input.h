@@ -136,8 +136,11 @@ struct vela_input *vela_input_create(struct vela_server *server);
 void vela_input_destroy(struct vela_input *input);
 
 // Rereads vela.conf ("reload-config"): keyboard layouts and repeat, mice and
-// touchpads.
+// touchpads, cursor theme and size.
 void vela_input_reload(struct vela_input *input);
+// Shows the theme's cursor `name` (a static string): remembered, so a theme
+// change keeps the shape.
+void vela_input_set_xcursor(struct vela_server *server, const char *name);
 
 bool vela_input_has_touchpad(const struct vela_input *input);
 // The focused app keeps the shortcuts to itself.

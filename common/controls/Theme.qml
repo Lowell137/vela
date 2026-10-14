@@ -98,7 +98,7 @@ QtObject {
     // Icons of the theme matching the mode ("image://icon/l/<name>"; the
     // prefix reloads them when the mode changes). Always white on the accent.
     readonly property string icons: "image://icon/" + Style.iconMode
-    readonly property string iconsOnAccent: Style.iconMode === "l/" ? "image://icon/w/" : icons
+    readonly property string iconsOnAccent: Style.iconMode.startsWith("l/") ? "image://icon/w/" + Style.iconMode.slice(2) : icons
 
     // --- shapes and type ---
     readonly property int radius: 4 // controls

@@ -10,7 +10,10 @@ extern "C" {
 
 #include "iconprovider.h"
 
+#include <QBuffer>
 #include <QDir>
+#include <QImage>
+#include <QtEndian>
 #include <QTime>
 #include <QJsonObject>
 #include <QJsonDocument>
@@ -20,6 +23,7 @@ extern "C" {
 #include <QFileInfo>
 #include <QRegularExpression>
 #include <QLocalSocket>
+#include <QMap>
 #include <QProcess>
 #include <QSaveFile>
 #include <QSettings>
@@ -41,6 +45,67 @@ QSettings shellSettings()
 QString compositorConfigPath()
 {
     return QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + QStringLiteral("/vela/vela.conf");
+}
+
+// The directory of an installed cursor theme (one with cursors/), "" if none:
+// where the compositor's libxcursor looks, first one wins.
+QString cursorThemeDir(const QString& name)
+{
+    if (name.isEmpty() || name.contains(u'/') || name == QLatin1String("..")) {
+        return {};
+    }
+    const QStringList roots { QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + QStringLiteral("/icons"),
+        QDir::homePath() + QStringLiteral("/.icons"), QStringLiteral("/usr/share/icons") };
+    for (const QString& root : roots) {
+        if (QFileInfo(root + u'/' + name + QStringLiteral("/cursors")).isDir()) {
+            return root + u'/' + name;
+        }
+    }
+    return {};
+}
+
+// The first image of an Xcursor file nearest to `size`: "Xcur", header
+// length, version, entry count, then (type, size, offset) entries; an image
+// chunk has 9 32-bit fields (width, height at 16 and 20) and then ARGB pixels.
+QImage xcursorImage(const QString& path, int size)
+{
+    QFile file(path);
+    if (file.size() > 16 * 1024 * 1024 || !file.open(QIODevice::ReadOnly)) {
+        return {};
+    }
+    const QByteArray data = file.readAll();
+    auto u32 = [&](qint64 at) {
+        return at >= 0 && at + 4 <= data.size() ? qFromLittleEndian<quint32>(data.mid(at, 4).constData()) : 0u;
+    };
+    if (data.size() < 16 || !data.startsWith("Xcur")) {
+        return {};
+    }
+    const quint32 count = u32(12);
+    qint64 best = -1;
+    quint32 bestSize = 0;
+    for (quint32 i = 0; i < count && 16 + (i + 1) * 12 <= quint64(data.size()); ++i) {
+        const qint64 entry = 16 + qint64(i) * 12;
+        const quint32 entrySize = u32(entry + 4);
+        if (u32(entry) == 0xfffd0002
+            && (best < 0 || std::abs(int(entrySize) - size) < std::abs(int(bestSize) - size))) {
+            best = u32(entry + 8);
+            bestSize = entrySize;
+        }
+    }
+    if (best < 0 || best + 36 > data.size()) {
+        return {};
+    }
+    const quint32 width = u32(best + 16);
+    const quint32 height = u32(best + 20);
+    if (width == 0 || height == 0 || width > 1024 || height > 1024 || best + 36 + qint64(width) * height * 4 > data.size()) {
+        return {};
+    }
+    QImage image(int(width), int(height), QImage::Format_ARGB32_Premultiplied);
+    for (quint32 y = 0; y < height; ++y) {
+        // Premultiplied ARGB in little-endian words, as QImage keeps them.
+        qFromLittleEndian<quint32>(data.constData() + best + 36 + qint64(y) * width * 4, width, image.scanLine(int(y)));
+    }
+    return image;
 }
 
 } // namespace
@@ -194,6 +259,11 @@ void Preferences::reloadCompositor()
     emit idleChanged();
     m_language = value(QStringLiteral("language"), {});
     emit languageChanged();
+    m_iconTheme = value(QStringLiteral("icon-theme"), {});
+    emit iconThemeChanged();
+    m_cursorTheme = value(QStringLiteral("cursor-theme"), {});
+    m_cursorSize = value(QStringLiteral("cursor-size"), qEnvironmentVariable("XCURSOR_SIZE", QStringLiteral("24"))).toInt();
+    emit cursorChanged();
 
     m_layouts.clear();
     const QStringList layouts = value(QStringLiteral("keyboard-layout"), {}).split(u',', Qt::SkipEmptyParts);
@@ -391,6 +461,145 @@ void Preferences::setAppTheme(const QString& theme)
         }
     }
     emit appThemeChanged();
+}
+
+void Preferences::setIconTheme(const QString& theme)
+{
+    if (theme == m_iconTheme || (!theme.isEmpty() && !iconThemeExists(theme))) {
+        return;
+    }
+    m_iconTheme = theme;
+    // Shell, Settings (Appearance watches vela.conf) and compositor.
+    saveCompositor({ { QStringLiteral("icon-theme"), theme.isEmpty() ? QString() : theme } });
+    emit iconThemeChanged();
+}
+
+void Preferences::setCursorTheme(const QString& theme)
+{
+    if (theme == m_cursorTheme || (!theme.isEmpty() && cursorThemeDir(theme).isEmpty())) {
+        return;
+    }
+    m_cursorTheme = theme;
+    saveCompositor({ { QStringLiteral("cursor-theme"), theme.isEmpty() ? QString() : theme } });
+    emit cursorChanged();
+}
+
+void Preferences::setCursorSize(int size)
+{
+    if (size == m_cursorSize || size < 8 || size > 256) {
+        return;
+    }
+    m_cursorSize = size;
+    saveCompositor({ { QStringLiteral("cursor-size"), QString::number(size) } });
+    emit cursorChanged();
+}
+
+QVariantList Preferences::cursorThemes() const
+{
+    QMap<QString, QString> themes; // name -> Name= of index.theme
+    const QStringList roots { QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + QStringLiteral("/icons"),
+        QDir::homePath() + QStringLiteral("/.icons"), QStringLiteral("/usr/share/icons") };
+    for (const QString& root : roots) {
+        const QStringList names = QDir(root).entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+        for (const QString& name : names) {
+            if (themes.contains(name) || cursorThemeDir(name) != root + u'/' + name) {
+                continue;
+            }
+            QString text = name;
+            QFile file(root + u'/' + name + QStringLiteral("/index.theme"));
+            if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+                while (!file.atEnd()) {
+                    const QString line = QString::fromUtf8(file.readLine()).trimmed();
+                    if (line.startsWith(QLatin1String("Name="))) {
+                        text = line.mid(5).trimmed();
+                        break;
+                    }
+                }
+            }
+            themes.insert(name, text);
+        }
+    }
+    QVariantList result;
+    for (auto it = themes.cbegin(); it != themes.cend(); ++it) {
+        result.append(QVariantMap { { QStringLiteral("name"), it.key() }, { QStringLiteral("text"), it.value() } });
+    }
+    std::sort(result.begin(), result.end(), [](const QVariant& a, const QVariant& b) {
+        return a.toMap()[QStringLiteral("text")].toString().compare(b.toMap()[QStringLiteral("text")].toString(), Qt::CaseInsensitive) < 0;
+    });
+    return result;
+}
+
+QString Preferences::cursorPreview(const QString& theme, int size) const
+{
+    const QString dir = cursorThemeDir(theme.isEmpty() ? qEnvironmentVariable("XCURSOR_THEME") : theme);
+    if (dir.isEmpty()) {
+        return {};
+    }
+    for (const char* name : { "default", "left_ptr" }) {
+        const QImage image = xcursorImage(dir + QStringLiteral("/cursors/") + QLatin1String(name), size);
+        if (!image.isNull()) {
+            QByteArray png;
+            QBuffer buffer(&png);
+            image.save(&buffer, "PNG");
+            return QStringLiteral("data:image/png;base64,") + QString::fromLatin1(png.toBase64());
+        }
+    }
+    return {};
+}
+
+QVariantList Preferences::iconThemes() const
+{
+    // name -> Name=; the first directory wins, like Qt's lookup. Only themes
+    // with icon directories: not the cursor-only ones, not hicolor (Hidden).
+    QMap<QString, QString> themes;
+    const QStringList roots = QIcon::themeSearchPaths();
+    for (const QString& root : roots) {
+        const QStringList names = QDir(root).entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+        for (const QString& name : names) {
+            if (themes.contains(name)) {
+                continue;
+            }
+            QFile file(root + u'/' + name + QStringLiteral("/index.theme"));
+            if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+                continue;
+            }
+            QString text = name;
+            QStringList directories;
+            bool hidden = false;
+            bool inside = false;
+            while (!file.atEnd()) {
+                const QString line = QString::fromUtf8(file.readLine()).trimmed();
+                if (line.startsWith(u'[')) {
+                    if (inside) {
+                        break;
+                    }
+                    inside = line == QLatin1String("[Icon Theme]");
+                } else if (inside && line.startsWith(QLatin1String("Name="))) {
+                    text = line.mid(5).trimmed();
+                } else if (inside && line.startsWith(QLatin1String("Directories="))) {
+                    directories = line.mid(12).split(u',', Qt::SkipEmptyParts);
+                } else if (inside && line.startsWith(QLatin1String("Hidden="))) {
+                    hidden = line.mid(7).trimmed() == QLatin1String("true");
+                }
+            }
+            directories.removeIf([](const QString& d) { return d.trimmed().startsWith(QLatin1String("cursors")); });
+            if (!hidden && !directories.isEmpty()) {
+                themes.insert(name, text);
+            }
+        }
+    }
+    QVariantList result;
+    for (auto it = themes.cbegin(); it != themes.cend(); ++it) {
+        const QString& name = it.key();
+        if (name.endsWith(QLatin1String("-dark"), Qt::CaseInsensitive) && themes.contains(name.chopped(5))) {
+            continue; // the dark variant of a listed theme
+        }
+        result.append(QVariantMap { { QStringLiteral("name"), name }, { QStringLiteral("text"), it.value() } });
+    }
+    std::sort(result.begin(), result.end(), [](const QVariant& a, const QVariant& b) {
+        return a.toMap()[QStringLiteral("text")].toString().compare(b.toMap()[QStringLiteral("text")].toString(), Qt::CaseInsensitive) < 0;
+    });
+    return result;
 }
 
 void Preferences::setShellTheme(const QString& theme)

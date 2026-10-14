@@ -12,12 +12,17 @@
 
 #include "image.h"
 
+#include <stdbool.h>
+
 struct vela_icons;
 
-// KDE's theme and its inheritance chain; .desktop files are read on the first
+// The theme (icon-theme= of vela.conf, matched to the apps' mode `light`, or
+// KDE's) and its inheritance chain; .desktop files are read on the first
 // request.
-struct vela_icons *vela_icons_create(void);
+struct vela_icons *vela_icons_create(bool light);
 void vela_icons_destroy(struct vela_icons *icons);
+// The theme in use (the first of the chain).
+const char *vela_icons_theme(const struct vela_icons *icons);
 
 // The app's icon (Wayland app_id or X11 class), size x size pixels. Never
 // NULL: an empty image (pixels NULL) when none is found. It stays valid, owned

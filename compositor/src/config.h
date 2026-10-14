@@ -40,6 +40,11 @@
 //   hot-corner-animation=yes ripples when it opens Task View
 //   language=                it, en, or empty (like the system)
 //   polkit-agent=yes         start Vela's polkit agent (docs/polkit-agent.md)
+//   icon-theme=              icon theme name (empty: KDE's, Breeze); X-dark/X-Dark
+//                            is used in dark mode when installed
+//   cursor-theme=            cursor theme name (empty: $XCURSOR_THEME); also
+//                            exported to the apps Vela starts
+//   cursor-size=24           cursor size in pixels (empty: $XCURSOR_SIZE, or 24)
 //
 // The old Italian names are still read (legacy_names.h).
 
