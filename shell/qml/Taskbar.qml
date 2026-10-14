@@ -605,7 +605,7 @@ Window {
     // Clock: time on top, date below.
     Item {
         id: clock
-        anchors { right: parent.right; top: parent.top; bottom: parent.bottom; rightMargin: 24 }
+        anchors { right: parent.right; top: parent.top; bottom: parent.bottom; rightMargin: 32 }
         width: clockColumn.implicitWidth + 16 + (Notifications.history.count > 0 || Notifications.doNotDisturb ? 22 : 0)
 
         property date now: new Date()
@@ -696,13 +696,23 @@ Window {
         id: showDesktop
         visible: root.primary
         anchors { right: parent.right; top: parent.top; bottom: parent.bottom }
-        width: visible ? 12 : 0
+        width: visible ? 20 : 0
 
+        // The whole strip lights up under the pointer; at rest a short bar
+        // marks it, so it is easy to see and to hit.
         Rectangle {
-            anchors { right: parent.right; top: parent.top; bottom: parent.bottom }
-            width: 1
+            anchors.fill: parent
+            color: Theme.accent
+            opacity: showDesktopMouse.containsMouse ? 0.18 : 0
+            Behavior on opacity { NumberAnimation { duration: Theme.fast } }
+        }
+        Rectangle {
+            anchors { right: parent.right; rightMargin: 3; verticalCenter: parent.verticalCenter }
+            width: 3
+            height: parent.height * 0.5
+            radius: width / 2
             color: showDesktopMouse.containsMouse ? Theme.accent : Theme.textSecondary
-            opacity: showDesktopMouse.containsMouse ? 1 : 0.35
+            opacity: showDesktopMouse.containsMouse ? 1 : 0.55
             Behavior on color { ColorAnimation { duration: Theme.fast } }
         }
         MouseArea {
