@@ -605,7 +605,7 @@ Window {
     // Clock: time on top, date below.
     Item {
         id: clock
-        anchors { right: parent.right; top: parent.top; bottom: parent.bottom; rightMargin: 32 }
+        anchors { right: parent.right; top: parent.top; bottom: parent.bottom; rightMargin: 12 }
         width: clockColumn.implicitWidth + 16 + (Notifications.history.count > 0 || Notifications.doNotDisturb ? 22 : 0)
 
         property date now: new Date()
@@ -696,24 +696,22 @@ Window {
         id: showDesktop
         visible: root.primary
         anchors { right: parent.right; top: parent.top; bottom: parent.bottom }
-        width: visible ? 20 : 0
+        // Invisible at rest and over the clock's margin: it takes no room. Only
+        // under the pointer a thin line (and a faint tint) shows, like Windows.
+        width: visible ? 8 : 0
 
-        // The whole strip lights up under the pointer; at rest a short bar
-        // marks it, so it is easy to see and to hit.
         Rectangle {
             anchors.fill: parent
-            color: Theme.accent
-            opacity: showDesktopMouse.containsMouse ? 0.18 : 0
+            color: Theme.textSecondary
+            opacity: showDesktopMouse.containsMouse ? 0.12 : 0
             Behavior on opacity { NumberAnimation { duration: Theme.fast } }
         }
         Rectangle {
-            anchors { right: parent.right; rightMargin: 3; verticalCenter: parent.verticalCenter }
-            width: 3
-            height: parent.height * 0.5
-            radius: width / 2
-            color: showDesktopMouse.containsMouse ? Theme.accent : Theme.textSecondary
-            opacity: showDesktopMouse.containsMouse ? 1 : 0.55
-            Behavior on color { ColorAnimation { duration: Theme.fast } }
+            anchors { right: parent.right; top: parent.top; bottom: parent.bottom }
+            width: 1
+            color: Theme.textSecondary
+            opacity: showDesktopMouse.containsMouse ? 0.9 : 0
+            Behavior on opacity { NumberAnimation { duration: Theme.fast } }
         }
         MouseArea {
             id: showDesktopMouse
