@@ -8,6 +8,7 @@
 #include <QVariantList>
 
 class AppModel;
+class Preferences;
 
 // Apps > Default apps, like Windows 11:
 // - common uses (browser, mail, music, video, photos, PDF, archives,
@@ -27,7 +28,7 @@ class DefaultApps : public QObject {
     Q_PROPERTY(QString selectedIcon READ selectedIcon NOTIFY selectedAppChanged)
 
 public:
-    explicit DefaultApps(AppModel* apps, QObject* parent = nullptr);
+    explicit DefaultApps(AppModel* apps, Preferences* prefs = nullptr, QObject* parent = nullptr);
 
     QVariantList categories() const;
     Q_INVOKABLE void setDefault(const QString& key, const QString& appId);
@@ -58,7 +59,12 @@ signals:
 private:
     QVariantList candidatesFor(const QStringList& mimes, const QString& current) const;
     QVariantMap appInfo(const QString& appId) const;
+    // A system tool (terminal, task manager): the vela.conf program choice,
+    // "" for automatic, among the installed programs (plus console tools).
+    QVariantMap toolCategory(const QString& key, const char* label, const char* icon,
+        const QStringList& programs, const QStringList& cli) const;
 
     AppModel* m_apps;
+    Preferences* m_prefs = nullptr;
     QString m_selected;
 };

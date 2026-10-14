@@ -4,6 +4,7 @@
 #include "bindings.h"
 
 #include "a11y.h"
+#include "config.h"
 #include "focus.h"
 #include "input.h"
 #include "interact.h"
@@ -110,8 +111,16 @@ bool vela_bindings_handle(struct vela_server *server, uint32_t modifiers, uint32
         return true;
     }
     if (windows_key && sym == XKB_KEY_Return && vela_shortcuts_default_enabled("terminal")) {
-        const char *terminal = getenv("VELA_TERMINAL");
-        vela_spawn(terminal ? terminal : "konsole || foot || kitty || alacritty || xterm");
+        struct vela_config conf;
+        vela_config_read(&conf);
+        const char *key = vela_config_get(&conf, "terminal", "");
+        char chosen[256] = "";
+        if (*key) {
+            snprintf(chosen, sizeof(chosen), "%s", key);
+        }
+        vela_config_finish(&conf);
+        const char *terminal = *chosen ? chosen : getenv("VELA_TERMINAL");
+        vela_spawn(terminal && *terminal ? terminal : "konsole || foot || kitty || alacritty || xterm");
         return true;
     }
     struct vela_view *active = vela_views_focused(server);

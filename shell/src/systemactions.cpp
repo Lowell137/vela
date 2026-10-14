@@ -47,6 +47,19 @@ bool spawn(const QString& command, const QString& directory = QDir::homePath())
     return QProcess::startDetached(QStringLiteral("/bin/sh"), { QStringLiteral("-c"), command }, directory);
 }
 
+// A vela.conf key (the compositor's file, also written by Settings): the
+// Default-apps choice for system tools, "" for automatic.
+QString compositorValue(const QString& key)
+{
+    QString home = qEnvironmentVariable("XDG_CONFIG_HOME");
+    if (home.isEmpty()) {
+        home = QDir::homePath() + QStringLiteral("/.config");
+    }
+    QSettings conf(home + QStringLiteral("/vela/vela.conf"), QSettings::IniFormat);
+    conf.sync();
+    return conf.value(key).toString().trimmed();
+}
+
 // Use the apps built alongside this executable before installed versions.
 QString velaTool(const QString& name, const QString& buildDir)
 {
@@ -112,6 +125,11 @@ QStringList emptyHome()
 
 QString terminalProgram()
 {
+    // The Settings choice (Default apps) first, if still installed.
+    const QString choice = compositorValue(QStringLiteral("terminal"));
+    if (!choice.isEmpty() && has(choice)) {
+        return choice;
+    }
     const QString chosen = qEnvironmentVariable("VELA_TERMINAL");
     if (!chosen.isEmpty()) {
         return chosen;
@@ -177,6 +195,14 @@ QString SystemActions::command(const QString& name) const
         return terminalProgram() + (has(QStringLiteral("run0")) ? QStringLiteral(" -e run0") : QStringLiteral(" -e sudo -i"));
     }
     if (name == QLatin1String("task-manager")) {
+        // The Settings choice (Default apps): a monitor GUI as is, a console
+        // tool inside the terminal. Empty or gone: the first installed.
+        const QString choice = compositorValue(QStringLiteral("task-manager"));
+        if (!choice.isEmpty() && has(choice)) {
+            return (choice == QLatin1String("btop") || choice == QLatin1String("htop") || choice == QLatin1String("top"))
+                ? terminalProgram() + QStringLiteral(" -e ") + choice
+                : choice;
+        }
         const QString gui = first({ { "plasma-systemmonitor", "plasma-systemmonitor" },
             { "gnome-system-monitor", "gnome-system-monitor" }, { "missioncenter", "missioncenter" } });
         if (!gui.isEmpty()) {
