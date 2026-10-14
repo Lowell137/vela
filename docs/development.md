@@ -191,6 +191,7 @@ paint/              vela-paint
 clock/              vela-clock (alarms, timers, stopwatch, world clocks)
 taskmanager/        vela-taskmanager
 stickynotes/        vela-stickynotes
+voicerecorder/      vela-voicerecorder (pw-record records, libmpv plays, ffmpeg trims)
 terminal/           vela-terminal (libvterm reads what the programs write)
 eventviewer/        vela-eventviewer (journalctl's entries, filtered and followed)
 common/fluent/      the four apps above draw their commands with Fluent icons (MIT)
