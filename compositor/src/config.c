@@ -216,6 +216,23 @@ bool vela_config_flag(const struct vela_config *config, const char *key, bool fa
     return strcmp(value, "yes") == 0 || strcmp(value, "1") == 0 || strcmp(value, "true") == 0;
 }
 
+void vela_config_each(const char *key, void (*callback)(const char *value, void *data), void *data)
+{
+    char path[PATH_MAX];
+    if (!vela_config_path("vela.conf", path, sizeof(path))) {
+        return;
+    }
+    struct lines lines = { 0 };
+    read_lines(path, &lines, NULL);
+    size_t length = strlen(key);
+    for (int i = 0; i < lines.count; ++i) {
+        if (strncmp(lines.items[i], key, length) == 0 && lines.items[i][length] == '=') {
+            callback(lines.items[i] + length + 1, data);
+        }
+    }
+    lines_free(&lines);
+}
+
 bool vela_config_list_has(const char *list, const char *item)
 {
     size_t length = item ? strlen(item) : 0;

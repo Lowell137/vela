@@ -46,6 +46,12 @@ Page {
             onClicked: root.navigate("window-blur")
         }
         LinkCard {
+            icon: "window"
+            title: qsTr("Window rules")
+            description: qsTr("Where and how an app's windows open")
+            onClicked: root.navigate("window-rules")
+        }
+        LinkCard {
             icon: "preferences-desktop-keyboard-shortcuts"
             title: qsTr("Keyboard shortcuts")
             description: qsTr("See, change and add shortcuts")

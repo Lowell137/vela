@@ -53,6 +53,8 @@ class Preferences : public QObject {
     Q_PROPERTY(bool windowBlur READ windowBlur WRITE setWindowBlur NOTIFY windowBlurChanged)
     Q_PROPERTY(bool windowBlurAll READ windowBlurAll WRITE setWindowBlurAll NOTIFY windowBlurChanged)
     Q_PROPERTY(QStringList windowBlurInclude READ windowBlurInclude WRITE setWindowBlurInclude NOTIFY windowBlurChanged)
+    // window-rule= lines, "app|key=value,...": repeatable, so saved apart.
+    Q_PROPERTY(QStringList windowRules READ windowRules WRITE setWindowRules NOTIFY windowRulesChanged)
     Q_PROPERTY(QStringList windowBlurExclude READ windowBlurExclude WRITE setWindowBlurExclude NOTIFY windowBlurChanged)
     // window-opacity= (percent, 30-100): the same windows drawn translucent.
     Q_PROPERTY(int windowOpacity READ windowOpacity WRITE setWindowOpacity NOTIFY windowBlurChanged)
@@ -168,6 +170,8 @@ public:
     void setWindowBlurAll(bool on);
     QStringList windowBlurInclude() const { return m_windowBlurInclude; }
     void setWindowBlurInclude(const QStringList& apps);
+    QStringList windowRules() const { return m_windowRules; }
+    void setWindowRules(const QStringList& rules);
     QStringList windowBlurExclude() const { return m_windowBlurExclude; }
     void setWindowBlurExclude(const QStringList& apps);
     int windowOpacity() const { return m_windowOpacity; }
@@ -301,6 +305,7 @@ signals:
     void iconThemeChanged();
     void cursorChanged();
     void windowBlurChanged();
+    void windowRulesChanged();
     void doNotDisturbChanged();
     void idleChanged();
     void languageChanged();
@@ -340,6 +345,7 @@ private:
     bool m_windowBlurAll = false;
     QStringList m_windowBlurInclude;
     QStringList m_windowBlurExclude;
+    QStringList m_windowRules;
     int m_windowOpacity = 100;
     bool m_doNotDisturb = false;
     int m_screenOffMinutes = 10;
