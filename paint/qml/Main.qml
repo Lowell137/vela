@@ -44,23 +44,30 @@ Window {
 
     // --- the ribbon folds: its groups become buttons when the window narrows ---
     property var openGroup: null // the folded group whose commands are shown
-    readonly property int folded: {
+    // How the ribbon fits. A group that can be squeezed (the shapes, the
+    // palette) gives up room first, the first by `order` first; when that
+    // isn't enough the groups fold, also by `order`, and what is left over
+    // goes back, to the last by `order`. `squeeze` maps `order` to pixels.
+    readonly property var plan: {
         const items = []
-        let total = 0
         for (let i = 0; i < groups.children.length; i++) {
             const group = groups.children[i]
             if (group.fullWidth === undefined) continue
-            total += group.fullWidth
             items.push(group)
         }
         items.sort((a, b) => a.order - b.order)
-        let count = 0
-        for (const group of items) {
-            if (total <= ribbon.width) break
-            total -= group.fullWidth - group.foldedWidth
-            count++
+        // the narrowest it can all be with `k` folded
+        const narrowest = k => items.reduce((sum, g, i) => sum + (i < k ? g.foldedWidth : g.fullWidth - g.flex), 0)
+        let folded = 0
+        while (folded < items.length && narrowest(folded) > ribbon.width) folded++
+        let spare = ribbon.width - narrowest(folded)
+        const squeeze = {}
+        for (let i = items.length - 1; i >= folded; i--) {
+            const back = Math.max(0, Math.min(spare, items[i].flex))
+            spare -= back
+            squeeze[items[i].order] = items[i].flex - back
         }
-        return count
+        return { folded: folded, squeeze: squeeze }
     }
     // The canvas' new size while one of its handles is dragged.
     property var dragSize: null
@@ -368,12 +375,17 @@ Window {
         property string icon
         property int order: 0
         default property alias content: inside.data
-        readonly property real fullWidth: inside.width + 25
+        // How much narrower it can be before it folds, and its full width
+        // when its content's width follows the room (a Gallery).
+        property real flex: 0
+        property real natural: -1
+        readonly property real fullWidth: (natural >= 0 ? natural : inside.width) + 25
         readonly property real foldedWidth: 68
-        readonly property bool isFolded: order <= root.folded
+        readonly property bool isFolded: order <= root.plan.folded
+        readonly property real squeezed: isFolded ? 0 : (root.plan.squeeze[order] || 0)
         readonly property bool isOpen: root.openGroup === group
         onIsFoldedChanged: if (isOpen) root.openGroup = null
-        width: isFolded ? foldedWidth : fullWidth
+        width: isFolded ? foldedWidth : fullWidth - squeezed
         height: 92
 
         Row {
@@ -427,6 +439,67 @@ Window {
             Item {
                 id: panelBody
                 anchors.fill: parent
+            }
+        }
+    }
+    // Commands in two rows shown a part at a time when their group is
+    // squeezed: the wheel, a drag or the arrows at the ends move along them.
+    component Gallery: Item {
+        id: gallery
+        property real naturalWidth: 0
+        property real squeezed: 0 // from its group
+        default property alias content: strip.data
+        anchors.verticalCenter: parent ? parent.verticalCenter : undefined
+        width: naturalWidth - squeezed
+        height: 58
+
+        Flickable {
+            id: scroller
+            anchors.fill: parent
+            clip: true
+            contentWidth: gallery.naturalWidth
+            contentHeight: height
+            flickableDirection: Flickable.HorizontalFlick
+            boundsBehavior: Flickable.StopAtBounds
+            onWidthChanged: returnToBounds()
+            Item {
+                id: strip
+                width: gallery.naturalWidth
+                height: gallery.height
+            }
+        }
+        WheelHandler {
+            acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+            onWheel: event => {
+                const delta = event.angleDelta.y !== 0 ? event.angleDelta.y : event.angleDelta.x
+                scroller.contentX = Math.max(0, Math.min(scroller.contentWidth - scroller.width, scroller.contentX - delta))
+            }
+        }
+        Rectangle {
+            visible: scroller.contentX > 0
+            width: 20
+            height: parent.height
+            color: Theme.flyout // opaque: what's under the arrow isn't shown through it
+            ToolButton {
+                anchors.centerIn: parent
+                width: 18
+                height: 28
+                icon: "go-previous"
+                onClicked: scroller.contentX = Math.max(0, scroller.contentX - 90)
+            }
+        }
+        Rectangle {
+            visible: scroller.contentX < scroller.contentWidth - scroller.width - 1
+            x: parent.width - width
+            width: 20
+            height: parent.height
+            color: Theme.flyout
+            ToolButton {
+                anchors.centerIn: parent
+                width: 18
+                height: 28
+                icon: "go-next"
+                onClicked: scroller.contentX = Math.min(scroller.contentWidth - scroller.width, scroller.contentX + 90)
             }
         }
     }
@@ -533,11 +606,16 @@ Window {
                 }
             }
             Group {
+                id: shapesGroup
                 title: qsTr("Shapes")
                 icon: "shape-polygon"
                 order: 1
-                Grid {
-                    anchors.verticalCenter: parent.verticalCenter
+                flex: 210 // down to four columns
+                natural: 366 // 11 columns of 28 and 2, the outline and fill buttons, the gaps
+                Gallery {
+                  naturalWidth: 328
+                  squeezed: shapesGroup.squeezed
+                  Grid {
                     columns: 11
                     spacing: 2
                     Repeater {
@@ -561,6 +639,7 @@ Window {
                             onClicked: canvas.tool = modelData[0]
                         }
                     }
+                  }
                 }
                 Item { width: 6; height: 1 }
                 Pair {
@@ -604,9 +683,12 @@ Window {
                 }
             }
             Group {
+                id: colorsGroup
                 title: qsTr("Colors")
                 icon: "color-management"
                 order: 2
+                flex: 182 // down to three columns of swatches
+                natural: 394 // the two wells, 10 columns of 22 and 4, the edit button, the gaps
                 Repeater {
                     model: 2
                     delegate: Rectangle {
@@ -639,8 +721,11 @@ Window {
                     }
                 }
                 Item { width: 8; height: 1 }
-                Grid {
-                    anchors.verticalCenter: parent.verticalCenter
+                Gallery {
+                  naturalWidth: 256
+                  squeezed: colorsGroup.squeezed
+                  Grid {
+                    y: 5
                     columns: 10
                     spacing: 4
                     Repeater {
@@ -660,6 +745,7 @@ Window {
                             }
                         }
                     }
+                  }
                 }
                 Item { width: 8; height: 1 }
                 ToolButton {
