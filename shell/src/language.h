@@ -3,13 +3,14 @@
 
 #pragma once
 
-// Vela's interface language: Italian or English.
+// Vela's interface language: Italian, English or Turkish.
 //
 // It's chosen in Settings > Time & language > Language, key language= of
-// ~/.config/vela/vela.conf: "it", "en" or nothing (like the system: Italian if
-// the system is in Italian, English otherwise). Strings in the code are in
-// English; Italian is a Qt translation (i18n/*_it.ts, compiled into the
-// executable). The default locale changes with the language: dates, months and
+// ~/.config/vela/vela.conf: "it", "en", "tr" or nothing (like the system, if
+// it's in one of them, English otherwise). Strings in the code are in
+// English; the others are Qt translations (i18n/*_it.ts, i18n/*_tr.ts,
+// compiled into the executable). An app that doesn't have one yet stays in
+// English. The default locale changes with the language: dates, months and
 // days follow the choice.
 //
 // Every app watches vela.conf: when the language changes, the translation is
@@ -35,7 +36,15 @@ inline QString configPath()
     return QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + QStringLiteral("/vela/vela.conf");
 }
 
-// The choice in vela.conf: "it", "en", or empty (like the system).
+// The languages there are, besides English.
+inline QLocale::Language translated(const QString& code)
+{
+    return code == QLatin1String("it") ? QLocale::Italian
+        : code == QLatin1String("tr") ? QLocale::Turkish
+        : QLocale::English;
+}
+
+// The choice in vela.conf: "it", "en", "tr", or empty (like the system).
 inline QString configured()
 {
     QFile file(configPath());
@@ -52,20 +61,23 @@ inline QString configured()
             value = line.mid(7).trimmed();
         }
     }
-    return value == QLatin1String("it") || value == QLatin1String("en") ? value : QString();
+    return value == QLatin1String("en") || translated(value) != QLocale::English ? value : QString();
 }
 
-// The language to use: "it" or "en".
+// The language to use: "it", "en" or "tr".
 inline QString effective()
 {
     const QString chosen = configured();
     if (!chosen.isEmpty()) {
         return chosen;
     }
-    return QLocale::system().language() == QLocale::Italian ? QStringLiteral("it") : QStringLiteral("en");
+    const QLocale::Language system = QLocale::system().language();
+    return system == QLocale::Italian ? QStringLiteral("it")
+        : system == QLocale::Turkish ? QStringLiteral("tr")
+        : QStringLiteral("en");
 }
 
-// Loads translation `name` (the :/i18n/<name>_it.qm resource) and keeps it in
+// Loads translation `name` (the :/i18n/<name>_<language>.qm resource) and keeps it in
 // line with vela.conf. Call once, after creating the app.
 inline void install(const QString& name, std::function<void()> changed = {})
 {
@@ -89,10 +101,10 @@ inline void install(const QString& name, std::function<void()> changed = {})
             state->translator = nullptr;
         }
         const QLocale::Territory territory = QLocale::system().territory();
-        QLocale::setDefault(QLocale(lang == QLatin1String("en") ? QLocale::English : QLocale::Italian, territory));
-        if (lang == QLatin1String("it")) {
+        QLocale::setDefault(QLocale(translated(lang), territory));
+        if (lang != QLatin1String("en")) {
             state->translator = new QTranslator(QCoreApplication::instance());
-            if (state->translator->load(QStringLiteral(":/i18n/%1_it.qm").arg(state->name))) {
+            if (state->translator->load(QStringLiteral(":/i18n/%1_%2.qm").arg(state->name, lang))) {
                 QCoreApplication::installTranslator(state->translator);
             }
         }

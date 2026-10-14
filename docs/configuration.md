@@ -29,7 +29,7 @@ Vela Settings preserves unrelated lines when it updates a key and asks the compo
 
 | Key | Default | Meaning |
 |---|---|---|
-| `language` | system | Interface language: `it`, `en`, or empty to follow the system (Italian if the system is Italian, English otherwise). |
+| `language` | system | Interface language: `it`, `en`, `tr`, or empty to follow the system (Italian or Turkish if the system is, English otherwise). Apps without a translation for the chosen language stay in English. |
 | `screen-off` | `10` | Minutes of inactivity before the idle action. `0` disables it. |
 | `lock-on-idle` | `yes` | Lock before turning displays off. |
 | `polkit-agent` | `yes` | Start Vela's polkit agent (the User Account Control dialog) in the real session. `no` leaves the job to another agent. |
