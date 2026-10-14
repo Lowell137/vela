@@ -15,6 +15,9 @@ Item {
     readonly property bool hovered: mouse.containsMouse
     property bool active: false
     property bool running: false
+    // The app's progress (0..1, -1: none): the indicator under the icon becomes
+    // a small bar that fills, like the Windows taskbar.
+    property real progress: -1
     property bool draggable: false
     readonly property bool dragging: mouse.dragging
     default property alias content: holder.data
@@ -62,9 +65,9 @@ Item {
         anchors.bottomMargin: 2
         height: 3
         radius: 1.5
-        width: root.active ? 16 : root.running ? 6 : 0
-        color: root.active ? Theme.accent : Theme.textSecondary
-        opacity: root.active || root.running ? 1 : 0
+        width: root.progress >= 0 ? 24 : root.active ? 16 : root.running ? 6 : 0
+        color: root.progress >= 0 ? Theme.textSecondary : root.active ? Theme.accent : Theme.textSecondary
+        opacity: root.progress >= 0 ? 0.4 : root.active || root.running ? 1 : 0
 
         Behavior on width {
             NumberAnimation { duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
@@ -75,6 +78,18 @@ Item {
         Behavior on opacity {
             NumberAnimation { duration: Theme.fast }
         }
+    }
+
+    Rectangle {
+        visible: root.progress >= 0
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 2
+        x: (parent.width - 24) / 2
+        height: 3
+        radius: 1.5
+        width: 24 * Math.min(1, Math.max(0, root.progress))
+        color: Theme.accent
+        Behavior on width { NumberAnimation { duration: Theme.fast } }
     }
 
     MouseArea {

@@ -319,6 +319,7 @@ Window {
                 readonly property var badge: { Badges.revision; return Badges.entry(desktopId) }
                 tooltip: name
                 running: windowCount > 0
+                progress: badge.progress
                 active: windowActive
                 onClicked: {
                     Menus.preview = null
@@ -391,11 +392,11 @@ Window {
                 // Unread count, top right of the button; red if urgent.
                 Rectangle {
                     visible: task.badge.count > 0 || task.badge.urgent
-                    x: parent.width - width - 1
-                    y: 1
-                    width: Math.max(15, countText.implicitWidth + 7)
-                    height: 15
-                    radius: 7.5
+                    x: parent.width - width + 5
+                    y: -5
+                    width: Math.max(13, countText.implicitWidth + 6)
+                    height: 13
+                    radius: 6.5
                     color: task.badge.urgent ? "#c42b1c" : Theme.accent
                     Text {
                         id: countText
@@ -403,20 +404,9 @@ Window {
                         visible: task.badge.count > 0
                         text: task.badge.count > 99 ? qsTr("99+") : task.badge.count
                         color: "white"
-                        font.pixelSize: 10
+                        font.pixelSize: 9
                         font.weight: Font.DemiBold
                     }
-                }
-                // Progress: a thin bar on the button's bottom edge.
-                Rectangle {
-                    visible: task.badge.progress >= 0
-                    parent: task
-                    x: 6
-                    y: task.height - 2
-                    width: (task.width - 12) * Math.max(0, task.badge.progress)
-                    height: 2
-                    radius: 1
-                    color: Theme.accent
                 }
             }
         }
