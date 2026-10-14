@@ -1,0 +1,17 @@
+# SPDX-FileCopyrightText: 2026 Vela contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[Desktop Entry]
+Type=Application
+Name=Event Viewer
+Name[tr]=Olay Görüntüleyici
+Name[it]=Visualizzatore eventi
+GenericName=System Log Viewer
+GenericName[tr]=Sistem Günlüğü Görüntüleyici
+Comment=Browse and search the system and user journal
+Comment[tr]=Sistem ve kullanıcı günlüğüne göz atın ve arayın
+Exec=vela-eventviewer
+Icon=utilities-log-viewer
+Categories=System;Monitor;
+Keywords=journal;log;logs;journalctl;systemd;events;errors;
+StartupNotify=true
