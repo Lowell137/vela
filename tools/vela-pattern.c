@@ -24,6 +24,9 @@
 // apps.
 // --popup X,Y: also opens a 200x150 magenta menu (xdg-popup), anchored at
 // point (X, Y) of the window; it may slide to stay on screen.
+// --subsurface X,Y: also a 120x90 cyan subsurface at point (X, Y) of the
+// window. --child: also a 200x150 yellow dialog (a toplevel whose parent is
+// the window, app id "<app id>.child"). For the capture-hiding tests.
 // --clear: a fully transparent window instead (ARGB, alpha 0), like the parts
 // of Firefox that show the desktop (window-blur tests).
 // --fullscreen: asks to be fullscreen (window-opacity tests).
@@ -44,6 +47,7 @@
 #include "xdg-shell-client-protocol.h"
 
 static struct wl_compositor* compositor;
+static struct wl_subcompositor* subcompositor;
 static struct wl_shm* shm;
 static struct xdg_wm_base* wmBase;
 static struct wp_viewporter* viewporter;
@@ -71,11 +75,20 @@ static int popupWanted;
 static int popupX;
 static int popupY;
 static struct wl_surface* popupSurface;
+static int subsurfaceWanted;
+static int subsurfaceX;
+static int subsurfaceY;
+static struct wl_surface* subSurface;
+static int childWanted;
+static struct wl_surface* childSurface;
+static const char* appId = "vela.pattern";
 
 static void onGlobal(void* data, struct wl_registry* registry, uint32_t name, const char* interface, uint32_t version)
 {
     if (!strcmp(interface, wl_compositor_interface.name)) {
         compositor = wl_registry_bind(registry, name, &wl_compositor_interface, 4);
+    } else if (!strcmp(interface, wl_subcompositor_interface.name)) {
+        subcompositor = wl_registry_bind(registry, name, &wl_subcompositor_interface, 1);
     } else if (!strcmp(interface, zxdg_decoration_manager_v1_interface.name)) {
         decorationManager = wl_registry_bind(registry, name, &zxdg_decoration_manager_v1_interface, 1);
     } else if (!strcmp(interface, wl_shm_interface.name)) {
@@ -156,31 +169,54 @@ static void draw(void)
         scale120, width, height);
 }
 
-// The menu: a magenta rectangle at scale 1.
-static void drawPopup(void)
+// A surface of one color at scale 1 (menu, subsurface, dialog).
+static void fill(struct wl_surface* target, int width, int height, uint32_t color)
 {
-    const int stride = POPUP_WIDTH * 4;
-    const size_t size = (size_t)stride * POPUP_HEIGHT;
-    const int fd = memfd_create("vela-pattern-popup", MFD_CLOEXEC);
+    const int stride = width * 4;
+    const size_t size = (size_t)stride * height;
+    const int fd = memfd_create("vela-pattern-fill", MFD_CLOEXEC);
     if (fd < 0 || ftruncate(fd, (off_t)size) < 0) {
         perror("vela-pattern: memfd");
         exit(1);
     }
     uint32_t* pixels = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    for (int i = 0; i < POPUP_WIDTH * POPUP_HEIGHT; ++i) {
-        pixels[i] = 0xffff00ffu;
+    for (int i = 0; i < width * height; ++i) {
+        pixels[i] = color;
     }
     munmap(pixels, size);
     struct wl_shm_pool* pool = wl_shm_create_pool(shm, fd, (int32_t)size);
-    struct wl_buffer* buffer
-        = wl_shm_pool_create_buffer(pool, 0, POPUP_WIDTH, POPUP_HEIGHT, stride, WL_SHM_FORMAT_XRGB8888);
+    struct wl_buffer* buffer = wl_shm_pool_create_buffer(pool, 0, width, height, stride, WL_SHM_FORMAT_XRGB8888);
     wl_buffer_add_listener(buffer, &bufferListener, NULL);
     wl_shm_pool_destroy(pool);
     close(fd);
-    wl_surface_attach(popupSurface, buffer, 0, 0);
-    wl_surface_damage_buffer(popupSurface, 0, 0, POPUP_WIDTH, POPUP_HEIGHT);
-    wl_surface_commit(popupSurface);
+    wl_surface_attach(target, buffer, 0, 0);
+    wl_surface_damage_buffer(target, 0, 0, width, height);
+    wl_surface_commit(target);
 }
+
+// The menu: a magenta rectangle at scale 1.
+static void drawPopup(void)
+{
+    fill(popupSurface, POPUP_WIDTH, POPUP_HEIGHT, 0xffff00ffu);
+}
+
+static void openSubsurface(void)
+{
+    subSurface = wl_compositor_create_surface(compositor);
+    struct wl_subsurface* sub = wl_subcompositor_get_subsurface(subcompositor, subSurface, surface);
+    wl_subsurface_set_position(sub, subsurfaceX, subsurfaceY);
+    wl_subsurface_set_desync(sub);
+    fill(subSurface, 120, 90, 0xff00ffffu);
+    wl_surface_commit(surface); // the position applies with the parent's commit
+}
+
+static void onChildConfigure(void* data, struct xdg_surface* xdg, uint32_t serial)
+{
+    xdg_surface_ack_configure(xdg, serial);
+    fill(childSurface, 200, 150, 0xffffff00u);
+}
+
+static const struct xdg_surface_listener childSurfaceListener = { onChildConfigure };
 
 static void onPopupSurfaceConfigure(void* data, struct xdg_surface* xdg, uint32_t serial)
 {
@@ -250,6 +286,21 @@ static void onSurfaceConfigure(void* data, struct xdg_surface* xdg, uint32_t ser
     if (popupWanted && !popupSurface) {
         openPopup();
     }
+    if (subsurfaceWanted && !subSurface) {
+        openSubsurface();
+    }
+    if (childWanted && !childSurface) {
+        childSurface = wl_compositor_create_surface(compositor);
+        struct xdg_surface* xdg = xdg_wm_base_get_xdg_surface(wmBase, childSurface);
+        xdg_surface_add_listener(xdg, &childSurfaceListener, NULL);
+        struct xdg_toplevel* child = xdg_surface_get_toplevel(xdg);
+        xdg_toplevel_set_parent(child, toplevel);
+        xdg_toplevel_set_title(child, "vela-pattern dialog");
+        char childId[256];
+        snprintf(childId, sizeof(childId), "%s.child", appId);
+        xdg_toplevel_set_app_id(child, childId);
+        wl_surface_commit(childSurface);
+    }
 }
 
 static const struct xdg_surface_listener surfaceListener = { onSurfaceConfigure };
@@ -275,7 +326,6 @@ static const struct xdg_toplevel_listener toplevelListener = {
 int main(int argc, char** argv)
 {
     int arg = 1;
-    const char* appId = "vela.pattern";
     int decorated = 0;
     int fullscreen = 0;
     for (; arg < argc && !strncmp(argv[arg], "--", 2); ++arg) {
@@ -291,6 +341,12 @@ int main(int argc, char** argv)
             && sscanf(argv[arg + 1], "%d,%d", &popupX, &popupY) == 2) {
             popupWanted = 1;
             ++arg;
+        } else if (!strcmp(argv[arg], "--subsurface") && arg + 1 < argc
+            && sscanf(argv[arg + 1], "%d,%d", &subsurfaceX, &subsurfaceY) == 2) {
+            subsurfaceWanted = 1;
+            ++arg;
+        } else if (!strcmp(argv[arg], "--child")) {
+            childWanted = 1;
         } else if (!strcmp(argv[arg], "--app-id") && arg + 1 < argc) {
             // For tests that depend on the app (system dialogs).
             appId = argv[++arg];
@@ -307,7 +363,7 @@ int main(int argc, char** argv)
     }
     wl_registry_add_listener(wl_display_get_registry(display), &registryListener, NULL);
     wl_display_roundtrip(display);
-    if (!compositor || !shm || !wmBase || !viewporter || !fractionalManager) {
+    if (!compositor || !shm || !wmBase || !viewporter || !fractionalManager || (subsurfaceWanted && !subcompositor)) {
         fprintf(stderr, "vela-pattern: missing protocols (viewporter, fractional-scale-v1)\n");
         return 1;
     }

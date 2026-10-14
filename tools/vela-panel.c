@@ -12,6 +12,8 @@
 //                                     reserving 48 units; --blur asks to
 //                                     blur what lies behind; --autohide
 //                                     slides it down, 2 units still showing
+//        --namespace NAME             the layer-shell namespace instead
+//                                     (capture-hiding tests: a shell panel)
 //
 // Draws at scale 1 in shared memory and stays until closed.
 
@@ -131,9 +133,13 @@ int main(int argc, char** argv)
     }
     wallpaper = !strcmp(argv[1], "wallpaper");
     int blur = 0, autohide = 0;
+    const char* scope = wallpaper ? "vela-panel" : "vela-taskbar";
     for (int i = 2; i < argc; ++i) {
         blur |= !strcmp(argv[i], "--blur");
         autohide |= !strcmp(argv[i], "--autohide");
+        if (!strcmp(argv[i], "--namespace") && i + 1 < argc) {
+            scope = argv[++i];
+        }
     }
 
     struct wl_display* display = wl_display_connect(NULL);
@@ -151,7 +157,7 @@ int main(int argc, char** argv)
     surface = wl_compositor_create_surface(compositor);
     layerSurface = zwlr_layer_shell_v1_get_layer_surface(layerShell, surface, NULL,
         wallpaper ? ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND : ZWLR_LAYER_SHELL_V1_LAYER_TOP,
-        wallpaper ? "vela-panel" : "vela-taskbar");
+        scope);
     zwlr_layer_surface_v1_add_listener(layerSurface, &layerListener, NULL);
     if (wallpaper) {
         zwlr_layer_surface_v1_set_anchor(layerSurface, ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM
