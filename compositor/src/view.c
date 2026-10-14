@@ -769,6 +769,7 @@ void vela_views_load_settings(struct vela_server *server)
     const char *inactive = vela_config_get(&settings, "window-opacity-inactive", "");
     server->window_opacity_inactive = *inactive ? vela_clamp(atoi(inactive), 30, 100) : server->window_opacity;
     vela_window_rules_load(&server->window_rules);
+    server->remember_window_positions = vela_config_flag(&settings, "remember-window-positions", true);
     free(server->ssd_include);
     const char *ssd = vela_config_get(&settings, "decoration-ssd", "kitty");
     server->ssd_include = *ssd ? strdup(ssd) : NULL;
@@ -1071,6 +1072,14 @@ void vela_view_mapped(struct vela_view *view)
     // Window rules (window_rules.h): once, now; the user can move it later.
     const struct vela_window_rule *rule
         = vela_window_rules_find(&server->window_rules, vela_view_app_id(view), vela_view_title(view));
+    // Remembered state of the app (window_memory.h): below the rule, above the
+    // default. Not for dialogs, fullscreen windows, or X11 windows that came
+    // with a position of their own.
+    const struct vela_window_memory_entry *mem = NULL;
+    if (server->remember_window_positions && !view->fullscreen && !view_parent(view)
+        && !(view->x11 && (view->x11_initial.x || view->x11_initial.y))) {
+        mem = vela_window_memory_find(&server->window_memory, vela_view_app_id(view));
+    }
     struct vela_output *output = NULL;
     if (rule && rule->output) {
         output = vela_output_named(server, rule->output);
@@ -1082,18 +1091,27 @@ void vela_view_mapped(struct vela_view *view)
             }
         }
     }
+    if (!output && mem) {
+        output = vela_output_named(server, mem->output);
+    }
     if (!output) {
         output = vela_output_under_cursor(server);
     }
     if (rule && rule->fullscreen == 0 && view->fullscreen) {
         vela_view_set_fullscreen(view, false);
     }
-    if (rule && rule->maximized == 1 && !view->maximized && !view->fullscreen && output) {
+    bool remembered_max = mem && mem->maximized && !(rule && rule->maximized != -1);
+    if (((rule && rule->maximized == 1) || remembered_max) && !view->maximized && !view->fullscreen && output) {
         // Put it on the chosen output first: that's where it maximizes.
         struct wlr_box g = vela_view_geometry(view);
         vela_node_set_position(&view->tree->node, output->usable.x + (output->usable.width - g.width) / 2 - g.x,
             output->usable.y + (output->usable.height - g.height) / 2 - g.y);
         vela_view_set_maximized(view, true, false);
+        if (remembered_max) {
+            // Leaving maximized goes back to where it was.
+            view->restore = vela_output_fit(output, (struct wlr_box) { output->usable.x + mem->x,
+                                                        output->usable.y + mem->y, mem->width, mem->height });
+        }
     }
     struct wlr_box geometry = vela_view_geometry(view);
     if (output && (view->fullscreen || view->maximized)) {
@@ -1111,6 +1129,9 @@ void vela_view_mapped(struct vela_view *view)
         if (rule && rule->has_size) {
             width = rule->width;
             height = rule->height;
+        } else if (mem) {
+            width = mem->width;
+            height = mem->height;
         }
         struct wlr_box frame = vela_output_fit(output, (struct wlr_box) { 0, 0, width, height });
         if (frame.width != geometry.width || frame.height != geometry.height) {
@@ -1124,6 +1145,12 @@ void vela_view_mapped(struct vela_view *view)
             frame = vela_output_fit(output, frame);
             x = frame.x;
             y = frame.y;
+        } else if (mem && !(rule && rule->center == 1)) {
+            frame.x = area.x + mem->x;
+            frame.y = area.y + mem->y;
+            frame = vela_output_fit(output, frame);
+            x = frame.x;
+            y = frame.y;
         }
         view->target_x = x - geometry.x;
         view->target_y = y - geometry.y;
@@ -1131,10 +1158,11 @@ void vela_view_mapped(struct vela_view *view)
     wl_list_insert(&server->views, &view->link);
     vela_workspaces_view_mapped(server, view);
     bool elsewhere = false;
-    if (rule && rule->desktop > 0 && rule->desktop <= server->workspaces->count) {
+    int desktop = rule && rule->desktop > 0 ? rule->desktop : (mem ? mem->desktop + 1 : 0);
+    if (desktop > 0 && desktop <= server->workspaces->count) {
         // Not through move_view: the handles don't exist yet. No focus either,
         // so the desktop doesn't switch under the user.
-        view->workspace = rule->desktop - 1;
+        view->workspace = desktop - 1;
         elsewhere = !vela_view_on_current_workspace(view);
         if (elsewhere) {
             vela_node_set_enabled(&view->tree->node, false);
@@ -1151,9 +1179,32 @@ void vela_view_mapped(struct vela_view *view)
     vela_workspaces_announce(server);
 }
 
+// Where the window closes is where it reopens (window_memory.h).
+static void remember_position(struct vela_view *view)
+{
+    struct vela_server *server = view->server;
+    if (!server->remember_window_positions || !view->mapped || view->fullscreen || view_parent(view)) {
+        return;
+    }
+    struct vela_output *output = vela_view_output(view);
+    if (!output) {
+        return;
+    }
+    struct wlr_box frame = vela_view_frame_box(view);
+    bool arranged = view->maximized || !vela_snap_is_none(view->snap);
+    if (arranged && view->restore.width > 0 && view->restore.height > 0) {
+        frame = view->restore;
+    }
+    struct vela_window_memory_entry entry = { .x = frame.x - output->usable.x, .y = frame.y - output->usable.y,
+        .width = frame.width, .height = frame.height, .maximized = view->maximized, .desktop = view->workspace };
+    snprintf(entry.output, sizeof(entry.output), "%s", output->wlr->name);
+    vela_window_memory_set(&server->window_memory, vela_view_app_id(view), &entry);
+}
+
 /** Tear down an unmapped view and revoke any retained window-capture source. */
 void vela_view_unmapped(struct vela_view *view)
 {
+    remember_position(view);
     // Close: the scene still has the last buffers (even if it has already
     // disabled the tree), we photograph them and fade them out. If the window
     // was hidden with a null buffer, the snapshot exists already.
@@ -1485,6 +1536,7 @@ void vela_views_finish(struct vela_server *server)
     free(server->window_blur_exclude);
     server->window_blur_include = server->window_blur_exclude = NULL;
     vela_window_rules_free(&server->window_rules);
+    vela_window_memory_free(&server->window_memory);
     free(server->ssd_include);
     server->ssd_include = NULL;
 }
