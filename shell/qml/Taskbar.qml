@@ -605,7 +605,7 @@ Window {
     // Clock: time on top, date below.
     Item {
         id: clock
-        anchors { right: parent.right; top: parent.top; bottom: parent.bottom; rightMargin: 12 }
+        anchors { right: parent.right; top: parent.top; bottom: parent.bottom; rightMargin: 24 }
         width: clockColumn.implicitWidth + 16 + (Notifications.history.count > 0 || Notifications.doNotDisturb ? 22 : 0)
 
         property date now: new Date()
@@ -686,6 +686,40 @@ Window {
                     { text: qsTr("&Adjust date and time"), icon: "preferences-system-time", enabled: System.available("datetime"), action: () => System.trigger("datetime") },
                     { text: qsTr("&Notification settings"), icon: "preferences-desktop-notification", enabled: System.available("notification-settings"), action: () => System.trigger("notification-settings") }
                 ], p.x, root.menuBottom, { above: true })
+            }
+        }
+    }
+
+    // Show desktop, at the far right edge like Windows 11: a click does what
+    // Win+D does (Tasks.toggleDesktop); the thin line lights up on hover.
+    Item {
+        id: showDesktop
+        visible: root.primary
+        anchors { right: parent.right; top: parent.top; bottom: parent.bottom }
+        width: visible ? 12 : 0
+
+        Rectangle {
+            anchors { right: parent.right; top: parent.top; bottom: parent.bottom }
+            width: 1
+            color: showDesktopMouse.containsMouse ? Theme.accent : Theme.textSecondary
+            opacity: showDesktopMouse.containsMouse ? 1 : 0.35
+            Behavior on color { ColorAnimation { duration: Theme.fast } }
+        }
+        MouseArea {
+            id: showDesktopMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            acceptedButtons: Qt.LeftButton
+            onEntered: {
+                const p = showDesktop.mapToItem(null, showDesktop.width / 2, 0)
+                Menus.tooltip = { text: qsTr("Show desktop"), center: p.x, screen: root.screenName, owner: "show-desktop" }
+            }
+            onExited: {
+                if (Menus.tooltip && Menus.tooltip.owner === "show-desktop") Menus.tooltip = null
+            }
+            onClicked: {
+                root.fromHere()
+                Tasks.toggleDesktop()
             }
         }
     }
