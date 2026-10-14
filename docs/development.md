@@ -193,6 +193,7 @@ calculator/         vela-calculator
 photos/             vela-photos
 mediaplayer/        vela-mediaplayer (plays with libmpv)
 paint/              vela-paint
+taskmanager/        vela-taskmanager
 common/fluent/      the four apps above draw their commands with Fluent icons (MIT)
 settings/           vela-settings
 lock/               vela-lock
