@@ -188,6 +188,7 @@ calculator/         vela-calculator
 photos/             vela-photos
 mediaplayer/        vela-mediaplayer (plays with libmpv)
 paint/              vela-paint
+clock/              vela-clock (alarms, timers, stopwatch, world clocks)
 taskmanager/        vela-taskmanager
 terminal/           vela-terminal (libvterm reads what the programs write)
 common/fluent/      the four apps above draw their commands with Fluent icons (MIT)
