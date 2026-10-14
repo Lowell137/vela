@@ -349,6 +349,28 @@ Page {
     }
 
     CardGroup {
+        title: qsTr("Screen sharing")
+        Card {
+            icon: "video-display"
+            title: qsTr("Show an indicator while my screen is shared or recorded")
+            trailing: Toggle {
+                checked: Prefs.captureIndicator
+                onToggled: on => Prefs.captureIndicator = on
+            }
+        }
+        Card {
+            icon: "notifications-disabled"
+            enabled: Prefs.captureIndicator
+            opacity: enabled ? 1 : 0.45
+            title: qsTr("Silence notifications while sharing")
+            trailing: Toggle {
+                checked: Prefs.captureDnd
+                onToggled: on => Prefs.captureDnd = on
+            }
+        }
+    }
+
+    CardGroup {
         title: qsTr("Related settings")
         Card {
             icon: "preferences-desktop-wallpaper"
