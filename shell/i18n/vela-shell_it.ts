@@ -1200,6 +1200,10 @@
         <translation>Esci</translation>
     </message>
     <message>
+        <source>Restart shell</source>
+        <translation>Riavvia la shell</translation>
+    </message>
+    <message>
         <source>Restart</source>
         <translation>Riavvia</translation>
     </message>

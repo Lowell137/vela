@@ -17,6 +17,7 @@
 #include "scene/frame.h"
 #include "scene/scene.h"
 #include "server.h"
+#include "shell.h"
 #include "shortcuts.h"
 #include "switcher.h"
 #include "util.h"
@@ -463,6 +464,9 @@ static void run_command(struct vela_server *server, const char *line)
     if (strcmp(line, "logout") == 0) {
         wlr_log(WLR_INFO, "Exit requested by the shell");
         wl_display_terminate(server->display);
+    } else if (strcmp(line, "restart-shell") == 0) {
+        wlr_log(WLR_INFO, "Shell restart requested");
+        vela_shell_restart(server);
     } else if (starts_with(line, "wallpaper-tint ")) {
         wallpaper_tint(server, line + 15);
     } else if (starts_with(line, "theme ")) {

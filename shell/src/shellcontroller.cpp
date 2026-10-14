@@ -165,6 +165,11 @@ void ShellController::logout()
     sendToCompositor("logout");
 }
 
+void ShellController::restartShell()
+{
+    sendToCompositor("restart-shell");
+}
+
 void ShellController::lock()
 {
     sendToCompositor("lock");

@@ -79,6 +79,16 @@ static int handle_exit(int fd, uint32_t mask, void *data)
     char *command = child->command;
     child->command = NULL;
 
+    // Asked for by vela_child_restart(): not a crash, whatever the status.
+    if (child->restart_requested) {
+        child->restart_requested = false;
+        child->quick_crashes = 0;
+        wlr_log(WLR_INFO, "%s \"%s\" restarting on request", child->name, command);
+        vela_child_start(child, child->loop, command);
+        free(command);
+        return 0;
+    }
+
     // A clean exit (such as "already running") was intended.
     if (WIFEXITED(status) && (WEXITSTATUS(status) == 0 || WEXITSTATUS(status) == child->final_exit_code)) {
         wlr_log(WLR_INFO, "%s \"%s\" exited (code %d)", child->name, command, WEXITSTATUS(status));
@@ -213,8 +223,18 @@ void vela_child_start(struct vela_child *child, struct wl_event_loop *loop, cons
     child->source = wl_event_loop_add_fd(loop, pidfd, WL_EVENT_READABLE, handle_exit, child);
 }
 
+void vela_child_restart(struct vela_child *child)
+{
+    if (child->pid <= 0) {
+        return;
+    }
+    child->restart_requested = true;
+    kill(child->pid, SIGTERM);
+}
+
 void vela_child_stop(struct vela_child *child)
 {
+    child->restart_requested = false;
     set_client(child, NULL);
     stop_watching(child);
     free(child->command);

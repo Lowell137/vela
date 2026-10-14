@@ -132,6 +132,29 @@ class Shell(unittest.TestCase):
         self.assertNotIn("restarting it", log)
 
 
+class RestartShell(unittest.TestCase):
+    """"restart-shell": a new shell process, the same compositor, no crash."""
+
+    def test_restart_shell_command_relaunches_only_the_shell(self):
+        with tempfile.NamedTemporaryFile(prefix="vela-shell-pids-", delete=False) as out:
+            pids = out.name
+        try:
+            with Session(startup=f"sh -c 'echo $$ >> {pids}; exec sleep 600'") as vela:
+                compositor = vela.process.pid
+                vela.wait_for(lambda _: len(open(pids).read().split()) == 1, read_state=False, what="the shell")
+                first = open(pids).read().split()[0]
+                vela.command("restart-shell")
+                vela.wait_for(lambda _: len(open(pids).read().split()) == 2, read_state=False, what="a new shell")
+                self.assertNotEqual(first, open(pids).read().split()[1])
+                self.assertIsNone(vela.process.poll())
+                self.assertEqual(vela.process.pid, compositor)
+                log = vela.log_text()
+                self.assertIn("restarting on request", log)
+                self.assertNotIn("exited (signal", log)
+        finally:
+            os.unlink(pids)
+
+
 class Supervisor(unittest.TestCase):
     def test_redraw_signal_keeps_supervised_session_alive(self):
         # pkill -x matches /proc/<pid>/comm, not argv. Never run pkill in

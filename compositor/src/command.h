@@ -8,7 +8,7 @@
 // line each on $XDG_RUNTIME_DIR/vela-<WAYLAND_DISPLAY>.sock: "logout", "lock",
 // "night-light toggle", "window <id> maximize"... Some lines are questions
 // answered on the same connection: "modifiers", "workspaces", "accessibility",
-// "window-rects" and "state" (all the visible state, for the functional
+// "restart-shell" (the shell is relaunched; the session stays), "window-rects" and "state" (all the visible state, for the functional
 // tests).
 
 #include <stdbool.h>

@@ -8,6 +8,7 @@
 // own and with signals unblocked (wlroots blocks some to handle them in its
 // loop).
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <sys/types.h>
 
@@ -38,6 +39,7 @@ struct vela_child {
     struct wl_event_source *source;
     int64_t started_ns;
     int quick_crashes; // abnormal exits in a row shortly after starting
+    bool restart_requested; // vela_child_restart(): relaunch it whatever its exit status
     // The shell only (docs/renderer.md §15.3): the compositor makes its Wayland
     // connection and passes it as WAYLAND_SOCKET, so `client` is known to be
     // this child's. NULL display: the child connects like any app.
@@ -48,6 +50,10 @@ struct vela_child {
 
 void vela_child_init(struct vela_child *child, const char *name, int death_signal, int final_exit_code);
 void vela_child_start(struct vela_child *child, struct wl_event_loop *loop, const char *command);
+// Asks the running child to end (SIGTERM) and relaunches it as soon as it has,
+// whatever its exit status, without counting it as a crash. No-op when it is
+// not running.
+void vela_child_restart(struct vela_child *child);
 // We are shutting down: the child going away must not be relaunched.
 void vela_child_stop(struct vela_child *child);
 
