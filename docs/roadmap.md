@@ -56,8 +56,8 @@ direction, not a promise.
 - Start menu: Recommended files (search across files and settings is done).
 - Folders in the Start menu's pinned apps.
 - Widgets: a board with weather, calendar, news and system status.
-- Taskbar: progress and unread badges on app buttons, auto-hide, vertical
-  taskbar, never combine buttons.
+- Taskbar: vertical taskbar, never combine buttons (progress and unread
+  badges, and auto-hide are done).
 - Notifications grouped by app, and Do Not Disturb turned on automatically
   during fullscreen games and screen sharing.
 - Calendar events in the notification center.

@@ -7,9 +7,11 @@
 //
 // Usage: vela-panel wallpaper          fullscreen wallpaper, a striped
 //                                     gradient (something to blur)
-//        vela-panel taskbar [--blur]   48-high translucent bottom bar,
+//        vela-panel taskbar [--blur] [--autohide]
+//                                     48-high translucent bottom bar,
 //                                     reserving 48 units; --blur asks to
-//                                     blur what lies behind
+//                                     blur what lies behind; --autohide
+//                                     slides it down, 2 units still showing
 //
 // Draws at scale 1 in shared memory and stays until closed.
 
@@ -124,11 +126,15 @@ static const struct zwlr_layer_surface_v1_listener layerListener = { onConfigure
 int main(int argc, char** argv)
 {
     if (argc < 2 || (strcmp(argv[1], "wallpaper") && strcmp(argv[1], "taskbar"))) {
-        fprintf(stderr, "usage: vela-panel wallpaper | taskbar [--blur]\n");
+        fprintf(stderr, "usage: vela-panel wallpaper | taskbar [--blur] [--autohide]\n");
         return 2;
     }
     wallpaper = !strcmp(argv[1], "wallpaper");
-    const int blur = argc > 2 && !strcmp(argv[2], "--blur");
+    int blur = 0, autohide = 0;
+    for (int i = 2; i < argc; ++i) {
+        blur |= !strcmp(argv[i], "--blur");
+        autohide |= !strcmp(argv[i], "--autohide");
+    }
 
     struct wl_display* display = wl_display_connect(NULL);
     if (!display) {
@@ -144,7 +150,8 @@ int main(int argc, char** argv)
 
     surface = wl_compositor_create_surface(compositor);
     layerSurface = zwlr_layer_shell_v1_get_layer_surface(layerShell, surface, NULL,
-        wallpaper ? ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND : ZWLR_LAYER_SHELL_V1_LAYER_TOP, "vela-panel");
+        wallpaper ? ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND : ZWLR_LAYER_SHELL_V1_LAYER_TOP,
+        wallpaper ? "vela-panel" : "vela-taskbar");
     zwlr_layer_surface_v1_add_listener(layerSurface, &layerListener, NULL);
     if (wallpaper) {
         zwlr_layer_surface_v1_set_anchor(layerSurface, ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM
@@ -155,6 +162,9 @@ int main(int argc, char** argv)
                 | ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT);
         zwlr_layer_surface_v1_set_size(layerSurface, 0, 48);
         zwlr_layer_surface_v1_set_exclusive_zone(layerSurface, 48);
+        if (autohide) {
+            zwlr_layer_surface_v1_set_margin(layerSurface, 0, 0, -46, 0);
+        }
     }
     if (blur) {
         effect = ext_background_effect_manager_v1_get_background_effect(effects, surface);

@@ -780,8 +780,9 @@ struct vela_placement vela_output_place(const struct vela_output *output, struct
 void vela_output_arrange_layers(struct vela_output *output)
 {
     struct wlr_box full = vela_output_box(output);
+    struct wlr_box panels = full;
     struct wlr_box area = full;
-    vela_layers_configure(output->server, output, &full, &area);
+    vela_layers_configure(output->server, output, &full, &panels, &area);
     bool changed = area.x != output->usable.x || area.y != output->usable.y || area.width != output->usable.width
         || area.height != output->usable.height;
     output->usable = area;

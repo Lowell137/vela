@@ -308,6 +308,12 @@ int main(int argc, char* argv[])
     };
     sendTheme();
     QObject::connect(&config, &Config::themeChanged, &shell, sendTheme);
+    // Auto-hide: windows may use the space the taskbar reserves.
+    auto sendAutoHide = [&config] {
+        ShellController::sendToCompositor(config.taskbarAutoHide() ? "taskbar-autohide yes" : "taskbar-autohide no");
+    };
+    sendAutoHide();
+    QObject::connect(&config, &Config::taskbarChanged, &shell, sendAutoHide);
     shell.watchSleep();
 
     ForeignToplevelManager windows;

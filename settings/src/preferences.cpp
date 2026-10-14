@@ -220,6 +220,7 @@ void Preferences::reload()
     m_taskView = settings.value(QStringLiteral("taskbar/taskView"), true).toBool();
     m_trayOverflow = settings.value(QStringLiteral("taskbar/trayOverflow"), true).toBool();
     m_taskbarAllScreens = settings.value(QStringLiteral("taskbar/allScreens"), true).toBool();
+    m_taskbarAutoHide = settings.value(QStringLiteral("taskbar/autoHide"), false).toBool();
     emit taskbarChanged();
     m_doNotDisturb = settings.value(QStringLiteral("notifications/doNotDisturb"), false).toBool();
     emit doNotDisturbChanged();
@@ -762,6 +763,15 @@ void Preferences::setTaskbarAllScreens(bool on)
     if (on != m_taskbarAllScreens) {
         m_taskbarAllScreens = on;
         setShell(QStringLiteral("taskbar/allScreens"), on);
+        emit taskbarChanged();
+    }
+}
+
+void Preferences::setTaskbarAutoHide(bool on)
+{
+    if (on != m_taskbarAutoHide) {
+        m_taskbarAutoHide = on;
+        setShell(QStringLiteral("taskbar/autoHide"), on);
         emit taskbarChanged();
     }
 }

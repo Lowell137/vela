@@ -47,9 +47,10 @@ bool vela_layer_surface_wants_keyboard(const struct vela_layer_surface *layer);
 
 // Lays out an output's surfaces by anchors and margins (first those reserving
 // space, then the others, top to bottom: sway's order) and takes the reserved
-// space out of `usable`.
+// space out of `usable` (where panels go) and `work` (where windows go: the
+// same, except the auto-hidden taskbar's).
 void vela_layers_configure(struct vela_server *server, struct vela_output *output, const struct wlr_box *full,
-    struct wlr_box *usable);
+    struct wlr_box *usable, struct wlr_box *work);
 
 // The output goes away: its surfaces are closed.
 void vela_layers_close_output(struct vela_server *server, struct vela_output *output);

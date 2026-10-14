@@ -63,8 +63,10 @@ void Config::reload()
     const bool taskView = settings.value(QStringLiteral("taskbar/taskView"), true).toBool();
     const bool trayOverflow = settings.value(QStringLiteral("taskbar/trayOverflow"), true).toBool();
     const bool allScreens = settings.value(QStringLiteral("taskbar/allScreens"), true).toBool();
-    if (alignment != m_taskbarAlignment || endTask != m_endTask || taskView != m_taskView
+    const bool autoHide = settings.value(QStringLiteral("taskbar/autoHide"), false).toBool();
+    if (autoHide != m_taskbarAutoHide || alignment != m_taskbarAlignment || endTask != m_endTask || taskView != m_taskView
         || trayOverflow != m_trayOverflow || allScreens != m_taskbarAllScreens) {
+        m_taskbarAutoHide = autoHide;
         m_taskbarAlignment = alignment;
         m_endTask = endTask;
         m_taskView = taskView;

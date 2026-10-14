@@ -166,6 +166,15 @@ Page {
             }
         }
         Card {
+            icon: "view-fullscreen"
+            title: qsTr("Automatically hide the taskbar")
+            description: qsTr("It slides away, and comes back when the pointer reaches the edge of the screen")
+            trailing: Toggle {
+                checked: Prefs.taskbarAutoHide
+                onToggled: on => Prefs.taskbarAutoHide = on
+            }
+        }
+        Card {
             icon: "process-stop"
             title: qsTr("End task")
             description: qsTr("In the taskbar buttons' menu, to close an app that isn't responding right away")

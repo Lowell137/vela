@@ -17,9 +17,10 @@ from harness import Session, tool
 BAR = 48
 
 
-def shell(vela, blur=True):
+def shell(vela, blur=True, autohide=False):
     """Wallpaper and taskbar, and the time to appear."""
-    for args in (["wallpaper"], ["taskbar"] + (["--blur"] if blur else [])):
+    taskbar = ["taskbar"] + (["--blur"] if blur else []) + (["--autohide"] if autohide else [])
+    for args in (["wallpaper"], taskbar):
         vela.clients.append(subprocess.Popen([tool("vela-panel"), *args], env=vela.client_env))
     vela.wait_for(lambda s: s.output["frames"] > 0)
     time.sleep(0.6)
@@ -49,6 +50,21 @@ class Layers(unittest.TestCase):
             state = vela.wait_for(lambda s: s.window(window)["maximized"], what="maximized")
             w, out = state.window(window), state.output
             self.assertEqual((w["y"], w["h"]), (out["y"], out["h"] - BAR))
+
+    def test_auto_hidden_taskbar_gives_windows_the_whole_output(self):
+        """taskbar-autohide: the taskbar slid down still reserves its space
+        for panels, but maximized windows use the whole output; switched off
+        (or never told) they stop above it again."""
+        with Session() as vela:
+            shell(vela, autohide=True)
+            window = vela.open_window()
+            vela.command("taskbar-autohide yes")
+            vela.keys("super+Up")
+            state = vela.wait_for(lambda s: s.window(window)["maximized"], what="maximized")
+            w, out = state.window(window), state.output
+            self.assertEqual((w["y"], w["h"]), (out["y"], out["h"]))
+            vela.command("taskbar-autohide no")
+            state = vela.wait_for(lambda s: s.window(window)["h"] == s.output["h"] - BAR, what="back above the taskbar")
 
     def test_taskbar_blurs_what_is_behind(self):
         with Session() as vela:

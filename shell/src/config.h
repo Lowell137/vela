@@ -26,6 +26,8 @@ class Config : public QObject {
     Q_PROPERTY(bool trayOverflow READ trayOverflow NOTIFY taskbarChanged)
     // The taskbar on all outputs (like Windows) or only on the main one.
     Q_PROPERTY(bool taskbarAllScreens READ taskbarAllScreens NOTIFY taskbarChanged)
+    // Auto-hide: the taskbar slides away and comes back at the screen's edge.
+    Q_PROPERTY(bool taskbarAutoHide READ taskbarAutoHide NOTIFY taskbarChanged)
     // Clipboard history (Win+V).
     Q_PROPERTY(bool clipboardHistory READ clipboardHistory NOTIFY clipboardChanged)
     // "Choose your mode": "dark" or "light", for the shell (taskbar, menus,
@@ -42,6 +44,7 @@ public:
     bool taskView() const { return m_taskView; }
     bool trayOverflow() const { return m_trayOverflow; }
     bool taskbarAllScreens() const { return m_taskbarAllScreens; }
+    bool taskbarAutoHide() const { return m_taskbarAutoHide; }
     bool clipboardHistory() const { return m_clipboardHistory; }
     bool doNotDisturb() const { return m_doNotDisturb; }
     QString shellTheme() const { return m_shellTheme; }
@@ -67,6 +70,7 @@ private:
     bool m_taskView = true;
     bool m_trayOverflow = true;
     bool m_taskbarAllScreens = true;
+    bool m_taskbarAutoHide = false;
     bool m_clipboardHistory = false;
     bool m_doNotDisturb = false;
     QString m_shellTheme = QStringLiteral("dark");
