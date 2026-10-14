@@ -183,6 +183,12 @@ compositor/src/     compositor core, in C (see c-core.md)
 compositor/tests/   compositor unit tests
 shell/              Qt Quick shell: taskbar, launcher, panels and desktop
 explorer/           vela-files
+notepad/            vela-notepad
+calculator/         vela-calculator
+photos/             vela-photos
+mediaplayer/        vela-mediaplayer (plays with libmpv)
+paint/              vela-paint
+common/fluent/      the four apps above draw their commands with Fluent icons (MIT)
 settings/           vela-settings
 lock/               vela-lock
 polkit/             vela-polkit-agent and vela-polkit-prompt (docs/polkit-agent.md)
@@ -200,7 +206,7 @@ docs/               design and developer documentation
 
 ## Translations
 
-The interface is in English and Italian. Strings in the code are written in English and wrapped for translation: `qsTr()` in QML, `QCoreApplication::translate()` (or `QT_TRANSLATE_NOOP` for tables) in C++. Italian lives in one Qt Linguist file per app:
+The interface is in English and Italian; Notepad, Calculator and Photos also have Turkish (`i18n/*_tr.ts`). Strings in the code are written in English and wrapped for translation: `qsTr()` in QML, `QCoreApplication::translate()` (or `QT_TRANSLATE_NOOP` for tables) in C++. Italian lives in one Qt Linguist file per app:
 
 | App | Translation |
 |---|---|

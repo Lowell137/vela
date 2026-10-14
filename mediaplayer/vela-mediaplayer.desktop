@@ -1,0 +1,18 @@
+# SPDX-FileCopyrightText: 2026 Vela contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[Desktop Entry]
+Type=Application
+Name=Media Player
+Name[tr]=Medya Oynatıcı
+Name[it]=Lettore multimediale
+GenericName=Media Player
+GenericName[tr]=Medya Oynatıcı
+Comment=Play your videos and music
+Comment[tr]=Videolarını ve müziğini oynat
+Exec=vela-mediaplayer %f
+Icon=multimedia-video-player
+Categories=AudioVideo;Player;Video;Audio;
+MimeType=video/mp4;video/x-matroska;video/webm;video/x-msvideo;video/quicktime;video/mpeg;video/x-ms-wmv;video/x-flv;video/ogg;video/3gpp;video/mp2t;audio/mpeg;audio/flac;audio/ogg;audio/opus;audio/mp4;audio/aac;audio/x-wav;audio/x-ms-wma;audio/x-aiff;audio/x-matroska;audio/x-vorbis+ogg;audio/x-opus+ogg;
+Keywords=video;music;audio;movie;player;
+StartupNotify=true
