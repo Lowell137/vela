@@ -76,6 +76,16 @@ Page {
                 onToggled: on => Prefs.captureIndicator = on
             }
         }
+        Card {
+            icon: "notifications-disabled"
+            enabled: Prefs.captureIndicator
+            opacity: enabled ? 1 : 0.45
+            title: qsTr("Silence notifications while sharing")
+            trailing: Toggle {
+                checked: Prefs.captureDnd
+                onToggled: on => Prefs.captureDnd = on
+            }
+        }
     }
 
     CardGroup {

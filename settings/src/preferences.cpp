@@ -351,6 +351,7 @@ void Preferences::reloadCompositor()
     m_touchpadNatural = flag(QStringLiteral("touchpad-natural-scroll"), true);
     m_hotCorner = flag(QStringLiteral("hot-corner"), true);
     m_captureIndicator = flag(QStringLiteral("capture-indicator"), true);
+    m_captureDnd = flag(QStringLiteral("capture-dnd"), true);
     m_hotCornerGlow = flag(QStringLiteral("hot-corner-glow"), true);
     m_hotCornerAnimation = flag(QStringLiteral("hot-corner-animation"), true);
     m_snapDragLayouts = flag(QStringLiteral("snap-drag-layouts"), true);
@@ -1185,6 +1186,15 @@ void Preferences::setHotCorner(bool on)
     if (on != m_hotCorner) {
         m_hotCorner = on;
         saveCompositor({ { QStringLiteral("hot-corner"), yesNo(on) } });
+        emit shortcutsChanged();
+    }
+}
+
+void Preferences::setCaptureDnd(bool on)
+{
+    if (on != m_captureDnd) {
+        m_captureDnd = on;
+        saveCompositor({ { QStringLiteral("capture-dnd"), yesNo(on) } });
         emit shortcutsChanged();
     }
 }

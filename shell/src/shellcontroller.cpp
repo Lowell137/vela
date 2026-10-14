@@ -307,8 +307,10 @@ void ShellController::handleCommand(const QByteArray& command)
             parts.size() > 3 ? parts.at(3).toDouble() : 1.0);
     } else if (parts.first() == "capture" && parts.size() >= 2) {
         const bool on = parts.at(1) == "on";
-        if (on != m_screenCaptured) {
+        const bool dnd = on && parts.size() > 2 && parts.at(2) == "dnd";
+        if (on != m_screenCaptured || dnd != m_captureDnd) {
             m_screenCaptured = on;
+            m_captureDnd = dnd;
             emit screenCapturedChanged();
         }
     } else if (command == "task-view") {

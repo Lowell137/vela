@@ -33,6 +33,7 @@ struct vela_capture_watch {
     struct wl_list sessions; // struct session
     struct wl_listener new_session;
     bool enabled;
+    bool dnd; // capture-dnd: "capture on dnd"
     bool on; // what the shell was told
     int seen, missed; // screencopy checks with / without a pending frame
     int ticks_on;
@@ -64,7 +65,7 @@ static void announce(struct vela_capture_watch *watch, bool on)
 {
     watch->on = on;
     watch->ticks_on = 0;
-    vela_shell_send(watch->server, on ? "capture on" : "capture off");
+    vela_shell_send(watch->server, !on ? "capture off" : watch->dnd ? "capture on dnd" : "capture on");
 }
 
 // wlroots keeps no list we can read of the screencopy frames being captured, so
@@ -126,9 +127,14 @@ void vela_capture_watch_load(struct vela_capture_watch *watch)
     struct vela_config config;
     vela_config_read(&config);
     watch->enabled = vela_config_flag(&config, "capture-indicator", true);
+    const bool dnd = vela_config_flag(&config, "capture-dnd", true);
     vela_config_finish(&config);
+    const bool dnd_changed = dnd != watch->dnd;
+    watch->dnd = dnd;
     if (!watch->enabled && watch->on) {
         announce(watch, false);
+    } else if (watch->on && dnd_changed) {
+        announce(watch, true); // the shell hears the new choice at once
     }
 }
 
@@ -137,6 +143,7 @@ struct vela_capture_watch *vela_capture_watch_create(struct vela_server *server)
     struct vela_capture_watch *watch = calloc(1, sizeof(*watch));
     watch->server = server;
     watch->enabled = true;
+    watch->dnd = true;
     wl_list_init(&watch->sessions);
     wl_list_init(&watch->new_session.link);
     watch->timer = wl_event_loop_add_timer(server->loop, handle_tick, watch);
