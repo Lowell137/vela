@@ -72,6 +72,7 @@ Vela Settings preserves unrelated lines when it updates a key and asks the compo
 | `window-blur-exclude` | empty | App ids never forced; wins over the other two. |
 | `window-opacity` | `100` | The same windows drawn translucent, in percent (30–100), so the blur shows through them; title bar included, shadow and fullscreen windows not. `100` changes nothing. |
 | `window-opacity-inactive` | `window-opacity` | The same for windows that aren't active. |
+| `remember-window-positions` | `yes` | An app's window reopens where it was closed: position, size, output, desktop and maximized, kept per app id in `~/.local/state/vela/window-positions.json` (`$XDG_STATE_HOME/vela/`), last closed window wins. A `window-rule` wins over it; dialogs, fullscreen windows, windows under 100 px and X11 windows that place themselves are left alone. If the output is gone, the window opens on the usual output, kept inside it. Session restore (reopening apps after login) is not part of this. |
 
 ## Taskbar settings
 

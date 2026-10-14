@@ -45,7 +45,7 @@ direction, not a promise.
 ### Windows and multitasking
 - Always on top, from the window menu.
 - Window rules per app: position, size, desktop, monitor.
-- Windows that reopen where they were, and session restore after login.
+- Session restore after login (apps reopening on their own). Windows already reopen where they were closed: `remember-window-positions`, see [configuration](configuration.md).
 - Moving a window to another monitor or desktop from the keyboard.
 - Per-monitor virtual desktops, as an option.
 - Picture-in-picture for video players.
