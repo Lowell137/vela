@@ -15,6 +15,7 @@ extern "C" {
 #include <QImage>
 #include <QtEndian>
 #include <QTime>
+#include <QJsonArray>
 #include <QJsonObject>
 #include <QJsonDocument>
 #include <QIcon>
@@ -106,6 +107,42 @@ QImage xcursorImage(const QString& path, int size)
         qFromLittleEndian<quint32>(data.constData() + best + 36 + qint64(y) * width * 4, width, image.scanLine(int(y)));
     }
     return image;
+}
+
+// App ids as vela.conf keeps them: trimmed, without commas or control
+// characters (they would break the list or the file), no duplicates.
+QStringList cleanAppIds(const QStringList& apps)
+{
+    QStringList out;
+    for (const QString& raw : apps) {
+        const QString app = raw.trimmed();
+        const bool bad = app.contains(u',')
+            || std::any_of(app.cbegin(), app.cend(), [](QChar c) { return c.category() == QChar::Other_Control; });
+        if (!app.isEmpty() && !bad && !out.contains(app, Qt::CaseInsensitive)) {
+            out << app;
+        }
+    }
+    return out;
+}
+
+// A question on the compositor's socket and its one-line answer (empty if
+// none).
+QByteArray askCompositor(const QByteArray& question)
+{
+    const QString runtimeDir = QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation);
+    const QString display = qEnvironmentVariable("WAYLAND_DISPLAY", QStringLiteral("wayland-0"));
+    QLocalSocket socket;
+    socket.connectToServer(runtimeDir + QStringLiteral("/vela-") + display + QStringLiteral(".sock"));
+    if (!socket.waitForConnected(200)) {
+        return {};
+    }
+    socket.write(question + '\n');
+    socket.waitForBytesWritten(200);
+    QByteArray reply;
+    while (!reply.contains('\n') && socket.waitForReadyRead(200)) {
+        reply += socket.readAll();
+    }
+    return reply.trimmed();
 }
 
 } // namespace
@@ -264,6 +301,12 @@ void Preferences::reloadCompositor()
     m_cursorTheme = value(QStringLiteral("cursor-theme"), {});
     m_cursorSize = value(QStringLiteral("cursor-size"), qEnvironmentVariable("XCURSOR_SIZE", QStringLiteral("24"))).toInt();
     emit cursorChanged();
+    m_windowBlur = flag(QStringLiteral("window-blur"), false);
+    m_windowBlurAll = flag(QStringLiteral("window-blur-all"), false);
+    m_windowBlurInclude = cleanAppIds(value(QStringLiteral("window-blur-include"), {}).split(u','));
+    m_windowBlurExclude = cleanAppIds(value(QStringLiteral("window-blur-exclude"), {}).split(u','));
+    m_windowOpacity = std::clamp(value(QStringLiteral("window-opacity"), QStringLiteral("100")).toInt(), 30, 100);
+    emit windowBlurChanged();
 
     m_layouts.clear();
     const QStringList layouts = value(QStringLiteral("keyboard-layout"), {}).split(u',', Qt::SkipEmptyParts);
@@ -323,20 +366,7 @@ void Preferences::queryCompositor()
 {
     // What isn't in the file: the magnifier (it opens and closes) and sun
     // times.
-    const QString runtimeDir = QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation);
-    const QString display = qEnvironmentVariable("WAYLAND_DISPLAY", QStringLiteral("wayland-0"));
-    QLocalSocket socket;
-    socket.connectToServer(runtimeDir + QStringLiteral("/vela-") + display + QStringLiteral(".sock"));
-    if (!socket.waitForConnected(200)) {
-        return;
-    }
-    socket.write("accessibility\n");
-    socket.waitForBytesWritten(200);
-    QByteArray reply;
-    while (!reply.contains('\n') && socket.waitForReadyRead(200)) {
-        reply += socket.readAll();
-    }
-    const QJsonObject state = QJsonDocument::fromJson(reply.trimmed()).object();
+    const QJsonObject state = QJsonDocument::fromJson(askCompositor("accessibility")).object();
     if (state.isEmpty()) {
         return;
     }
@@ -492,6 +522,76 @@ void Preferences::setCursorSize(int size)
     m_cursorSize = size;
     saveCompositor({ { QStringLiteral("cursor-size"), QString::number(size) } });
     emit cursorChanged();
+}
+
+void Preferences::setWindowBlur(bool on)
+{
+    if (on == m_windowBlur) {
+        return;
+    }
+    m_windowBlur = on;
+    saveCompositor({ { QStringLiteral("window-blur"), on ? QStringLiteral("yes") : QStringLiteral("no") } });
+    emit windowBlurChanged();
+}
+
+void Preferences::setWindowBlurAll(bool on)
+{
+    if (on == m_windowBlurAll) {
+        return;
+    }
+    m_windowBlurAll = on;
+    saveCompositor({ { QStringLiteral("window-blur-all"), on ? QStringLiteral("yes") : QStringLiteral("no") } });
+    emit windowBlurChanged();
+}
+
+void Preferences::setWindowBlurInclude(const QStringList& apps)
+{
+    const QStringList clean = cleanAppIds(apps);
+    if (clean == m_windowBlurInclude) {
+        return;
+    }
+    m_windowBlurInclude = clean;
+    saveCompositor({ { QStringLiteral("window-blur-include"), clean.isEmpty() ? QString() : clean.join(u',') } });
+    emit windowBlurChanged();
+}
+
+void Preferences::setWindowBlurExclude(const QStringList& apps)
+{
+    const QStringList clean = cleanAppIds(apps);
+    if (clean == m_windowBlurExclude) {
+        return;
+    }
+    m_windowBlurExclude = clean;
+    saveCompositor({ { QStringLiteral("window-blur-exclude"), clean.isEmpty() ? QString() : clean.join(u',') } });
+    emit windowBlurChanged();
+}
+
+void Preferences::setWindowOpacity(int percent)
+{
+    percent = std::clamp(percent, 30, 100);
+    if (percent == m_windowOpacity) {
+        return;
+    }
+    m_windowOpacity = percent;
+    saveCompositor({ { QStringLiteral("window-opacity"), QString::number(percent) } });
+    emit windowBlurChanged();
+}
+
+QVariantList Preferences::openWindows() const
+{
+    const QJsonArray windows = QJsonDocument::fromJson(askCompositor("state")).object()[QStringLiteral("windows")].toArray();
+    QVariantList result;
+    QStringList seen;
+    for (const QJsonValue& window : windows) {
+        const QString app = window[QStringLiteral("app")].toString();
+        if (app.isEmpty() || seen.contains(app)) {
+            continue;
+        }
+        seen << app;
+        result.append(QVariantMap { { QStringLiteral("appId"), app },
+            { QStringLiteral("title"), window[QStringLiteral("title")].toString() } });
+    }
+    return result;
 }
 
 QVariantList Preferences::cursorThemes() const

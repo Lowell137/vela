@@ -417,6 +417,11 @@ struct vela_decoration *vela_decoration_create(struct vela_server *server, struc
     return decoration;
 }
 
+void vela_decoration_set_opacity(struct vela_decoration *decoration, float opacity)
+{
+    vela_node_set_opacity(&decoration->tree->node, opacity);
+}
+
 void vela_decoration_destroy(struct vela_decoration *decoration)
 {
     if (!decoration) {

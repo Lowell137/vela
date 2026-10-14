@@ -89,6 +89,10 @@ struct vela_tree {
 struct vela_surface_node {
     struct vela_node node;
     struct wlr_surface *surface;
+    // Blur forced behind the main surface (window-blur in vela.conf, view.c)
+    // besides what the app asks for, in its coordinates; empty: none. Only
+    // where the surface isn't opaque, or is translucent (frame.c).
+    struct wlr_box blur;
 };
 
 // A solid rectangle (premultiplied sRGB color, as in wlroots).
@@ -170,6 +174,7 @@ struct vela_buffer_node *vela_buffer_node_create(struct vela_tree *parent, struc
     struct wlr_texture *texture, const struct wlr_fbox *src, enum wl_output_transform transform, double width,
     double height);
 void vela_node_destroy(struct vela_node *node);
+void vela_surface_node_set_blur(struct vela_surface_node *node, const struct wlr_box *box);
 
 void vela_node_set_position(struct vela_node *node, double x, double y);
 // Absolute position (logical).

@@ -45,6 +45,13 @@
 //   cursor-theme=            cursor theme name (empty: $XCURSOR_THEME); also
 //                            exported to the apps Vela starts
 //   cursor-size=24           cursor size in pixels (empty: $XCURSOR_SIZE, or 24)
+//   window-blur=no           blur behind windows that don't ask for it (view.c)
+//   window-blur-all=no       yes: every window; no: only window-blur-include
+//   window-blur-include=     app ids, comma-separated
+//   window-blur-exclude=     app ids never forced (wins over the other two)
+//   window-opacity=100       the forced windows translucent (percent, 30-100;
+//                            not fullscreen; title bar too, not the shadow)
+//   window-opacity-inactive= the same when not active (empty: window-opacity)
 //
 // The old Italian names are still read (legacy_names.h).
 
@@ -73,6 +80,9 @@ void vela_config_finish(struct vela_config *config);
 const char *vela_config_get(const struct vela_config *config, const char *key, const char *fallback);
 // "yes"/"1"/"true"; `fallback` if missing or empty.
 bool vela_config_flag(const struct vela_config *config, const char *key, bool fallback);
+// Whether a comma-separated list (spaces around items allowed) has `item`,
+// ignoring case: X11 classes and app ids differ in case for the same app.
+bool vela_config_list_has(const char *list, const char *item);
 
 // Changes one key in the file and leaves the rest as it is (comments too): for
 // what is also turned on outside Settings (quick settings, shortcuts).

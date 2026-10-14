@@ -139,6 +139,17 @@ struct vela_server {
     bool has_wallpaper_tint;
     float wallpaper_tint[3];
     uint32_t wallpaper_tint_version;
+    // Blur behind windows that don't ask for it (window-blur* in vela.conf,
+    // vela_views_load_settings): all of them or the included app ids, never
+    // the excluded ones. The lists are comma-separated, NULL when empty.
+    bool window_blur;
+    bool window_blur_all;
+    char *window_blur_include;
+    char *window_blur_exclude;
+    // The same windows drawn translucent (window-opacity*, percent 30-100;
+    // 100: opaque), when active and when not.
+    int window_opacity;
+    int window_opacity_inactive;
     // Title bar text and icons, loaded on first use (decoration.c);
     // text_loaded: tried, even if there is no font.
     struct vela_text *text;

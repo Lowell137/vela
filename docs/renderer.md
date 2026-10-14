@@ -649,6 +649,33 @@ redraw entirely, radius included. Measured cost: 0.05–0.13 ms of GPU per frame
 with the Start menu opening over the taskbar. The cache of the blurred
 background (keeping it from one frame to the next if nothing changes behind) has
 not been needed yet: at idle nothing is redrawn anyway.
+- **Forced on windows** (Settings > Personalization > Window blur,
+  `window-blur*=` in vela.conf): for windows that don't ask, the blur can be
+  added behind all of them or only chosen app ids, never excluded ones. The
+  region is the window's visible part (geometry, without the shadow margins
+  and Vela's bar), minus the region the app declares opaque; nothing for
+  buffers without alpha and for fullscreen windows. It goes the same way as a
+  region asked by the app (`vela_surface_node.blur`, decided by
+  `vela_view_update_blur` before each frame), except for the shape: the whole
+  region, not the main surface's alpha. Apps that don't ask draw nearly or
+  fully transparent pixels where the desktop shows, and Firefox (Zen) draws
+  its content in a subsurface above a transparent main surface: with the
+  alpha as the shape nothing was blurred. The cost: CSD windows that round
+  their own corners show a few blurred pixels outside them.
+- **Translucent windows** (`window-opacity=`, `window-opacity-inactive=`):
+  the same windows, unless fullscreen, are drawn with an alpha, otherwise
+  an opaque window hides its own blur. The alpha is the opacity of the
+  window's surface node (its surfaces and subsurfaces) and of the bar's
+  tree, multiplied in the shader on premultiplied colors (blending in linear
+  light); the shadow keeps its strength, it lies outside the window anyway.
+  A translucent element shows what is behind even where it is opaque: it
+  occludes nothing, the forced blur also covers buffers without alpha and the
+  declared opaque region. The blur itself takes the opacity of the ancestors
+  only (`vela_element.blur_opacity`): as strong as behind an opaque window,
+  but it still fades with the opening animation. Each surface is multiplied
+  on its own, without an offscreen group: where a subsurface covers an opaque
+  part of its parent, the parent shows through a little. The bar has no blur
+  under it.
 - **Everything at full quality, even on battery**: no automatic reduction of
   effects. Savings come from not drawing what doesn't change, not from removing
   effects.

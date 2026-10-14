@@ -42,6 +42,7 @@ struct vela_element {
     enum wl_output_transform transform;
     struct wlr_box box;
     float opacity;
+    float blur_opacity; // the blur's, without the window's own (window-opacity)
     bool linear; // bilinear filter; false: 1:1 copy
     // From the surface to pixels: pixel = origin + scale * logical coordinate.
     double origin_x, origin_y;
@@ -55,6 +56,8 @@ struct vela_element {
     // Blur behind the surface (ext-background-effect, §8.3): where, in pixels
     // (empty: none).
     struct wlr_box blur_box;
+    // The window's forced blur (vela_surface_node.blur), surface coordinates.
+    struct wlr_box blur_forced;
     bool visible; // not entirely covered
     int64_t visible_area; // uncovered pixels
     int order; // position in the list, from the bottom

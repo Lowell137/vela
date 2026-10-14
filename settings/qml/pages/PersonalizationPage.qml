@@ -40,6 +40,12 @@ Page {
             onClicked: root.navigate("pointer")
         }
         LinkCard {
+            icon: "preferences-desktop-effects"
+            title: qsTr("Window blur")
+            description: qsTr("Blur behind see-through windows")
+            onClicked: root.navigate("window-blur")
+        }
+        LinkCard {
             icon: "preferences-desktop-keyboard-shortcuts"
             title: qsTr("Keyboard shortcuts")
             description: qsTr("See, change and add shortcuts")
