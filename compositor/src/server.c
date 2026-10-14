@@ -4,6 +4,7 @@
 #include "server.h"
 
 #include "a11y.h"
+#include "autoscroll.h"
 #include "capture_watch.h"
 #include "command.h"
 #include "config.h"
@@ -259,6 +260,7 @@ static bool init(struct vela_server *server)
     vela_layers_init(server); // the shell pieces (layer.c)
     // Seat, cursor, mice, keyboards, gestures (input.c).
     server->input = vela_input_create(server);
+    server->autoscroll = vela_autoscroll_create(server);
 
     wl_event_loop_add_signal(server->loop, SIGUSR1, handle_redraw_all, server);
     vela_xwayland_init(server); // X11 apps (xwayland.c)
@@ -430,6 +432,8 @@ void vela_server_destroy(struct vela_server *server)
     server->switcher = NULL;
     vela_interaction_destroy(server->interaction);
     server->interaction = NULL;
+    vela_autoscroll_destroy(server->autoscroll);
+    server->autoscroll = NULL;
     vela_input_destroy(server->input);
     server->input = NULL;
     vela_a11y_destroy(server->a11y);

@@ -3,6 +3,7 @@
 
 #include "input.h"
 
+#include "autoscroll.h"
 #include "command.h"
 #include "listen.h"
 #include "workspace.h"
@@ -646,7 +647,7 @@ static void handle_request_set_cursor(struct wl_listener *listener, void *data)
     struct vela_input *input = wl_container_of(listener, input, request_set_cursor);
     struct wlr_seat_pointer_request_set_cursor_event *event = data;
     if (input->server->seat->pointer_state.focused_client == event->seat_client
-        && !vela_commands_picking(input->server)) {
+        && !vela_commands_picking(input->server) && !vela_autoscroll_active(input->server->autoscroll)) {
         input->server->cursor_name = NULL;
         wlr_cursor_set_surface(input->server->cursor, event->surface, event->hotspot_x, event->hotspot_y);
     }
@@ -659,7 +660,8 @@ static void handle_request_set_shape(struct wl_listener *listener, void *data)
     struct vela_input *input = wl_container_of(listener, input, request_set_shape);
     struct wlr_cursor_shape_manager_v1_request_set_shape_event *event = data;
     struct vela_server *server = input->server;
-    if (event->seat_client == server->seat->pointer_state.focused_client && !vela_commands_picking(server)) {
+    if (event->seat_client == server->seat->pointer_state.focused_client && !vela_commands_picking(server)
+        && !vela_autoscroll_active(server->autoscroll)) {
         vela_input_set_xcursor(server, wlr_cursor_shape_v1_name(event->shape));
     }
 }

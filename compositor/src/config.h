@@ -31,6 +31,9 @@
 //   mouse-precision=yes      pointer acceleration
 //   mouse-primary-button=left|right
 //   mouse-scroll-lines=3     lines per wheel notch
+//   middle-click-autoscroll=no  the middle button scrolls like Windows
+//                            (autoscroll.h; window-rule autoscroll=no|yes)
+//   autoscroll-speed=5       1-10
 //   touchpad=yes, touchpad-with-mouse=yes (stays on with a mouse too)
 //   touchpad-speed=10, touchpad-tap=yes, touchpad-natural-scroll=yes
 //   touchpad-three-fingers=app  gestures: app, desktop, no
