@@ -38,6 +38,8 @@
 //   hot-corner=yes           the top-left corner opens Task View (interact.c)
 //   hot-corner-glow=yes      a glow while the pointer is near it
 //   hot-corner-animation=yes ripples when it opens Task View
+//   capture-indicator=yes    a taskbar indicator while the screen is shared or
+//                            recorded (capture_watch.c)
 //   snap-drag-layouts=yes    dragging a window to the top opens the snap layouts
 //                            (snap.c)
 //   snap-drag-trigger-distance=64  how close to the top they open (px, 4-200):

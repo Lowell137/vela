@@ -418,7 +418,7 @@ Window {
     Row {
         id: tray
         visible: root.primary
-        anchors { right: microphone.left; top: parent.top; bottom: parent.bottom; rightMargin: 4 }
+        anchors { right: screenShare.left; top: parent.top; bottom: parent.bottom; rightMargin: 4 }
         // Read in a binding: it follows the icons coming, going and changing.
         readonly property int hiddenCount: {
             let n = 0
@@ -484,6 +484,63 @@ Window {
                 const p = overflowButton.mapToItem(null, overflowButton.width / 2, 0)
                 Menus.trayOverflow = overflowButton.open ? null : { center: p.x, screen: root.screenName }
             }
+        }
+    }
+
+    // The screen being shared or recorded, like Windows 11: a red dot over a
+    // screen, "Your screen is being shared" in the tooltip (the compositor
+    // says when, capture_watch.c).
+    Item {
+        id: screenShare
+        visible: root.primary && Shell.screenCaptured
+        anchors { right: microphone.left; top: parent.top; bottom: parent.bottom }
+        width: visible ? 32 : 0
+
+        function showTooltip() {
+            const p = screenShare.mapToItem(null, screenShare.width / 2, 0)
+            Menus.tooltip = { text: qsTr("Your screen is being shared"), center: p.x, screen: root.screenName, owner: "screenShare" }
+        }
+        function hideTooltip() {
+            shareTooltipDelay.stop()
+            if (Menus.tooltip && Menus.tooltip.owner === "screenShare") {
+                Menus.tooltip = null
+            }
+        }
+        onVisibleChanged: if (!visible) hideTooltip()
+
+        Timer {
+            id: shareTooltipDelay
+            interval: 500
+            onTriggered: screenShare.showTooltip()
+        }
+        Rectangle {
+            anchors { fill: parent; topMargin: 8; bottomMargin: 8 }
+            radius: Theme.radius
+            color: shareMouse.pressed ? Theme.subtlePressed : Theme.subtleHover
+            opacity: shareMouse.containsMouse ? 1 : 0
+            Behavior on opacity { NumberAnimation { duration: Theme.fast } }
+        }
+        Image {
+            anchors.centerIn: parent
+            width: 16
+            height: 16
+            source: Theme.icons + "video-display"
+            sourceSize: Qt.size(width, height)
+        }
+        Rectangle {
+            width: 7
+            height: 7
+            radius: 3.5
+            color: "#e81123"
+            x: parent.width / 2 + 2
+            y: parent.height / 2 + 1
+        }
+        MouseArea {
+            id: shareMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            onContainsMouseChanged: containsMouse ? shareTooltipDelay.restart() : screenShare.hideTooltip()
+            onClicked: screenShare.showTooltip()
         }
     }
 
