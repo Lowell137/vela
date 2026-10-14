@@ -272,6 +272,10 @@
         <translation>&amp;Ingrandisci</translation>
     </message>
     <message>
+        <source>Always on &amp;top</source>
+        <translation>Sempre in &amp;primo piano</translation>
+    </message>
+    <message>
         <source>&amp;Close</source>
         <translation>&amp;Chiudi</translation>
     </message>
@@ -503,6 +507,42 @@
         <translation>Ingresso predefinito</translation>
     </message>
     <message>
+        <source>30 minutes</source>
+        <translation>30 minuti</translation>
+    </message>
+    <message>
+        <source>1 hour</source>
+        <translation>1 ora</translation>
+    </message>
+    <message>
+        <source>2 hours</source>
+        <translation>2 ore</translation>
+    </message>
+    <message>
+        <source>5 hours</source>
+        <translation>5 ore</translation>
+    </message>
+    <message>
+        <source>Indefinitely</source>
+        <translation>A tempo indeterminato</translation>
+    </message>
+    <message>
+        <source>Custom...</source>
+        <translation>Personalizzato...</translation>
+    </message>
+    <message>
+        <source>Turn off</source>
+        <translation>Disattiva</translation>
+    </message>
+    <message>
+        <source>Previous player</source>
+        <translation>Lettore precedente</translation>
+    </message>
+    <message>
+        <source>Next player</source>
+        <translation>Lettore successivo</translation>
+    </message>
+    <message>
         <source>Previous</source>
         <translation>Precedente</translation>
     </message>
@@ -541,6 +581,10 @@
     <message>
         <source>Night light</source>
         <translation>Luce notturna</translation>
+    </message>
+    <message>
+        <source>Caffeine</source>
+        <translation>Caffeina</translation>
     </message>
     <message>
         <source>Accessibility</source>
@@ -585,6 +629,22 @@
     <message>
         <source>Disconnect</source>
         <translation>Disconnetti</translation>
+    </message>
+    <message>
+        <source>Keep awake</source>
+        <translation>Mantieni attivo</translation>
+    </message>
+    <message>
+        <source>Stay awake for these minutes, then let the screen lock and turn off again.</source>
+        <translation>Resta attivo per questi minuti, poi lo schermo tornerà a bloccarsi e a spegnersi.</translation>
+    </message>
+    <message>
+        <source>Minutes</source>
+        <translation>Minuti</translation>
+    </message>
+    <message>
+        <source>Start</source>
+        <translation>Avvia</translation>
     </message>
     <message>
         <source>Next</source>
@@ -683,9 +743,37 @@
         <source>Open</source>
         <translation>Apri</translation>
     </message>
+    <message>
+        <source>Couldn&apos;t read the text</source>
+        <translation>Impossibile leggere il testo</translation>
+    </message>
+    <message>
+        <source>Text recognition isn&apos;t installed (vela-ocr).</source>
+        <translation>Il riconoscimento del testo non è installato (vela-ocr).</translation>
+    </message>
+    <message>
+        <source>Text copied to clipboard</source>
+        <translation>Testo copiato negli Appunti</translation>
+    </message>
 </context>
 <context>
     <name>SnipOverlay</name>
+    <message>
+        <source>Reading text…</source>
+        <translation>Lettura del testo…</translation>
+    </message>
+    <message>
+        <source>No text found</source>
+        <translation>Nessun testo trovato</translation>
+    </message>
+    <message>
+        <source>Copy text</source>
+        <translation>Copia testo</translation>
+    </message>
+    <message>
+        <source>Select all</source>
+        <translation>Seleziona tutto</translation>
+    </message>
     <message>
         <source>Rectangle</source>
         <translation>Rettangolo</translation>
@@ -697,6 +785,14 @@
     <message>
         <source>Full screen</source>
         <translation>Schermo intero</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <translation>Testo</translation>
+    </message>
+    <message>
+        <source>Copy all text</source>
+        <translation>Copia tutto il testo</translation>
     </message>
 </context>
 <context>
@@ -751,6 +847,10 @@
     <message>
         <source>Pin to &amp;taskbar</source>
         <translation>Aggiungi alla &amp;barra delle applicazioni</translation>
+    </message>
+    <message>
+        <source>Add to &amp;desktop</source>
+        <translation>Aggiungi al &amp;desktop</translation>
     </message>
     <message>
         <source>Open file &amp;location</source>
@@ -845,6 +945,10 @@
     <message>
         <source>Show windows from this &amp;app on all desktops</source>
         <translation>Mostra &amp;le finestre di questa app su tutti i desktop</translation>
+    </message>
+    <message>
+        <source>Always on &amp;top</source>
+        <translation>Sempre in &amp;primo piano</translation>
     </message>
     <message>
         <source>&amp;Close</source>
@@ -1026,6 +1130,14 @@
         <translation>Visualizzazione attività</translation>
     </message>
     <message>
+        <source>99+</source>
+        <translation>99+</translation>
+    </message>
+    <message>
+        <source>Show hidden icons</source>
+        <translation>Mostra icone nascoste</translation>
+    </message>
+    <message>
         <source>%1 is using your microphone</source>
         <translation>%1 sta usando il microfono</translation>
     </message>
@@ -1056,6 +1168,10 @@
     <message>
         <source>&amp;Notification settings</source>
         <translation>Impostazioni di &amp;notifica</translation>
+    </message>
+    <message>
+        <source>Show desktop</source>
+        <translation>Mostra desktop</translation>
     </message>
 </context>
 <context>

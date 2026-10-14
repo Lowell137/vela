@@ -630,6 +630,18 @@ Specifiche sistema
         <source>%1 links:</source>
         <translation>Collegamenti %1:</translation>
     </message>
+    <message>
+        <source>Automatic</source>
+        <translation>Automatica</translation>
+    </message>
+    <message>
+        <source>Terminal</source>
+        <translation>Terminale</translation>
+    </message>
+    <message>
+        <source>Task manager</source>
+        <translation>Gestione attività</translation>
+    </message>
 </context>
 <context>
     <name>DefaultAppsPage</name>
@@ -997,6 +1009,29 @@ Specifiche sistema
     </message>
 </context>
 <context>
+    <name>IconsPage</name>
+    <message>
+        <source>Automatic (Breeze)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Icon theme</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; isn&apos;t installed: the automatic theme is used</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Taskbar, Start, Settings and title bars. A theme&apos;s dark version follows the mode</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Preview</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>InstalledAppsPage</name>
     <message>
         <source>Search apps</source>
@@ -1163,6 +1198,22 @@ Specifiche sistema
     <message>
         <source>Taskbar</source>
         <translation>Barra delle applicazioni</translation>
+    </message>
+    <message>
+        <source>Keyboard shortcuts</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Icons</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Mouse pointer</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Window blur</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Apps</source>
@@ -1371,6 +1422,26 @@ Specifiche sistema
     <message>
         <source>taskbar alignment left center end task</source>
         <translation>taskbar allineamento sinistra centro termina attività</translation>
+    </message>
+    <message>
+        <source>keys hotkeys keybindings shortcut super close window command</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Icon theme</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>icons theme papirus breeze</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>cursor pointer theme size arrow xcursor</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>blur acrylic transparency translucent glass effects</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>programs applications</source>
@@ -1806,6 +1877,81 @@ Specifiche sistema
         <source>Alignment, taskbar behaviors</source>
         <translation>Allineamento, comportamenti della barra delle applicazioni</translation>
     </message>
+    <message>
+        <source>Icons</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Icon theme</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Mouse pointer</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cursor theme and size</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Window blur</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Blur behind see-through windows</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keyboard shortcuts</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>See, change and add shortcuts</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>PointerPage</name>
+    <message>
+        <source>Automatic</source>
+        <translation type="unfinished">Automatica</translation>
+    </message>
+    <message>
+        <source>Pointer style</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; isn&apos;t installed: the automatic theme is used</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The cursor themes installed in your icons folders</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Size</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 px</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Preview</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No preview for this theme</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open apps keep their pointer</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Apps that draw their own pointer use the new one when you open them again. The taskbar starts apps with it right away; after signing out, everything uses it.</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>PowerPage</name>
@@ -1879,10 +2025,228 @@ Specifiche sistema
     </message>
 </context>
 <context>
+    <name>Preferences</name>
+    <message>
+        <source>Close window</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Terminal</source>
+        <translation>Terminale</translation>
+    </message>
+    <message>
+        <source>Lock</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Task View</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Show desktop</source>
+        <translation>Mostra desktop</translation>
+    </message>
+    <message>
+        <source>File Explorer</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation type="unfinished">Impostazioni</translation>
+    </message>
+    <message>
+        <source>Run</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Power-user menu</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Quick settings</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Notification center</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Clipboard history</source>
+        <translation type="unfinished">Cronologia degli Appunti</translation>
+    </message>
+    <message>
+        <source>Sound output and volume mixer</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Snipping tool</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Copy text from the screen</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Switch windows</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Snap left / right</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Maximize / restore, then minimize</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Snap layouts</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Previous / next desktop</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Move the window to the previous / next desktop</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>New desktop</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Close desktop</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Window menu</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Next keyboard layout</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Magnifier in / out / off</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Quit Vela</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 already uses %2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Another shortcut already uses %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Unknown shortcut</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Use modifiers and a key, for example Super+Q</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Use modifiers and a key, for example Super+T</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Type the command to run</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>Settings</name>
     <message>
         <source>Settings</source>
         <translation>Impostazioni</translation>
+    </message>
+</context>
+<context>
+    <name>ShortcutsPage</name>
+    <message>
+        <source>New shortcut</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Change shortcut</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Change </source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Shortcuts</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Off</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Default: </source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Change</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Reset</source>
+        <translation type="unfinished">Reimposta</translation>
+    </message>
+    <message>
+        <source>Your shortcuts</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Add a shortcut</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Run a program or a command with a key combination</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Add</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Not valid</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <translation type="unfinished">Rimuovi</translation>
+    </message>
+    <message>
+        <source>Also available</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Click the box and press the keys. Leave it empty to turn this shortcut off.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Click the first box and press the keys, then type the command to run.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>For example Super+Q</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Command, for example foot or xdg-open https://velade.org</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -2312,6 +2676,70 @@ Specifiche sistema
         <translation>Le finestre aperte e i desktop virtuali (anche con Win+Tab)</translation>
     </message>
     <message>
+        <source>Other system tray icons</source>
+        <translation>Altre icone dell&apos;area di notifica</translation>
+    </message>
+    <message>
+        <source>Hidden icon menu</source>
+        <translation>Menu delle icone nascoste</translation>
+    </message>
+    <message>
+        <source>Apps&apos; icons go behind the arrow next to the system icons</source>
+        <translation>Le icone delle app vanno dietro la freccia accanto alle icone di sistema</translation>
+    </message>
+    <message>
+        <source>Task View</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Hot corner</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Moving the pointer into the top-left corner opens Task View</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Glow when the pointer is near</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Animation when it triggers</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Snap windows</source>
+        <translation>Aggancia le finestre</translation>
+    </message>
+    <message>
+        <source>Show snap layouts when I drag a window to the top of my screen</source>
+        <translation>Mostra i layout di aggancio quando trascino una finestra nella parte superiore dello schermo</translation>
+    </message>
+    <message>
+        <source>How close to the top</source>
+        <translation>Distanza dal bordo superiore</translation>
+    </message>
+    <message>
+        <source>%1 px from the top of the screen</source>
+        <translation>%1 px dal bordo superiore dello schermo</translation>
+    </message>
+    <message>
+        <source>How far to the sides</source>
+        <translation>Distanza dai lati</translation>
+    </message>
+    <message>
+        <source>%1 px beside the layouts</source>
+        <translation>%1 px a lato dei layout</translation>
+    </message>
+    <message>
+        <source>Size of the layouts</source>
+        <translation>Dimensione dei layout</translation>
+    </message>
+    <message>
+        <source>%1%</source>
+        <translation>%1%</translation>
+    </message>
+    <message>
         <source>Taskbar behaviors</source>
         <translation>Comportamenti della barra delle applicazioni</translation>
     </message>
@@ -2526,6 +2954,109 @@ Specifiche sistema
     <message>
         <source>Every app uses the default output and input again</source>
         <translation>Ogni app torna a usare l&apos;output e l&apos;input predefiniti</translation>
+    </message>
+</context>
+<context>
+    <name>WindowBlurPage</name>
+    <message>
+        <source>Window blur</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Blur what is behind see-through windows</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Blur</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Every window, except the apps below</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Apps that ask for it, and the apps you add below</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Only apps that ask for it</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>All windows</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Window opacity</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1%</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Also blur these apps</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No apps added</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Never blur these apps</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No apps excluded</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Where blur shows</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Only behind the see-through parts of a window, never behind its shadow. Opaque and fullscreen windows aren&apos;t blurred, unless window opacity makes them see-through; fullscreen windows always stay opaque. Apps that ask for blur themselves keep it.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source> app</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source> apps</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Add an app</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <translation type="unfinished">Rimuovi</translation>
+    </message>
+    <message>
+        <source>Never blur an app</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Blur an app</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Add</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No open windows</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open windows</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Or type an app id (e.g. org.kde.konsole)</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 </TS>
