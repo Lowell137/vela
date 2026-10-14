@@ -58,6 +58,8 @@ public:
     // A shell window anchored at the bottom left (the taskbar previews):
     // `left` pixels from the output's left edge.
     Q_INVOKABLE void placeAtLeft(QWindow* window, int left);
+    // Slides a bottom panel down by `margin` px (auto-hide: the taskbar).
+    Q_INVOKABLE void setBottomMargin(QWindow* window, int margin);
     // A (hidden) shell panel on output `name`: it appears there the next time
     // it opens.
     Q_INVOKABLE void placeOnScreen(QWindow* window, const QString& name);

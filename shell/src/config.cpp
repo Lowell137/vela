@@ -63,8 +63,14 @@ void Config::reload()
     const bool taskView = settings.value(QStringLiteral("taskbar/taskView"), true).toBool();
     const bool trayOverflow = settings.value(QStringLiteral("taskbar/trayOverflow"), true).toBool();
     const bool allScreens = settings.value(QStringLiteral("taskbar/allScreens"), true).toBool();
-    if (alignment != m_taskbarAlignment || endTask != m_endTask || taskView != m_taskView
+    const bool autoHide = settings.value(QStringLiteral("taskbar/autoHide"), false).toBool();
+    const QString combine = settings.value(QStringLiteral("taskbar/combine")).toString() == QLatin1String("never")
+        ? QStringLiteral("never")
+        : QStringLiteral("always");
+    if (autoHide != m_taskbarAutoHide || combine != m_taskbarCombine || alignment != m_taskbarAlignment || endTask != m_endTask || taskView != m_taskView
         || trayOverflow != m_trayOverflow || allScreens != m_taskbarAllScreens) {
+        m_taskbarAutoHide = autoHide;
+        m_taskbarCombine = combine;
         m_taskbarAlignment = alignment;
         m_endTask = endTask;
         m_taskView = taskView;

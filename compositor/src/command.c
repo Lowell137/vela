@@ -405,6 +405,15 @@ static void run_command(struct vela_server *server, const char *line)
         wallpaper_tint(server, line + 15);
     } else if (starts_with(line, "theme ")) {
         theme(server, line + 6);
+    } else if (starts_with(line, "taskbar-autohide ")) {
+        const bool on = strcmp(line + 17, "yes") == 0;
+        if (on != server->taskbar_autohide) {
+            server->taskbar_autohide = on;
+            struct vela_output *output;
+            wl_list_for_each (output, &server->outputs, link) {
+                vela_output_arrange_layers(output);
+            }
+        }
     } else if (strcmp(line, "paste") == 0) {
         vela_input_paste(server->input); // Win+V: the shell has put the item on the clipboard
     } else if (strcmp(line, "modifiers") == 0 || strcmp(line, "workspaces") == 0

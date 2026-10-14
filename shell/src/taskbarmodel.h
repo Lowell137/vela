@@ -46,6 +46,8 @@ public:
     QStringList pinnedIds() const { return m_pinnedIds; }
     void setPinnedIds(const QStringList& ids);
     bool pinsSaved() const { return m_pinsSaved; }
+    // false: every window gets its own button ("Combine taskbar buttons: never").
+    void setCombine(bool on);
     Q_INVOKABLE bool isPinned(const QString& desktopId) const { return m_pinnedIds.contains(desktopId); }
     Q_INVOKABLE void pin(const QString& desktopId);
     Q_INVOKABLE void unpin(const QString& desktopId);
@@ -90,6 +92,7 @@ private:
 
     void rebuild();
     QList<Item> buildItems();
+    bool m_combine = true;
     ForeignToplevel* recentWindow(int row) const;
     void sendButtonRects();
 

@@ -73,6 +73,15 @@ Vela Settings preserves unrelated lines when it updates a key and asks the compo
 | `window-opacity` | `100` | The same windows drawn translucent, in percent (30–100), so the blur shows through them; title bar included, shadow and fullscreen windows not. `100` changes nothing. |
 | `window-opacity-inactive` | `window-opacity` | The same for windows that aren't active. |
 
+## Taskbar settings
+
+The shell's own settings (`~/.config/Vela/vela-shell.conf`, Qt's INI format) are written by Settings > Personalization > Taskbar and reread by the shell as soon as the file changes. The taskbar ones, in the `[taskbar]` group:
+
+| Key | Default | Effect |
+|---|---|---|
+| `autoHide` | `false` | Hide the taskbar automatically: it slides down leaving 2 px at the bottom edge of the screen, comes back when the pointer touches them, and goes away 0.5 s after the pointer leaves. It stays while the Start menu, a menu, a flyout or Task View is open. Maximized and snapped windows use the whole output; panels still sit above the taskbar's reserved space. The shell tells the compositor with `taskbar-autohide yes\|no`. |
+| `combine` | `always` | `always`: one button per app; `never`: one button per window (the app's first window keeps the pinned button, the others get their own). |
+
 ## Window rules
 
 `window-rule` is the one repeatable key: one line per rule, in `vela.conf` (Settings > Personalization > Window rules writes them).

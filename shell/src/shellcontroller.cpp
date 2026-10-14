@@ -388,6 +388,16 @@ void ShellController::placeAtLeft(QWindow* window, int left)
     }
 }
 
+void ShellController::setBottomMargin(QWindow* window, int margin)
+{
+    if (auto* layer = window ? LayerShellQt::Window::get(window) : nullptr) {
+        const QMargins margins = layer->margins();
+        if (margins.bottom() != -margin) {
+            layer->setMargins(QMargins(margins.left(), margins.top(), margins.right(), -margin));
+        }
+    }
+}
+
 void ShellController::placeOnScreen(QWindow* window, const QString& name)
 {
     if (!window) {

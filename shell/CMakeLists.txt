@@ -206,6 +206,12 @@ if(VELA_BUILD_TOOLS)
     target_link_libraries(vela-launcherbadges-test PRIVATE Qt6::DBus Qt6::Test)
     add_test(NAME shell-launcherbadges COMMAND vela-launcherbadges-test)
 
+    qt_add_executable(vela-config-test tests/config.cpp src/config.cpp src/config.h src/defaults.h)
+    target_include_directories(vela-config-test PRIVATE src)
+    target_compile_options(vela-config-test PRIVATE -Wall -Wextra)
+    target_link_libraries(vela-config-test PRIVATE Qt6::Gui Qt6::Test)
+    add_test(NAME shell-config COMMAND vela-config-test)
+
     qt_add_executable(vela-tool-path-test tests/velatool.cpp src/velatool.h)
     target_include_directories(vela-tool-path-test PRIVATE src)
     target_compile_options(vela-tool-path-test PRIVATE -Wall -Wextra)

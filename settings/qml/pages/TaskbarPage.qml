@@ -166,6 +166,25 @@ Page {
             }
         }
         Card {
+            icon: "view-fullscreen"
+            title: qsTr("Automatically hide the taskbar")
+            description: qsTr("It slides away, and comes back when the pointer reaches the edge of the screen")
+            trailing: Toggle {
+                checked: Prefs.taskbarAutoHide
+                onToggled: on => Prefs.taskbarAutoHide = on
+            }
+        }
+        Card {
+            icon: "view-list-icons"
+            title: qsTr("Combine taskbar buttons")
+            description: qsTr("Windows of the same app under one button, or each with its own")
+            trailing: Choice {
+                model: [qsTr("Always"), qsTr("Never")]
+                currentIndex: Prefs.taskbarCombine === "never" ? 1 : 0
+                onChosen: index => Prefs.taskbarCombine = index === 1 ? "never" : "always"
+            }
+        }
+        Card {
             icon: "process-stop"
             title: qsTr("End task")
             description: qsTr("In the taskbar buttons' menu, to close an app that isn't responding right away")

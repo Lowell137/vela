@@ -2792,6 +2792,30 @@ Specifiche sistema
         <translation>Con più monitor: Start, le app e l&apos;orologio su ognuno; area di notifica sul principale</translation>
     </message>
     <message>
+        <source>Automatically hide the taskbar</source>
+        <translation>Nascondi automaticamente la barra delle applicazioni</translation>
+    </message>
+    <message>
+        <source>It slides away, and comes back when the pointer reaches the edge of the screen</source>
+        <translation>Scorre via e ricompare quando il puntatore raggiunge il bordo dello schermo</translation>
+    </message>
+    <message>
+        <source>Combine taskbar buttons</source>
+        <translation>Raggruppa i pulsanti della barra delle applicazioni</translation>
+    </message>
+    <message>
+        <source>Windows of the same app under one button, or each with its own</source>
+        <translation>Le finestre della stessa app sotto un solo pulsante, oppure ognuna con il suo</translation>
+    </message>
+    <message>
+        <source>Always</source>
+        <translation>Sempre</translation>
+    </message>
+    <message>
+        <source>Never</source>
+        <translation>Mai</translation>
+    </message>
+    <message>
         <source>End task</source>
         <translation>Termina attività</translation>
     </message>

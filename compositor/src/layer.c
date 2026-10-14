@@ -12,6 +12,7 @@
 #include "util.h"
 
 #include <stdlib.h>
+#include <string.h>
 #include <wlr/types/wlr_compositor.h>
 #include <wlr/types/wlr_layer_shell_v1.h>
 #include <wlr/types/wlr_output.h>
@@ -185,7 +186,8 @@ static void apply_exclusive_zone(const struct wlr_layer_surface_v1_state *state,
 // Like wlroots' wlr_scene_layer_surface_v1_configure: size and position from
 // anchors and margins, inside the usable area (or the whole output if the
 // surface asks for it with exclusive_zone = -1).
-static void configure(struct vela_layer_surface *layer, const struct wlr_box *full, struct wlr_box *usable)
+static void configure(struct vela_layer_surface *layer, const struct wlr_box *full, struct wlr_box *usable,
+    struct wlr_box *work)
 {
     struct wlr_layer_surface_v1 *wlr = layer->wlr;
     const struct wlr_layer_surface_v1_state *state = &wlr->current;
@@ -225,12 +227,24 @@ static void configure(struct vela_layer_surface *layer, const struct wlr_box *fu
     vela_node_set_position(&layer->tree->node, box.x, box.y);
     wlr_layer_surface_v1_configure(wlr, (uint32_t)vela_max(box.width, 0), (uint32_t)vela_max(box.height, 0));
     if (wlr->surface->mapped && state->exclusive_zone > 0) {
-        apply_exclusive_zone(state, wlr_layer_surface_v1_get_exclusive_edge(wlr), usable);
+        // The taskbar always reserves its whole height for the panels above it,
+        // whatever margin auto-hide slides it with; the windows don't give it
+        // room while it is auto-hidden (taskbar-autohide).
+        const bool taskbar = wlr->namespace && strcmp(wlr->namespace, "vela-taskbar") == 0;
+        struct wlr_layer_surface_v1_state own = *state;
+        if (taskbar) {
+            own.margin.top = own.margin.right = own.margin.bottom = own.margin.left = 0;
+        }
+        const enum wlr_edges edge = wlr_layer_surface_v1_get_exclusive_edge(wlr);
+        apply_exclusive_zone(&own, edge, usable);
+        if (!(taskbar && layer->server->taskbar_autohide)) {
+            apply_exclusive_zone(&own, edge, work);
+        }
     }
 }
 
 void vela_layers_configure(struct vela_server *server, struct vela_output *output, const struct wlr_box *full,
-    struct wlr_box *usable)
+    struct wlr_box *usable, struct wlr_box *work)
 {
     const uint32_t order[] = {
         ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY,
@@ -248,7 +262,7 @@ void vela_layers_configure(struct vela_server *server, struct vela_output *outpu
                 if ((layer->wlr->current.exclusive_zone > 0) != (bool)exclusive) {
                     continue;
                 }
-                configure(layer, full, usable);
+                configure(layer, full, usable, work);
             }
         }
     }

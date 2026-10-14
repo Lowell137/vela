@@ -41,6 +41,37 @@ Window {
             Tasks.pinnedIds = pinnedIds
         }
         updateBlur()
+        if (!held) hideDelay.start()
+    }
+
+    // Auto-hide: it slides down (a negative bottom margin, ShellController)
+    // leaving 2 px at the edge of the screen, which bring it back when the
+    // pointer touches them. The compositor keeps reserving its space for the
+    // panels above it and lets the windows use it (taskbar-autohide).
+    readonly property bool held: !Config.taskbarAutoHide || barHover.hovered || Shell.startMenuOpen
+        || Menus.isOpen || Menus.quickSettingsOpen || Menus.notificationCenterOpen || Menus.taskViewOpen
+        || Menus.trayOverflow !== null || Menus.preview !== null
+    property bool concealed: false
+    onHeldChanged: {
+        if (held) {
+            hideDelay.stop()
+            concealed = false
+        } else {
+            hideDelay.restart()
+        }
+    }
+    Timer {
+        id: hideDelay
+        interval: 500
+        onTriggered: root.concealed = !root.held
+    }
+    property real slide: concealed ? 1 : 0
+    Behavior on slide { NumberAnimation { duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate } }
+    readonly property int bottomMargin: Math.round(slide * (height - 2))
+    onBottomMarginChanged: Shell.setBottomMargin(root, bottomMargin)
+    Item {
+        anchors.fill: parent
+        HoverHandler { id: barHover }
     }
 
     // The whole taskbar above the blurred background (acrylic).

@@ -36,6 +36,14 @@ void TaskbarModel::setPinnedIds(const QStringList& ids)
     rebuild();
 }
 
+void TaskbarModel::setCombine(bool on)
+{
+    if (on != m_combine) {
+        m_combine = on;
+        rebuild();
+    }
+}
+
 void TaskbarModel::pin(const QString& desktopId)
 {
     if (!desktopId.isEmpty() && !m_pinnedIds.contains(desktopId)) {
@@ -165,6 +173,15 @@ QList<TaskbarModel::Item> TaskbarModel::buildItems()
             }
             running.append(fresh);
             item = &running.last();
+        }
+        if (!m_combine && !item->windows.isEmpty()) {
+            // Its own button, next to the app's others (same icon and menu).
+            Item own = *item;
+            own.key += QLatin1Char('#') + QString::number(quintptr(window));
+            own.pinned = false;
+            own.windows = { window };
+            running.append(own);
+            continue;
         }
         item->windows.append(window);
     }
