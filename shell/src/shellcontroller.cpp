@@ -288,8 +288,9 @@ void ShellController::handleCommand(const QByteArray& command)
         emit settingsRequested();
     } else if (command == "files") {
         emit filesRequested();
-    } else if (command == "clipboard") {
-        emit clipboardRequested();
+    } else if (parts.first() == "clipboard" || parts.first() == "emoji") {
+        const bool placed = parts.size() == 3;
+        emit clipboardRequested(QString::fromLatin1(parts.first()), placed ? parts.at(1).toInt() : -1, placed ? parts.at(2).toInt() : -1);
     } else if (command == "snip") {
         emit snipRequested();
     } else if (command == "snip-text") {
@@ -394,6 +395,33 @@ void ShellController::placeOnScreen(QWindow* window, const QString& name)
             return;
         }
     }
+}
+
+QPoint ShellController::placeAtPoint(QWindow* window, int x, int y)
+{
+    auto* layer = window ? LayerShellQt::Window::get(window) : nullptr;
+    if (!layer) {
+        return { -1, -1 };
+    }
+    using Anchor = LayerShellQt::Window::Anchor;
+    if (x < 0) {
+        layer->setAnchors(LayerShellQt::Window::Anchors(Anchor::AnchorBottom) | Anchor::AnchorRight);
+        layer->setMargins({});
+        return { -1, -1 };
+    }
+    QScreen* screen = QGuiApplication::screenAt(QPoint(x, y));
+    if (!screen) {
+        screen = QGuiApplication::primaryScreen();
+    }
+    window->setScreen(screen);
+    layer->setScreen(screen);
+    // The margins are from the output's corner; the taskbar's room isn't ours.
+    const QRect area = screen->geometry();
+    const int left = std::clamp(x - area.x(), 0, std::max(0, area.width() - window->width()));
+    const int top = std::clamp(y - area.y(), 0, std::max(0, area.height() - window->height() - 56));
+    layer->setAnchors(LayerShellQt::Window::Anchors(Anchor::AnchorTop) | Anchor::AnchorLeft);
+    layer->setMargins(QMargins(left, top, 0, 0));
+    return { left, top };
 }
 
 QString ShellController::primaryScreen() const

@@ -31,7 +31,19 @@
 
 namespace {
 
-constexpr int maxItems = 25; // like Windows
+// What Settings > System > Clipboard chose (vela-shell.conf), read when used.
+bool keepsHistory()
+{
+    return QSettings().value(QStringLiteral("clipboard/keep"), false).toBool();
+}
+int maxItems()
+{
+    return std::clamp(QSettings().value(QStringLiteral("clipboard/limit"), 25).toInt(), 5, 500); // 25: like Windows
+}
+int maxDays()
+{
+    return QSettings().value(QStringLiteral("clipboard/days"), 0).toInt(); // 0: no limit
+}
 constexpr qsizetype maxText = 1024 * 1024;
 constexpr qsizetype maxImage = 32 * 1024 * 1024;
 
@@ -173,6 +185,15 @@ Clipboard::Clipboard(QObject* parent)
 {
     m_enabled = QSettings().value(QStringLiteral("clipboard/history"), false).toBool();
     loadPinned();
+    // shortcut: the whole history is written again (images too) two seconds
+    // after a change; write only what changed if large histories make it slow.
+    m_saveLater.setSingleShot(true);
+    m_saveLater.setInterval(2000);
+    connect(&m_saveLater, &QTimer::timeout, this, &Clipboard::savePinned);
+    m_pruneLater.setInterval(60 * 60 * 1000);
+    connect(&m_pruneLater, &QTimer::timeout, this, &Clipboard::prune);
+    m_pruneLater.start();
+    prune();
     wl_display* display = waylandDisplay();
     if (!display || pipe2(m_wake, O_CLOEXEC | O_NONBLOCK) != 0) {
         return;
@@ -373,16 +394,50 @@ void Clipboard::add(Item item)
         item.id = m_nextId++;
     }
     m_items.prepend(item);
-    // Past the limit the oldest unpinned items are lost.
+    prune();
+    emit itemsChanged();
+    save();
+}
+
+void Clipboard::save()
+{
+    if (keepsHistory()) {
+        m_saveLater.start();
+    }
+}
+
+void Clipboard::prune()
+{
+    // Past the limit, or the age, the oldest unpinned items are lost.
+    const int limit = maxItems();
+    const int days = maxDays();
+    const QDateTime oldest = QDateTime::currentDateTime().addDays(-days);
+    const qsizetype before = m_items.size();
     int unpinned = 0;
     for (qsizetype i = 0; i < m_items.size();) {
-        if (!m_items[i].pinned && ++unpinned > maxItems) {
+        if (!m_items[i].pinned && (++unpinned > limit || (days > 0 && m_items[i].time < oldest))) {
             m_items.removeAt(i);
         } else {
             ++i;
         }
     }
-    emit itemsChanged();
+    if (m_items.size() != before) {
+        emit itemsChanged();
+        save();
+    }
+}
+
+bool Clipboard::opensAtPointer() const
+{
+    return QSettings().value(QStringLiteral("clipboard/atPointer"), true).toBool();
+}
+
+void Clipboard::type(const QString& text)
+{
+    Item item;
+    item.text = text;
+    setSelection(item);
+    ShellController::sendToCompositor("paste");
 }
 
 void Clipboard::setSelection(const Item& item)
@@ -437,6 +492,8 @@ void Clipboard::remove(int id)
             m_items.removeAt(i);
             if (pinned) {
                 savePinned();
+            } else {
+                save();
             }
             emit itemsChanged();
             return;
@@ -461,6 +518,7 @@ void Clipboard::clear()
     m_items.erase(std::remove_if(m_items.begin(), m_items.end(), [](const Item& item) { return !item.pinned; }),
         m_items.end());
     emit itemsChanged();
+    savePinned(); // what was kept on disk goes too
 }
 
 void Clipboard::copyText(const QString& text)
@@ -494,17 +552,20 @@ void Clipboard::savePinned() const
     }
     QJsonArray list;
     int n = 0;
+    const bool all = keepsHistory();
     for (const Item& item : m_items) {
-        if (!item.pinned) {
+        if (!item.pinned && !all) {
             continue;
         }
+        QJsonObject object { { QStringLiteral("pinned"), item.pinned }, { QStringLiteral("time"), item.time.toString(Qt::ISODate) } };
         if (item.image.isNull()) {
-            list.append(QJsonObject { { QStringLiteral("text"), item.text } });
+            object.insert(QStringLiteral("text"), item.text);
         } else {
             const QString name = QStringLiteral("%1.png").arg(++n);
             item.image.save(dir.filePath(name), "PNG");
-            list.append(QJsonObject { { QStringLiteral("image"), name } });
+            object.insert(QStringLiteral("image"), name);
         }
+        list.append(object);
     }
     QFile file(dir.filePath(QStringLiteral("pinned.json")));
     if (file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
@@ -523,8 +584,15 @@ void Clipboard::loadPinned()
         const QJsonObject object = value.toObject();
         Item item;
         item.id = m_nextId++;
-        item.pinned = true;
-        item.time = QDateTime::currentDateTime();
+        // A file from before the history was kept holds pinned items only.
+        item.pinned = object[QStringLiteral("pinned")].toBool(true);
+        item.time = QDateTime::fromString(object[QStringLiteral("time")].toString(), Qt::ISODate);
+        if (!item.time.isValid()) {
+            item.time = QDateTime::currentDateTime();
+        }
+        if (!item.pinned && !keepsHistory()) {
+            continue; // kept once, not any more
+        }
         if (object.contains(QStringLiteral("image"))) {
             item.image.load(dir.filePath(object[QStringLiteral("image")].toString()));
             if (item.image.isNull()) {

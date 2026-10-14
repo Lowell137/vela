@@ -13,6 +13,7 @@
 #include "audio.h"
 #include "audioapps.h"
 #include "clipboard.h"
+#include "emoji.h"
 #include "config.h"
 #include "controls.h"
 #include "desktopmodel.h"
@@ -330,6 +331,7 @@ int main(int argc, char* argv[])
     FileProperties properties;
     FileActions fileActions;
     Clipboard clipboard;
+    Emoji emoji;
     QObject::connect(&shell, &ShellController::clipboardClearRequested, &clipboard, &Clipboard::clear);
     // History turned on or off from Settings (vela-shell.conf).
     QObject::connect(&config, &Config::clipboardChanged, &clipboard,
@@ -376,6 +378,7 @@ int main(int argc, char* argv[])
     engine.rootContext()->setContextProperty(QStringLiteral("Properties"), &properties);
     engine.rootContext()->setContextProperty(QStringLiteral("FileActions"), &fileActions);
     engine.rootContext()->setContextProperty(QStringLiteral("Clip"), &clipboard);
+    engine.rootContext()->setContextProperty(QStringLiteral("Emoji"), &emoji);
     engine.rootContext()->setContextProperty(QStringLiteral("Snip"), &snip);
     engine.rootContext()->setContextProperty(QStringLiteral("Status"), &status);
     engine.rootContext()->setContextProperty(QStringLiteral("Audio"), &audio);

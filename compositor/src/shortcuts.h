@@ -13,7 +13,7 @@
 //
 // Actions: close, terminal, lock, start, winx, run, show-desktop,
 // quick-settings, notification-center, settings, files, task-view, snip, snip-text,
-// clipboard, sound-output.
+// clipboard, emoji, sound-output.
 //
 // A combination is modifiers and a key joined with "+": Super (Win, Meta),
 // Alt, Ctrl, Shift, then an XKB key name (Q, Return, F4, Left...).

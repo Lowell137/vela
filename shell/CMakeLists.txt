@@ -20,6 +20,7 @@ qt_add_executable(vela-shell
     src/mimeapps.h
     src/clipboard.cpp
     src/clipboard.h
+    src/emoji.h
     src/snip.cpp
     src/snip.h
     src/soundkeys.cpp
@@ -72,6 +73,12 @@ qt_add_resources(vela-shell "images"
     PREFIX "/vela"
     BASE ${PROJECT_SOURCE_DIR}
     FILES ${PROJECT_SOURCE_DIR}/images/vela_splash_169.svg)
+
+# The emoji of the Win+. panel (data/README.md): ":/data/emoji.tsv".
+qt_add_resources(vela-shell "data"
+    PREFIX "/data"
+    BASE ${CMAKE_CURRENT_SOURCE_DIR}/data
+    FILES data/emoji.tsv)
 
 # The list of open windows, published by the compositor.
 qt_generate_wayland_protocol_client_sources(vela-shell

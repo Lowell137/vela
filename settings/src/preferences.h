@@ -109,6 +109,13 @@ class Preferences : public QObject {
     Q_PROPERTY(QString fourFingers READ fourFingers WRITE setFourFingers NOTIFY inputChanged)
     // --- Clipboard (vela-shell.conf) ---
     Q_PROPERTY(bool clipboardHistory READ clipboardHistory WRITE setClipboardHistory NOTIFY clipboardChanged)
+    // The Win+V panel opens next to the pointer, not at the bottom right.
+    Q_PROPERTY(bool clipboardAtPointer READ clipboardAtPointer WRITE setClipboardAtPointer NOTIFY clipboardChanged)
+    // The history outlives the session; for `clipboardDays` days (0: no
+    // limit) and `clipboardLimit` items, pinned ones aside.
+    Q_PROPERTY(bool clipboardKeep READ clipboardKeep WRITE setClipboardKeep NOTIFY clipboardChanged)
+    Q_PROPERTY(int clipboardDays READ clipboardDays WRITE setClipboardDays NOTIFY clipboardChanged)
+    Q_PROPERTY(int clipboardLimit READ clipboardLimit WRITE setClipboardLimit NOTIFY clipboardChanged)
     // --- Accessibility ---
     Q_PROPERTY(bool magnifier READ magnifier WRITE setMagnifier NOTIFY accessibilityChanged)
     Q_PROPERTY(int magnifierStep READ magnifierStep WRITE setMagnifierStep NOTIFY accessibilityChanged)
@@ -284,6 +291,14 @@ public:
     void setFourFingers(const QString& action);
 
     bool clipboardHistory() const { return m_clipboardHistory; }
+    bool clipboardAtPointer() const { return m_clipboardAtPointer; }
+    void setClipboardAtPointer(bool on);
+    bool clipboardKeep() const { return m_clipboardKeep; }
+    void setClipboardKeep(bool on);
+    int clipboardDays() const { return m_clipboardDays; }
+    void setClipboardDays(int days);
+    int clipboardLimit() const { return m_clipboardLimit; }
+    void setClipboardLimit(int limit);
     void setClipboardHistory(bool on);
     // "Clear clipboard data": the history (except pinned items), in the shell.
     Q_INVOKABLE void clearClipboard();
@@ -385,6 +400,10 @@ private:
     QString m_threeFingers = QStringLiteral("app");
     QString m_fourFingers = QStringLiteral("desktop");
     bool m_clipboardHistory = false;
+    bool m_clipboardAtPointer = true;
+    bool m_clipboardKeep = false;
+    int m_clipboardDays = 0;
+    int m_clipboardLimit = 25;
     QList<QPair<QString, QString>> m_compositor; // vela.conf, in file order
     QFileSystemWatcher m_watcher;
     QTimer m_debounce;

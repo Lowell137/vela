@@ -9,6 +9,7 @@
 #include <QImage>
 #include <QObject>
 #include <QQuickImageProvider>
+#include <QTimer>
 #include <QVariantList>
 
 #include <atomic>
@@ -25,7 +26,10 @@ struct ext_data_control_source_v1;
 // Clipboard history (Win+V), like Windows 11: what is copied (text and images)
 // goes into a list; a click puts it back on the clipboard and pastes it into
 // the focused app. Pinned items survive restarts
-// (~/.local/share/vela/clipboard), the others last only for the session.
+// (~/.local/share/vela/clipboard); the others last only for the session,
+// unless Settings > System > Clipboard says to keep them (clipboard/keep),
+// for how many days (clipboard/days, 0: no limit) and how many
+// (clipboard/limit).
 // Passwords copied from password managers aren't remembered.
 //
 // The clipboard is read and written with the ext-data-control protocol (the
@@ -54,6 +58,11 @@ public:
     Q_INVOKABLE void remove(int id);
     Q_INVOKABLE void togglePin(int id);
     Q_INVOKABLE void clear(); // everything but pinned items
+    // Types `text` into the focused app (an emoji, a symbol): on the clipboard
+    // and pasted, without a place in the history.
+    Q_INVOKABLE void type(const QString& text);
+    // Settings > System > Clipboard: the panel opens next to the pointer.
+    Q_INVOKABLE bool opensAtPointer() const;
 
     // On the clipboard (and in the history, if on).
     void copyText(const QString& text);
@@ -80,8 +89,10 @@ private:
     void add(Item item);
     void setSelection(const Item& item);
     void readOffer(Offer* offer); // in the clipboard thread
+    void save(); // what survives restarts, a moment later
     void savePinned() const;
     void loadPinned();
+    void prune(); // too old, or past the limit
     void flush();
     void run(); // the thread: serves the clipboard queue
 
@@ -100,6 +111,8 @@ private:
     QList<Item> m_items;
     int m_nextId = 1;
     std::atomic<bool> m_enabled { false };
+    QTimer m_saveLater;
+    QTimer m_pruneLater;
 };
 
 // History images for QML: "image://clipboard/<id>".

@@ -21,5 +21,8 @@ void vela_shell_stop(struct vela_server *server);
 // or "accessibility {...}". Never blocks: without a shell the message is
 // simply lost.
 void vela_shell_send(struct vela_server *server, const char *line);
+// The same line followed by where the pointer is, in layout coordinates
+// ("clipboard 812 430"): for the panels that open next to it.
+void vela_shell_send_at_pointer(struct vela_server *server, const char *line);
 
 #endif

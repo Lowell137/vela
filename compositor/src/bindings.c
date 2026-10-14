@@ -198,7 +198,16 @@ bool vela_bindings_handle(struct vela_server *server, uint32_t modifiers, uint32
     // mixer, in quick settings; Win+Shift+S and Print: the Snipping Tool
     // (drawn by the shell).
     if (super && xkb_keysym_to_lower(sym) == XKB_KEY_v && vela_shortcuts_default_enabled(ctrl ? "sound-output" : "clipboard")) {
-        return shell(server, ctrl ? "sound-output" : "clipboard");
+        if (ctrl) {
+            return shell(server, "sound-output");
+        }
+        vela_shell_send_at_pointer(server, "clipboard"); // it opens next to the pointer
+        return true;
+    }
+    // Win+. and Win+;: the same panel, on its emoji.
+    if (super && (sym == XKB_KEY_period || sym == XKB_KEY_semicolon) && vela_shortcuts_default_enabled("emoji")) {
+        vela_shell_send_at_pointer(server, "emoji");
+        return true;
     }
     // Win+Shift+T: the Snipping Tool in its Text mode (copy the text of a region).
     if (super && shift && xkb_keysym_to_lower(sym) == XKB_KEY_t && vela_shortcuts_default_enabled("snip-text")) {

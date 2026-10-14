@@ -44,6 +44,7 @@ static const struct action {
     { "snip", KIND_SHELL, "snip" },
     { "snip-text", KIND_SHELL, "snip-text" },
     { "clipboard", KIND_SHELL, "clipboard" },
+    { "emoji", KIND_SHELL, "emoji" },
     { "sound-output", KIND_SHELL, "sound-output" },
 };
 #define ACTION_COUNT (sizeof(actions) / sizeof(actions[0]))
@@ -264,7 +265,13 @@ bool vela_shortcuts_dispatch(struct vela_server *server, uint32_t modifiers, uin
         } else if (actions[shortcut->action].kind == KIND_NATIVE) {
             run_native(server, actions[shortcut->action].id);
         } else {
-            vela_shell_send(server, actions[shortcut->action].shell_line);
+            const char *line = actions[shortcut->action].shell_line;
+            // The clipboard and emoji panel opens next to the pointer.
+            if (strcmp(line, "clipboard") == 0 || strcmp(line, "emoji") == 0) {
+                vela_shell_send_at_pointer(server, line);
+            } else {
+                vela_shell_send(server, line);
+            }
         }
         return true;
     }

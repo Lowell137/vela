@@ -8,6 +8,7 @@
 #include <QLocalSocket>
 #include <QPointer>
 #include <QObject>
+#include <QPoint>
 #include <QString>
 #include <QStringList>
 
@@ -55,6 +56,11 @@ public:
     // A (hidden) shell panel on output `name`: it appears there the next time
     // it opens.
     Q_INVOKABLE void placeOnScreen(QWindow* window, const QString& name);
+    // Puts `window` (hidden) with its corner next to a point of the desktop
+    // (layout coordinates), on that point's output and inside it; with a
+    // negative `x`, back at the bottom right of its output.
+    // Where the corner went, on the output; (-1, -1) at the bottom right.
+    Q_INVOKABLE QPoint placeAtPoint(QWindow* window, int x, int y);
     // Alt+Tab: a click on preview `index` (the compositor switches).
     Q_INVOKABLE void pickSwitcher(int index) { sendToCompositor("switcher-pick " + QByteArray::number(index)); }
 
@@ -136,7 +142,9 @@ signals:
     void openWithRequested(const QString& path); // "Choose another app", from Explorer
     void newShortcutRequested(const QString& folder); // "New > Shortcut", from Explorer
     void accessibilityReceived(const QByteArray& json); // from the compositor
-    void clipboardRequested(); // Win+V
+    // Win+V ("clipboard") and Win+. ("emoji"); the pointer, in layout
+    // coordinates, or -1 when it isn't known.
+    void clipboardRequested(const QString& tab, int x, int y);
     void snipRequested(); // Win+Shift+S, Print
     void snipTextRequested(); // Win+Shift+T
     void clipboardClearRequested(); // from Settings
