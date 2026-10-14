@@ -89,6 +89,27 @@ Page {
             captureToggle.checked = false
             open()
         }
+        // Settings steps aside, the pointer becomes a crosshair and the next
+        // click on any window fills the field (Esc cancels).
+        property bool picking: false
+        function pick() {
+            picking = true
+            visible = false
+            const w = page.Window.window
+            if (w) w.showMinimized()
+            Prefs.pickWindow()
+        }
+        Connections {
+            target: Prefs
+            function onWindowPicked(app, title) {
+                if (!addDialog.picking) return
+                addDialog.picking = false
+                const w = page.Window.window
+                if (w) { w.showNormal(); w.raise(); w.requestActivate() }
+                if (app !== "") appId.text = app
+                addDialog.visible = true
+            }
+        }
         onAccepted: {
             const parts = []
             if (outputBox.text.trim() !== "") parts.push("output=" + outputBox.text.trim())
@@ -133,10 +154,19 @@ Page {
                     }
                 }
             }
-            TextBox {
-                id: appId
+            Row {
                 width: parent.width
-                placeholderText: qsTr("App id (e.g. discord) or pick an open window above")
+                spacing: 8
+                TextBox {
+                    id: appId
+                    width: parent.width - pickButton.width - parent.spacing
+                    placeholderText: qsTr("App id (e.g. discord) or pick an open window above")
+                }
+                Button {
+                    id: pickButton
+                    text: qsTr("Pick a window")
+                    onClicked: addDialog.pick()
+                }
             }
             TextBox {
                 id: outputBox

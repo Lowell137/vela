@@ -16,6 +16,14 @@
 struct vela_buffer;
 struct vela_server;
 
+// "pick-window": the connection stays open until the user clicks a window
+// (left button; the click reaches nobody), then gets one JSON line with its
+// "appId", "title" and "output"; "cancel" on Esc, right click or after 30 s.
+// interact.c and keyboard handling call these while it is going on.
+bool vela_commands_picking(const struct vela_server *server);
+struct vela_view;
+void vela_commands_pick_done(struct vela_server *server, struct vela_view *view); // NULL: cancelled
+
 // Opens the socket (once the display has its name).
 void vela_commands_listen(struct vela_server *server);
 void vela_commands_stop(struct vela_server *server);

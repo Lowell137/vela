@@ -33,6 +33,7 @@ extern "C" {
 #include <QUrl>
 
 #include <algorithm>
+#include <memory>
 #include <cmath>
 
 namespace {
@@ -632,6 +633,34 @@ QVariantList Preferences::openWindows() const
             { QStringLiteral("title"), window[QStringLiteral("title")].toString() } });
     }
     return result;
+}
+
+void Preferences::pickWindow()
+{
+    const QString runtimeDir = QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation);
+    const QString display = qEnvironmentVariable("WAYLAND_DISPLAY", QStringLiteral("wayland-0"));
+    auto* socket = new QLocalSocket(this);
+    auto finished = std::make_shared<bool>(false);
+    auto finish = [this, socket, finished](const QString& appId, const QString& title) {
+        if (*finished) {
+            return;
+        }
+        *finished = true;
+        socket->deleteLater();
+        emit windowPicked(appId, title);
+    };
+    connect(socket, &QLocalSocket::connected, socket, [socket] { socket->write("pick-window\n"); });
+    connect(socket, &QLocalSocket::readyRead, socket, [socket, finish] {
+        // One line: {"appId":...,"title":...,"output":...} or "cancel".
+        if (!socket->canReadLine()) {
+            return;
+        }
+        const QJsonObject window = QJsonDocument::fromJson(socket->readLine()).object();
+        finish(window[QStringLiteral("appId")].toString(), window[QStringLiteral("title")].toString());
+    });
+    connect(socket, &QLocalSocket::disconnected, socket, [finish] { finish({}, {}); });
+    connect(socket, &QLocalSocket::errorOccurred, socket, [finish] { finish({}, {}); });
+    socket->connectToServer(runtimeDir + QStringLiteral("/vela-") + display + QStringLiteral(".sock"));
 }
 
 QVariantList Preferences::cursorThemes() const

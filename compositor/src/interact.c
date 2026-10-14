@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "interact.h"
+
+#include "command.h"
 #include "shortcuts.h"
 #include "shell.h"
 
@@ -375,6 +377,26 @@ void vela_interact_button(struct vela_server *server, struct wlr_pointer_button_
         return;
     }
 
+    // "pick-window" (command.h): the left click chooses the window under the
+    // cursor and reaches nobody; panels and the desktop are ignored (still
+    // waiting), the right button cancels.
+    if (vela_commands_picking(server)) {
+        if (pressed) {
+            interaction->modifier_grab = true; // the release doesn't reach the app either
+            if (event->button == BTN_RIGHT) {
+                vela_commands_pick_done(server, NULL);
+            } else if (event->button == BTN_LEFT) {
+                struct vela_view *picked = view_of(vela_scene_at(server->scene, cursor->x, cursor->y).owner);
+                if (picked) {
+                    vela_commands_pick_done(server, picked);
+                }
+            }
+        } else {
+            interaction->modifier_grab = false;
+        }
+        return;
+    }
+
     // Keyboard "Move" or "Size" in progress: a click confirms.
     if (interaction->keyboard.view && pressed) {
         finish_keyboard(server, true);
@@ -631,6 +653,15 @@ static void keyboard_key(struct vela_server *server, xkb_keysym_t sym, uint32_t 
 bool vela_interact_keyboard(struct vela_server *server, const uint32_t *syms, int count, uint32_t modifiers,
     bool pressed)
 {
+    if (vela_commands_picking(server)) {
+        // Keys don't reach apps while picking; Esc cancels.
+        for (int i = 0; pressed && i < count; ++i) {
+            if (syms[i] == XKB_KEY_Escape) {
+                vela_commands_pick_done(server, NULL);
+            }
+        }
+        return true;
+    }
     if (!server->interaction->keyboard.view) {
         return false;
     }

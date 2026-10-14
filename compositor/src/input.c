@@ -3,6 +3,7 @@
 
 #include "input.h"
 
+#include "command.h"
 #include "listen.h"
 #include "workspace.h"
 #include "view.h"
@@ -226,6 +227,9 @@ static struct wlr_xcursor_manager *create_cursor_manager(const struct vela_confi
 
 void vela_input_set_xcursor(struct vela_server *server, const char *name)
 {
+    if (vela_commands_picking(server)) {
+        name = "crosshair"; // "pick-window": nothing else changes it
+    }
     server->cursor_name = name;
     wlr_cursor_set_xcursor(server->cursor, server->cursor_manager, name);
 }
@@ -641,7 +645,8 @@ static void handle_request_set_cursor(struct wl_listener *listener, void *data)
 {
     struct vela_input *input = wl_container_of(listener, input, request_set_cursor);
     struct wlr_seat_pointer_request_set_cursor_event *event = data;
-    if (input->server->seat->pointer_state.focused_client == event->seat_client) {
+    if (input->server->seat->pointer_state.focused_client == event->seat_client
+        && !vela_commands_picking(input->server)) {
         input->server->cursor_name = NULL;
         wlr_cursor_set_surface(input->server->cursor, event->surface, event->hotspot_x, event->hotspot_y);
     }
@@ -654,7 +659,7 @@ static void handle_request_set_shape(struct wl_listener *listener, void *data)
     struct vela_input *input = wl_container_of(listener, input, request_set_shape);
     struct wlr_cursor_shape_manager_v1_request_set_shape_event *event = data;
     struct vela_server *server = input->server;
-    if (event->seat_client == server->seat->pointer_state.focused_client) {
+    if (event->seat_client == server->seat->pointer_state.focused_client && !vela_commands_picking(server)) {
         vela_input_set_xcursor(server, wlr_cursor_shape_v1_name(event->shape));
     }
 }

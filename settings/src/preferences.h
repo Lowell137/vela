@@ -201,6 +201,9 @@ public:
     // The open windows, one per app: [{appId, title}] (the compositor's
     // "state"); empty if it doesn't answer.
     Q_INVOKABLE QVariantList openWindows() const;
+    // The user clicks a window on screen ("pick-window" on the compositor's
+    // socket); windowPicked comes later, with empty strings if cancelled.
+    Q_INVOKABLE void pickWindow();
 
     bool doNotDisturb() const { return m_doNotDisturb; }
     void setDoNotDisturb(bool on);
@@ -344,6 +347,7 @@ signals:
     void cursorChanged();
     void windowBlurChanged();
     void windowRulesChanged();
+    void windowPicked(const QString& appId, const QString& title);
     void doNotDisturbChanged();
     void idleChanged();
     void languageChanged();

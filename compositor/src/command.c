@@ -57,7 +57,64 @@ struct vela_commands {
     struct wl_event_source *source;
     char path[108];
     struct wl_list clients;
+    struct client *picker; // waiting for "pick-window"'s answer
+    struct wl_event_source *pick_timer;
 };
+
+static void client_destroy(struct client *client);
+
+#define PICK_TIMEOUT_MS 30000
+
+bool vela_commands_picking(const struct vela_server *server)
+{
+    return server->commands && server->commands->picker;
+}
+
+void vela_commands_pick_done(struct vela_server *server, struct vela_view *view)
+{
+    struct vela_commands *commands = server->commands;
+    if (!commands || !commands->picker) {
+        return;
+    }
+    struct client *picker = commands->picker;
+    commands->picker = NULL;
+    wl_event_source_timer_update(commands->pick_timer, 0);
+    struct vela_buffer reply = { 0 };
+    if (view) {
+        struct vela_output *out = vela_view_output(view);
+        vela_buffer_append(&reply, "{\"appId\":");
+        vela_buffer_append_json(&reply, vela_view_app_id(view));
+        vela_buffer_append(&reply, ",\"title\":");
+        vela_buffer_append_json(&reply, vela_view_title(view));
+        vela_buffer_append(&reply, ",\"output\":");
+        vela_buffer_append_json(&reply, out ? out->wlr->name : "");
+        vela_buffer_append(&reply, "}\n");
+    } else {
+        vela_buffer_append(&reply, "cancel\n");
+    }
+    (void)!write(picker->fd, reply.data, reply.length);
+    vela_buffer_finish(&reply);
+    client_destroy(picker);
+    vela_input_set_xcursor(server, "default");
+}
+
+static int pick_timeout(void *data)
+{
+    vela_commands_pick_done(data, NULL);
+    return 0;
+}
+
+static void pick_begin(struct vela_server *server, struct client *client)
+{
+    struct vela_commands *commands = server->commands;
+    vela_commands_pick_done(server, NULL); // a previous one is cancelled
+    if (!commands->pick_timer) {
+        commands->pick_timer = wl_event_loop_add_timer(server->loop, pick_timeout, server);
+    }
+    commands->picker = client;
+    wl_event_source_timer_update(commands->pick_timer, PICK_TIMEOUT_MS);
+    vela_input_set_xcursor(server, "crosshair");
+}
 
 static bool starts_with(const char *text, const char *prefix)
 {
@@ -429,7 +486,8 @@ static void run_command(struct vela_server *server, const char *line)
         vela_input_paste(server->input); // Win+V: the shell has put the item on the clipboard
     } else if (strcmp(line, "modifiers") == 0 || strcmp(line, "workspaces") == 0
         || strcmp(line, "accessibility") == 0 || strcmp(line, "window-rects") == 0
-        || strcmp(line, "caffeine status") == 0 || strcmp(line, "always-on-top status") == 0) {
+        || strcmp(line, "caffeine status") == 0 || strcmp(line, "always-on-top status") == 0
+        || strcmp(line, "pick-window") == 0) {
         // already answered to whoever asked
     } else if (starts_with(line, "workspace ")) {
         workspace(server, line);
@@ -500,6 +558,12 @@ static void run_command(struct vela_server *server, const char *line)
 
 static void client_destroy(struct client *client)
 {
+    struct vela_commands *commands = client->server->commands;
+    if (commands->picker == client) {
+        commands->picker = NULL;
+        wl_event_source_timer_update(commands->pick_timer, 0);
+        vela_input_set_xcursor(client->server, "default");
+    }
     wl_list_remove(&client->link);
     wl_event_source_remove(client->source);
     close(client->fd);
@@ -531,7 +595,11 @@ static int handle_client(int fd, uint32_t mask, void *data)
         memmove(client->buffer, newline + 1, client->length);
     }
     for (size_t at = 0; at < lines_length; at += strlen(lines + at) + 1) {
-        answer(server, fd, lines + at);
+        if (strcmp(lines + at, "pick-window") == 0) {
+            pick_begin(server, client);
+        } else {
+            answer(server, fd, lines + at);
+        }
     }
     bool closed = n == 0 || (mask & (WL_EVENT_HANGUP | WL_EVENT_ERROR)) || client->length >= MAX_LINE;
     if (closed) {
@@ -599,6 +667,9 @@ void vela_commands_stop(struct vela_server *server)
     struct client *client, *next;
     wl_list_for_each_safe (client, next, &commands->clients, link) {
         client_destroy(client);
+    }
+    if (commands->pick_timer) {
+        wl_event_source_remove(commands->pick_timer);
     }
     if (commands->source) {
         wl_event_source_remove(commands->source);

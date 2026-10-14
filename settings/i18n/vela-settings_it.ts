@@ -942,10 +942,6 @@ Specifiche sistema
         <translation>Mostra un indicatore mentre lo schermo è condiviso o registrato</translation>
     </message>
     <message>
-        <source>Silence notifications while sharing</source>
-        <translation>Silenzia le notifiche durante la condivisione</translation>
-    </message>
-    <message>
         <source>Related settings</source>
         <translation>Impostazioni correlate</translation>
     </message>
@@ -2334,10 +2330,6 @@ Specifiche sistema
         <translation>Emoji e altro</translation>
     </message>
     <message>
-        <source>Emoji and more</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Sound output and volume mixer</source>
         <translation>Uscita audio e mixer del volume</translation>
     </message>
@@ -3321,12 +3313,10 @@ Specifiche sistema
 <context>
     <name>WindowRulesPage</name>
     <message>
-        <location filename="../qml/pages/WindowRulesPage.qml" line="23"/>
         <source>Remember window positions</source>
         <translation>Ricorda la posizione delle finestre</translation>
     </message>
     <message>
-        <location filename="../qml/pages/WindowRulesPage.qml" line="24"/>
         <source>Apps reopen where you closed them, with the same size. Rules below win.</source>
         <translation>Le app si riaprono dove le hai chiuse, con la stessa dimensione. Le regole qui sotto hanno la precedenza.</translation>
     </message>
@@ -3377,6 +3367,10 @@ Specifiche sistema
     <message>
         <source>App id (e.g. discord) or pick an open window above</source>
         <translation>Id dell&apos;app (ad es. discord) o scegli una finestra aperta qui sopra</translation>
+    </message>
+    <message>
+        <source>Pick a window</source>
+        <translation>Scegli una finestra</translation>
     </message>
     <message>
         <source>Output: name (HDMI-A-1) or number (1, 2, ...)</source>
