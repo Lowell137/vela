@@ -30,6 +30,7 @@ struct wlr_drm_syncobj_timeline;
 struct wlr_output;
 struct wlr_output_state;
 struct wlr_surface;
+struct wlr_swapchain;
 struct wlr_texture;
 
 // A quad to draw, in target pixels.
@@ -58,6 +59,7 @@ struct vela_element {
     struct wlr_box blur_box;
     // The window's forced blur (vela_surface_node.blur), surface coordinates.
     struct wlr_box blur_forced;
+    bool capture_hidden; // under a node hidden from captures (§15)
     bool visible; // not entirely covered
     int64_t visible_area; // uncovered pixels
     int order; // position in the list, from the bottom
@@ -79,6 +81,8 @@ struct vela_build_params {
     // Captures: the root is drawn even when hidden (minimized window) and
     // without its opacity (animations).
     bool capture_root;
+    // The copy for screen captures: nodes marked capture_hidden are left out.
+    bool skip_capture_hidden;
 };
 void vela_build_elements(struct vela_scene *scene, struct vela_node *root, const struct vela_build_params *params,
     struct vela_elements *out);
@@ -151,6 +155,16 @@ struct vela_output_frame {
     uint64_t scanout_point;
     int feedback_debounce;
     struct wlr_surface *feedback_surface; // who has our scanout feedback
+
+    // Screen captures without the hidden windows (docs/renderer.md §15): the
+    // second drawing, its buffers, and the buffer it replaces in the commit.
+    struct vela_elements capture_elements;
+    struct wlr_swapchain *capture_swapchain;
+    bool capture_pending; // this commit must not give captures screen_buffer
+    struct wlr_buffer *capture_buffer; // what they get instead (NULL: nothing)
+    struct wlr_buffer *screen_buffer;
+    uint64_t capture_passes; // how many such drawings (for the tests)
+    struct wl_listener capture_commit;
 
     struct wl_listener damage;
     struct wl_listener needs_frame;

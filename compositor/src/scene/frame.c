@@ -308,6 +308,10 @@ static void visit(struct vela_scene *scene, struct vela_node *node, double lx, d
     if (!node->enabled && !captured) {
         return;
     }
+    if (node->capture_hidden && p->skip_capture_hidden) {
+        return;
+    }
+    const int first = out->count;
     lx += node->x;
     ly += node->y;
     float inherited = opacity;
@@ -385,6 +389,11 @@ static void visit(struct vela_scene *scene, struct vela_node *node, double lx, d
         apply_clip(e, &clip);
         break;
     }
+    }
+    if (node->capture_hidden) {
+        for (int i = first; i < out->count; ++i) {
+            out->items[i].capture_hidden = true;
+        }
     }
 }
 
@@ -641,6 +650,101 @@ static void handle_needs_frame(struct wl_listener *listener, void *data)
     vela_output_schedule_frame(frame->owner);
 }
 
+// Screen captures (docs/renderer.md §15.2): wlroots' screencopy and
+// ext-image-copy-capture copy the committed buffer in this same event, after
+// us. The state is wlr_output_commit_state's own copy, already applied to the
+// output, and its buffer isn't used after the event when we supplied it
+// (wlroots 0.20): the captures get the copy without the hidden windows.
+static void handle_capture_commit(struct wl_listener *listener, void *data)
+{
+    struct vela_output_frame *frame = wl_container_of(listener, frame, capture_commit);
+    struct wlr_output_event_commit *event = data;
+    if (!frame->capture_pending || !(event->state->committed & WLR_OUTPUT_STATE_BUFFER)
+        || event->state->buffer != frame->screen_buffer) {
+        return;
+    }
+    struct wlr_output_state *state = (struct wlr_output_state *)event->state;
+    if (frame->capture_buffer) {
+        state->buffer = frame->capture_buffer;
+    } else {
+        state->committed &= ~WLR_OUTPUT_STATE_BUFFER; // the copy failed: captures skip this frame
+    }
+}
+
+static void drop_capture_swapchain(struct vela_output_frame *frame)
+{
+    wlr_swapchain_destroy(frame->capture_swapchain);
+    frame->capture_swapchain = NULL;
+}
+
+// Whether the screen buffer shows something hidden from captures, while a
+// capture waits for it: both wlroots captures hold the output's render lock.
+static bool needs_capture_copy(struct vela_output_frame *frame, const struct vela_elements *elements)
+{
+    if (frame->output->attach_render_locks <= 0) {
+        if (frame->capture_swapchain) {
+            drop_capture_swapchain(frame);
+        }
+        return false;
+    }
+    for (int i = 0; i < elements->count; ++i) {
+        if (elements->items[i].capture_hidden && elements->items[i].visible) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// The same frame without the hidden nodes, whole, into a buffer like the
+// screen's (format and size): what the captures will copy. NULL: it failed,
+// and the frame goes out without captures being served the screen buffer.
+static struct wlr_buffer *draw_capture_copy(struct vela_output_frame *frame, const struct vela_build_params *params,
+    struct wlr_buffer *screen, enum wl_output_transform transform, int width, int height, const float *filter)
+{
+    struct wlr_output *output = frame->output;
+    struct wlr_swapchain *swapchain = frame->capture_swapchain;
+    if (swapchain && (swapchain->width != screen->width || swapchain->height != screen->height
+        || swapchain->format.format != output->swapchain->format.format)) {
+        drop_capture_swapchain(frame);
+    }
+    if (!frame->capture_swapchain) {
+        frame->capture_swapchain
+            = wlr_swapchain_create(output->allocator, screen->width, screen->height, &output->swapchain->format);
+    }
+    struct wlr_buffer *buffer = frame->capture_swapchain ? wlr_swapchain_acquire(frame->capture_swapchain) : NULL;
+    if (!buffer) {
+        return NULL;
+    }
+    struct vela_build_params copy = *params;
+    copy.skip_capture_hidden = true;
+    vela_build_elements(frame->scene, &frame->scene->root->node, &copy, &frame->capture_elements);
+    cull_occluded(&frame->capture_elements);
+
+    bool ok = false;
+    struct vela_pass *pass = vela_renderer_begin_pass(frame->renderer, buffer);
+    if (pass) {
+        if (filter) {
+            vela_pass_set_color_filter(pass, filter);
+        }
+        const struct wlr_box all = { 0, 0, buffer->width, buffer->height };
+        const struct wlr_render_color black = { 0.0f, 0.0f, 0.0f, 1.0f };
+        vela_pass_add_rect(pass, &all, &black, NULL, false, NULL, 0.0f);
+        vela_draw_elements(frame->scene, pass, &frame->capture_elements, NULL, transform, width, height);
+        wlr_output_add_software_cursors_to_render_pass(output, vela_pass_wlr(pass), NULL);
+        struct vela_pass_result result;
+        ok = vela_pass_submit(pass, &result);
+        if (ok) {
+            vela_add_release_points(frame->scene, &frame->capture_elements, frame->renderer, result.sync_point);
+            ++frame->capture_passes;
+        }
+    }
+    if (!ok) {
+        wlr_buffer_unlock(buffer);
+        return NULL;
+    }
+    return buffer;
+}
+
 struct vela_output_frame *vela_output_frame_create(struct vela_scene *scene, struct vela_renderer *renderer,
     struct wlr_output *output, struct vela_output *owner)
 {
@@ -657,6 +761,10 @@ struct vela_output_frame *vela_output_frame_create(struct vela_scene *scene, str
     // a frame (hardware cursor, captures) come through here.
     vela_listen(&output->events.damage, &frame->damage, handle_damage);
     vela_listen(&output->events.needs_frame, &frame->needs_frame, handle_needs_frame);
+    // First of all the commit listeners, so the captures that follow copy the
+    // buffer it puts in place (§15.2).
+    frame->capture_commit.notify = handle_capture_commit;
+    wl_list_insert(&output->events.commit.listener_list, &frame->capture_commit.link);
 
     // Scanout of buffers with explicit sync needs a backend that can wait for
     // and signal timelines (DRM, nested in a host with linux-drm-syncobj). The
@@ -672,6 +780,9 @@ static void send_feedback(struct vela_output_frame *frame, struct wlr_surface *s
 
 void vela_output_frame_destroy(struct vela_output_frame *frame)
 {
+    wl_list_remove(&frame->capture_commit.link);
+    drop_capture_swapchain(frame);
+    free(frame->capture_elements.items);
     wl_list_remove(&frame->damage.link);
     wl_list_remove(&frame->needs_frame.link);
     wl_list_remove(&frame->link);
@@ -1195,6 +1306,15 @@ bool vela_output_frame_render(struct vela_output_frame *frame, double lx, double
         }
     }
 
+    // A capture waits and the frame shows something hidden from it: the
+    // captures get a copy without it (§15.2).
+    if (ok && needs_capture_copy(frame, elements)) {
+        frame->capture_pending = true;
+        frame->screen_buffer = buffer;
+        frame->capture_buffer
+            = draw_capture_copy(frame, &params, buffer, transform, width, height, filtered ? filter : NULL);
+    }
+
     int buffer_width = buffer->width;
     int buffer_height = buffer->height;
     if (ok) {
@@ -1246,6 +1366,11 @@ bool vela_output_frame_render(struct vela_output_frame *frame, double lx, double
         frame->night_gamma_committed = frame->night_transform != NULL;
         frame->night_clear_needed = false;
         frame->night_commit_pending = false;
+    }
+    if (frame->capture_pending) {
+        wlr_buffer_unlock(frame->capture_buffer); // the captures copied it during the commit
+        frame->capture_buffer = frame->screen_buffer = NULL;
+        frame->capture_pending = false;
     }
     wlr_buffer_unlock(buffer);
     wlr_output_state_finish(&own);

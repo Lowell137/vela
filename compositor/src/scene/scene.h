@@ -67,6 +67,8 @@ struct vela_node {
     // The children don't inherit an ancestor's shape clip (popups: a menu can
     // go outside the window).
     bool unclipped;
+    // Left out of screen captures, with its children (docs/renderer.md §15).
+    bool capture_hidden;
 };
 
 // A tree's shape (docs/renderer.md §8): the children clipped to a rounded

@@ -120,6 +120,7 @@ static struct vela_snapshot *snapshot_create(struct vela_tree *parent, struct ve
 {
     struct vela_snapshot *snapshot = calloc(1, sizeof(*snapshot));
     snapshot->tree = vela_tree_create(parent);
+    snapshot->tree->node.capture_hidden = source->capture_hidden; // the copy is as private as the window
     snapshot->frame = frame;
     double lx = 0.0;
     double ly = 0.0;
