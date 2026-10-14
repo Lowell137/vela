@@ -199,7 +199,8 @@ void vela_view_update_shape(struct vela_view *view);
 // same windows take window-opacity (window-opacity-inactive when not active).
 void vela_view_update_blur(struct vela_view *view);
 // Rereads the window-blur* and window-opacity* keys of vela.conf (at startup and on
-// "reload-config"), then a frame to apply them.
+// "reload-config"), then a frame to apply them. Also the decoration-ssd app
+// ids, applied to open windows at once.
 void vela_views_load_settings(struct vela_server *server);
 // Creates or removes Vela's bar as the window asks, or realigns it to the
 // window.

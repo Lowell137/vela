@@ -262,7 +262,7 @@ static bool init(struct vela_server *server)
     server->scene->tearing_control = wlr_tearing_control_manager_v1_create(display, 1);
     server->a11y = vela_a11y_create(server);
     vela_output_load_settings(server);
-    vela_views_load_settings(server); // window blur
+    vela_views_load_settings(server); // window blur, title bars for the listed app ids
     vela_a11y_load(server->a11y);
     vela_shortcuts_load();
     server->workspaces = vela_workspaces_create(server); // virtual desktops (workspace.c)

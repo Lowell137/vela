@@ -3,10 +3,10 @@
 
 #include "view.h"
 
+#include "config.h"
 #include "interact.h"
 #include "focus.h"
 #include "bindings.h"
-#include "config.h"
 #include "decoration.h"
 #include "layer.h"
 #include "listen.h"
@@ -357,9 +357,13 @@ void vela_view_update_decoration(struct vela_view *view)
     // X11 windows that leave the bar to the window manager (apps with a bar of
     // their own, like Steam, say no), but not splash screens; Wayland apps
     // that accept a server-side bar (xdg-decoration: Qt and KDE, Chromium if
-    // chosen).
+    // chosen); and apps that never ask but expect the compositor's bar anyway
+    // (kitty: decoration-ssd in vela.conf).
     bool wanted = view->xdg_decoration
         && view->xdg_decoration->current.mode == WLR_XDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE;
+    if (!view->xdg_decoration && !view->x11) {
+        wanted = vela_config_list_has(view->server->ssd_include, vela_view_app_id(view));
+    }
 #if WLR_HAS_XWAYLAND
     if (view->x11) {
         wanted = !view->x11->override_redirect && view->x11->decorations == WLR_XWAYLAND_SURFACE_DECORATIONS_ALL
@@ -743,9 +747,20 @@ void vela_views_load_settings(struct vela_server *server)
     server->window_opacity = vela_clamp(atoi(vela_config_get(&settings, "window-opacity", "100")), 30, 100);
     const char *inactive = vela_config_get(&settings, "window-opacity-inactive", "");
     server->window_opacity_inactive = *inactive ? vela_clamp(atoi(inactive), 30, 100) : server->window_opacity;
+    free(server->ssd_include);
+    const char *ssd = vela_config_get(&settings, "decoration-ssd", "kitty");
+    server->ssd_include = *ssd ? strdup(ssd) : NULL;
     vela_config_finish(&settings);
     // The windows get it on the next frame (vela_server_animate).
     vela_server_schedule_frames(server);
+    // Open windows pick up a changed bar list at once (new ones on map and
+    // first commit).
+    struct vela_view *view;
+    wl_list_for_each (view, &server->views, link) {
+        if (view->mapped && view->xdg) {
+            vela_view_update_decoration(view);
+        }
+    }
 }
 
 // ----------------------------------------------------- maximize/fullscreen --
@@ -1389,6 +1404,8 @@ void vela_views_finish(struct vela_server *server)
     free(server->window_blur_include);
     free(server->window_blur_exclude);
     server->window_blur_include = server->window_blur_exclude = NULL;
+    free(server->ssd_include);
+    server->ssd_include = NULL;
 }
 
 // ------------------------------------------------------------- outputs --
