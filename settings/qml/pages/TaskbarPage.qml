@@ -36,6 +36,70 @@ Page {
     }
 
     CardGroup {
+        title: qsTr("Weather")
+        Card {
+            icon: "weather-few-clouds"
+            title: qsTr("Show the weather on the taskbar")
+            description: qsTr("Asks open-meteo.com for the forecast of the city you choose below, every 30 minutes. Off, nothing is requested")
+            trailing: Toggle {
+                checked: Prefs.weather
+                onToggled: on => Prefs.weather = on
+            }
+        }
+        Card {
+            icon: "mark-location"
+            title: qsTr("City")
+            description: Prefs.weatherCity !== "" ? Prefs.weatherCity : qsTr("No city chosen. The location is never guessed")
+            trailing: TextBox {
+                id: cityField
+                width: 220
+                placeholderText: qsTr("Search for a city")
+                onTextChanged: searchDelay.restart()
+                Timer {
+                    id: searchDelay
+                    interval: 500
+                    onTriggered: Places.search(cityField.text)
+                }
+            }
+        }
+        Card {
+            visible: cityField.text.trim().length >= 2 && Places.failed
+            icon: "dialog-warning"
+            title: qsTr("Couldn't search")
+            description: qsTr("Check the network connection and try again")
+        }
+        Card {
+            visible: cityField.text.trim().length >= 2 && !Places.busy && !Places.failed && Places.results.length === 0
+            icon: "edit-find"
+            title: qsTr("No cities found")
+        }
+        Repeater {
+            model: cityField.text.trim().length >= 2 ? Places.results : []
+            delegate: Card {
+                required property var modelData
+                icon: "mark-location"
+                title: modelData.name
+                description: modelData.detail
+                clickable: true
+                onClicked: {
+                    Prefs.setWeatherPlace(modelData.name + (modelData.detail !== "" ? ", " + modelData.detail.split(", ").pop() : ""),
+                        modelData.lat, modelData.lon)
+                    cityField.text = ""
+                }
+            }
+        }
+        Card {
+            icon: "weather-clear"
+            title: qsTr("Temperature unit")
+            trailing: Choice {
+                model: [qsTr("Celsius (°C)"), qsTr("Fahrenheit (°F)")]
+                currentIndex: Prefs.weatherUnit === "f" ? 1 : 0
+                onChosen: index => Prefs.weatherUnit = index === 1 ? "f" : "c"
+            }
+        }
+    }
+
+    CardGroup {
         title: qsTr("Taskbar behaviors")
         Card {
             icon: "format-justify-center"

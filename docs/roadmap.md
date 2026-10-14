@@ -58,7 +58,8 @@ direction, not a promise.
   an emoji picker on Super+. .
 - Start menu: Recommended files (search across files and settings is done).
 - Folders in the Start menu's pinned apps.
-- Widgets: a board with weather, calendar, news and system status.
+- Widgets: a board with calendar, news and system status (the weather is
+  already in the taskbar: opt-in, city chosen in Settings, Open-Meteo).
 - Taskbar: progress and unread badges, auto-hide, never combining buttons and
   the position (bottom, top, left or right, vertical included) are done.
 - Do Not Disturb on a schedule or per app (silencing while the screen is shared

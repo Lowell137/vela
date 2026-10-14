@@ -52,7 +52,7 @@ Window {
     // panels above it and lets the windows use it (taskbar-autohide).
     readonly property bool held: !Config.taskbarAutoHide || barHover.hovered || Shell.startMenuOpen
         || Menus.isOpen || Menus.quickSettingsOpen || Menus.notificationCenterOpen || Menus.taskViewOpen
-        || Menus.trayOverflow !== null || Menus.preview !== null
+        || Menus.trayOverflow !== null || Menus.weather !== null || Menus.preview !== null
     property bool concealed: false
     onHeldChanged: {
         if (held) {
@@ -574,6 +574,17 @@ Window {
                 Menus.trayOverflow = overflowButton.open ? null : { center: p.x, centerY: p.y, screen: root.screenName }
             }
         }
+    }
+
+    // The weather (WeatherWidget.qml), left of everything else in the notification area.
+    WeatherWidget {
+        visible: root.primary && Weather.shown
+        vertical: root.vertical
+        screenName: root.screenName
+        anchors.right: root.vertical ? undefined : overflowButton.left
+        anchors.top: root.vertical ? undefined : parent.top
+        anchors.bottom: root.vertical ? overflowButton.top : undefined
+        anchors.left: root.vertical ? parent.left : undefined
     }
 
     // The screen being shared or recorded, like Windows 11: a red dot over a

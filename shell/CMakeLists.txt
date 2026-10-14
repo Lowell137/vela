@@ -71,6 +71,8 @@ qt_add_executable(vela-shell
     src/windowcapture.cpp
     src/windowcapture.h
     src/workspaces.cpp
+    src/weather.cpp
+    src/weather.h
     src/workspaces.h)
 
 # The default wallpaper, inside the executable:
@@ -120,6 +122,8 @@ set(VELA_QML_FILES
     qml/TaskbarButton.qml
     qml/TrayIcon.qml
     qml/TrayOverflow.qml
+    qml/WeatherWidget.qml
+    qml/WeatherFlyout.qml
     qml/StartGlyph.qml
     qml/StartMenu.qml
     qml/AppTile.qml
@@ -170,6 +174,7 @@ target_link_libraries(vela-shell PRIVATE
     Qt6::Concurrent
     Qt6::DBus
     Qt6::Gui
+    Qt6::Network
     Qt6::Qml
     Qt6::Quick
     Qt6::Svg
@@ -264,6 +269,14 @@ if(VELA_BUILD_TOOLS)
     target_link_libraries(vela-service-models-test PRIVATE Qt6::Core Qt6::DBus Qt6::Test)
     add_test(NAME shell-service-models COMMAND vela-service-models-test)
     set_tests_properties(shell-service-models PROPERTIES TIMEOUT 90)
+
+    # Weather: WMO codes, parsing, config and "off means no request" (a fake
+    # fetcher; no network).
+    qt_add_executable(vela-weather-test tests/weather.cpp src/weather.cpp src/weather.h src/config.cpp src/config.h src/defaults.h)
+    target_include_directories(vela-weather-test PRIVATE src)
+    target_compile_options(vela-weather-test PRIVATE -Wall -Wextra)
+    target_link_libraries(vela-weather-test PRIVATE Qt6::Core Qt6::Gui Qt6::Network Qt6::Test)
+    add_test(NAME shell-weather COMMAND vela-weather-test)
 
     qt_add_executable(vela-notification-silence-test
         tests/notification_silence.cpp src/notifications.cpp src/notifications.h)

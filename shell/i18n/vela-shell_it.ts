@@ -1738,4 +1738,124 @@
         <translation>Sì</translation>
     </message>
 </context>
+<context>
+    <name>Weather</name>
+    <message>
+        <source>Today</source>
+        <translation>Oggi</translation>
+    </message>
+</context>
+<context>
+    <name>WeatherFlyout</name>
+    <message>
+        <source>No weather data yet</source>
+        <translation>Nessun dato meteo</translation>
+    </message>
+    <message>
+        <source>Out of date. Last updated %1.</source>
+        <translation>Non aggiornato. Ultimo aggiornamento: %1.</translation>
+    </message>
+    <message>
+        <source>Feels like</source>
+        <translation>Percepita</translation>
+    </message>
+    <message>
+        <source>Humidity</source>
+        <translation>Umidità</translation>
+    </message>
+    <message>
+        <source>Wind</source>
+        <translation>Vento</translation>
+    </message>
+</context>
+<context>
+    <name>WeatherWidget</name>
+    <message>
+        <source>out of date</source>
+        <translation>non aggiornato</translation>
+    </message>
+</context>
+<context>
+    <name>vela::weather</name>
+    <message>
+        <source>Clear</source>
+        <translation>Sereno</translation>
+    </message>
+    <message>
+        <source>Mostly clear</source>
+        <translation>Prevalentemente sereno</translation>
+    </message>
+    <message>
+        <source>Partly cloudy</source>
+        <translation>Parzialmente nuvoloso</translation>
+    </message>
+    <message>
+        <source>Overcast</source>
+        <translation>Coperto</translation>
+    </message>
+    <message>
+        <source>Fog</source>
+        <translation>Nebbia</translation>
+    </message>
+    <message>
+        <source>Drizzle</source>
+        <translation>Pioviggine</translation>
+    </message>
+    <message>
+        <source>Freezing drizzle</source>
+        <translation>Pioviggine gelata</translation>
+    </message>
+    <message>
+        <source>Light rain</source>
+        <translation>Pioggia leggera</translation>
+    </message>
+    <message>
+        <source>Rain</source>
+        <translation>Pioggia</translation>
+    </message>
+    <message>
+        <source>Heavy rain</source>
+        <translation>Pioggia forte</translation>
+    </message>
+    <message>
+        <source>Freezing rain</source>
+        <translation>Pioggia gelata</translation>
+    </message>
+    <message>
+        <source>Light snow</source>
+        <translation>Neve debole</translation>
+    </message>
+    <message>
+        <source>Snow</source>
+        <translation>Neve</translation>
+    </message>
+    <message>
+        <source>Heavy snow</source>
+        <translation>Neve forte</translation>
+    </message>
+    <message>
+        <source>Snow grains</source>
+        <translation>Granelli di neve</translation>
+    </message>
+    <message>
+        <source>Rain showers</source>
+        <translation>Rovesci di pioggia</translation>
+    </message>
+    <message>
+        <source>Snow showers</source>
+        <translation>Rovesci di neve</translation>
+    </message>
+    <message>
+        <source>Thunderstorm</source>
+        <translation>Temporale</translation>
+    </message>
+    <message>
+        <source>Thunderstorm with hail</source>
+        <translation>Temporale con grandine</translation>
+    </message>
+    <message>
+        <source>Unknown</source>
+        <translation>Sconosciuto</translation>
+    </message>
+</context>
 </TS>

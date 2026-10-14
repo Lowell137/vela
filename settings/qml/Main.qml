@@ -192,6 +192,7 @@ Window {
         { page: "colors", text: qsTr("Choose your mode"), keys: qsTr("dark light theme apps mode") },
         { page: "taskbar", text: qsTr("Taskbar"), keys: qsTr("taskbar alignment left center end task") },
         { page: "taskbar", text: qsTr("Automatically hide the taskbar"), keys: qsTr("auto hide autohide taskbar panel edge") },
+        { page: "taskbar", text: qsTr("Weather"), keys: qsTr("weather forecast temperature city celsius fahrenheit taskbar widget") },
         { page: "taskbar", text: qsTr("Combine taskbar buttons"), keys: qsTr("group windows buttons labels never always") },
         { page: "shortcuts", text: qsTr("Keyboard shortcuts"), keys: qsTr("keys hotkeys keybindings shortcut super close window command") },
         { page: "icons", text: qsTr("Icon theme"), keys: qsTr("icons theme papirus breeze") },

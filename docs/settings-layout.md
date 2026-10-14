@@ -38,6 +38,7 @@ menu's search, the shell's menu entries) are the keys of `pages` in
 | Hot corner, glow, animation | Taskbar | System > Multitasking |
 | Snap layouts (drag to top, distances, size) | Taskbar | System > Multitasking |
 | Screen sharing indicator, silence notifications while sharing | Taskbar | System > Display |
+| Weather widget (on/off, city, unit) | new | Personalization > Taskbar (its own "Weather" group; the page has four groups) |
 
 Preference keys and `vela.conf` / `vela-shell.conf` entries are unchanged.
 

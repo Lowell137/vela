@@ -15,6 +15,7 @@
 #include "clipboard.h"
 #include "emoji.h"
 #include "config.h"
+#include "weather.h"
 #include "controls.h"
 #include "desktopmodel.h"
 #include "fileactions.h"
@@ -188,6 +189,8 @@ const Panel panels[] = {
     // The hidden tray icons: the whole output, transparent, so a click
     // outside the flyout (the "^" button too) closes it. Esc.
     { "TrayOverflow", "vela-tray-overflow", layerOverlay, fill, -1, keysOnDemand },
+    // The weather flyout: same idea as the hidden icons one.
+    { "WeatherFlyout", "vela-weather", layerOverlay, fill, -1, keysOnDemand },
     { "FileDialogs", "vela-file-dialogs", layerTop, centered, 0, keysOnDemand },
     { "ClipboardPanel", "vela-clipboard", layerTop, bottomRight, 0, keysOnDemand },
 };
@@ -338,6 +341,13 @@ int main(int argc, char* argv[])
     tasks.setCombine(config.taskbarCombine() != QLatin1String("never"));
     QObject::connect(&config, &Config::taskbarChanged, &tasks,
         [&config, &tasks] { tasks.setCombine(config.taskbarCombine() != QLatin1String("never")); });
+    // Off by default: nothing is requested until the widget is switched on.
+    Weather weather;
+    auto applyWeather = [&config, &weather] {
+        weather.setConfig(config.weather(), config.weatherCity(), config.weatherLat(), config.weatherLon(), config.weatherUnit());
+    };
+    QObject::connect(&config, &Config::taskbarChanged, &weather, applyWeather);
+    applyWeather();
     WindowCapture capture;
     NotificationServer notifications;
     notifications.registerService();
@@ -425,6 +435,7 @@ int main(int argc, char* argv[])
     qmlRegisterType<vela::audio::LevelMeter>("Vela.Audio", 1, 0, "LevelMeter");
     engine.rootContext()->setContextProperty(QStringLiteral("Access"), &accessibility);
     engine.rootContext()->setContextProperty(QStringLiteral("Network"), &network);
+    engine.rootContext()->setContextProperty(QStringLiteral("Weather"), &weather);
 
     QQuickWindow* startMenu = nullptr;
     for (const Panel& panel : panels) {
