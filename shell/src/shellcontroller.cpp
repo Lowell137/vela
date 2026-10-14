@@ -393,9 +393,59 @@ void ShellController::setBottomMargin(QWindow* window, int margin)
 {
     if (auto* layer = window ? LayerShellQt::Window::get(window) : nullptr) {
         const QMargins margins = layer->margins();
-        if (margins.bottom() != -margin) {
-            layer->setMargins(QMargins(margins.left(), margins.top(), margins.right(), -margin));
+        const bool top = layer->anchors().testFlag(LayerShellQt::Window::AnchorTop)
+            && !layer->anchors().testFlag(LayerShellQt::Window::AnchorBottom);
+        if ((top ? margins.top() : margins.bottom()) != -margin) {
+            layer->setMargins(top ? QMargins(margins.left(), -margin, margins.right(), margins.bottom())
+                                  : QMargins(margins.left(), margins.top(), margins.right(), -margin));
         }
+    }
+}
+
+// The window's single vertical anchor (and its margin) on the wanted edge;
+// fill and centered windows have none or both, and stay as they are.
+static void moveToEdge(QWindow* window, bool top)
+{
+    using Window = LayerShellQt::Window;
+    auto* layer = window ? Window::get(window) : nullptr;
+    if (!layer) {
+        return;
+    }
+    Window::Anchors anchors = layer->anchors();
+    const bool hasTop = anchors.testFlag(Window::AnchorTop);
+    if (hasTop == anchors.testFlag(Window::AnchorBottom) || hasTop == top) {
+        return;
+    }
+    anchors.setFlag(Window::AnchorTop, top);
+    anchors.setFlag(Window::AnchorBottom, !top);
+    layer->setAnchors(anchors);
+    const QMargins m = layer->margins();
+    layer->setMargins(QMargins(m.left(), m.bottom(), m.right(), m.top()));
+}
+
+void ShellController::followTaskbar(QWindow* window, bool opposite)
+{
+    bool known = false;
+    for (Follower& f : m_followers) {
+        if (f.window == window) {
+            known = true;
+        }
+    }
+    if (!known) {
+        m_followers.append({ window, opposite });
+    }
+    moveToEdge(window, m_taskbarTop != opposite);
+}
+
+void ShellController::setTaskbarTop(bool top)
+{
+    if (top == m_taskbarTop) {
+        return;
+    }
+    m_taskbarTop = top;
+    m_followers.removeIf([](const Follower& f) { return f.window.isNull(); });
+    for (const Follower& f : std::as_const(m_followers)) {
+        moveToEdge(f.window, m_taskbarTop != f.opposite);
     }
 }
 
@@ -423,7 +473,8 @@ QPoint ShellController::placeAtPoint(QWindow* window, int x, int y)
     }
     using Anchor = LayerShellQt::Window::Anchor;
     if (x < 0) {
-        layer->setAnchors(LayerShellQt::Window::Anchors(Anchor::AnchorBottom) | Anchor::AnchorRight);
+        layer->setAnchors(LayerShellQt::Window::Anchors(m_taskbarTop ? Anchor::AnchorTop : Anchor::AnchorBottom)
+            | Anchor::AnchorRight);
         layer->setMargins({});
         return { -1, -1 };
     }
@@ -433,13 +484,14 @@ QPoint ShellController::placeAtPoint(QWindow* window, int x, int y)
     }
     window->setScreen(screen);
     layer->setScreen(screen);
-    // The margins are from the output's corner; the taskbar's room isn't ours.
     const QRect area = screen->geometry();
     const int left = std::clamp(x - area.x(), 0, std::max(0, area.width() - window->width()));
-    const int top = std::clamp(y - area.y(), 0, std::max(0, area.height() - window->height() - 56));
+    // The margins count from the usable area: below a taskbar at the top.
+    const int bar = m_taskbarTop ? 48 : 0; // Theme.taskbarHeight
+    const int top = std::clamp(y - area.y() - bar, 0, std::max(0, area.height() - window->height() - (m_taskbarTop ? 48 : 56)));
     layer->setAnchors(LayerShellQt::Window::Anchors(Anchor::AnchorTop) | Anchor::AnchorLeft);
     layer->setMargins(QMargins(left, top, 0, 0));
-    return { left, top };
+    return { left, top + bar }; // on the output
 }
 
 QString ShellController::primaryScreen() const

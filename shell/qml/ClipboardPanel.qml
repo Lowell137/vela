@@ -57,7 +57,7 @@ Window {
         corner = atPointer ? Shell.placeAtPoint(root, x - 12, y - 12) : Shell.placeAtPoint(root, -1, -1)
         visible = true
         panel.opacity = 0
-        slide.y = 12
+        slide.y = Config.taskbarTop ? -12 : 12
         appear.restart()
         focusTab()
         updateBlur()
@@ -105,7 +105,7 @@ Window {
     function screenPoint(item, x, y) {
         const p = item.mapToItem(null, x, y)
         if (corner.x >= 0) return Qt.point(corner.x + p.x, corner.y + p.y)
-        return Qt.point(Screen.width - root.width + p.x, Screen.height - Theme.taskbarHeight - root.height + p.y)
+        return Qt.point(Screen.width - root.width + p.x, Config.taskbarTop ? Theme.taskbarHeight + p.y : Screen.height - Theme.taskbarHeight - root.height + p.y)
     }
 
     ParallelAnimation {

@@ -83,6 +83,10 @@ void releaseHiddenPanel(QQuickWindow* window)
     });
 }
 
+// The taskbar's edge (taskbar/position) and the controller that moves what
+// follows it, for the taskbars ScreenWindows creates as outputs appear.
+ShellController* taskbarShell = nullptr;
+
 void setupTaskbar(QQuickWindow* window, QScreen* screen)
 {
     LayerWindow* layer = LayerWindow::get(window);
@@ -93,6 +97,7 @@ void setupTaskbar(QQuickWindow* window, QScreen* screen)
         | LayerWindow::AnchorRight);
     layer->setExclusiveZone(window->height()); // maximized windows don't cover it
     layer->setKeyboardInteractivity(LayerWindow::KeyboardInteractivityNone);
+    taskbarShell->followTaskbar(window);
 }
 
 void setupWallpaper(QQuickWindow* window, QScreen* screen)
@@ -216,12 +221,13 @@ QQuickWindow* loadPanel(QQmlApplicationEngine& engine, const Panel& panel)
 }
 
 // With the taskbar aligned left, Start opens at the bottom left.
-void placeStartMenu(QQuickWindow* window, const QString& alignment)
+void placeStartMenu(QQuickWindow* window, const QString& alignment, ShellController& shell)
 {
     LayerWindow* layer = LayerWindow::get(window);
     const bool left = alignment == QLatin1String("left");
     layer->setAnchors(left ? bottomLeft : bottom);
     layer->setMargins(QMargins(left ? 12 : 0, 0, 0, 0));
+    shell.followTaskbar(window); // the edge it was just put back from
 }
 
 } // namespace
@@ -315,6 +321,15 @@ int main(int argc, char* argv[])
     };
     sendAutoHide();
     QObject::connect(&config, &Config::taskbarChanged, &shell, sendAutoHide);
+    // The edge: the panels it opens follow it (ShellController::followTaskbar).
+    taskbarShell = &shell;
+    shell.setTaskbarTop(config.taskbarTop());
+    auto sendPosition = [&config, &shell] {
+        shell.setTaskbarTop(config.taskbarTop());
+        ShellController::sendToCompositor(config.taskbarTop() ? "taskbar-position top" : "taskbar-position bottom");
+    };
+    sendPosition();
+    QObject::connect(&config, &Config::taskbarChanged, &shell, sendPosition);
     shell.watchSleep();
 
     ForeignToplevelManager windows;
@@ -418,10 +433,16 @@ int main(int argc, char* argv[])
         if (qstrcmp(panel.qml, "StartMenu") == 0) {
             startMenu = window;
         }
+        // The ones at one vertical edge sit at the taskbar's; the hot corner
+        // at the other one, which its Start button doesn't take.
+        const bool vertical = panel.anchors.testFlag(LayerWindow::AnchorTop) != panel.anchors.testFlag(LayerWindow::AnchorBottom);
+        if (vertical) {
+            shell.followTaskbar(window, qstrcmp(panel.qml, "HotCorner") == 0);
+        }
     }
-    placeStartMenu(startMenu, config.taskbarAlignment());
-    QObject::connect(&config, &Config::taskbarChanged, startMenu, [&config, startMenu] {
-        placeStartMenu(startMenu, config.taskbarAlignment());
+    placeStartMenu(startMenu, config.taskbarAlignment(), shell);
+    QObject::connect(&config, &Config::taskbarChanged, startMenu, [&config, startMenu, &shell] {
+        placeStartMenu(startMenu, config.taskbarAlignment(), shell);
     });
     // Wallpapers on every output; the taskbar too, like in Windows (or only on
     // the main one, if the user wants that).

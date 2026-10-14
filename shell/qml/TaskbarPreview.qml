@@ -113,7 +113,7 @@ Window {
         if (!visible) {
             visible = true
             panel.opacity = 0
-            slide.y = 8
+            slide.y = Config.taskbarTop ? -8 : 8
             appear.restart()
         }
         updateBlur()
@@ -220,7 +220,7 @@ Window {
     Rectangle {
         id: panel
         x: 16
-        y: 4
+        y: Config.taskbarTop ? 12 : 4 // the gap is towards the taskbar
         width: cards.width + 12
         height: root.cardHeight + 12
         radius: Theme.radiusOverlay

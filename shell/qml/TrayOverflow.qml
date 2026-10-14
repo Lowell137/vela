@@ -41,7 +41,7 @@ Window {
         root.anchorX = request.center
         root.visible = true
         panel.opacity = 0
-        panel.y = Qt.binding(() => panelY + 6)
+        panel.y = Qt.binding(() => panelY + (Config.taskbarTop ? -6 : 6))
         appear.restart()
         content.forceActiveFocus()
         root.updateBlur()
@@ -61,7 +61,7 @@ Window {
     onActiveChanged: if (!active && visible && !Menus.isOpen) close()
 
     // The window covers the whole output, the taskbar too.
-    readonly property real panelY: height - Theme.taskbarHeight - 12 - panel.height
+    readonly property real panelY: Config.taskbarTop ? Theme.taskbarHeight + 12 : height - Theme.taskbarHeight - 12 - panel.height
     onPanelYChanged: updateBlur()
 
     ParallelAnimation {
@@ -75,8 +75,8 @@ Window {
         target: Tray
         enabled: root.visible
         function onMenuReady(row, anchorX, entries) {
-            Menus.open(Menus.trayEntries(row, entries), anchorX, root.panelY - 4,
-                { screen: root.screen ? root.screen.name : "", above: true, centered: true })
+            Menus.open(Menus.trayEntries(row, entries), anchorX, Config.taskbarTop ? root.panelY + panel.height + 4 : root.panelY - 4,
+                { screen: root.screen ? root.screen.name : "", above: !Config.taskbarTop, centered: true })
         }
     }
 

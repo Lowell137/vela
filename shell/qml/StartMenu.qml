@@ -129,7 +129,7 @@ Window {
     function screenPoint(item, x, y) {
         const p = item.mapToItem(null, x, y)
         const left = Config.taskbarAlignment === "left" ? 12 : (Screen.width - root.width) / 2 // placeStartMenu
-        return Qt.point(left + p.x, Screen.height - Theme.taskbarHeight - root.height + p.y)
+        return Qt.point(left + p.x, Config.taskbarTop ? Theme.taskbarHeight + p.y : Screen.height - Theme.taskbarHeight - root.height + p.y)
     }
 
     // An app's menu (docs/renderer.md §14.7): recent files and tasks at the
@@ -226,7 +226,8 @@ Window {
 
     // The blurred background under the panel (which rises while opening).
     function updateBlur() {
-        Effects.setBlur(root, [Qt.rect(panel.x, Math.max(0, panel.y), panel.width, Math.max(0, Math.min(panel.height, root.height - panel.y)))])
+        const top = Math.max(0, panel.y)
+        Effects.setBlur(root, [Qt.rect(panel.x, top, panel.width, Math.max(0, Math.min(panel.y + panel.height, root.height) - top))])
     }
     Connections {
         target: panel
@@ -371,10 +372,12 @@ Window {
     Rectangle {
         id: panel
 
-        readonly property real restY: 10
-        // How far it rises while opening. The part sticking out below the
-        // window is cut at the taskbar's edge.
-        readonly property real slide: 140
+        // 10 above and 22 below (12 of gap from the taskbar); the other way
+        // round with the taskbar at the top.
+        readonly property real restY: Config.taskbarTop ? 22 : 10
+        // How far it rises while opening (falls, at the top). The part
+        // sticking out is cut at the taskbar's edge.
+        readonly property real slide: Config.taskbarTop ? -140 : 140
         x: 10
         y: restY
         width: root.width - 20

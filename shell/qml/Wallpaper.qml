@@ -271,7 +271,7 @@ Window {
 
     Item {
         id: icons
-        anchors { fill: parent; bottomMargin: Theme.taskbarHeight }
+        anchors { fill: parent; topMargin: Config.taskbarTop ? Theme.taskbarHeight : 0; bottomMargin: Config.taskbarTop ? 0 : Theme.taskbarHeight }
         focus: true
 
         // The model uses the sizes to lay out the icons.

@@ -6,6 +6,7 @@
 #include <QDBusUnixFileDescriptor>
 #include <QLocalServer>
 #include <QLocalSocket>
+#include <QList>
 #include <QPointer>
 #include <QObject>
 #include <QPoint>
@@ -59,8 +60,16 @@ public:
     // A shell window anchored at the bottom left (the taskbar previews):
     // `left` pixels from the output's left edge.
     Q_INVOKABLE void placeAtLeft(QWindow* window, int left);
-    // Slides a bottom panel down by `margin` px (auto-hide: the taskbar).
+    // Slides the taskbar out of its edge by `margin` px (auto-hide).
     Q_INVOKABLE void setBottomMargin(QWindow* window, int margin);
+    // The taskbar is at the top edge (taskbar/position): the windows that
+    // follow it (followTaskbar) move to the top edge too, with their margins.
+    void setTaskbarTop(bool top);
+    // `window` is anchored at one vertical edge, the taskbar's side: bottom
+    // while the taskbar is at the bottom, top otherwise. `opposite`: the other
+    // one (the hot corner, which leaves the Start button's corner). Call it
+    // again after changing the anchors by hand.
+    void followTaskbar(QWindow* window, bool opposite = false);
     // A (hidden) shell panel on output `name`: it appears there the next time
     // it opens.
     Q_INVOKABLE void placeOnScreen(QWindow* window, const QString& name);
@@ -182,6 +191,12 @@ private:
 
     QLocalServer m_server;
     bool m_startMenuOpen = false;
+    bool m_taskbarTop = false;
+    struct Follower {
+        QPointer<QWindow> window;
+        bool opposite;
+    };
+    QList<Follower> m_followers;
     bool m_screenCaptured = false;
     bool m_captureDnd = false;
     QStringList m_startPins;

@@ -95,18 +95,19 @@ Window {
 
     // --- right-click menus (docs/renderer.md §14.4-14.6) ---
 
-    // The taskbar is at the bottom of the output: from its coordinates to the
-    // output's.
+    // The taskbar is at the bottom of the output (or the top, taskbar/position):
+    // from its coordinates to the output's.
     function screenPoint(item, x, y) {
         const p = item.mapToItem(null, x, y)
-        return Qt.point(p.x, Screen.height - root.height + p.y)
+        return Qt.point(p.x, Config.taskbarTop ? p.y : Screen.height - root.height + p.y)
     }
-    // Taskbar menus rise from its top edge.
-    readonly property real menuBottom: Screen.height - root.height - 4
+    // Taskbar menus rise from its top edge, or at the top they hang from its
+    // bottom one (`above: false`).
+    readonly property real menuBottom: Config.taskbarTop ? root.height + 4 : Screen.height - root.height - 4
 
     function openAbove(entries, item, centered, options) {
         const p = screenPoint(item, centered ? item.width / 2 : 0, 0)
-        root.openMenu(entries, p.x, menuBottom, Object.assign({ above: true, centered: centered }, options || {}))
+        root.openMenu(entries, p.x, menuBottom, Object.assign({ above: !Config.taskbarTop, centered: centered }, options || {}))
     }
     // Taskbar menus open on its output; the panels it opens (Start, quick
     // settings...) go there too.
@@ -219,7 +220,7 @@ Window {
     }
     function openWinX(keyboard) {
         const p = screenPoint(startButton, 0, 0)
-        root.openMenu(winXEntries(), p.x, menuBottom, { above: true, keyboard: keyboard })
+        root.openMenu(winXEntries(), p.x, menuBottom, { above: !Config.taskbarTop, keyboard: keyboard })
     }
 
     // The menu of a notification area icon (the app decides it). Those in the
@@ -228,7 +229,7 @@ Window {
         target: Tray
         enabled: root.primary && !Menus.trayOverflow
         function onMenuReady(row, anchorX, entries) {
-            root.openMenu(Menus.trayEntries(row, entries), anchorX, root.menuBottom, { above: true, centered: true })
+            root.openMenu(Menus.trayEntries(row, entries), anchorX, root.menuBottom, { above: !Config.taskbarTop, centered: true })
         }
     }
 
@@ -246,7 +247,7 @@ Window {
                 root.openMenu([
                     { text: qsTr("Task &manager"), icon: "utilities-system-monitor", enabled: System.available("task-manager"), action: () => System.trigger("task-manager") },
                     { text: qsTr("Taskbar &settings"), icon: "configure", enabled: System.available("taskbar-settings"), action: () => System.trigger("taskbar-settings") }
-                ], p.x, root.menuBottom, { above: true })
+                ], p.x, root.menuBottom, { above: !Config.taskbarTop })
             }
         }
 
@@ -702,7 +703,7 @@ Window {
                 ] : [
                     { text: qsTr("&Troubleshoot network problems"), icon: "network-workgroup", enabled: false },
                     { text: qsTr("&Network and Internet settings"), icon: "preferences-system-network", enabled: System.available("network"), action: () => System.trigger("network") }
-                ], p.x, root.menuBottom, { above: true })
+                ], p.x, root.menuBottom, { above: !Config.taskbarTop })
             }
             // Like the keyboard's volume keys, with the indicator: a step every
             // notch (120), touchpads add up their small ones.
@@ -801,7 +802,7 @@ Window {
                 root.openMenu([
                     { text: qsTr("&Adjust date and time"), icon: "preferences-system-time", enabled: System.available("datetime"), action: () => System.trigger("datetime") },
                     { text: qsTr("&Notification settings"), icon: "preferences-desktop-notification", enabled: System.available("notification-settings"), action: () => System.trigger("notification-settings") }
-                ], p.x, root.menuBottom, { above: true })
+                ], p.x, root.menuBottom, { above: !Config.taskbarTop })
             }
         }
     }

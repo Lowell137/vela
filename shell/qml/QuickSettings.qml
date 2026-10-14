@@ -33,7 +33,7 @@ Window {
         visible = true
         Menus.quickSettingsOpen = true
         panel.opacity = 0
-        slide.y = 12
+        slide.y = Config.taskbarTop ? -12 : 12
         appear.restart()
         panel.forceActiveFocus()
         updateBlur()
@@ -74,7 +74,7 @@ Window {
     // coordinates.
     function screenPoint(item, x, y) {
         const p = item.mapToItem(null, x, y)
-        return Qt.point(Screen.width - root.width + p.x, Screen.height - Theme.taskbarHeight - root.height + p.y)
+        return Qt.point(Screen.width - root.width + p.x, Config.taskbarTop ? Theme.taskbarHeight + p.y : Screen.height - Theme.taskbarHeight - root.height + p.y)
     }
     // The outputs (or inputs) for one app (the mixer), in a menu under its
     // button.

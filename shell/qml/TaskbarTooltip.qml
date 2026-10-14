@@ -48,6 +48,7 @@ Window {
     Rectangle {
         id: panel
         x: 8
+        y: Config.taskbarTop ? 8 : 0 // the gap is towards the taskbar
         width: label.width + 20
         height: label.height + 14
         radius: Theme.radius
