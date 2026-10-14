@@ -46,7 +46,7 @@ Page {
                 width: 220
                 from: 30
                 to: 100
-                stepSize: 5
+                stepSize: 1
                 live: false
                 value: Prefs.windowOpacity
                 onReleased: value => Prefs.windowOpacity = Math.round(value)
