@@ -123,6 +123,10 @@ public:
     void setScreenOffMinutes(int minutes);
     bool lockOnIdle() const { return m_lockOnIdle; }
     void setLockOnIdle(bool on);
+    // A vela.conf program choice for DefaultApps (system tools): the chosen
+    // program, "" for automatic. Empty writes remove the key.
+    QString compositorValue(const QString& key) const;
+    void setCompositorValue(const QString& key, const QString& program);
     QString language() const { return m_language; }
     void setLanguage(const QString& language);
 
@@ -235,7 +239,6 @@ private:
     // vela.conf: reread, only these keys changed, then "reload-config".
     void saveCompositor(const QList<QPair<QString, QString>>& changes);
     void saveCompositorKeys(const QStringList& keys); // the current values of these keys
-    QString compositorValue(const QString& key) const;
     void reloadCompositor(); // vela.conf and the compositor's state
     void queryCompositor(); // night light, magnifier...: the current state
     void watchConfig();

@@ -196,8 +196,20 @@ static void run_native(struct vela_server *server, const char *id)
             vela_view_close(active);
         }
     } else if (strcmp(id, "terminal") == 0) {
-        const char *terminal = getenv("VELA_TERMINAL");
-        vela_spawn(terminal ? terminal : "konsole || foot || kitty || alacritty || xterm");
+        // The Settings choice (Default apps) first, then the environment,
+        // then the first installed of the usual terminals.
+        const char *choice = NULL;
+        struct vela_config conf;
+        vela_config_read(&conf);
+        const char *key = vela_config_get(&conf, "terminal", "");
+        char chosen[256] = "";
+        if (*key) {
+            snprintf(chosen, sizeof(chosen), "%s", key);
+            choice = chosen;
+        }
+        vela_config_finish(&conf);
+        const char *terminal = choice && *choice ? choice : getenv("VELA_TERMINAL");
+        vela_spawn(terminal && *terminal ? terminal : "konsole || foot || kitty || alacritty || xterm");
     } else if (strcmp(id, "lock") == 0) {
         vela_lock_screen(server->lock);
     }

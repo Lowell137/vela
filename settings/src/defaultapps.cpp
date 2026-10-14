@@ -5,11 +5,13 @@
 
 #include "appmodel.h"
 #include "mimeapps.h"
+#include "preferences.h"
 
 #include <QCoreApplication>
 #include <QCollator>
 #include <QMimeDatabase>
 #include <QSet>
+#include <QStandardPaths>
 #include <QVariantMap>
 
 #include <algorithm>
@@ -127,11 +129,18 @@ QVariantList sortedByName(QVariantList list)
     return list;
 }
 
+const QStringList& cliTools()
+{
+    static const QStringList tools { QStringLiteral("btop"), QStringLiteral("htop"), QStringLiteral("top") };
+    return tools;
+}
+
 } // namespace
 
-DefaultApps::DefaultApps(AppModel* apps, QObject* parent)
+DefaultApps::DefaultApps(AppModel* apps, Preferences* prefs, QObject* parent)
     : QObject(parent)
     , m_apps(apps)
+    , m_prefs(prefs)
 {
 }
 
@@ -185,6 +194,62 @@ QVariantList DefaultApps::candidatesFor(const QStringList& mimes, const QString&
     return out;
 }
 
+QVariantMap DefaultApps::toolCategory(const QString& key, const char* label, const char* icon,
+    const QStringList& programs, const QStringList& cli) const
+{
+    const QString current = m_prefs ? m_prefs->compositorValue(key) : QString();
+    QVariantList rest;
+    QSet<QString> seen;
+    for (const AppModel::Entry& e : m_apps->all()) {
+        if (!programs.contains(e.program) || e.program.isEmpty() || seen.contains(e.program)) {
+            continue;
+        }
+        seen.insert(e.program);
+        rest.append(appInfo(e.id));
+    }
+    for (const QString& tool : cli) {
+        if (!seen.contains(tool) && !QStandardPaths::findExecutable(tool).isEmpty()) {
+            seen.insert(tool);
+            rest.append(QVariantMap { { QStringLiteral("id"), tool },
+                { QStringLiteral("name"), tool }, { QStringLiteral("icon"), QLatin1String(icon) } });
+        }
+    }
+    rest = sortedByName(rest);
+    QVariantList candidates { QVariantMap { { QStringLiteral("id"), QString() },
+        { QStringLiteral("name"), QCoreApplication::translate("DefaultApps", "Automatic") },
+        { QStringLiteral("icon"), QLatin1String(icon) } } };
+    candidates.append(rest);
+    QVariantMap currentMap { { QStringLiteral("id"), QString() },
+        { QStringLiteral("name"), QCoreApplication::translate("DefaultApps", "Automatic") },
+        { QStringLiteral("icon"), QLatin1String(icon) } };
+    if (!current.isEmpty()) {
+        bool found = false;
+        for (const QVariant& c : std::as_const(candidates)) {
+            const QVariantMap m = c.toMap();
+            const QString id = m.value(QStringLiteral("id")).toString();
+            QString program = id;
+            if (const AppModel::Entry* entry = m_apps->find(id)) {
+                program = entry->program;
+            }
+            if (program == current) {
+                currentMap = m;
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            // Chosen, then uninstalled: still shown, first.
+            currentMap = QVariantMap { { QStringLiteral("id"), current },
+                { QStringLiteral("name"), current }, { QStringLiteral("icon"), QLatin1String(icon) } };
+            candidates.insert(1, currentMap);
+        }
+    }
+    return { { QStringLiteral("key"), key },
+        { QStringLiteral("label"), QCoreApplication::translate("DefaultApps", label) },
+        { QStringLiteral("icon"), QLatin1String(icon) }, { QStringLiteral("current"), currentMap },
+        { QStringLiteral("candidates"), candidates } };
+}
+
 QVariantList DefaultApps::categories() const
 {
     QVariantList out;
@@ -195,11 +260,33 @@ QVariantList DefaultApps::categories() const
             { QStringLiteral("current"), appInfo(current) },
             { QStringLiteral("candidates"), candidatesFor(c.mimes, current) } });
     }
+    // System tools have no MIME type: the terminal (Super+Enter) and the task
+    // manager. The choice is a program in vela.conf, "" for automatic.
+    out.append(toolCategory("terminal", QT_TRANSLATE_NOOP("DefaultApps", "Terminal"), "utilities-terminal",
+        { "konsole", "foot", "kitty", "alacritty", "gnome-terminal", "xterm", "wezterm" }, {}));
+    out.append(toolCategory("task-manager", QT_TRANSLATE_NOOP("DefaultApps", "Task manager"),
+        "utilities-system-monitor", { "plasma-systemmonitor", "gnome-system-monitor", "missioncenter" },
+        { "btop", "htop", "top" }));
     return out;
 }
 
 void DefaultApps::setDefault(const QString& key, const QString& appId)
 {
+    if (key == QLatin1String("terminal") || key == QLatin1String("task-manager")) {
+        // An installed app: its program; "Automatic" (or anything unknown):
+        // back to automatic.
+        QString program;
+        if (const AppModel::Entry* entry = m_apps->find(appId)) {
+            program = entry->program;
+        } else if (!appId.isEmpty() && cliTools().contains(appId)) {
+            program = appId;
+        }
+        if (m_prefs) {
+            m_prefs->setCompositorValue(key, program.isEmpty() ? QString() : program);
+        }
+        emit changed();
+        return;
+    }
     if (const Category* category = findCategory(key)) {
         MimeApps::setDefault(category->mimes, appId);
         emit changed();
