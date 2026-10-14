@@ -21,6 +21,15 @@ Page {
 
     CardGroup {
         Card {
+            icon: "window"
+            title: qsTr("Remember window positions")
+            description: qsTr("Apps reopen where you closed them, with the same size. Rules below win.")
+            trailing: Toggle {
+                checked: Prefs.rememberWindowPositions
+                onToggled: on => Prefs.rememberWindowPositions = on
+            }
+        }
+        Card {
             icon: "list-add"
             title: Prefs.windowRules.length === 0 ? qsTr("No rules") : Prefs.windowRules.length + (Prefs.windowRules.length === 1 ? qsTr(" rule") : qsTr(" rules"))
             trailing: Button {

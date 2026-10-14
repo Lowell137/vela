@@ -27,6 +27,8 @@ private Q_SLOTS:
         Config config;
         QVERIFY(!config.taskbarAutoHide());
         QCOMPARE(config.taskbarCombine(), QStringLiteral("always"));
+        QCOMPARE(config.taskbarPosition(), QStringLiteral("bottom"));
+        QVERIFY(!config.taskbarTop());
     }
     void values()
     {
@@ -34,9 +36,12 @@ private Q_SLOTS:
             QSettings settings;
             settings.setValue(QStringLiteral("taskbar/autoHide"), true);
             settings.setValue(QStringLiteral("taskbar/combine"), QStringLiteral("never"));
+            settings.setValue(QStringLiteral("taskbar/position"), QStringLiteral("top"));
         }
         Config config;
         QVERIFY(config.taskbarAutoHide());
+        QVERIFY(config.taskbarTop());
+        QVERIFY(!config.taskbarVertical());
         QCOMPARE(config.taskbarCombine(), QStringLiteral("never"));
     }
     void unknownCombineIsAlways()

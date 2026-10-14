@@ -261,6 +261,8 @@ void vela_view_sync_x11(struct vela_view *view);
 void vela_views_usable_changed(struct vela_server *server, struct vela_output *output);
 // A visible fullscreen app on that output (VRR "games").
 bool vela_views_fullscreen_on(struct vela_server *server, struct vela_output *output);
+// A visible fullscreen window on any output (fullscreen-dnd).
+bool vela_views_any_fullscreen(struct vela_server *server);
 // Outputs plugged and unplugged: the windows of an output that goes away move
 // to another, and come back when it does. "later": after everything has
 // settled (an output that goes away leaves the layout before being destroyed),

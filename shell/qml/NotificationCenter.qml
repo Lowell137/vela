@@ -31,7 +31,7 @@ Window {
         visible = true
         Menus.notificationCenterOpen = true
         column.opacity = 0
-        slide.x = 24
+        slide.x = Config.taskbarLeft ? -24 : 24
         appear.restart()
         column.forceActiveFocus()
         updateBlur()
@@ -141,6 +141,12 @@ Window {
                     Text {
                         visible: Notifications.captureSilenced
                         text: qsTr("Silenced while your screen is shared")
+                        color: Theme.textSecondary
+                        font.pixelSize: Theme.fontCaption
+                    }
+                    Text {
+                        visible: Notifications.fullscreenSilenced && !Notifications.captureSilenced
+                        text: qsTr("Silenced while a window is full screen")
                         color: Theme.textSecondary
                         font.pixelSize: Theme.fontCaption
                     }

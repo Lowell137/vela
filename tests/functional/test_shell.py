@@ -9,6 +9,7 @@ Run the real shell on a private session bus and isolated configuration.
 
 import os
 import re
+import shutil
 import subprocess
 import unittest
 
@@ -17,8 +18,12 @@ from harness import BUILD, Session
 SHELL = os.path.join(BUILD, "shell", "vela-shell")
 
 
-@unittest.skipUnless(os.path.exists(SHELL), "vela-shell not built (VELA_BUILD_SHELL=OFF)")
-class QtShell(unittest.TestCase):
+class RealShell:
+    """The compositor with the real shell, on a private bus; `position` is
+    written to its configuration first (taskbar/position)."""
+
+    position = None
+
     def setUp(self):
         self.bus = subprocess.Popen(["dbus-daemon", "--session", "--nofork", "--nopidfile", "--print-address=1"],
                                     stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
@@ -28,6 +33,11 @@ class QtShell(unittest.TestCase):
         self.vela = Session(size="1920x1080@100", env={"VELA_SYNC_FILE": "0", "DBUS_SESSION_BUS_ADDRESS": address})
         self.vela.start()
         self.addCleanup(self.vela.stop)
+        if self.position:
+            directory = os.path.join(self.vela.directory, "config", "Vela")
+            os.makedirs(directory, exist_ok=True)
+            with open(os.path.join(directory, "vela-shell.conf"), "w") as conf:
+                conf.write(f"[taskbar]\nposition={self.position}\n")
         env = dict(self.vela.client_env, QT_QPA_PLATFORM="wayland",
                    QT_WAYLAND_SHELL_INTEGRATION="layer-shell", QT_WAYLAND_RECONNECT="0",
                    QT_FORCE_STDERR_LOGGING="1", QSG_RENDER_LOOP="threaded", QSG_RHI_BACKEND="opengl",
@@ -57,6 +67,9 @@ class QtShell(unittest.TestCase):
         self.assertTrue(self.mapped(state, "vela-wallpaper"))
         self.assertNotIn("layer_surface has never been configured", self.vela.log_text())
 
+
+@unittest.skipUnless(os.path.exists(SHELL), "vela-shell not built (VELA_BUILD_SHELL=OFF)")
+class QtShell(RealShell, unittest.TestCase):
     def test_super_repeatedly_opens_and_closes_the_real_menu(self):
         # One virtual keyboard, as on the user's desktop. Creating a fresh
         # keyboard for each key would briefly change focus and close the menu.
@@ -120,6 +133,57 @@ class QtShell(unittest.TestCase):
                     surface = re.escape(creation[1])
                     self.assertRegex(log, rf'wl_surface{surface}\.attach\(wl_buffer')
                     self.assertRegex(log, rf'wl_surface{surface}\.destroy\(\)')
+
+
+def layer(state, namespace):
+    return next(l for l in state["layers"] if l["namespace"] == namespace and l["mapped"])
+
+
+@unittest.skipUnless(os.path.exists(SHELL), "vela-shell not built (VELA_BUILD_SHELL=OFF)")
+class TaskbarPosition:
+    """The taskbar on each edge (taskbar/position): the real Qt shell puts its
+    panel there, and the Start menu opens next to it, inside the usable area."""
+
+    expected_bar = None  # (x, y, w, h) on a 1920x1080 output
+    start_inside = None  # lambda bar, start -> bool
+
+    def test_taskbar_and_start_menu(self):
+        state = self.vela.state()
+        bar = layer(state, "vela-taskbar")
+        self.assertEqual((bar["x"], bar["y"], bar["w"], bar["h"]), self.expected_bar)
+        self.vela.input("key", "super", "sleep", "900")
+        self.check_desktop()
+        start = layer(self.vela.state(), "vela-start-menu")
+        out = state.output
+        self.assertTrue(start["w"] > 0 and start["h"] > 0)
+        self.assertGreaterEqual(start["x"], 0)
+        self.assertGreaterEqual(start["y"], 0)
+        self.assertLessEqual(start["x"] + start["w"], out["w"])
+        self.assertLessEqual(start["y"] + start["h"], out["h"])
+        # Not under the taskbar.
+        overlap_x = start["x"] < bar["x"] + bar["w"] and bar["x"] < start["x"] + start["w"]
+        overlap_y = start["y"] < bar["y"] + bar["h"] and bar["y"] < start["y"] + start["h"]
+        self.assertFalse(overlap_x and overlap_y, f"Start {start} over the taskbar {bar}")
+        self.vela.screenshot(os.path.join(self.vela.directory, "position.png"))
+        keep = os.environ.get("VELA_KEEP_SHOTS")
+        if keep:
+            os.makedirs(keep, exist_ok=True)
+            shutil.copy(os.path.join(self.vela.directory, "position.png"), os.path.join(keep, f"{self.position}.png"))
+
+
+class TaskbarTop(RealShell, TaskbarPosition, unittest.TestCase):
+    position = "top"
+    expected_bar = (0, 0, 1920, 48)
+
+
+class TaskbarLeft(RealShell, TaskbarPosition, unittest.TestCase):
+    position = "left"
+    expected_bar = (0, 0, 48, 1080)
+
+
+class TaskbarRight(RealShell, TaskbarPosition, unittest.TestCase):
+    position = "right"
+    expected_bar = (1872, 0, 48, 1080)
 
 
 if __name__ == "__main__":

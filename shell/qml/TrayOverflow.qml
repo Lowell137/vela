@@ -13,6 +13,8 @@ Window {
     color: "transparent"
 
     property real anchorX: 0
+    property real anchorY: 0 // next to a vertical taskbar
+    property real offset: 0 // how far it comes from, while opening
 
     Connections {
         target: Menus
@@ -39,9 +41,10 @@ Window {
             Shell.placeOnScreen(root, screen.name)
         }
         root.anchorX = request.center
+        root.anchorY = request.centerY
         root.visible = true
         panel.opacity = 0
-        panel.y = Qt.binding(() => panelY + 6)
+        root.offset = Config.taskbarLeft || Config.taskbarTop ? -6 : 6
         appear.restart()
         content.forceActiveFocus()
         root.updateBlur()
@@ -61,13 +64,18 @@ Window {
     onActiveChanged: if (!active && visible && !Menus.isOpen) close()
 
     // The window covers the whole output, the taskbar too.
-    readonly property real panelY: height - Theme.taskbarHeight - 12 - panel.height
+    readonly property real panelY: Config.taskbarVertical
+        ? Math.max(8, Math.min(height - panel.height - 8, anchorY - panel.height / 2))
+        : Config.taskbarTop ? Theme.taskbarHeight + 12 : height - Theme.taskbarHeight - 12 - panel.height
+    readonly property real panelX: Config.taskbarVertical
+        ? (Config.taskbarLeft ? Theme.taskbarHeight + 12 : width - Theme.taskbarHeight - 12 - panel.width)
+        : Math.max(8, Math.min(width - panel.width - 8, anchorX - panel.width / 2))
     onPanelYChanged: updateBlur()
 
     ParallelAnimation {
         id: appear
         NumberAnimation { target: panel; property: "opacity"; to: 1; duration: Theme.fast }
-        NumberAnimation { target: panel; property: "y"; to: root.panelY; duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+        NumberAnimation { target: root; property: "offset"; to: 0; duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
     }
 
     // The icons' menus open above the flyout.
@@ -75,8 +83,13 @@ Window {
         target: Tray
         enabled: root.visible
         function onMenuReady(row, anchorX, entries) {
-            Menus.open(Menus.trayEntries(row, entries), anchorX, root.panelY - 4,
-                { screen: root.screen ? root.screen.name : "", above: true, centered: true })
+            if (Config.taskbarVertical) {
+                Menus.open(Menus.trayEntries(row, entries), Config.taskbarLeft ? root.panelX + panel.width + 4 : root.panelX - 4,
+                    Menus.trayAnchorY, { screen: root.screen ? root.screen.name : "" })
+                return
+            }
+            Menus.open(Menus.trayEntries(row, entries), anchorX, Config.taskbarTop ? root.panelY + panel.height + 4 : root.panelY - 4,
+                { screen: root.screen ? root.screen.name : "", above: !Config.taskbarTop, centered: true })
         }
     }
 
@@ -95,8 +108,8 @@ Window {
 
     Rectangle {
         id: panel
-        x: Math.max(8, Math.min(root.width - width - 8, root.anchorX - width / 2))
-        y: root.panelY
+        x: root.panelX + (Config.taskbarVertical ? root.offset : 0)
+        y: root.panelY + (Config.taskbarVertical ? 0 : root.offset)
         width: grid.width + 16
         height: grid.height + 16
         radius: Theme.radiusOverlay

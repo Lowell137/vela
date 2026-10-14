@@ -4,7 +4,7 @@
 import QtQuick
 import Vela.Controls
 
-// Personalization > Keyboard shortcuts: the shortcuts Vela has, to change, and
+// Time & language > Keyboard > Keyboard shortcuts: the shortcuts Vela has, to change, and
 // your own, each running a command. They are kept in vela.conf (shortcut-*).
 Page {
     id: page

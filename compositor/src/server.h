@@ -20,6 +20,7 @@
 #include "process.h"
 #include "scene/ready.h"
 #include "shell.h"
+#include "window_memory.h"
 #include "window_rules.h"
 
 struct vela_a11y;
@@ -139,6 +140,12 @@ struct vela_server {
     // The taskbar hides by itself ("taskbar-autohide", from the shell): windows
     // use the space it reserves for the panels.
     bool taskbar_autohide;
+    // The taskbar's edge ("taskbar-position top|bottom|left|right", from the
+    // shell). The panels are placed by their anchors; this only moves what
+    // the compositor puts near the taskbar itself: the hot corner (it leaves
+    // the corner the Start button is in) and the minimize target of windows
+    // without a button.
+    enum { VELA_TASKBAR_BOTTOM, VELA_TASKBAR_TOP, VELA_TASKBAR_LEFT, VELA_TASKBAR_RIGHT } taskbar_edge;
     // The desktop wallpaper's tint (Mica, docs/renderer.md §9.4): the average
     // color, in sRGB, sent by the shell. The version changes with it and with
     // the theme: title bars redraw.
@@ -155,6 +162,10 @@ struct vela_server {
     // window-rule lines of vela.conf (window_rules.h), applied when a window
     // maps; a reload affects new windows only.
     struct vela_window_rules window_rules;
+    // remember-window-positions: where each app's window closed
+    // (window_memory.h), used when it maps again.
+    bool remember_window_positions;
+    struct vela_window_memory window_memory;
     // The same windows drawn translucent (window-opacity*, percent 30-100;
     // 100: opaque), when active and when not.
     int window_opacity;

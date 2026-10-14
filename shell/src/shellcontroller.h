@@ -6,6 +6,9 @@
 #include <QDBusUnixFileDescriptor>
 #include <QLocalServer>
 #include <QLocalSocket>
+#include <LayerShellQt/Window>
+#include <QList>
+#include <QMargins>
 #include <QPointer>
 #include <QObject>
 #include <QPoint>
@@ -37,6 +40,9 @@ class ShellController : public QObject {
     // While captured: how many windows are left out of it ("capture on
     // hidden N", docs/renderer.md §15).
     Q_PROPERTY(int captureHiddenWindows READ captureHiddenWindows NOTIFY screenCapturedChanged)
+    // "fullscreen on" / "fullscreen off": a visible window is full screen and
+    // fullscreen-dnd=yes (the compositor only sends it then).
+    Q_PROPERTY(bool fullscreenActive READ fullscreenActive NOTIFY fullscreenActiveChanged)
 
 public:
     explicit ShellController(QObject* parent = nullptr);
@@ -62,8 +68,27 @@ public:
     // A shell window anchored at the bottom left (the taskbar previews):
     // `left` pixels from the output's left edge.
     Q_INVOKABLE void placeAtLeft(QWindow* window, int left);
-    // Slides a bottom panel down by `margin` px (auto-hide: the taskbar).
+    // Slides the taskbar out of its edge by `margin` px (auto-hide).
     Q_INVOKABLE void setBottomMargin(QWindow* window, int margin);
+    enum class Position { Bottom, Top, Left, Right };
+    // How a window follows the taskbar's edge (taskbar/position). Panel: the
+    // bottom corner it has (bottom, or the side of the taskbar). Start: at the
+    // top, next to a vertical taskbar. Beside: tooltips and previews, placed
+    // along a vertical taskbar with placeAtTop. HotCorner: the corner the Start
+    // button doesn't take. Taskbar: the taskbar itself.
+    enum class FollowKind { Panel, Start, Beside, HotCorner, Taskbar };
+    struct Follower {
+        QPointer<QWindow> window;
+        FollowKind kind;
+        QFlags<LayerShellQt::Window::Anchor> anchors; // at the bottom taskbar
+        QMargins margins;
+    };
+    void setTaskbarPosition(const QString& position);
+    // Call it with the window's anchors and margins as they are at the bottom
+    // taskbar, and again after changing them by hand.
+    void followTaskbar(QWindow* window, FollowKind kind = FollowKind::Panel);
+    // A window along a vertical taskbar: `top` px from the top of the output.
+    Q_INVOKABLE void placeAtTop(QWindow* window, int top);
     // A (hidden) shell panel on output `name`: it appears there the next time
     // it opens.
     Q_INVOKABLE void placeOnScreen(QWindow* window, const QString& name);
@@ -80,6 +105,7 @@ public:
     QString userInitial() const;
 
     bool screenCaptured() const { return m_screenCaptured; }
+    bool fullscreenActive() const { return m_fullscreenActive; }
     bool captureSilence() const { return m_screenCaptured && m_captureDnd; }
     int captureHiddenWindows() const { return m_screenCaptured ? m_captureHidden : 0; }
     bool startMenuOpen() const { return m_startMenuOpen; }
@@ -128,6 +154,7 @@ signals:
     void startPinsChanged();
     void primaryScreenChanged();
     void screenCapturedChanged();
+    void fullscreenActiveChanged();
     void chooseSourceRequested();
     void chooseSourceCancelled();
     // Windows shortcuts arriving from the compositor.
@@ -186,8 +213,11 @@ private:
 
     QLocalServer m_server;
     bool m_startMenuOpen = false;
+    Position m_position = Position::Bottom;
+    QList<Follower> m_followers;
     bool m_screenCaptured = false;
     bool m_captureDnd = false;
     int m_captureHidden = 0;
+    bool m_fullscreenActive = false;
     QStringList m_startPins;
 };

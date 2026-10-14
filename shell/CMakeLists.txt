@@ -149,7 +149,8 @@ set(VELA_QML_FILES
     qml/FileDialogs.qml
     qml/ClipboardPanel.qml
     qml/SnipOverlay.qml
-    qml/SnipCountdown.qml)
+    qml/SnipCountdown.qml
+    qml/SnipRecordBar.qml)
 
 # The files are in qml/ for tidiness, but in the module they must be at the
 # root: so they see each other without imports.

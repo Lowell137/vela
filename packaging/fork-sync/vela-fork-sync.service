@@ -1,0 +1,9 @@
+[Unit]
+Description=Vela fork: track upstream, build and package a sync candidate (installs nothing)
+
+[Service]
+Type=oneshot
+# Adjust the path if the repo checkout lives elsewhere.
+ExecStart=%h/vela-work/fork-sync/scripts/fork-sync.sh
+Nice=10
+IOSchedulingClass=idle

@@ -53,6 +53,7 @@ Item {
         acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
         onClicked: mouse => {
             const center = trayItem.mapToItem(null, trayItem.width / 2, 0).x
+            Menus.trayAnchorY = trayItem.mapToItem(null, 0, 0).y
             if (mouse.button === Qt.RightButton) {
                 Tray.requestMenu(trayItem.index, center)
             } else if (mouse.button === Qt.MiddleButton) {

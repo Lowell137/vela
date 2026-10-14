@@ -57,7 +57,8 @@ Window {
         corner = atPointer ? Shell.placeAtPoint(root, x - 12, y - 12) : Shell.placeAtPoint(root, -1, -1)
         visible = true
         panel.opacity = 0
-        slide.y = 12
+        slide.y = Config.taskbarVertical ? 0 : (Config.taskbarTop ? -12 : 12)
+        slide.x = Config.taskbarLeft ? -12 : (Config.taskbarRight ? 12 : 0)
         appear.restart()
         focusTab()
         updateBlur()
@@ -105,13 +106,14 @@ Window {
     function screenPoint(item, x, y) {
         const p = item.mapToItem(null, x, y)
         if (corner.x >= 0) return Qt.point(corner.x + p.x, corner.y + p.y)
-        return Qt.point(Screen.width - root.width + p.x, Screen.height - Theme.taskbarHeight - root.height + p.y)
+        return Menus.cornerPoint(p, root.width, root.height, Screen.width, Screen.height, true, 0)
     }
 
     ParallelAnimation {
         id: appear
         NumberAnimation { target: panel; property: "opacity"; to: 1; duration: Theme.fast; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
         NumberAnimation { target: slide; property: "y"; to: 0; duration: Theme.slow; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+        NumberAnimation { target: slide; property: "x"; to: 0; duration: Theme.slow; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
     }
 
     Rectangle {

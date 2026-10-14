@@ -64,14 +64,16 @@ Vela Settings preserves unrelated lines when it updates a key and asks the compo
 | `touchpad-natural-scroll` | `yes` | Natural scrolling. |
 | `touchpad-three-fingers` | `app` | Three-finger gesture mode: `app`, `desktop` or `no`. |
 | `touchpad-four-fingers` | `desktop` | Four-finger gesture mode. |
-| `capture-indicator` | `yes` | Show an indicator in the taskbar while the screen is shared or recorded (Settings > Taskbar > Screen sharing). `no` also disables `capture-dnd`. |
-| `capture-dnd` | `yes` | Silence notification popups while the screen is shared or recorded; they wait in the notification center. Added to the user's own Do Not Disturb, never replaces it. |
+| `capture-indicator` | `yes` | Show an indicator in the taskbar while the screen is shared or recorded (Settings > System > Display > Screen sharing). `no` also disables `capture-dnd`. |
+| `capture-dnd` | `yes` | Silence notification popups while the screen is shared or recorded; they wait in the notification center. Added to the user's own Do Not Disturb, never replaces it (Settings > System > Notifications). |
+| `fullscreen-dnd` | `yes` | Silence notification popups while a visible window is full screen on any output (games, video players); they wait in the notification center. Added to the user's own Do Not Disturb, never replaces it (Settings > System > Notifications). |
 | `window-blur` | `no` | Blur behind windows that don't ask for it (Settings > Personalization > Window blur). |
 | `window-blur-all` | `no` | `yes`: every window; `no`: only the `window-blur-include` apps. |
 | `window-blur-include` | empty | Comma-separated app ids (or X11 classes) to blur, case-insensitive. |
 | `window-blur-exclude` | empty | App ids never forced; wins over the other two. |
 | `window-opacity` | `100` | The same windows drawn translucent, in percent (30–100), so the blur shows through them; title bar included, shadow and fullscreen windows not. `100` changes nothing. |
 | `window-opacity-inactive` | `window-opacity` | The same for windows that aren't active. |
+| `remember-window-positions` | `yes` | An app's window reopens where it was closed: position, size, output, desktop and maximized, kept per app id in `~/.local/state/vela/window-positions.json` (`$XDG_STATE_HOME/vela/`), last closed window wins. A `window-rule` wins over it; dialogs, fullscreen windows, windows under 100 px and X11 windows that place themselves are left alone. If the output is gone, the window opens on the usual output, kept inside it. Session restore (reopening apps after login) is not part of this. |
 
 ## Taskbar settings
 
@@ -79,7 +81,8 @@ The shell's own settings (`~/.config/Vela/vela-shell.conf`, Qt's INI format) are
 
 | Key | Default | Effect |
 |---|---|---|
-| `autoHide` | `false` | Hide the taskbar automatically: it slides down leaving 2 px at the bottom edge of the screen, comes back when the pointer touches them, and goes away 0.5 s after the pointer leaves. It stays while the Start menu, a menu, a flyout or Task View is open. Maximized and snapped windows use the whole output; panels still sit above the taskbar's reserved space. The shell tells the compositor with `taskbar-autohide yes\|no`. |
+| `position` | `bottom` | The screen edge the taskbar sits on: `bottom`, `top`, `left` or `right`. At the sides it is 48 px wide, the Start button and apps go from the top, the clock (time, and day and month) at the bottom, and the buttons are dragged up and down. Start, quick settings, the notification center, menus, previews and tooltips open next to it; the hot corner moves to the corner its Start button doesn't take (bottom-left with the taskbar at the top, top-right on the left). Windows, snaps and Task View use the output minus the taskbar's side. The shell tells the compositor with `taskbar-position top\|bottom\|left\|right`. |
+| `autoHide` | `false` | Hide the taskbar automatically: it slides out of its edge (down, up, or sideways) leaving 2 px at that edge of the screen, comes back when the pointer touches them, and goes away 0.5 s after the pointer leaves. It stays while the Start menu, a menu, a flyout or Task View is open. Maximized and snapped windows use the whole output; panels still sit next to the taskbar's reserved space. The shell tells the compositor with `taskbar-autohide yes\|no`. |
 | `combine` | `always` | `always`: one button per app; `never`: one button per window (the app's first window keeps the pinned button, the others get their own). |
 
 ## Window rules

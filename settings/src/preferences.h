@@ -35,6 +35,7 @@ class Preferences : public QObject {
     // Settings itself is light (it follows the apps' mode).
     Q_PROPERTY(bool light READ light NOTIFY appThemeChanged)
     Q_PROPERTY(QString taskbarAlignment READ taskbarAlignment WRITE setTaskbarAlignment NOTIFY taskbarChanged)
+    Q_PROPERTY(QString taskbarPosition READ taskbarPosition WRITE setTaskbarPosition NOTIFY taskbarChanged)
     Q_PROPERTY(bool endTask READ endTask WRITE setEndTask NOTIFY taskbarChanged)
     Q_PROPERTY(bool taskView READ taskView WRITE setTaskView NOTIFY taskbarChanged)
     // The apps' tray icons behind the "^" button (taskbar/trayOverflow).
@@ -104,7 +105,9 @@ class Preferences : public QObject {
     // An indicator on the taskbar while the screen is shared or recorded.
     Q_PROPERTY(bool captureIndicator READ captureIndicator WRITE setCaptureIndicator NOTIFY shortcutsChanged)
     Q_PROPERTY(bool captureDnd READ captureDnd WRITE setCaptureDnd NOTIFY shortcutsChanged)
+    Q_PROPERTY(bool fullscreenDnd READ fullscreenDnd WRITE setFullscreenDnd NOTIFY shortcutsChanged)
     // Dragging a window to the top of the screen opens the snap layouts.
+    Q_PROPERTY(bool rememberWindowPositions READ rememberWindowPositions WRITE setRememberWindowPositions NOTIFY shortcutsChanged)
     Q_PROPERTY(bool snapDragLayouts READ snapDragLayouts WRITE setSnapDragLayouts NOTIFY shortcutsChanged)
     // How close to the top (px, 4-200) and how far beside them (px, 0-960)
     // they open, and their size (percent, 60-200).
@@ -153,6 +156,8 @@ public:
 
     QString taskbarAlignment() const { return m_taskbarAlignment; }
     void setTaskbarAlignment(const QString& alignment);
+    QString taskbarPosition() const { return m_taskbarPosition; }
+    void setTaskbarPosition(const QString& position);
     bool endTask() const { return m_endTask; }
     void setEndTask(bool on);
     bool taskView() const { return m_taskView; }
@@ -289,10 +294,14 @@ public:
     void setCaptureIndicator(bool on);
     bool captureDnd() const { return m_captureDnd; }
     void setCaptureDnd(bool on);
+    bool fullscreenDnd() const { return m_fullscreenDnd; }
+    void setFullscreenDnd(bool on);
     bool hotCornerGlow() const { return m_hotCornerGlow; }
     void setHotCornerGlow(bool on);
     bool hotCornerAnimation() const { return m_hotCornerAnimation; }
     void setHotCornerAnimation(bool on);
+    bool rememberWindowPositions() const { return m_rememberWindowPositions; }
+    void setRememberWindowPositions(bool on);
     bool snapDragLayouts() const { return m_snapDragLayouts; }
     void setSnapDragLayouts(bool on);
     int snapDragDistance() const { return m_snapDragDistance; }
@@ -363,6 +372,7 @@ private:
     QString m_appTheme;
     QString m_shellTheme;
     QString m_taskbarAlignment;
+    QString m_taskbarPosition = QStringLiteral("bottom");
     bool m_endTask = true;
     bool m_taskView = true;
     bool m_trayOverflow = true;
@@ -416,7 +426,9 @@ private:
     bool m_hotCornerGlow = true;
     bool m_captureIndicator = true;
     bool m_captureDnd = true;
+    bool m_fullscreenDnd = true;
     bool m_hotCornerAnimation = true;
+    bool m_rememberWindowPositions = true;
     bool m_snapDragLayouts = true;
     int m_snapDragDistance = 64;
     int m_snapDragWidth = 160;

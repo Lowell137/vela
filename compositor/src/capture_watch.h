@@ -13,6 +13,10 @@
 //  - wlr-screencopy frames found pending on consecutive checks (wf-recorder,
 //    gpu-screen-recorder).
 // "capture-indicator=no" in vela.conf turns it off.
+//
+// The same timer also sends "fullscreen on" / "fullscreen off" while a visible
+// window is fullscreen on any output (video players too), so the shell can
+// silence notifications. "fullscreen-dnd=no" turns it off.
 
 struct vela_server;
 struct wlr_ext_image_copy_capture_manager_v1;

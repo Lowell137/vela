@@ -48,7 +48,7 @@ direction, not a promise.
 - Hiding a window from screen capture: next, its title out of the window
   lists other clients read and of the taskbar while recording, and the
   same for X11 capture clients ([renderer §15.5](renderer.md#155-not-covered)).
-- Windows that reopen where they were, and session restore after login.
+- Session restore after login (apps reopening on their own). Windows already reopen where they were closed: `remember-window-positions`, see [configuration](configuration.md).
 - Moving a window to another monitor or desktop from the keyboard.
 - Per-monitor virtual desktops, as an option.
 - Picture-in-picture for video players.
@@ -59,18 +59,18 @@ direction, not a promise.
 - Start menu: Recommended files (search across files and settings is done).
 - Folders in the Start menu's pinned apps.
 - Widgets: a board with weather, calendar, news and system status.
-- Taskbar: vertical taskbar (progress and unread badges, auto-hide and
-  never combining buttons are done).
-- Do Not Disturb turned on automatically during fullscreen games.
-  (Notifications grouped by app, with fold and per-group clear, and silencing
-  while the screen is shared are done.)
+- Taskbar: progress and unread badges, auto-hide, never combining buttons and
+  the position (bottom, top, left or right, vertical included) are done.
+- Do Not Disturb on a schedule or per app (silencing while the screen is shared
+  or a window is full screen, and notifications grouped by app with fold and
+  per-group clear, are done).
 - Calendar events in the notification center.
 - An indicator when the screen is being shared or recorded.
 - Brightness keys with an on-screen indicator, on the monitor under the pointer.
 - Keyboard backlight control.
 
 ### Snipping tool
-- **Screen recording**, with or without sound.
+- Screen recording (done): Record mode in the bar, area or whole output, with the microphone or without sound (needs `wf-recorder`). System sound is not offered yet.
 - Annotations (pen, highlighter, arrows, crop) before saving.
 - Copying text from a capture (OCR).
 
@@ -91,7 +91,7 @@ direction, not a promise.
 ### Files
 - Network locations: SMB, SFTP, WebDAV.
 - Phones and cameras (MTP, PTP).
-- Quick preview with Space.
+- Quick preview with Space: audio and video.
 - An indexed search that finds files by name and content.
 - Batch rename.
 - Mounting disk images.

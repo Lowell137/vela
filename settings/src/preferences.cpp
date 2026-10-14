@@ -216,6 +216,11 @@ void Preferences::reload()
     m_taskbarAlignment = settings.value(QStringLiteral("taskbar/alignment")).toString() == QLatin1String("left")
         ? QStringLiteral("left")
         : QStringLiteral("center");
+    m_taskbarPosition = settings.value(QStringLiteral("taskbar/position")).toString();
+    if (m_taskbarPosition != QLatin1String("top") && m_taskbarPosition != QLatin1String("left")
+        && m_taskbarPosition != QLatin1String("right")) {
+        m_taskbarPosition = QStringLiteral("bottom");
+    }
     m_endTask = settings.value(QStringLiteral("taskbar/endTask"), true).toBool();
     m_taskView = settings.value(QStringLiteral("taskbar/taskView"), true).toBool();
     m_trayOverflow = settings.value(QStringLiteral("taskbar/trayOverflow"), true).toBool();
@@ -360,8 +365,10 @@ void Preferences::reloadCompositor()
     m_hotCorner = flag(QStringLiteral("hot-corner"), true);
     m_captureIndicator = flag(QStringLiteral("capture-indicator"), true);
     m_captureDnd = flag(QStringLiteral("capture-dnd"), true);
+    m_fullscreenDnd = flag(QStringLiteral("fullscreen-dnd"), true);
     m_hotCornerGlow = flag(QStringLiteral("hot-corner-glow"), true);
     m_hotCornerAnimation = flag(QStringLiteral("hot-corner-animation"), true);
+    m_rememberWindowPositions = flag(QStringLiteral("remember-window-positions"), true);
     m_snapDragLayouts = flag(QStringLiteral("snap-drag-layouts"), true);
     m_snapDragDistance = std::clamp(value(QStringLiteral("snap-drag-trigger-distance"), QStringLiteral("64")).toInt(), 4, 200);
     m_snapDragWidth = std::clamp(value(QStringLiteral("snap-drag-trigger-width"), QStringLiteral("160")).toInt(), 0, 960);
@@ -752,6 +759,15 @@ void Preferences::setTaskbarAlignment(const QString& alignment)
     if (alignment != m_taskbarAlignment) {
         m_taskbarAlignment = alignment;
         setShell(QStringLiteral("taskbar/alignment"), alignment);
+        emit taskbarChanged();
+    }
+}
+
+void Preferences::setTaskbarPosition(const QString& position)
+{
+    if (position != m_taskbarPosition) {
+        m_taskbarPosition = position;
+        setShell(QStringLiteral("taskbar/position"), position);
         emit taskbarChanged();
     }
 }
@@ -1226,6 +1242,15 @@ void Preferences::setCaptureDnd(bool on)
     }
 }
 
+void Preferences::setFullscreenDnd(bool on)
+{
+    if (on != m_fullscreenDnd) {
+        m_fullscreenDnd = on;
+        saveCompositor({ { QStringLiteral("fullscreen-dnd"), yesNo(on) } });
+        emit shortcutsChanged();
+    }
+}
+
 void Preferences::setCaptureIndicator(bool on)
 {
     if (on != m_captureIndicator) {
@@ -1249,6 +1274,15 @@ void Preferences::setHotCornerAnimation(bool on)
     if (on != m_hotCornerAnimation) {
         m_hotCornerAnimation = on;
         saveCompositor({ { QStringLiteral("hot-corner-animation"), yesNo(on) } });
+        emit shortcutsChanged();
+    }
+}
+
+void Preferences::setRememberWindowPositions(bool on)
+{
+    if (on != m_rememberWindowPositions) {
+        m_rememberWindowPositions = on;
+        saveCompositor({ { QStringLiteral("remember-window-positions"), yesNo(on) } });
         emit shortcutsChanged();
     }
 }

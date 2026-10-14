@@ -83,6 +83,7 @@ class Session:
             "XDG_CONFIG_HOME": os.path.join(self.directory, "config"),
             "XDG_DATA_HOME": os.path.join(self.directory, "data"),
             "XDG_CACHE_HOME": os.path.join(self.directory, "cache"),
+            "XDG_STATE_HOME": os.path.join(self.directory, "state"),
         })
         if self.lock_hold_ms is not None:
             env["VELA_LOCK"] = f"{tool('vela-testlock')} {self.lock_hold_ms}"

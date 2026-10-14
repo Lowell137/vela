@@ -65,7 +65,9 @@ class NotificationServer : public QAbstractListModel, protected QDBusContext {
     // The screen is being shared or recorded and the user asked for silence:
     // popups are held back like with doNotDisturb, which stays the user's own.
     Q_PROPERTY(bool captureSilenced READ captureSilenced NOTIFY silencedChanged)
-    // doNotDisturb OR captureSilenced: what the popups obey.
+    // A window is full screen and the user asked for silence (fullscreen-dnd).
+    Q_PROPERTY(bool fullscreenSilenced READ fullscreenSilenced NOTIFY silencedChanged)
+    // doNotDisturb OR captureSilenced OR fullscreenSilenced: what the popups obey.
     Q_PROPERTY(bool silenced READ silenced NOTIFY silencedChanged)
 
 public:
@@ -106,7 +108,9 @@ public:
     bool doNotDisturb() const { return m_doNotDisturb; }
     void setDoNotDisturb(bool on);
     bool captureSilenced() const { return m_captureSilenced; }
-    bool silenced() const { return m_doNotDisturb || m_captureSilenced; }
+    bool fullscreenSilenced() const { return m_fullscreenSilenced; }
+    bool silenced() const { return m_doNotDisturb || m_captureSilenced || m_fullscreenSilenced; }
+    void setFullscreenSilenced(bool on);
     void setCaptureSilenced(bool on);
     Q_INVOKABLE void invokeFromHistory(uint id, const QString& action);
     Q_INVOKABLE void dismissFromHistory(uint id);
@@ -159,6 +163,7 @@ private:
     bool m_hovered = false;
     bool m_doNotDisturb = false;
     bool m_captureSilenced = false; // not remembered: follows the sharing
+    bool m_fullscreenSilenced = false; // not remembered: follows the full screen window
     NotificationHistory m_history;
 };
 

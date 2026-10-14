@@ -7,8 +7,9 @@
 //
 // Usage: vela-panel wallpaper          fullscreen wallpaper, a striped
 //                                     gradient (something to blur)
-//        vela-panel taskbar [--blur] [--autohide]
-//                                     48-high translucent bottom bar,
+//        vela-panel taskbar [--blur] [--autohide] [--position top|left|right]
+//                                     48-thick translucent bar at the bottom
+//                                     edge (--position: another one),
 //                                     reserving 48 units; --blur asks to
 //                                     blur what lies behind; --autohide
 //                                     slides it down, 2 units still showing
@@ -128,19 +129,25 @@ static const struct zwlr_layer_surface_v1_listener layerListener = { onConfigure
 int main(int argc, char** argv)
 {
     if (argc < 2 || (strcmp(argv[1], "wallpaper") && strcmp(argv[1], "taskbar"))) {
-        fprintf(stderr, "usage: vela-panel wallpaper | taskbar [--blur] [--autohide]\n");
+        fprintf(stderr, "usage: vela-panel wallpaper | taskbar [--blur] [--autohide] [--position top|left|right]\n");
         return 2;
     }
     wallpaper = !strcmp(argv[1], "wallpaper");
     int blur = 0, autohide = 0;
     const char* scope = wallpaper ? "vela-panel" : "vela-taskbar";
+    const char* position = "bottom";
     for (int i = 2; i < argc; ++i) {
         blur |= !strcmp(argv[i], "--blur");
         autohide |= !strcmp(argv[i], "--autohide");
-        if (!strcmp(argv[i], "--namespace") && i + 1 < argc) {
+        if (!strcmp(argv[i], "--position") && i + 1 < argc) {
+            position = argv[++i];
+        } else if (!strcmp(argv[i], "--namespace") && i + 1 < argc) {
             scope = argv[++i];
         }
     }
+    const int top = !strcmp(position, "top");
+    const int left = !strcmp(position, "left");
+    const int right = !strcmp(position, "right");
 
     struct wl_display* display = wl_display_connect(NULL);
     if (!display) {
@@ -164,12 +171,20 @@ int main(int argc, char** argv)
                 | ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT);
         zwlr_layer_surface_v1_set_exclusive_zone(layerSurface, -1);
     } else {
-        zwlr_layer_surface_v1_set_anchor(layerSurface, ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM
-                | ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT);
-        zwlr_layer_surface_v1_set_size(layerSurface, 0, 48);
+        if (left || right) {
+            zwlr_layer_surface_v1_set_anchor(layerSurface, ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP
+                    | ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM
+                    | (left ? ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT : ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT));
+            zwlr_layer_surface_v1_set_size(layerSurface, 48, 0);
+        } else {
+            zwlr_layer_surface_v1_set_anchor(layerSurface, (top ? ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP : ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM)
+                    | ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT);
+            zwlr_layer_surface_v1_set_size(layerSurface, 0, 48);
+        }
         zwlr_layer_surface_v1_set_exclusive_zone(layerSurface, 48);
         if (autohide) {
-            zwlr_layer_surface_v1_set_margin(layerSurface, 0, 0, -46, 0);
+            zwlr_layer_surface_v1_set_margin(layerSurface, top ? -46 : 0, right ? -46 : 0, !top && !left && !right ? -46 : 0,
+                left ? -46 : 0);
         }
     }
     if (blur) {

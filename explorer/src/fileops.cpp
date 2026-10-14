@@ -6,6 +6,7 @@
 #include "appmodel.h"
 #include "foldermodel.h"
 #include "links.h"
+#include "peek.h"
 #include "systemactions.h"
 
 #include <QClipboard>
@@ -1168,6 +1169,53 @@ QString FileOps::previewText(const QString& path) const
 bool FileOps::isImage(const QString& path) const
 {
     return QImageReader(path).canRead();
+}
+
+bool FileOps::pdfSupported() const
+{
+#ifdef VELA_FILES_PDF
+    return true;
+#else
+    return false;
+#endif
+}
+
+void FileOps::peek(const QString& path)
+{
+    QPointer<FileOps> self(this);
+    QThreadPool::globalInstance()->start([self, path] {
+        if (!self) {
+            return;
+        }
+        QVariantMap out = self->details(path);
+        const bool isDir = out.value(QStringLiteral("isDir")).toBool();
+        const QString kind = peek::classify(out.value(QStringLiteral("mime")).toString(), isDir,
+            !isDir && QImageReader(path).canRead(), self->pdfSupported());
+        out[QStringLiteral("kind")] = kind;
+        if (kind == QLatin1String("folder")) {
+            // A bounded walk: a huge tree must not hold the preview.
+            qint64 total = 0;
+            int seen = 0;
+            QDirIterator it(path, QDir::Files | QDir::Hidden | QDir::NoSymLinks, QDirIterator::Subdirectories);
+            while (it.hasNext() && seen < 20000) {
+                it.next();
+                total += it.fileInfo().size();
+                ++seen;
+            }
+            out[QStringLiteral("sizeText")] = (it.hasNext() ? QStringLiteral("> ") : QString()) + ::formatSize(total);
+        } else if (kind == QLatin1String("text")) {
+            QFile file(path);
+            if (file.open(QIODevice::ReadOnly)) {
+                bool cut = false;
+                const QString text = peek::truncateText(file.read(peek::maxTextBytes), file.size(), peek::maxTextBytes, &cut);
+                out[QStringLiteral("text")] = text.isEmpty() ? QStringLiteral(" ") : text;
+                out[QStringLiteral("truncated")] = cut;
+            }
+        }
+        if (self) {
+            QMetaObject::invokeMethod(self, [self, path, out] { if (self) emit self->peekReady(path, out); }, Qt::QueuedConnection);
+        }
+    });
 }
 
 // ------------------------------------------------------------- misc --

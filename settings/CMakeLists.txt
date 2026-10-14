@@ -75,6 +75,7 @@ set(SETTINGS_QML_FILES
     qml/Dialog.qml
     qml/pages/HomePage.qml
     qml/pages/SystemPage.qml
+    qml/pages/MultitaskingPage.qml
     qml/pages/DisplayPage.qml
     qml/pages/SoundPage.qml
     qml/pages/SoundDevicePage.qml
@@ -152,6 +153,12 @@ qt_add_translations(TARGETS vela-settings SOURCE_TARGETS vela-settings vela-disp
     LUPDATE_TARGET vela-settings_lupdate
     LRELEASE_TARGET vela-settings_lrelease
     LUPDATE_OPTIONS -source-language en -target-language it -no-obsolete -locations none)
+
+# Page names, parents, aliases and search keys agree (Main.qml, StartMenu.qml).
+find_package(Python3 3.8 COMPONENTS Interpreter QUIET)
+if(Python3_FOUND)
+    add_test(NAME settings-pages COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/check_pages.py)
+endif()
 
 if(VELA_BUILD_TOOLS AND VELA_BUILD_COMPOSITOR)
     find_package(Qt6 6.5 REQUIRED COMPONENTS Test)

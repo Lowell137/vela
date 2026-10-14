@@ -40,7 +40,17 @@ Those nested alternatives are active only in nested mode; in a normal Vela sessi
 | Terminal | <kbd>Super</kbd>+<kbd>Enter</kbd> | <kbd>Alt</kbd>+<kbd>Enter</kbd> |
 | Lock | <kbd>Super</kbd>+<kbd>L</kbd> | <kbd>Alt</kbd>+<kbd>L</kbd> |
 
-In the snipping tool's bar, **Delay** cycles none, 3, 5 and 10 seconds (a countdown shows after you choose the area, then a fresh photo is cut), and **Color picker** copies the clicked pixel as `#RRGGBB`.
+In the snipping tool's bar, **Delay** cycles none, 3, 5 and 10 seconds (a countdown shows after you choose the area, then a fresh photo is cut), and **Color picker** copies the clicked pixel as `#RRGGBB`. **Record** records an area (drag) or the whole output (click) with `wf-recorder` (an optional package) to `~/Videos/Screen Recordings`, with Delay honored; the same shortcut (or the bar's Stop) ends the recording.
+
+## Files
+
+| Action | Shortcut |
+|---|---|
+| Quick preview of the chosen item (images, text, PDF, folders, properties) | <kbd>Space</kbd> |
+| Close the quick preview | <kbd>Space</kbd> or <kbd>Esc</kbd> |
+| Another item while previewing | <kbd>Up</kbd> / <kbd>Down</kbd> / <kbd>Left</kbd> / <kbd>Right</kbd> |
+
+Space types normally in the rename field and the search box.
 
 ## Input and accessibility
 

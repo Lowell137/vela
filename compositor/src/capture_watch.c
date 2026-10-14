@@ -6,6 +6,7 @@
 #include "config.h"
 #include "listen.h"
 #include "server.h"
+#include "view.h"
 #include "shell.h"
 #include "util.h"
 
@@ -37,6 +38,9 @@ struct vela_capture_watch {
     bool on; // what the shell was told
     int seen, missed; // screencopy checks with / without a pending frame
     int ticks_on;
+    bool fullscreen_dnd; // fullscreen-dnd: "fullscreen on" while a window is fullscreen
+    bool fullscreen; // what the shell was told
+    int ticks_fullscreen;
 };
 
 static void handle_session_destroy(struct wl_listener *listener, void *data)
@@ -132,6 +136,16 @@ static int handle_tick(void *data)
     } else if (watch->on && ++watch->ticks_on >= RESEND_TICKS) {
         announce(watch, true);
     }
+
+    if (!watch->fullscreen_dnd) {
+        return 0; // load() already said "fullscreen off" if it was on
+    }
+    const bool fullscreen = vela_views_any_fullscreen(watch->server);
+    if (fullscreen != watch->fullscreen || (fullscreen && ++watch->ticks_fullscreen >= RESEND_TICKS)) {
+        watch->fullscreen = fullscreen;
+        watch->ticks_fullscreen = 0;
+        vela_shell_send(watch->server, fullscreen ? "fullscreen on" : "fullscreen off");
+    }
     return 0;
 }
 
@@ -141,7 +155,12 @@ void vela_capture_watch_load(struct vela_capture_watch *watch)
     vela_config_read(&config);
     watch->enabled = vela_config_flag(&config, "capture-indicator", true);
     const bool dnd = vela_config_flag(&config, "capture-dnd", true);
+    watch->fullscreen_dnd = vela_config_flag(&config, "fullscreen-dnd", true);
     vela_config_finish(&config);
+    if (!watch->fullscreen_dnd && watch->fullscreen) {
+        watch->fullscreen = false;
+        vela_shell_send(watch->server, "fullscreen off");
+    }
     const bool dnd_changed = dnd != watch->dnd;
     watch->dnd = dnd;
     if (!watch->enabled && watch->on) {
@@ -157,6 +176,7 @@ struct vela_capture_watch *vela_capture_watch_create(struct vela_server *server)
     watch->server = server;
     watch->enabled = true;
     watch->dnd = true;
+    watch->fullscreen_dnd = true;
     wl_list_init(&watch->sessions);
     wl_list_init(&watch->new_session.link);
     watch->timer = wl_event_loop_add_timer(server->loop, handle_tick, watch);
