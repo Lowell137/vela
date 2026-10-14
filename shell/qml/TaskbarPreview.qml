@@ -98,7 +98,13 @@ Window {
         // On the taskbar's output, centered on the button.
         const screen = Qt.application.screens.find(s => s.name === info.screen)
         if (screen && screen !== root.screen) {
-            visible = false
+            // Hiding and showing in one tick breaks the configure handshake
+            // ("wrong configure serial"): open on the next turn.
+            if (visible) {
+                visible = false
+                Qt.callLater(root.show, info)
+                return
+            }
             Shell.placeOnScreen(root, screen.name)
         }
         const screenWidth = screen ? screen.width : Screen.width

@@ -31,7 +31,10 @@ Window {
         Desktops.query() // the windows' places, for the desktop cards
         refresh()
         Capture.capture(windows.map(w => w.id))
-        Menus.placeOnTargetScreen(root)
+        if (!Menus.placeOnTargetScreen(root)) {
+            Qt.callLater(root.open)
+            return
+        }
         visible = true
         content.opacity = 0
         content.scale = 1.03

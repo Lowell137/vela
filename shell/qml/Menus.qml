@@ -55,12 +55,22 @@ QtObject {
         panelScreen = ""
         return Qt.application.screens.find(s => s.name === name) || null
     }
-    // Puts `window` (hidden) on the panel's output.
+    // Puts `window` on the panel's output. On another output a visible window
+    // is only hidden and false returned: hiding and showing it in the same
+    // tick breaks the layer surface's configure handshake ("wrong configure
+    // serial"), so the caller retries with Qt.callLater and shows it then.
     function placeOnTargetScreen(window) {
         const screen = targetScreen()
-        if (screen) {
-            Shell.placeOnScreen(window, screen.name)
+        if (!screen) {
+            return true
         }
+        if (window.visible && screen !== window.screen) {
+            panelScreen = screen.name
+            window.visible = false
+            return false
+        }
+        Shell.placeOnScreen(window, screen.name)
+        return true
     }
     property bool previewHovered: false
     property bool previewButtonHovered: false

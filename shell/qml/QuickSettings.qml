@@ -26,7 +26,10 @@ Window {
     function open() {
         Menus.notificationCenterOpen = false
         page = ""
-        Menus.placeOnTargetScreen(root)
+        if (!Menus.placeOnTargetScreen(root)) {
+            Qt.callLater(root.open)
+            return
+        }
         visible = true
         Menus.quickSettingsOpen = true
         panel.opacity = 0

@@ -22,7 +22,10 @@ Window {
         Menus.quickSettingsOpen = false
         Notifications.collectPopups()
         month = new Date()
-        Menus.placeOnTargetScreen(root)
+        if (!Menus.placeOnTargetScreen(root)) {
+            Qt.callLater(root.open)
+            return
+        }
         visible = true
         Menus.notificationCenterOpen = true
         column.opacity = 0

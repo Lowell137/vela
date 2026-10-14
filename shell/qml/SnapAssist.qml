@@ -52,7 +52,13 @@ Window {
             }
             const screen = Qt.application.screens.find(s => s.name === state.output)
             if (screen && screen !== root.screen) {
-                root.visible = false
+                // Hiding and showing in one tick breaks the configure
+                // handshake ("wrong configure serial"): open on the next turn.
+                if (root.visible) {
+                    root.visible = false
+                    Qt.callLater(onSnapAssistRequested, json)
+                    return
+                }
                 Shell.placeOnScreen(root, screen.name)
             }
             root.zones = zones

@@ -164,7 +164,10 @@ Window {
         grid.positionViewAtBeginning()
         panel.opacity = 0
         panel.y = panel.restY + panel.slide
-        Menus.placeOnTargetScreen(root) // the output of the taskbar it opens from
+        if (!Menus.placeOnTargetScreen(root)) {
+            Qt.callLater(root.open)
+            return
+        }
         visible = true
         Shell.startMenuOpen = true
         openAnimation.restart()

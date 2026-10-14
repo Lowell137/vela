@@ -33,7 +33,14 @@ Window {
                 const name = options.screen || Shell.primaryScreen
                 const screen = Qt.application.screens.find(s => s.name === name)
                 if (screen && screen !== root.screen) {
-                    root.visible = false // on another output: a new surface
+                    // A new surface. Hiding and showing in one tick breaks the
+                    // configure handshake ("wrong configure serial"): hide now,
+                    // open on the next turn.
+                    if (root.visible) {
+                        root.visible = false
+                        Qt.callLater(onOpenRequested, entries, x, y, options)
+                        return
+                    }
                     Shell.placeOnScreen(root, screen.name)
                 }
             }

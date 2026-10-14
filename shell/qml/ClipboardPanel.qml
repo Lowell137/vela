@@ -18,7 +18,10 @@ Window {
     property int current: 0
 
     function open() {
-        Menus.placeOnTargetScreen(root)
+        if (!Menus.placeOnTargetScreen(root)) {
+            Qt.callLater(root.open)
+            return
+        }
         current = 0
         visible = true
         panel.opacity = 0
