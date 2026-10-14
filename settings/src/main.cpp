@@ -9,6 +9,7 @@
 // the page and come to the front (that's how the shell opens "Display
 // settings", "Personalize" and the other menu entries).
 
+#include "../../common/portaldialogs.h"
 #include "about.h"
 #include "appmodel.h"
 #include "audio.h"
@@ -118,7 +119,9 @@ int main(int argc, char* argv[])
     if (qEnvironmentVariableIsEmpty("QT_QUICK_DEFAULT_TEXT_RENDER_TYPE")) {
         QQuickWindow::setTextRenderType(QQuickWindow::NativeTextRendering);
     }
+    vela::PortalFileDialogs portalDialogs;
     QGuiApplication app(argc, argv);
+    portalDialogs.restore();
     QGuiApplication::setApplicationName(QStringLiteral("vela-settings"));
     QQmlApplicationEngine* qmlEngine = nullptr;
     vela::language::install(QStringLiteral("vela-settings"), [&qmlEngine] {

@@ -33,7 +33,7 @@ depends=(
 makedepends=('git' 'cmake' 'shaderc' 'vulkan-headers' 'wayland-protocols' 'qt6-tools')
 optdepends=(
     'xdg-desktop-portal-wlr: screen sharing'
-    'xdg-desktop-portal-kde: file chooser and other portals for apps'
+    'xdg-desktop-portal-kde: KDE file chooser for Settings, the shell and apps (without it GTK or Qt fallback)'
     'breeze-icons: Vela icons (breeze and breeze-dark)'
     'plasma-workspace: light or dark colors for KDE apps'
     'networkmanager: network and Wi-Fi (quick settings and Settings)'

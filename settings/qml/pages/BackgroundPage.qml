@@ -81,7 +81,12 @@ Page {
             title: qsTr("Choose a photo")
             trailing: Button {
                 text: qsTr("Browse photos")
-                onClicked: fileDialog.open()
+                onClicked: {
+                    // close() first: if the portal never answered (its
+                    // backend died), open() alone would do nothing forever.
+                    fileDialog.close()
+                    fileDialog.open()
+                }
             }
         }
     }
