@@ -302,8 +302,21 @@ struct wlr_box vela_view_minimize_target(struct vela_view *view)
     // Unknown button: the center of the taskbar's edge.
     struct vela_output *output = vela_view_output(view);
     struct wlr_box area = output ? vela_output_box(output) : (struct wlr_box) { 0, 0, 1920, 1080 };
-    const int y = output && output->server->taskbar_top ? area.y : area.y + area.height - 48;
-    return (struct wlr_box) { area.x + area.width / 2 - 24, y, 48, 48 };
+    int x = area.x + area.width / 2 - 24;
+    int y = area.y + area.height - 48;
+    switch (output ? output->server->taskbar_edge : VELA_TASKBAR_BOTTOM) {
+    case VELA_TASKBAR_TOP:
+        y = area.y;
+        break;
+    case VELA_TASKBAR_LEFT:
+    case VELA_TASKBAR_RIGHT:
+        x = output->server->taskbar_edge == VELA_TASKBAR_LEFT ? area.x : area.x + area.width - 48;
+        y = area.y + area.height / 2 - 24;
+        break;
+    default:
+        break;
+    }
+    return (struct wlr_box) { x, y, 48, 48 };
 }
 
 // Where the window returns when it stops being maximized or fullscreen. If it

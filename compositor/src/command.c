@@ -154,8 +154,9 @@ static void state_json(struct vela_server *server, struct vela_buffer *json)
         struct vela_output *out = vela_layer_surface_output(layer);
         vela_buffer_append(json, first ? "{\"namespace\":" : ",{\"namespace\":");
         vela_buffer_append_json(json, wlr->namespace ? wlr->namespace : "");
-        vela_buffer_appendf(json, ",\"layer\":%d,\"keyboard\":%d,\"mapped\":%s,\"output\":", (int)wlr->current.layer,
-            (int)wlr->current.keyboard_interactive, wlr->surface->mapped ? t : f);
+        vela_buffer_appendf(json, ",\"layer\":%d,\"keyboard\":%d,\"mapped\":%s,\"x\":%d,\"y\":%d,\"w\":%d,\"h\":%d,\"output\":",
+            (int)wlr->current.layer, (int)wlr->current.keyboard_interactive, wlr->surface->mapped ? t : f,
+            (int)lround(layer->tree->node.x), (int)lround(layer->tree->node.y), wlr->surface->current.width, wlr->surface->current.height);
         if (out) {
             vela_buffer_append_json(json, out->wlr->name);
         } else {
@@ -415,7 +416,11 @@ static void run_command(struct vela_server *server, const char *line)
             }
         }
     } else if (starts_with(line, "taskbar-position ")) {
-        server->taskbar_top = strcmp(line + 17, "top") == 0;
+        const char *edge = line + 17;
+        server->taskbar_edge = strcmp(edge, "top") == 0     ? VELA_TASKBAR_TOP
+            : strcmp(edge, "left") == 0                     ? VELA_TASKBAR_LEFT
+            : strcmp(edge, "right") == 0                    ? VELA_TASKBAR_RIGHT
+                                                            : VELA_TASKBAR_BOTTOM;
     } else if (strcmp(line, "paste") == 0) {
         vela_input_paste(server->input); // Win+V: the shell has put the item on the clipboard
     } else if (strcmp(line, "modifiers") == 0 || strcmp(line, "workspaces") == 0
