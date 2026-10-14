@@ -1,0 +1,17 @@
+# SPDX-FileCopyrightText: 2026 Vela contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[Desktop Entry]
+Type=Application
+Name=Notepad
+Name[tr]=Not Defteri
+GenericName=Text Editor
+GenericName[tr]=Metin Düzenleyici
+Comment=View and edit plain text files
+Comment[tr]=Düz metin dosyalarını görüntüle ve düzenle
+Exec=vela-notepad %F
+Icon=accessories-text-editor
+Categories=Utility;TextEditor;
+MimeType=text/plain;
+Keywords=text;editor;notes;notepad;
+StartupNotify=true

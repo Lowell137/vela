@@ -1,0 +1,14 @@
+# SPDX-FileCopyrightText: 2026 Vela contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[Desktop Entry]
+Type=Application
+Name=Calculator
+Name[tr]=Hesap Makinesi
+Comment=Do arithmetic
+Comment[tr]=Hesap yap
+Exec=vela-calculator
+Icon=accessories-calculator
+Categories=Utility;Calculator;
+Keywords=calculator;math;arithmetic;
+StartupNotify=true
