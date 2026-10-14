@@ -498,10 +498,16 @@ void vela_xwayland_sync(struct vela_server *server)
     if (!server->xwayland) {
         return;
     }
-    // The overlays as large as the output go over a fullscreen game too (but
-    // not over the panels summoned above it, such as the Start menu).
+    // The overlays as large as the output go over a fullscreen game shown
+    // above the taskbar too (but not over the panels summoned above it, such
+    // as the Start menu).
     struct vela_layers *layers = &server->layers;
-    struct vela_node *below = vela_views_any_fullscreen(server) ? &layers->fullscreen->node : &layers->windows_out->node;
+    bool fullscreen = false;
+    struct vela_node *node;
+    wl_list_for_each (node, &layers->fullscreen->children, link) {
+        fullscreen = fullscreen || node->enabled;
+    }
+    struct vela_node *below = fullscreen ? &layers->fullscreen->node : &layers->windows_out->node;
     if (layers->x11_covers->node.link.prev != &below->link) {
         vela_node_place_above(&layers->x11_covers->node, below);
     }
