@@ -364,6 +364,8 @@ void Preferences::reloadCompositor()
     m_mousePrecision = flag(QStringLiteral("mouse-precision"), true);
     m_mouseLeftHanded = value(QStringLiteral("mouse-primary-button"), QStringLiteral("left")) == QLatin1String("right");
     m_wheelLines = std::clamp(value(QStringLiteral("mouse-scroll-lines"), QStringLiteral("3")).toInt(), 1, 20);
+    m_middleClickAutoscroll = flag(QStringLiteral("middle-click-autoscroll"), false);
+    m_autoscrollSpeed = std::clamp(value(QStringLiteral("autoscroll-speed"), QStringLiteral("5")).toInt(), 1, 10);
     m_touchpad = flag(QStringLiteral("touchpad"), true);
     m_touchpadWithMouse = flag(QStringLiteral("touchpad-with-mouse"), true);
     m_touchpadSpeed = std::clamp(value(QStringLiteral("touchpad-speed"), QStringLiteral("10")).toInt(), 1, 20);
@@ -1248,6 +1250,25 @@ void Preferences::setWheelLines(int lines)
     if (lines != m_wheelLines) {
         m_wheelLines = lines;
         saveCompositor({ { QStringLiteral("mouse-scroll-lines"), QString::number(lines) } });
+        emit inputChanged();
+    }
+}
+
+void Preferences::setMiddleClickAutoscroll(bool on)
+{
+    if (on != m_middleClickAutoscroll) {
+        m_middleClickAutoscroll = on;
+        saveCompositor({ { QStringLiteral("middle-click-autoscroll"), yesNo(on) } });
+        emit inputChanged();
+    }
+}
+
+void Preferences::setAutoscrollSpeed(int value)
+{
+    value = std::clamp(value, 1, 10);
+    if (value != m_autoscrollSpeed) {
+        m_autoscrollSpeed = value;
+        saveCompositor({ { QStringLiteral("autoscroll-speed"), QString::number(value) } });
         emit inputChanged();
     }
 }

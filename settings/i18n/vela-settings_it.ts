@@ -1616,8 +1616,8 @@ Specifiche sistema
         <translation>layout lingua input digitazione ripetizione tasti</translation>
     </message>
     <message>
-        <source>pointer speed primary button left-handed wheel scrolling lines acceleration precision</source>
-        <translation>puntatore velocità pulsante principale mancino rotellina scorrimento righe accelerazione precisione</translation>
+        <source>pointer speed primary button left-handed wheel scrolling lines acceleration precision middle click autoscroll</source>
+        <translation>puntatore velocità pulsante principale mancino rotellina scorrimento righe accelerazione precisione clic centrale scorrimento automatico</translation>
     </message>
     <message>
         <source>tap click gestures fingers scrolling laptop trackpad</source>
@@ -1753,6 +1753,18 @@ Specifiche sistema
     <message>
         <source>For each notch of the wheel</source>
         <translation>Per ogni scatto della rotellina</translation>
+    </message>
+    <message>
+        <source>Autoscroll with the middle button</source>
+        <translation>Scorrimento automatico con il pulsante centrale</translation>
+    </message>
+    <message>
+        <source>Click the wheel, then move the mouse to scroll; click again to stop. Terminals keep pasting</source>
+        <translation>Fai clic con la rotellina, poi muovi il mouse per scorrere; fai di nuovo clic per fermarti. Nei terminali incolla ancora</translation>
+    </message>
+    <message>
+        <source>Autoscroll speed</source>
+        <translation>Velocità dello scorrimento automatico</translation>
     </message>
     <message>
         <source>Related settings</source>
