@@ -732,6 +732,10 @@
         <translation>Strumento di cattura</translation>
     </message>
     <message>
+        <source>Color copied to clipboard</source>
+        <translation>Colore copiato negli appunti</translation>
+    </message>
+    <message>
         <source>Screenshot copied to clipboard</source>
         <translation>Screenshot copiato negli Appunti</translation>
     </message>
@@ -795,8 +799,20 @@
         <translation>Testo</translation>
     </message>
     <message>
+        <source>Color picker</source>
+        <translation>Selettore colore</translation>
+    </message>
+    <message>
         <source>Copy all text</source>
         <translation>Copia tutto il testo</translation>
+    </message>
+    <message>
+        <source>Delay: none</source>
+        <translation>Ritardo: nessuno</translation>
+    </message>
+    <message>
+        <source>Delay: %1 s</source>
+        <translation>Ritardo: %1 s</translation>
     </message>
 </context>
 <context>

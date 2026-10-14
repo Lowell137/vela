@@ -6,6 +6,7 @@
 
 #include "clipboard.h"
 #include "notifications.h"
+#include "snipextras.h"
 #include "windowcapture.h"
 
 #include <QCoreApplication>
@@ -55,6 +56,7 @@ Snip::Snip(QQmlEngine* engine, WindowCapture* capture, Clipboard* clipboard, Not
     QObject* parent)
     : QObject(parent)
     , m_component(engine, "Vela.Shell", "SnipOverlay")
+    , m_counterComponent(engine, "Vela.Shell", "SnipCountdown")
     , m_capture(capture)
     , m_clipboard(clipboard)
     , m_notifications(notifications)
@@ -67,9 +69,11 @@ Snip::Snip(QQmlEngine* engine, WindowCapture* capture, Clipboard* clipboard, Not
     });
     connect(m_capture, &WindowCapture::screenCaptured, this, [this](const QString&, bool) {
         if (m_waiting > 0 && --m_waiting == 0) {
-            showOverlays();
+            captured();
         }
     });
+    m_countdown.setInterval(1000);
+    connect(&m_countdown, &QTimer::timeout, this, &Snip::tickCountdown);
     // A click on the notification: the screenshot opens.
     connect(m_notifications, &NotificationServer::ActionInvoked, this, [this](uint id, const QString&) {
         const QString path = m_saved.take(id);
@@ -77,6 +81,88 @@ Snip::Snip(QQmlEngine* engine, WindowCapture* capture, Clipboard* clipboard, Not
             QDesktopServices::openUrl(QUrl::fromLocalFile(path));
         }
     });
+}
+
+void Snip::cycleDelay()
+{
+    m_delay = SnipExtras::nextDelay(m_delay);
+    emit delayChanged();
+}
+
+// All the photos are in: the overlays, or (after a countdown) the snip itself.
+void Snip::captured()
+{
+    if (!m_delayed.recapturing) {
+        showOverlays();
+        return;
+    }
+    m_delayed.recapturing = false;
+    finishNow(m_delayed.screen, m_delayed.area.x(), m_delayed.area.y(), m_delayed.area.width(), m_delayed.area.height());
+}
+
+// The choice is made: count down (the overlays are gone, so menus can be
+// opened), then take a new photo and cut the same area from it.
+void Snip::tickCountdown()
+{
+    if (--m_remaining > 0) {
+        if (m_counter) {
+            m_counter->setProperty("seconds", m_remaining);
+        }
+        return;
+    }
+    m_countdown.stop();
+    if (m_counter) { // out of the picture before the photo
+        m_counter->hide();
+        m_counter->deleteLater();
+    }
+    QTimer::singleShot(150, this, [this] {
+        m_delayed.recapturing = true;
+        m_capture->clearFull();
+        m_waiting = m_capture->captureScreensFull();
+        if (m_waiting == 0) {
+            m_delayed.recapturing = false;
+            cancel();
+            return;
+        }
+        QTimer::singleShot(1500, this, [this] {
+            if (m_waiting > 0) {
+                m_waiting = 0;
+                captured();
+            }
+        });
+    });
+}
+
+QString Snip::colorAt(const QString& screenName, qreal x, qreal y) const
+{
+    const QImage full = m_capture->fullImage(screenName);
+    QScreen* screen = nullptr;
+    for (QScreen* candidate : QGuiApplication::screens()) {
+        if (candidate->name() == screenName) {
+            screen = candidate;
+        }
+    }
+    if (full.isNull() || !screen) {
+        return {};
+    }
+    const int px = qRound(x * full.width() / qreal(screen->geometry().width()));
+    const int py = qRound(y * full.height() / qreal(screen->geometry().height()));
+    if (!full.rect().contains(px, py)) {
+        return {};
+    }
+    return SnipExtras::hexColor(full.pixelColor(px, py));
+}
+
+void Snip::pickColor(const QString& screenName, qreal x, qreal y)
+{
+    const QString hex = colorAt(screenName, x, y);
+    if (hex.isEmpty()) {
+        return;
+    }
+    m_clipboard->copyText(hex);
+    m_notifications->Notify(QCoreApplication::translate("Snip", "Snipping Tool"), 0, QStringLiteral("color-management"),
+        QCoreApplication::translate("Snip", "Color copied to clipboard"), hex, QStringList(), QVariantMap(), 4000);
+    cancel();
 }
 
 void Snip::setMode(const QString& mode)
@@ -119,7 +205,7 @@ void Snip::start()
     QTimer::singleShot(1500, this, [this] {
         if (m_waiting > 0) {
             m_waiting = 0;
-            showOverlays();
+            captured();
         }
     });
 }
@@ -186,6 +272,42 @@ void Snip::cancel()
 }
 
 void Snip::finish(const QString& screenName, qreal x, qreal y, qreal width, qreal height)
+{
+    if (m_delay > 0 && width >= 1 && height >= 1) {
+        m_delayed = { false, screenName, QRectF(x, y, width, height) };
+        closeOverlays();
+        m_capture->clearFull();
+        m_remaining = m_delay;
+        if (m_counterComponent.isReady()) {
+            auto* window = qobject_cast<QQuickWindow*>(m_counterComponent.create());
+            QScreen* screen = nullptr;
+            for (QScreen* candidate : QGuiApplication::screens()) {
+                if (candidate->name() == screenName) {
+                    screen = candidate;
+                }
+            }
+            if (window && screen) {
+                window->setProperty("seconds", m_remaining);
+                window->setScreen(screen);
+                using LayerWindow = LayerShellQt::Window;
+                LayerWindow* layer = LayerWindow::get(window);
+                layer->setScreen(screen);
+                layer->setScope(QStringLiteral("vela-snip-countdown"));
+                layer->setLayer(LayerWindow::LayerOverlay);
+                layer->setKeyboardInteractivity(LayerWindow::KeyboardInteractivityNone);
+                window->show();
+                m_counter = window;
+            } else {
+                delete window;
+            }
+        }
+        m_countdown.start();
+        return;
+    }
+    finishNow(screenName, x, y, width, height);
+}
+
+void Snip::finishNow(const QString& screenName, qreal x, qreal y, qreal width, qreal height)
 {
     const QImage full = m_capture->fullImage(screenName);
     QScreen* screen = nullptr;

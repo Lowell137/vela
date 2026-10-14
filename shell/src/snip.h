@@ -31,6 +31,8 @@ class Snip : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool active READ active NOTIFY activeChanged)
     // "rect", "window", "screen" or "text" (a rectangle whose text is copied)
+    // Delay before the capture, seconds: 0, 3, 5 or 10.
+    Q_PROPERTY(int delay READ delay NOTIFY delayChanged)
     Q_PROPERTY(QString mode READ mode WRITE setMode NOTIFY modeChanged)
     // The visible windows, topmost first: [{x, y, w, h, title}] in the layout.
     Q_PROPERTY(QVariantList windows READ windows NOTIFY activeChanged)
@@ -40,6 +42,8 @@ public:
         QObject* parent = nullptr);
 
     bool active() const { return m_active; }
+    int delay() const { return m_delay; }
+    Q_INVOKABLE void cycleDelay();
     QString mode() const { return m_mode; }
     void setMode(const QString& mode);
     QVariantList windows() const { return m_windows; }
@@ -52,12 +56,16 @@ public:
     // Text mode: finds the words in the rectangle (wordsReady), copyText copies and closes.
     Q_INVOKABLE void recognize(const QString& screen, qreal x, qreal y, qreal width, qreal height);
     Q_INVOKABLE void copyText(const QString& text);
+    // Color mode: "#RRGGBB" of the pixel (logical coordinates), "" outside.
+    Q_INVOKABLE QString colorAt(const QString& screen, qreal x, qreal y) const;
+    Q_INVOKABLE void pickColor(const QString& screen, qreal x, qreal y);
 
     QImage image(const QString& screen) const;
 
 signals:
     void activeChanged();
     void modeChanged();
+    void delayChanged();
     // [{text, x, y, w, h, line}] in the output's logical coordinates.
     void wordsReady(const QString& screen, const QVariantList& words);
     void recognizeFailed(const QString& screen, const QString& reason);
@@ -67,6 +75,9 @@ private:
     void closeOverlays();
     void startWorker();
     void finishRecognize(const QJsonObject& reply);
+    void finishNow(const QString& screen, qreal x, qreal y, qreal width, qreal height);
+    void tickCountdown();
+    void captured();
 
     QQmlComponent m_component;
     WindowCapture* m_capture;
@@ -75,6 +86,17 @@ private:
     bool m_active = false;
     QString m_mode = QStringLiteral("rect");
     int m_waiting = 0;
+    int m_delay = 0;
+    // The delayed snip: the rectangle waits for the countdown and a new photo.
+    struct Delayed {
+        bool recapturing = false;
+        QString screen;
+        QRectF area;
+    } m_delayed;
+    int m_remaining = 0;
+    QTimer m_countdown;
+    QPointer<QQuickWindow> m_counter;
+    QQmlComponent m_counterComponent;
     QVariantList m_windows;
     QList<QPointer<QQuickWindow>> m_overlays;
     QHash<uint, QString> m_saved; // notification -> saved file
