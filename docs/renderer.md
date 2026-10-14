@@ -1158,7 +1158,7 @@ must be assumed to leak**.
 | The shell's own panels | Alt+Tab, Task View, taskbar preview and tooltip, share chooser | they *show* toplevel thumbnails on screen, so the output paths above see them |
 | Direct scanout | a fullscreen app | the app's buffer is the committed buffer |
 | Snapshots | close, minimize, maximize animations | copies of the window's buffers in other scene nodes |
-| X11 menus | Xwayland override-redirect windows | the `x11_popups` scene layer, not the window's tree |
+| X11 menus | Xwayland override-redirect windows | the `x11_popups` scene layer (`x11_covers` for those as large as an output, such as the Steam overlay: below the taskbar, above a fullscreen window shown over it, never given the keyboard), not the window's tree |
 | Drag icon | drag and drop | the `drag` scene layer |
 
 Both output paths capture exactly what the monitor gets, at commit time. Vela
@@ -1194,7 +1194,7 @@ offers no wlr-export-dmabuf, so there is no third output path.
 - **Child windows and dialogs**: a window whose parent (xdg or X11 transient
   chain) is hidden is hidden too.
 - **X11 menus and the drag icon**: they don't know their window. While any X11
-  window is hidden, the whole `x11_popups` layer is left out of output
+  window is hidden, the whole `x11_popups` and `x11_covers` layers are left out of output
   captures; while any window is hidden, the `drag` layer is.
 - **Toplevel captures**: a request for a hidden window is answered with an
   inert source (the session stops at once), unless it comes from the trusted
