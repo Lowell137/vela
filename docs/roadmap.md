@@ -148,7 +148,8 @@ Decisions already taken. Each design document explains why.
   menu), for screenshots, recordings, sharing and the Snipping Tool
   ([renderer §15](renderer.md#15-hiding-a-window-from-screen-capture)).
 - **Daily comfort**: clipboard history, snipping tool, touchpad gestures,
-  mouse and touchpad settings.
+  mouse and touchpad settings, Windows-style middle-click autoscroll
+  (`middle-click-autoscroll`, see [configuration](configuration.md)).
 - **Audio**: one [native backend](audio.md) for the shell and Settings, with
   per-app inputs and outputs, levels, microphone in use, device profiles,
   codecs and sample rates.

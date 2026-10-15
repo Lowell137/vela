@@ -57,6 +57,10 @@ Vela Settings preserves unrelated lines when it updates a key and asks the compo
 | `mouse-precision` | `yes` | Pointer acceleration / enhanced precision. |
 | `mouse-primary-button` | `left` | Primary mouse button: `left` or `right`. |
 | `mouse-scroll-lines` | `3` | Scroll lines per wheel notch. |
+| `middle-click-autoscroll` | `no` | Windows-style autoscroll: the middle button on a window (not the title bar, borders or shell) starts it, and the click doesn't reach the app (no paste, no new tab). Move the pointer away from the starting point to scroll that way, vertically and horizontally, faster the farther it goes (nothing within 12 px). A short click leaves it on until any button or Esc; pressed, dragged and released, it ends with the release (see the next two keys). It also ends on a focus change, the window closing, lock, Alt+Tab, Task View, a pointer constraint (games) or the output going away. The cursor is the theme's `all-scroll`. Terminals (`konsole`, `org.kde.konsole`, `foot`, `footclient`, `kitty`, `alacritty`, `vela-terminal`, `xterm`) are left out, so the middle button pastes there, unless a window rule says `autoscroll=yes`. Settings > Bluetooth & devices > Mouse. |
+| `autoscroll-click` | `yes` | With `middle-click-autoscroll=yes`: a middle click (press and release) turns autoscroll on until the next click or Esc. `no`: a short middle click reaches the app (paste, new tab) and only `autoscroll-hold` scrolls; the press is held back until the pointer moves 4 px or 200 ms pass (then it is a held autoscroll), and if released earlier press and release reach the app together. |
+| `autoscroll-hold` | `yes` | With `middle-click-autoscroll=yes`: pressing the middle button and dragging scrolls until the release. `no`: the release doesn't end it. With both `autoscroll-click` and `autoscroll-hold` off, the middle button is always the app's. |
+| `autoscroll-speed` | `5` | Autoscroll speed, 1–10: each step is 25% faster. Per axis, `1.5 × 1.25^(speed−5) × (distance − 12)^1.3` px/s, at most 12000 px/s. |
 | `touchpad` | `yes` | Enable touchpad input. |
 | `touchpad-with-mouse` | `yes` | Keep the touchpad enabled when a mouse is connected. |
 | `touchpad-speed` | `10` | Touchpad pointer speed, 1–20. |
@@ -120,9 +124,10 @@ The app id (or X11 class) matches ignoring case; the first matching rule wins. K
 | `maximized=yes` | Opens maximized on the output. |
 | `fullscreen=no` | A window that asks to open fullscreen opens as a normal window. |
 | `always-on-top=yes` | Starts always on top (not kept when the window closes). |
+| `autoscroll=no` | No middle-click autoscroll for this app (the middle button reaches it as usual); `autoscroll=yes` turns it on for a terminal, which is left out by default. Applies at once on `reload-config`, also to open windows. Only in `vela.conf`: the Settings rule dialog doesn't offer it. |
 | `capture=no` | Hidden from screen capture: the window stays on screen, but screenshots, recordings and screen sharing (and the Snipping Tool) show what lies under it; its popups, dialogs and child windows too. Default `yes`. See [renderer §15](renderer.md#15-hiding-a-window-from-screen-capture) for what it does and doesn't cover. |
 
-Unknown keys and unusable values are ignored and logged. Rules apply once, when a window opens: you can move it afterwards. `reload-config` (and Settings) change the rules for windows opened from then on, not for windows already open.
+Unknown keys and unusable values are ignored and logged. Rules apply once, when a window opens: you can move it afterwards. `reload-config` (and Settings) change the rules for windows opened from then on, not for windows already open (`capture` and `autoscroll` excepted: they apply to open windows too).
 
 The Add a rule dialog in Settings has a "Pick a window" button: it sends `pick-window` on the command socket, the pointer becomes a crosshair, and the next left click on a window (the click reaches nobody) answers with its app id, title and output as one JSON line. Esc, a right click or 30 seconds without a click answer `cancel`; panels and the desktop are ignored.
 

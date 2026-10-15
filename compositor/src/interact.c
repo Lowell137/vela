@@ -8,6 +8,7 @@
 #include "shell.h"
 
 #include "a11y.h"
+#include "autoscroll.h"
 #include "bindings.h"
 #include "decoration.h"
 #include "focus.h"
@@ -196,7 +197,10 @@ static void hot_corner_check(struct vela_server *server)
 
 void vela_interact_motion(struct vela_server *server, uint32_t time_msec)
 {
-    hot_corner_check(server);
+    bool autoscrolling = vela_autoscroll_active(server->autoscroll);
+    if (!autoscrolling) {
+        hot_corner_check(server);
+    }
     struct vela_interaction *interaction = server->interaction;
     struct wlr_cursor *cursor = server->cursor;
     struct wlr_seat *seat = server->seat;
@@ -205,6 +209,10 @@ void vela_interact_motion(struct vela_server *server, uint32_t time_msec)
     struct vela_a11y *a11y = server->a11y;
     if (a11y->magnifier || a11y->zoom_animating || a11y->zoom > 1.0) {
         vela_a11y_update_magnifier(a11y); // the zoomed area follows the cursor
+    }
+    // Autoscroll: the cursor moves, the app gets no motion (no hover).
+    if (vela_autoscroll_motion(server->autoscroll)) {
+        return;
     }
     struct vela_view *dragged = interaction->pending_title_drag.view;
     if (dragged
@@ -394,6 +402,11 @@ void vela_interact_button(struct vela_server *server, struct wlr_pointer_button_
         } else {
             interaction->modifier_grab = false;
         }
+        return;
+    }
+
+    // Middle-click autoscroll takes its clicks (and any click that ends it).
+    if (vela_autoscroll_button(server->autoscroll, event)) {
         return;
     }
 
