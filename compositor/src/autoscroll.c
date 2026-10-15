@@ -26,6 +26,7 @@
 #include <wlr/types/wlr_cursor.h>
 #include <wlr/types/wlr_pointer.h>
 #include <wlr/types/wlr_seat.h>
+#include <wlr/types/wlr_xcursor_manager.h>
 #include <wlr/util/log.h>
 #include <xkbcommon/xkbcommon.h>
 
@@ -33,6 +34,10 @@
 // stays on; otherwise it was a drag and ends with the release.
 #define CLICK_DISTANCE 4.0
 #define CLICK_MS 500
+// autoscroll-click=no: the press waits this long (or CLICK_DISTANCE of
+// motion) before it becomes a held autoscroll; released earlier, it reaches
+// the app after all (paste, new tab).
+#define HOLD_MS 200
 // v = K * s * (d - dead)^EXPONENT px/s, s = 1.25^(speed - 5), at most MAX.
 #define SPEED_K 1.5
 #define SPEED_EXPONENT 1.3
@@ -44,6 +49,13 @@ struct vela_autoscroll {
     struct vela_server *server;
     bool enabled; // middle-click-autoscroll
     int speed; // autoscroll-speed, 1-10
+    bool click; // autoscroll-click: a middle click turns it on until the next click
+    bool hold; // autoscroll-hold: held and dragged, it scrolls until the release
+
+    // autoscroll-click=no: the middle press is held back until it is clearly
+    // a drag (it starts) or a click (press and release go to the app).
+    bool pending;
+    uint32_t pending_time; // the press's
 
     bool active;
     bool held; // the middle button that started it is still down
@@ -72,6 +84,11 @@ static int64_t max64(int64_t a, int64_t b)
     return a > b ? a : b;
 }
 
+static uint32_t button_bit(uint32_t button)
+{
+    return button >= BTN_MOUSE && button < BTN_MOUSE + 32 ? 1u << (button - BTN_MOUSE) : 0;
+}
+
 // ------------------------------------------------------------- the curve --
 
 double vela_autoscroll_speed(double offset, int speed_setting)
@@ -92,6 +109,8 @@ void vela_autoscroll_load_settings(struct vela_autoscroll *autoscroll)
     vela_config_read(&settings);
     autoscroll->enabled = vela_config_flag(&settings, "middle-click-autoscroll", false);
     autoscroll->speed = vela_clamp(atoi(vela_config_get(&settings, "autoscroll-speed", "5")), 1, 10);
+    autoscroll->click = vela_config_flag(&settings, "autoscroll-click", true);
+    autoscroll->hold = vela_config_flag(&settings, "autoscroll-hold", true);
     vela_config_finish(&settings);
 }
 
@@ -147,6 +166,9 @@ static int64_t next_vblank(struct vela_autoscroll *autoscroll, int64_t after)
 }
 
 // ------------------------------------------------------------ start, stop --
+
+static void activate(struct vela_autoscroll *autoscroll);
+static void cancel_pending(struct vela_autoscroll *autoscroll, bool click);
 
 static void stop(struct vela_autoscroll *autoscroll)
 {
@@ -246,7 +268,19 @@ static int handle_tick(int fd, uint32_t mask, void *data)
 {
     struct vela_autoscroll *autoscroll = data;
     uint64_t expirations = 0;
-    if (read(fd, &expirations, sizeof(expirations)) < 0 || !autoscroll->active) {
+    if (read(fd, &expirations, sizeof(expirations)) < 0) {
+        return 0;
+    }
+    if (autoscroll->pending) {
+        // Held long enough: a held autoscroll (or nothing, if things changed).
+        if (still_valid(autoscroll)) {
+            activate(autoscroll);
+        } else {
+            cancel_pending(autoscroll, false);
+        }
+        return 0;
+    }
+    if (!autoscroll->active) {
         return 0;
     }
     if (!still_valid(autoscroll)) {
@@ -276,10 +310,65 @@ static void handle_surface_destroy(struct wl_listener *listener, void *data)
     arm(autoscroll, vela_now_ns());
 }
 
+// The theme's autoscroll cursor; older themes only have the X11 names.
+static const char *scroll_cursor(struct vela_server *server)
+{
+    const char *names[] = { "all-scroll", "fleur", "move" };
+    if (wlr_xcursor_manager_load(server->cursor_manager, 1.0f)) {
+        for (size_t i = 0; i < sizeof(names) / sizeof(names[0]); ++i) {
+            if (wlr_xcursor_manager_get_xcursor(server->cursor_manager, names[i], 1.0f)) {
+                return names[i];
+            }
+        }
+    }
+    return "default";
+}
+
 static struct vela_view *view_of(void *owner)
 {
     struct vela_owner *o = owner;
     return o && o->kind == VELA_OWNER_VIEW ? (struct vela_view *)o : NULL;
+}
+
+static void activate(struct vela_autoscroll *autoscroll)
+{
+    struct vela_server *server = autoscroll->server;
+    autoscroll->pending = false;
+    autoscroll->active = true;
+    autoscroll->held = true;
+    autoscroll->carry[0] = autoscroll->carry[1] = 0.0;
+    autoscroll->scrolled[0] = autoscroll->scrolled[1] = false;
+    vela_input_set_xcursor(server, scroll_cursor(server));
+    // The app gets no more motion from here: where it is now.
+    autoscroll->last_tick = vela_now_ns();
+    autoscroll->next_tick = next_vblank(autoscroll, autoscroll->last_tick);
+    arm(autoscroll, autoscroll->next_tick);
+    wlr_log(WLR_DEBUG, "Autoscroll: on (%s) at %.0f,%.0f", vela_view_app_id(autoscroll->view), autoscroll->anchor_x,
+        autoscroll->anchor_y);
+}
+
+// The held-back press after all: to the app (with its release if `click`),
+// or dropped if the window is gone.
+static void cancel_pending(struct vela_autoscroll *autoscroll, bool click)
+{
+    struct vela_server *server = autoscroll->server;
+    struct wlr_seat *seat = server->seat;
+    autoscroll->pending = false;
+    disarm(autoscroll);
+    vela_unlisten(&autoscroll->surface_destroy);
+    if (autoscroll->surface && seat->pointer_state.focused_surface == autoscroll->surface) {
+        wlr_seat_pointer_notify_button(seat, autoscroll->pending_time, BTN_MIDDLE, WL_POINTER_BUTTON_STATE_PRESSED);
+        if (click) {
+            uint32_t ms = (uint32_t)(vela_now_ns() / VELA_NS_PER_MS);
+            wlr_seat_pointer_notify_button(seat, ms, BTN_MIDDLE, WL_POINTER_BUTTON_STATE_RELEASED);
+        } else {
+            autoscroll->swallowed &= ~button_bit(BTN_MIDDLE); // its release goes to the app as usual
+        }
+        wlr_seat_pointer_notify_frame(seat);
+    }
+    autoscroll->surface = NULL;
+    autoscroll->view = NULL;
+    autoscroll->output = NULL;
 }
 
 // The middle button pressed: starts if the pointer is on an app's window
@@ -290,7 +379,7 @@ static bool start(struct vela_autoscroll *autoscroll, uint32_t time_msec)
     struct wlr_seat *seat = server->seat;
     struct wlr_cursor *cursor = server->cursor;
     struct vela_interaction *interaction = server->interaction;
-    if (!autoscroll->enabled || !autoscroll->timer || server->locked || server->cursor_mode != VELA_CURSOR_PASSTHROUGH
+    if (!autoscroll->enabled || !(autoscroll->click || autoscroll->hold) || !autoscroll->timer || server->locked || server->cursor_mode != VELA_CURSOR_PASSTHROUGH
         || seat->drag || seat->pointer_state.button_count > 0 || server->input->active_constraint
         || interaction->keyboard.view || interaction->pending_title_drag.view || vela_switcher_active(server)) {
         return false;
@@ -307,24 +396,21 @@ static bool start(struct vela_autoscroll *autoscroll, uint32_t time_msec)
     if (vela_views_focused(server) != view || server->focused_layer) {
         return false;
     }
-    autoscroll->active = true;
-    autoscroll->held = true;
     autoscroll->moved = false;
     autoscroll->pressed_at = vela_now_ns();
+    autoscroll->pending_time = time_msec;
     autoscroll->anchor_x = cursor->x;
     autoscroll->anchor_y = cursor->y;
     autoscroll->surface = hit.surface;
     autoscroll->view = view;
     autoscroll->output = output;
-    autoscroll->carry[0] = autoscroll->carry[1] = 0.0;
-    autoscroll->scrolled[0] = autoscroll->scrolled[1] = false;
     vela_listen(&hit.surface->events.destroy, &autoscroll->surface_destroy, handle_surface_destroy);
-    vela_input_set_xcursor(server, "all-scroll"); // the theme falls back to fleur/move (wlr_xcursor)
-    autoscroll->last_tick = autoscroll->pressed_at;
-    autoscroll->next_tick = next_vblank(autoscroll, autoscroll->pressed_at);
-    arm(autoscroll, autoscroll->next_tick);
-    wlr_log(WLR_DEBUG, "Autoscroll: on (%s) at %.0f,%.0f, time %u", vela_view_app_id(view), cursor->x, cursor->y,
-        time_msec);
+    if (autoscroll->click) {
+        activate(autoscroll);
+    } else {
+        autoscroll->pending = true;
+        arm(autoscroll, autoscroll->pressed_at + HOLD_MS * VELA_NS_PER_MS);
+    }
     return true;
 }
 
@@ -335,10 +421,6 @@ bool vela_autoscroll_active(const struct vela_autoscroll *autoscroll)
     return autoscroll && autoscroll->active;
 }
 
-static uint32_t button_bit(uint32_t button)
-{
-    return button >= BTN_MOUSE && button < BTN_MOUSE + 32 ? 1u << (button - BTN_MOUSE) : 0;
-}
 
 bool vela_autoscroll_button(struct vela_autoscroll *autoscroll, const struct wlr_pointer_button_event *event)
 {
@@ -348,14 +430,24 @@ bool vela_autoscroll_button(struct vela_autoscroll *autoscroll, const struct wlr
             return false;
         }
         autoscroll->swallowed &= ~bit;
-        if (autoscroll->active && autoscroll->held && event->button == BTN_MIDDLE) {
+        if (autoscroll->pending && event->button == BTN_MIDDLE) {
+            cancel_pending(autoscroll, true); // a click: the app's
+        } else if (autoscroll->active && autoscroll->held && event->button == BTN_MIDDLE) {
             autoscroll->held = false;
-            // Dragged (or held a long time): it ends with the release.
-            if (autoscroll->moved || vela_now_ns() - autoscroll->pressed_at > CLICK_MS * VELA_NS_PER_MS) {
+            // Dragged (or held a long time) it ends with the release; without
+            // autoscroll-click, always.
+            bool dragged
+                = autoscroll->moved || vela_now_ns() - autoscroll->pressed_at > CLICK_MS * VELA_NS_PER_MS;
+            if (!autoscroll->click || (autoscroll->hold && dragged)) {
                 stop(autoscroll);
             }
         }
         return true;
+    }
+    if (autoscroll->pending) {
+        // Another button: the middle one was just a press, for the app.
+        cancel_pending(autoscroll, false);
+        return false;
     }
     if (autoscroll->active) {
         // Any button ends it, and the click reaches nobody.
@@ -370,13 +462,21 @@ bool vela_autoscroll_button(struct vela_autoscroll *autoscroll, const struct wlr
     return false;
 }
 
-void vela_autoscroll_motion(struct vela_autoscroll *autoscroll)
+bool vela_autoscroll_motion(struct vela_autoscroll *autoscroll)
 {
     struct wlr_cursor *cursor = autoscroll->server->cursor;
-    if (autoscroll->held
-        && hypot(cursor->x - autoscroll->anchor_x, cursor->y - autoscroll->anchor_y) > CLICK_DISTANCE) {
+    bool far = hypot(cursor->x - autoscroll->anchor_x, cursor->y - autoscroll->anchor_y) > CLICK_DISTANCE;
+    if (autoscroll->pending && far) {
+        autoscroll->moved = true;
+        if (still_valid(autoscroll)) {
+            activate(autoscroll);
+        } else {
+            cancel_pending(autoscroll, false);
+        }
+    } else if (autoscroll->active && autoscroll->held && far) {
         autoscroll->moved = true;
     }
+    return autoscroll->active;
 }
 
 bool vela_autoscroll_key(struct vela_autoscroll *autoscroll, const uint32_t *syms, int count, bool pressed)

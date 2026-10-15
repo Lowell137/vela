@@ -211,8 +211,7 @@ void vela_interact_motion(struct vela_server *server, uint32_t time_msec)
         vela_a11y_update_magnifier(a11y); // the zoomed area follows the cursor
     }
     // Autoscroll: the cursor moves, the app gets no motion (no hover).
-    if (autoscrolling) {
-        vela_autoscroll_motion(server->autoscroll);
+    if (vela_autoscroll_motion(server->autoscroll)) {
         return;
     }
     struct vela_view *dragged = interaction->pending_title_drag.view;

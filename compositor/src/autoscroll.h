@@ -23,8 +23,12 @@
 //
 // vela.conf: middle-click-autoscroll=no (the default: middle click keeps
 // pasting), autoscroll-speed=5 (1-10); window-rule=<app-id>|autoscroll=no|yes
-// (terminals are left out unless a rule says yes). A timer runs only while
-// it is on.
+// (terminals are left out unless a rule says yes). Two more, both yes:
+// autoscroll-click (a click turns it on) and autoscroll-hold (held and
+// dragged, it scrolls until the release). With autoscroll-click=no the
+// middle press waits (4 px or 200 ms) before it is a held autoscroll;
+// released earlier, press and release reach the app together (paste, new
+// tab). A timer runs only while it is on or waiting.
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -46,8 +50,9 @@ bool vela_autoscroll_active(const struct vela_autoscroll *autoscroll);
 // Before the button reaches anyone: true if autoscroll took it (started,
 // ended, or the release of a press it took).
 bool vela_autoscroll_button(struct vela_autoscroll *autoscroll, const struct wlr_pointer_button_event *event);
-// The cursor moved while it is on (the motion goes to nobody).
-void vela_autoscroll_motion(struct vela_autoscroll *autoscroll);
+// The cursor moved: true if it is on (the motion goes to nobody); a held-back
+// middle press that moves far enough starts it here.
+bool vela_autoscroll_motion(struct vela_autoscroll *autoscroll);
 // A key: Esc ends it and is taken (true).
 bool vela_autoscroll_key(struct vela_autoscroll *autoscroll, const uint32_t *syms, int count, bool pressed);
 
