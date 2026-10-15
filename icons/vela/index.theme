@@ -1,7 +1,7 @@
 [Icon Theme]
 Name=Vela
-Comment=Vela's Fluent-style icons; the rest comes from Fluent (if installed), Breeze and hicolor
-Inherits=Fluent,Fluent-dark,breeze,hicolor
+Comment=Vela's Fluent UI glyphs; app and file icons from Reversal (if installed), then Fluent, Breeze, hicolor
+Inherits=Reversal-orange,Reversal-blue,Reversal-green,Fluent,breeze,hicolor
 Directories=scalable/status,scalable/actions,scalable/categories,scalable/places,scalable/mimetypes
 
 [scalable/status]

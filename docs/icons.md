@@ -12,7 +12,7 @@ from .desktop files) are not listed.
 `icons/vela` (installed as `vela` and `vela-dark`) holds the critical icons (WiFi
 levels, Bluetooth, volume, brightness, settings, search, folder, file, power,
 bell, battery) as Microsoft's Fluent System Icons, and Vela's own window buttons
-(options in `docs/icon-options/`). It inherits `Fluent`, `breeze`, `hicolor`.
+(options in `docs/icon-options/`). It inherits `Reversal-orange/blue/green`, `Fluent`, `breeze`, `hicolor`.
 Style sheet: `docs/icons-style-sheet.html`. Licenses:
 
 - Fluent System Icons (Microsoft, MIT): `icons/fluent-source`, `common/fluent` and
