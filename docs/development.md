@@ -225,6 +225,7 @@ lock/               vela-lock
 polkit/             vela-polkit-agent and vela-polkit-prompt (docs/polkit-agent.md)
 common/             Vela.Controls: theme, controls and blur shared by the Qt Quick apps;
                     audio/: vela-audio, the shell's and Settings' audio backend (docs/audio.md)
+common/fluent/      Fluent command icons for Vela's apps (MIT, see its README)
 session/            login entry, systemd target and portal integration
 packaging/arch/     PKGBUILD and vela-update
 report/             vela-report: shared Python core/CLI and standalone Qt Widgets GUI
