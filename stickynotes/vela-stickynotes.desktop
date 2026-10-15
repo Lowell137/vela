@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: 2026 Vela contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[Desktop Entry]
+Type=Application
+Name=Sticky Notes
+Name[tr]=Yapışkan Notlar
+Name[it]=Note adesive
+Comment=Short notes that stay on your desktop
+Comment[tr]=Masaüstünüzde duran kısa notlar
+Comment[it]=Brevi note sempre a portata di mano
+Exec=vela-stickynotes
+Icon=knotes
+Categories=Utility;
+Keywords=note;notes;sticky;memo;reminder;
+StartupNotify=true
