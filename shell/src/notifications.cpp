@@ -3,6 +3,8 @@
 
 #include "notifications.h"
 
+#include <algorithm>
+
 #include <QSettings>
 
 #include <QDBusArgument>
@@ -306,10 +308,15 @@ void NotificationServer::close(uint id, Reason reason)
 
 void NotificationServer::toHistory(const Notification& n)
 {
-    m_history.beginInsertRows({}, 0, 0);
-    m_history.m_items.insert(m_history.m_items.begin(),
+    // Kept grouped by app (the list's sections need the items contiguous): the
+    // app of the newest notification goes to the top, its older ones right after.
+    m_history.layoutAboutToBeChanged();
+    auto& items = m_history.m_items;
+    items.insert(items.begin(),
         { n.id, n.appName, n.icon, n.summary, n.body, n.actions, n.hasDefault, QDateTime::currentDateTime() });
-    m_history.endInsertRows();
+    std::stable_partition(items.begin(), items.end(),
+        [&](const NotificationHistory::Item& i) { return i.appName == n.appName; });
+    m_history.layoutChanged();
     Q_EMIT m_history.countChanged();
 }
 
@@ -359,7 +366,29 @@ void NotificationServer::clearHistory()
     }
 }
 
+void NotificationServer::clearApp(const QString& appName)
+{
+    std::vector<uint> ids;
+    for (const auto& item : m_history.m_items) {
+        if (item.appName == appName) {
+            ids.push_back(item.id);
+        }
+    }
+    for (uint id : ids) {
+        close(id, Reason::Dismissed);
+    }
+}
+
 // ---------------------------------------------------- NotificationHistory --
+
+QVariantMap NotificationHistory::appCounts() const
+{
+    QVariantMap counts;
+    for (const auto& item : m_items) {
+        counts[item.appName] = counts.value(item.appName, 0).toInt() + 1;
+    }
+    return counts;
+}
 
 int NotificationHistory::rowCount(const QModelIndex& parent) const
 {

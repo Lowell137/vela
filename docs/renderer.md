@@ -1084,6 +1084,9 @@ With virtual desktops (milestone 3, done: `shell/qml/TaskView.qml`,
 - **A desktop preview**: "Rename", "Choose background", "Move left", "Move
   right", "Close".
 
+The notification center groups notifications by app: a header per app with the
+count, a fold toggle and "Clear all" for that group; the newest group is on top.
+
 Notifications (the "…" menu of the popup and of the notification center): "Turn
 off all notifications for <app>", "Go to notification settings".
 

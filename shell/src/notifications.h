@@ -33,6 +33,8 @@ public:
     int rowCount(const QModelIndex& parent = {}) const override;
     QVariant data(const QModelIndex& index, int role) const override;
     QHash<int, QByteArray> roleNames() const override;
+    // { appName: number of notifications }, for the group headers.
+    Q_INVOKABLE QVariantMap appCounts() const;
 
 signals:
     void countChanged();
@@ -101,6 +103,8 @@ public:
     Q_INVOKABLE void invokeFromHistory(uint id, const QString& action);
     Q_INVOKABLE void dismissFromHistory(uint id);
     Q_INVOKABLE void clearHistory();
+    // "Clear all" of one app's group.
+    Q_INVOKABLE void clearApp(const QString& appName);
 
     QImage image(uint id) const { return m_images.value(id); }
 

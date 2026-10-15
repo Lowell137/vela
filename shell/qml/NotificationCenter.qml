@@ -17,6 +17,8 @@ Window {
 
     readonly property var history: Notifications.history
     property date month: new Date() // the month the calendar shows
+    property var collapsed: ({}) // app name -> its group is folded
+    readonly property var counts: { history.count; return history.appCounts() }
 
     function open() {
         Menus.quickSettingsOpen = false
@@ -156,15 +158,41 @@ Window {
                 model: root.history
                 boundsBehavior: Flickable.StopAtBounds
                 section.property: "appName"
-                section.delegate: Text {
+                section.delegate: Item {
+                    id: group
                     required property string section
+                    readonly property bool folded: root.collapsed[section] === true
                     width: list.width
-                    leftPadding: 8
-                    topPadding: 6
-                    bottomPadding: 2
-                    text: section
-                    color: Theme.textSecondary
-                    font.pixelSize: Theme.fontCaption
+                    height: 32
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: Theme.radius
+                        color: Theme.subtleHover
+                        opacity: groupMouse.containsMouse ? 1 : 0
+                    }
+                    MouseArea {
+                        id: groupMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        onClicked: {
+                            const c = Object.assign({}, root.collapsed)
+                            c[group.section] = !group.folded
+                            root.collapsed = c
+                        }
+                    }
+                    Text {
+                        id: groupName
+                        anchors { left: parent.left; leftMargin: 8; verticalCenter: parent.verticalCenter }
+                        text: (group.folded ? "\u25B8 " : "\u25BE ") + group.section
+                            + "  \u00B7  " + (root.counts[group.section] || 0)
+                        color: Theme.textSecondary
+                        font.pixelSize: Theme.fontCaption
+                    }
+                    SmallButton {
+                        anchors { right: parent.right; verticalCenter: parent.verticalCenter }
+                        label: qsTr("Clear all")
+                        onClicked: Notifications.clearApp(group.section)
+                    }
                 }
 
                 delegate: Rectangle {
@@ -176,8 +204,10 @@ Window {
                     required property var actions
                     required property bool hasDefaultAction
                     required property date time
+                    required property string appName
+                    visible: root.collapsed[appName] !== true
                     width: list.width
-                    height: itemContent.height + 20
+                    height: visible ? itemContent.height + 20 : 0
                     radius: Theme.radius
                     color: itemHover.hovered ? Theme.subtleHover : Theme.control
 

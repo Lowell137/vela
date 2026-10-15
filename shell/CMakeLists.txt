@@ -219,6 +219,13 @@ if(VELA_BUILD_TOOLS)
     target_link_libraries(vela-service-models-test PRIVATE Qt6::Core Qt6::DBus Qt6::Test)
     add_test(NAME shell-service-models COMMAND vela-service-models-test)
     set_tests_properties(shell-service-models PROPERTIES TIMEOUT 90)
+
+    qt_add_executable(vela-notification-groups-test
+        tests/notification_groups.cpp src/notifications.cpp src/notifications.h)
+    target_include_directories(vela-notification-groups-test PRIVATE src)
+    target_compile_options(vela-notification-groups-test PRIVATE -Wall -Wextra)
+    target_link_libraries(vela-notification-groups-test PRIVATE Qt6::Core Qt6::DBus Qt6::Gui Qt6::Quick Qt6::Test)
+    add_test(NAME shell-notification-groups COMMAND vela-notification-groups-test)
 endif()
 
 # Italian translation: strings in the code are in English, Italian lives
