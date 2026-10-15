@@ -38,6 +38,16 @@ private slots:
         QVERIFY(!MediaMatch::pick(ps, "chromium", "Clip - YouTube", 1).isEmpty());
         QVERIFY(MediaMatch::pick(ps, "brave", "Clip", 1).isEmpty());
     }
+    void identity()
+    {
+        // YouTube Music (Electron): chromium.instanceNNN bus name, no
+        // DesktopEntry, the window class as Identity.
+        QVariantMap p = player("chromium.instance7", "", "Playing", "Song");
+        p["identity"] = "com.github.th-ch.youtube-music";
+        QVERIFY(!MediaMatch::pick({ p }, "com.github.th-ch.youtube-music", "Song", 1).isEmpty());
+        QVERIFY(!MediaMatch::pick({ p }, "com.github.th_ch.youtube_music", "Song", 1).isEmpty());
+        QVERIFY(MediaMatch::pick({ p }, "zen", "Song", 1).isEmpty());
+    }
     void entryBeatsName()
     {
         const QVariantList ps { player("vlc", "", "Playing", "A"), player("x", "vlc", "Playing", "B") };

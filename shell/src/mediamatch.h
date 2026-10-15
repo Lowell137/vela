@@ -14,7 +14,7 @@ namespace MediaMatch {
 
 inline QString normalized(QString id)
 {
-    id = id.toLower();
+    id = id.toLower().replace(QLatin1Char('_'), QLatin1Char('-'));
     if (id.endsWith(QLatin1String(".desktop"))) {
         id.chop(8);
     }
@@ -51,7 +51,7 @@ inline bool visible(const QVariantMap& p)
 
 // `appId`/`title`: the window's; `sameAppWindows`: how many windows share the
 // appId (browser windows: more than one means only the title can tell).
-// Order: DesktopEntry, bus name. (PID is not offered by the compositor's
+// Order: DesktopEntry, bus name or Identity. (PID is not offered by the compositor's
 // toplevel protocol.)
 inline QVariantMap pick(const QVariantList& players, const QString& appId, const QString& title, int sameAppWindows)
 {
@@ -63,7 +63,10 @@ inline QVariantMap pick(const QVariantList& players, const QString& appId, const
         }
         if (sameApp(p.value(QStringLiteral("desktopEntry")).toString(), appId)) {
             byEntry << p;
-        } else if (sameApp(busName(p.value(QStringLiteral("service")).toString()), appId)) {
+        } else if (sameApp(busName(p.value(QStringLiteral("service")).toString()), appId)
+            || sameApp(p.value(QStringLiteral("identity")).toString(), appId)) {
+            // Electron apps (YouTube Music) report their window class as the
+            // player's Identity, with a chromium.instanceNNN bus name.
             byName << p;
         }
     }
