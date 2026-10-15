@@ -28,7 +28,7 @@ depends=(
     'freetype2' 'harfbuzz' 'fontconfig' 'librsvg' 'cairo'
     'qt6-base' 'qt6-declarative' 'qt6-svg' 'qt6-wayland' 'layer-shell-qt'
     'pam' 'polkit' 'hicolor-icon-theme' 'python' 'xorg-xwayland'
-    'pipewire' 'wireplumber'
+    'pipewire' 'wireplumber' 'mpv'
 )
 makedepends=('git' 'cmake' 'shaderc' 'vulkan-headers' 'wayland-protocols' 'qt6-tools')
 optdepends=(
@@ -39,6 +39,7 @@ optdepends=(
     'networkmanager: network and Wi-Fi (quick settings and Settings)'
     'bluez: Bluetooth'
     'pipewire-pulse: sound for apps that still use PulseAudio'
+    'ffmpeg: Sound Recorder trims and converts recordings'
     'power-profiles-daemon: energy saver'
     'udisks2: unmounted drives in File Explorer'
     'xdg-utils: share by email, default apps'
