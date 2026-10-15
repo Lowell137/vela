@@ -39,6 +39,7 @@ optdepends=(
     'networkmanager: network and Wi-Fi (quick settings and Settings)'
     'bluez: Bluetooth'
     'pipewire-pulse: sound for apps that still use PulseAudio'
+    'imagemagick: AVIF, HEIC, JPEG XL, PSD, OpenEXR and camera RAW thumbnails in File Explorer'
     'power-profiles-daemon: energy saver'
     'udisks2: unmounted drives in File Explorer'
     'xdg-utils: share by email, default apps'

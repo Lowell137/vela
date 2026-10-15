@@ -3,6 +3,8 @@
 
 #include "filethumbnails.h"
 
+#include "imageformats.h"
+
 #include <QCryptographicHash>
 #include <QDir>
 #include <QFileInfo>
@@ -67,14 +69,18 @@ QImage thumbnailFor(const QString& path, int wanted)
     // exists.
     QImageReader reader(path);
     reader.setAutoTransform(true); // rotated photos (EXIF)
-    if (!reader.canRead() || info.size() > maxImageBytes) {
-        return {};
+    QSize full;
+    QImage image;
+    if (reader.canRead() && info.size() <= maxImageBytes) {
+        full = reader.size();
+        if (full.isValid() && (full.width() > size->pixels || full.height() > size->pixels)) {
+            reader.setScaledSize(full.scaled(size->pixels, size->pixels, Qt::KeepAspectRatio));
+        }
+        image = reader.read();
+    } else if (info.size() <= maxImageBytes * 4 && formats::isExtra(path)) {
+        // AVIF, HEIC, JPEG XL, PSD, RAW...: Qt can't, ImageMagick can.
+        image = formats::read(path, QSize(size->pixels, size->pixels));
     }
-    QSize full = reader.size();
-    if (full.isValid() && (full.width() > size->pixels || full.height() > size->pixels)) {
-        reader.setScaledSize(full.scaled(size->pixels, size->pixels, Qt::KeepAspectRatio));
-    }
-    QImage image = reader.read();
     if (image.isNull()) {
         return {};
     }

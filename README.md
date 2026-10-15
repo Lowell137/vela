@@ -219,7 +219,8 @@ The whole design is written down in [docs/renderer.md](docs/renderer.md).
 
 ### Files (`vela-files`)
 - Tabs, breadcrumb address bar, search in subfolders, Details and icon views (remembered
-  per folder), and a **preview pane** (images, text, video and PDF thumbnails).
+  per folder), and a **preview pane** (images, text, video and PDF thumbnails; AVIF,
+  HEIC, JPEG XL, PSD and camera RAW too when ImageMagick is installed).
 - Background copy and move with progress and conflict resolution, drag and drop
   everywhere, ZIP/7z/TAR, shortcuts, Favorites, Trash with restore.
 - **Atomic file replacement and staged copies.** Each file is written to a hidden temporary
