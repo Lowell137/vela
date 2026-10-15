@@ -233,6 +233,7 @@ Small Qt Quick apps built like Files, with Vela's controls and title bar, in Eng
 and Italian:
 - **Notepad** (`vela-notepad`): tabs, find and replace, encodings, go to line, fonts, and printing through the portal.
 - **Media Player** (`vela-mediaplayer`): plays video and music with libmpv: folder playlist, subtitles, speed, resume and a mini player.
+- **Video Editor** (`vela-videoeditor`): a three-track timeline (text, video, audio) previewed with libmpv and exported with ffmpeg, with autosave and undo.
 
 ### Settings (`vela-settings`)
 - **Displays**: drag-and-drop arrangement, scale, resolution, refresh rate, rotation, and

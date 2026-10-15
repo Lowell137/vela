@@ -222,6 +222,7 @@ shell/              Qt Quick shell: taskbar, launcher, panels and desktop
 explorer/           vela-files
 notepad/            vela-notepad
 mediaplayer/        vela-mediaplayer (plays with libmpv)
+videoeditor/        vela-videoeditor (mpv previews the timeline, ffmpeg exports it)
 settings/           vela-settings
 lock/               vela-lock
 polkit/             vela-polkit-agent and vela-polkit-prompt (docs/polkit-agent.md)
@@ -248,6 +249,7 @@ The interface is in English and Italian. Strings in the code are written in Engl
 | Files | `explorer/i18n/vela-files_it.ts` |
 | Notepad | `notepad/i18n/vela-notepad_it.ts` |
 | Media Player | `mediaplayer/i18n/vela-mediaplayer_it.ts` |
+| Video Editor | `videoeditor/i18n/vela-videoeditor_it.ts` |
 | Settings | `settings/i18n/vela-settings_it.ts` |
 | Lock screen | `lock/i18n/vela-lock_it.ts` |
 | User Account Control (polkit) | `polkit/i18n/vela-polkit-prompt_it.ts` |
