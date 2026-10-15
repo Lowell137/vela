@@ -1,0 +1,17 @@
+# SPDX-FileCopyrightText: 2026 Vela contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[Desktop Entry]
+Type=Application
+Name=Weather
+Name[tr]=Hava Durumu
+Name[it]=Meteo
+GenericName=Weather Forecast
+GenericName[tr]=Hava Tahmini
+Comment=Current conditions and forecast for your places
+Comment[tr]=Yerleriniz için güncel hava durumu ve tahmin
+Exec=vela-weather
+Icon=weather-clear
+Categories=Utility;Network;
+Keywords=weather;forecast;temperature;rain;wind;hava;meteo;
+StartupNotify=true

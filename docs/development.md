@@ -193,6 +193,7 @@ taskmanager/        vela-taskmanager
 stickynotes/        vela-stickynotes
 voicerecorder/      vela-voicerecorder (pw-record records, libmpv plays, ffmpeg trims)
 terminal/           vela-terminal (libvterm reads what the programs write)
+weather/            vela-weather (Open-Meteo forecasts, places searched by name)
 eventviewer/        vela-eventviewer (journalctl's entries, filtered and followed)
 calendar/           vela-calendar (local events, repeats, .ics, reminders)
 videoeditor/        vela-videoeditor (mpv previews the timeline, ffmpeg exports it)
