@@ -197,6 +197,10 @@ const Panel panels[] = {
     // The Game Bar (Win+G): the whole output, transparent, above fullscreen
     // games; a click outside its cards closes it.
     { "GameBar", "vela-game-bar", layerOverlay, fill, -1, keysOnDemand },
+    // The pinned numbers in a corner (GameOverlay.qml moves it) and the
+    // crosshair in the center: the mouse goes through both.
+    { "GameOverlay", "vela-game-overlay", layerOverlay, topLeft, -1, keysNone, {}, true },
+    { "Crosshair", "vela-crosshair", layerOverlay, centered, -1, keysNone, {}, true },
 };
 
 // QML windows start invisible: they become layer-shell surfaces BEFORE
