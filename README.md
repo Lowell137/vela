@@ -232,6 +232,7 @@ The whole design is written down in [docs/renderer.md](docs/renderer.md).
 Small Qt Quick apps built like Files, with Vela's controls and title bar, in English
 and Italian:
 - **Notepad** (`vela-notepad`): tabs, find and replace, encodings, go to line, fonts, and printing through the portal.
+- **Calendar** (`vela-calendar`): local day, week and month views, repeating events, .ics import and export, and reminders.
 
 ### Settings (`vela-settings`)
 - **Displays**: drag-and-drop arrangement, scale, resolution, refresh rate, rotation, and

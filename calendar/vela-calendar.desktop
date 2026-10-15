@@ -1,0 +1,19 @@
+# SPDX-FileCopyrightText: 2026 Vela contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[Desktop Entry]
+Type=Application
+Name=Calendar
+Name[tr]=Takvim
+Name[it]=Calendario
+GenericName=Calendar
+GenericName[tr]=Takvim
+Comment=Events, reminders and .ics files, on this computer
+Comment[tr]=Etkinlikler, hatırlatıcılar ve .ics dosyaları, bu bilgisayarda
+Comment[it]=Eventi, promemoria e file .ics, su questo computer
+Exec=vela-calendar %f
+Icon=calendar
+Categories=Office;Calendar;
+MimeType=text/calendar;
+Keywords=calendar;event;agenda;reminder;appointment;ics;
+StartupNotify=true
