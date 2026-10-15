@@ -328,22 +328,6 @@ Window {
             onDropped: drop => { if (drop.hasUrls) Playlist.open(drop.urls[0]) }
         }
 
-        // The closed playlist's way back, in the picture's corner.
-        Rectangle {
-            anchors { right: parent.right; top: parent.top; margins: 12 }
-            visible: !settings.playlistOpen && !root.fullScreen && !root.mini && root.barShown
-            width: 40
-            height: 40
-            radius: Theme.radius
-            color: Theme.background
-            ToolButton {
-                anchors.centerIn: parent
-                icon: "view-media-playlist"
-                tooltip: qsTr("Playlist (Ctrl+L)")
-                onClicked: settings.playlistOpen = true
-            }
-        }
-
         // The mini player's few commands, while the pointer moves over it.
         Rectangle {
             anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom; bottomMargin: 12 }

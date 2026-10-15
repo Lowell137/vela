@@ -13,6 +13,7 @@
 #include "language.h"
 #include "terminal.h"
 
+#include <QDir>
 #include <QGuiApplication>
 #include <QIcon>
 #include <QQmlApplicationEngine>
@@ -84,6 +85,11 @@ int main(int argc, char* argv[])
             command = words.join(QLatin1Char(' '));
             break;
         }
+    }
+    // Started from a folder (Explorer's "Open in Terminal" does that): the
+    // shell begins there, as in any other terminal.
+    if (directory.isEmpty()) {
+        directory = QDir::currentPath();
     }
     Host host(command, directory);
 

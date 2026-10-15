@@ -37,6 +37,13 @@
     </message>
 </context>
 <context>
+    <name>Pane</name>
+    <message>
+        <source>Close pane (Ctrl+Shift+W)</source>
+        <translation>Bölmeyi kapat (Ctrl+Shift+W)</translation>
+    </message>
+</context>
+<context>
     <name>SettingsPage</name>
     <message>
         <source>Back (Esc)</source>

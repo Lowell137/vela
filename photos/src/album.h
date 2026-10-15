@@ -6,6 +6,7 @@
 // The images of the opened one's folder (`Album` in QML): the arrows go
 // through them, in the order a file manager lists them.
 
+#include <QHash>
 #include <QList>
 #include <QObject>
 #include <QSize>
@@ -50,6 +51,11 @@ public:
     Q_INVOKABLE void openInPaint() const; // vela-paint, installed next to Photos
     Q_INVOKABLE void print() const; // on one page, through the system's dialog
     Q_INVOKABLE QString filter() const; // "*.png *.jpg ...", for the Open dialog
+    // What a QML Image shows for a file: the file, or, for the formats only
+    // ImageMagick reads (AVIF, HEIC, RAW...), the image provider's picture.
+    Q_INVOKABLE QUrl shown(const QUrl& file) const;
+    // The provider found the size of a picture (queued from its thread).
+    Q_INVOKABLE void extraDecoded(const QString& path, const QSize& size);
 
 signals:
     void filesChanged();
@@ -57,5 +63,6 @@ signals:
 
 private:
     QList<QUrl> m_files;
+    QHash<QString, QSize> m_sizes; // of the extra formats, once decoded
     int m_index = -1;
 };

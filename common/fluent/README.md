@@ -10,3 +10,5 @@ same names as the rest of Vela.
 An app that puts them in its resources under `:/fluent` (see
 photos/CMakeLists.txt) gets them from `image://icon/` before the theme's, in
 the text's color (shell/src/iconprovider.h). Other apps keep the theme's.
+
+audio-input-microphone is drawn here, in the same style.

@@ -35,6 +35,29 @@ Item {
         border.color: Theme.accentFill
     }
 
+    HoverHandler { id: paneHover }
+
+    // Closes this one pane, in its corner while the pointer is over it and
+    // the tab has more than one.
+    Rectangle {
+        anchors { right: parent.right; top: parent.top; rightMargin: 18; topMargin: 6 }
+        visible: paneHover.hovered && pane.page && pane.page.content !== pane
+        width: 28
+        height: 28
+        radius: Theme.radius
+        color: Theme.flyout
+        border.width: 1
+        border.color: Theme.stroke
+        ToolButton {
+            anchors.centerIn: parent
+            width: 24
+            height: 24
+            icon: "window-close"
+            tooltip: qsTr("Close pane (Ctrl+Shift+W)")
+            onClicked: pane.win.closePane(pane)
+        }
+    }
+
     // The scroll bar: where the view is in the history.
     Item {
         id: bar

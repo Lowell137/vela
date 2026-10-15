@@ -1,0 +1,17 @@
+# SPDX-FileCopyrightText: 2026 Vela contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[Desktop Entry]
+Type=Application
+Name=Sound Recorder
+Name[tr]=Ses Kaydedici
+Name[it]=Registratore di suoni
+GenericName=Audio Recorder
+GenericName[tr]=Ses Kaydedici
+Comment=Record, play and trim sounds
+Comment[tr]=Ses kaydet, çal ve kırp
+Exec=vela-voicerecorder
+Icon=audio-input-microphone
+Categories=AudioVideo;Audio;Recorder;
+Keywords=record;microphone;voice;audio;sound;
+StartupNotify=true

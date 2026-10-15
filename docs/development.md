@@ -195,8 +195,15 @@ calculator/         vela-calculator
 photos/             vela-photos
 mediaplayer/        vela-mediaplayer (plays with libmpv)
 paint/              vela-paint
+clock/              vela-clock (alarms, timers, stopwatch, world clocks)
 taskmanager/        vela-taskmanager
+stickynotes/        vela-stickynotes
+voicerecorder/      vela-voicerecorder (pw-record records, libmpv plays, ffmpeg trims)
 terminal/           vela-terminal (libvterm reads what the programs write)
+weather/            vela-weather (Open-Meteo forecasts, places searched by name)
+eventviewer/        vela-eventviewer (journalctl's entries, filtered and followed)
+calendar/           vela-calendar (local events, repeats, .ics, reminders)
+videoeditor/        vela-videoeditor (mpv previews the timeline, ffmpeg exports it)
 common/fluent/      the four apps above draw their commands with Fluent icons (MIT)
 settings/           vela-settings
 lock/               vela-lock

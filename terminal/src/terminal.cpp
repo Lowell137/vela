@@ -473,6 +473,17 @@ void Terminal::keyPressEvent(QKeyEvent* event)
             return;
         }
     }
+    // As in Windows Terminal: Ctrl+V pastes, and Ctrl+C copies what's selected.
+    // With nothing selected it's the interrupt it has always been.
+    if (modifiers == Qt::ControlModifier && key == Qt::Key_V) {
+        paste();
+        return;
+    }
+    if (modifiers == Qt::ControlModifier && key == Qt::Key_C && hasSelection()) {
+        copy();
+        clearSelection();
+        return;
+    }
     if ((modifiers & Qt::ShiftModifier) && (key == Qt::Key_PageUp || key == Qt::Key_PageDown)) {
         setScroll(m_scroll + (key == Qt::Key_PageUp ? 1 : -1) * qMax(1, m_vt->rows() - 1));
         return;
@@ -505,9 +516,7 @@ void Terminal::keyPressEvent(QKeyEvent* event)
     }
     // Typing brings back the last line and lets go of what was selected.
     setScroll(0);
-    select(QPoint(), QPoint());
-    m_selected = false;
-    emit selectionChanged();
+    clearSelection();
 }
 
 void Terminal::focusInEvent(QFocusEvent* event)
@@ -668,6 +677,12 @@ void Terminal::wheelEvent(QWheelEvent* event)
 }
 
 // --- the selection ---
+
+void Terminal::clearSelection()
+{
+    m_selected = false;
+    select(QPoint(), QPoint());
+}
 
 void Terminal::select(QPoint from, QPoint to)
 {

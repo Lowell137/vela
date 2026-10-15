@@ -14,7 +14,7 @@ add_library(vela-paint-core OBJECT
     src/canvas.h)
 target_include_directories(vela-paint-core PUBLIC src)
 target_compile_options(vela-paint-core PRIVATE -Wall -Wextra)
-target_link_libraries(vela-paint-core PUBLIC Qt6::Gui Qt6::Quick)
+target_link_libraries(vela-paint-core PUBLIC Qt6::Gui Qt6::Quick vela-imageformats)
 
 qt_add_executable(vela-paint src/main.cpp)
 

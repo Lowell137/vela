@@ -85,3 +85,19 @@ target_link_libraries(vela-controls PUBLIC
 
 # vela-audio: the audio backend of the shell and Settings (docs/audio.md).
 add_subdirectory(audio)
+
+# The pictures Qt's plugins can't read here (AVIF, HEIC, JPEG XL, PSD, RAW...),
+# decoded through ImageMagick when it is installed: Photos, Paint and the File
+# Explorer's thumbnails use it.
+add_library(vela-imageformats STATIC imageformats.cpp imageformats.h)
+target_include_directories(vela-imageformats PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_compile_options(vela-imageformats PRIVATE -Wall -Wextra)
+target_link_libraries(vela-imageformats PUBLIC Qt6::Gui Qt6::Quick)
+
+if(VELA_BUILD_TOOLS)
+    find_package(Qt6 REQUIRED COMPONENTS Test)
+    qt_add_executable(vela-imageformats-test tests/imageformats.cpp)
+    target_compile_options(vela-imageformats-test PRIVATE -Wall -Wextra)
+    target_link_libraries(vela-imageformats-test PRIVATE vela-imageformats Qt6::Test)
+    add_test(NAME imageformats COMMAND vela-imageformats-test)
+endif()

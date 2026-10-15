@@ -3,6 +3,8 @@
 
 #include "editview.h"
 
+#include "imageformats.h"
+
 #include <QFileInfo>
 #include <QImageReader>
 #include <QImageWriter>
@@ -18,13 +20,7 @@ const int PreviewSide = 2000;
 
 QImage read(const QUrl& url, QString* error = nullptr)
 {
-    QImageReader reader(url.toLocalFile());
-    reader.setAutoTransform(true); // the camera's orientation
-    const QImage image = reader.read();
-    if (image.isNull() && error) {
-        *error = reader.errorString();
-    }
-    return image;
+    return formats::read(url.toLocalFile(), {}, error);
 }
 
 } // namespace

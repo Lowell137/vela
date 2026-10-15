@@ -43,6 +43,7 @@ if(FILES_HAVE_PDF)
     target_compile_definitions(vela-files-core PUBLIC VELA_FILES_PDF)
 endif()
 target_link_libraries(vela-files-core PUBLIC
+    vela-imageformats
     Qt6::DBus
     Qt6::Gui
     Qt6::Network

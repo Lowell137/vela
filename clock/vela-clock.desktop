@@ -1,0 +1,19 @@
+# SPDX-FileCopyrightText: 2026 Vela contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[Desktop Entry]
+Type=Application
+Name=Clock
+Name[tr]=Saat
+Name[it]=Orologio
+GenericName=Alarms & Clock
+GenericName[tr]=Alarmlar ve Saat
+GenericName[it]=Sveglie e orologio
+Comment=Timers, alarms, stopwatch and world clocks
+Comment[tr]=Zamanlayıcılar, alarmlar, kronometre ve dünya saatleri
+Comment[it]=Timer, sveglie, cronometro e orologi del mondo
+Exec=vela-clock
+Icon=preferences-system-time
+Categories=Utility;Clock;
+Keywords=alarm;timer;stopwatch;clock;world;time;
+StartupNotify=true

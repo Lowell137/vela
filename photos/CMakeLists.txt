@@ -17,7 +17,7 @@ add_library(vela-photos-core OBJECT
     src/editview.h)
 target_include_directories(vela-photos-core PUBLIC src)
 target_compile_options(vela-photos-core PRIVATE -Wall -Wextra)
-target_link_libraries(vela-photos-core PUBLIC Qt6::Gui Qt6::Quick vela-portalprint)
+target_link_libraries(vela-photos-core PUBLIC Qt6::Gui Qt6::Quick vela-portalprint vela-imageformats)
 
 qt_add_executable(vela-photos src/main.cpp)
 
