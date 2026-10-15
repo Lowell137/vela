@@ -46,6 +46,35 @@ bool vela_layer_surface_wants_keyboard(const struct vela_layer_surface *layer)
     return layer->wlr->current.keyboard_interactive != ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE;
 }
 
+// While a keyboard-taking top surface (Start menu) is open, the other top
+// surfaces (taskbar) rise above fullscreen with it; when it closes they drop.
+static void restack_top_layers(struct vela_server *server)
+{
+    bool raised = false;
+    struct vela_layer_surface *l;
+    wl_list_for_each (l, &server->layer_surfaces, link) {
+        if (l->wlr->surface->mapped && l->layer == ZWLR_LAYER_SHELL_V1_LAYER_TOP && vela_layer_surface_wants_keyboard(l)) {
+            raised = true;
+        }
+    }
+    wl_list_for_each (l, &server->layer_surfaces, link) {
+        if (l->layer != ZWLR_LAYER_SHELL_V1_LAYER_TOP || vela_layer_surface_wants_keyboard(l)) {
+            continue;
+        }
+        struct vela_tree *target = raised ? server->layers.top_above_fullscreen : server->layers.top;
+        if (l->tree->node.parent != target) {
+            vela_node_reparent(&l->tree->node, target);
+        }
+    }
+    if (raised) {
+        wl_list_for_each (l, &server->layer_surfaces, link) {
+            if (l->layer == ZWLR_LAYER_SHELL_V1_LAYER_TOP && vela_layer_surface_wants_keyboard(l)) {
+                vela_node_raise_to_top(&l->tree->node);
+            }
+        }
+    }
+}
+
 static void handle_map(struct wl_listener *listener, void *data)
 {
     struct vela_layer_surface *layer = wl_container_of(listener, layer, map);
@@ -55,12 +84,14 @@ static void handle_map(struct wl_listener *listener, void *data)
         && (which == ZWLR_LAYER_SHELL_V1_LAYER_TOP || which == ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY)) {
         vela_focus_layer(layer->server, layer);
     }
+    restack_top_layers(layer->server);
 }
 
 static void handle_unmap(struct wl_listener *listener, void *data)
 {
     struct vela_layer_surface *layer = wl_container_of(listener, layer, unmap);
     vela_focus_layer_unmapped(layer->server, layer);
+    restack_top_layers(layer->server);
 }
 
 static void handle_commit(struct wl_listener *listener, void *data)
