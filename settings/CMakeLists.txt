@@ -44,6 +44,7 @@ qt_add_executable(vela-settings
     src/defaultapps.h
     src/keyboardlayouts.cpp
     src/keyboardlayouts.h
+    src/mangohud.h
     src/preferences.cpp
     src/preferences.h
     ${PROJECT_SOURCE_DIR}/compositor/src/legacy_names.c
@@ -51,6 +52,8 @@ qt_add_executable(vela-settings
     ${SHELL_SRC}/appmodel.cpp
     ${SHELL_SRC}/appmodel.h
     ${SHELL_SRC}/audioapps.h
+    ${SHELL_SRC}/gamestats.h
+    ${SHELL_SRC}/mangohudconf.h
     ${SHELL_SRC}/iconprovider.h
     ${SHELL_SRC}/mica.h
     ${SHELL_SRC}/network.cpp
@@ -107,7 +110,8 @@ set(SETTINGS_QML_FILES
     qml/pages/AccessibilityPage.qml
     qml/pages/MousePage.qml
     qml/pages/TouchpadPage.qml
-    qml/pages/ClipboardPage.qml)
+    qml/pages/ClipboardPage.qml
+    qml/pages/GamingPage.qml)
 
 foreach(file IN LISTS SETTINGS_QML_FILES)
     get_filename_component(name ${file} NAME)

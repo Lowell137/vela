@@ -72,6 +72,8 @@ public:
     Q_INVOKABLE void reload();
     Q_INVOKABLE bool launch(int row);
     Q_INVOKABLE bool launchId(const QString& id);
+    // "Run with MangoHud" (Game Bar): mangohud <Exec>.
+    Q_INVOKABLE bool launchWithMangoHud(const QString& id);
     // A single app's data by id (for the icons pinned to the taskbar).
     Q_INVOKABLE QVariantMap entry(const QString& id) const;
     // The app's actions for the jump list: [{id, name, icon}].
@@ -118,7 +120,8 @@ private:
     // Starts the app with the given files (possibly none), as Exec says
     // (desktopexec.h): the program with its arguments, without going through
     // the shell.
-    bool launchEntry(const Entry& entry, const QList<QUrl>& files = {}) const;
+    // `wrapper` goes before the program ("mangohud").
+    bool launchEntry(const Entry& entry, const QList<QUrl>& files = {}, const QString& wrapper = {}) const;
 
     QList<Entry> m_all; // sorted by name
     QList<int> m_visible; // indexes in m_all matching the search

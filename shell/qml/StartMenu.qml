@@ -154,6 +154,9 @@ Window {
             entries.push({ header: qsTr("Tasks") })
             actions.forEach(a => entries.push({ text: a.name.replace(/&/g, "&&"), icon: a.icon, action: () => { Apps.launchAction(id, a.id); root.close() } }))
         }
+        if (Game.mangoHudInstalled) {
+            entries.push({ text: qsTr("Run with MangoHud"), icon: "input-gaming", action: () => { Apps.launchWithMangoHud(id); root.close() } })
+        }
         if (entries.length > 0) {
             entries.push({ separator: true })
         }

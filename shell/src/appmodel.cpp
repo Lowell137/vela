@@ -473,6 +473,12 @@ bool AppModel::launchId(const QString& id)
     return false;
 }
 
+bool AppModel::launchWithMangoHud(const QString& id)
+{
+    const Entry* e = find(id);
+    return e && launchEntry(*e, {}, QStringLiteral("mangohud"));
+}
+
 QVariantMap AppModel::entry(const QString& id) const
 {
     for (const Entry& e : m_all) {
@@ -646,7 +652,7 @@ QString AppModel::program(const QString& id) const
     return e ? e->program : QString();
 }
 
-bool AppModel::launchEntry(const Entry& entry, const QList<QUrl>& files) const
+bool AppModel::launchEntry(const Entry& entry, const QList<QUrl>& files, const QString& wrapper) const
 {
     const DesktopExec::Parsed parsed = DesktopExec::split(entry.rawExec);
     if (!parsed.ok) {
@@ -677,6 +683,9 @@ bool AppModel::launchEntry(const Entry& entry, const QList<QUrl>& files) const
         // Resolve after field-code expansion, but before terminal wrapping.
         if (!arguments.isEmpty()) {
             arguments[0] = vela::desktopExecutable(arguments.first(), QCoreApplication::applicationDirPath());
+        }
+        if (!wrapper.isEmpty()) {
+            arguments.prepend(wrapper);
         }
         if (entry.terminal) {
             arguments = vela::terminalCommand(qEnvironmentVariable("VELA_TERMINAL", QStringLiteral("konsole")))

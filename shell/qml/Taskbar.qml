@@ -173,6 +173,9 @@ Window {
                 entries.push({ separator: true })
             }
             entries.push({ text: task.name.replace(/&/g, "&&"), icon: task.iconName, action: () => Apps.launchId(id) })
+            if (Game.mangoHudInstalled) {
+                entries.push({ text: qsTr("Run with MangoHud"), icon: "input-gaming", action: () => Apps.launchWithMangoHud(id) })
+            }
             entries.push(Tasks.isPinned(id)
                 ? { text: qsTr("Unpin from taskbar"), icon: "window-unpin", action: () => Tasks.unpin(id) }
                 : { text: qsTr("Pin to taskbar"), icon: "window-pin", action: () => Tasks.pin(id) })

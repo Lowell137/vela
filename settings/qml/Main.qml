@@ -58,9 +58,10 @@ Window {
         "touchpad": { title: qsTr("Touchpad"), parent: "bluetooth", file: "TouchpadPage.qml", icon: "input-touchpad" },
         "clipboard": { title: qsTr("Clipboard"), parent: "system", file: "ClipboardPage.qml", icon: "edit-paste" },
         "night-light": { title: qsTr("Night light"), parent: "display", file: "NightLightPage.qml", icon: "redshift-status-on" },
+        "gaming": { title: qsTr("Gaming"), parent: "", file: "GamingPage.qml", icon: "input-gaming" },
         "accessibility": { title: qsTr("Accessibility"), parent: "", file: "AccessibilityPage.qml", icon: "preferences-desktop-accessibility" }
     })
-    readonly property var sections: ["home", "system", "bluetooth", "network", "personalization", "apps", "time-language", "accessibility"]
+    readonly property var sections: ["home", "system", "bluetooth", "network", "personalization", "apps", "time-language", "gaming", "accessibility"]
     // The names the shell uses (systemactions.cpp) for the menu entries.
     readonly property var aliases: ({
         "settings": "home", "personalize": "personalization", "taskbar-settings": "taskbar",
@@ -213,6 +214,7 @@ Window {
         { page: "touchpad", text: qsTr("Touchpad gestures"), keys: qsTr("three fingers four fingers switch desktops apps") },
         { page: "clipboard", text: qsTr("Clipboard"), keys: qsTr("clipboard history win+v copy paste") },
         { page: "clipboard", text: qsTr("Snipping Tool"), keys: qsTr("screenshot capture print screen snip") },
+        { page: "gaming", text: qsTr("Game Bar"), keys: qsTr("game bar win+g fps overlay performance crosshair mangohud gamemode") },
         { page: "night-light", text: qsTr("Night light"), keys: qsTr("night warm colors blue evening schedule sunset") },
         { page: "display", text: qsTr("Tearing in games"), keys: qsTr("games tearing latency full screen vsync") },
         { page: "multitasking", text: qsTr("Snap layouts"), keys: qsTr("snap tile drag top screen edge layouts") },

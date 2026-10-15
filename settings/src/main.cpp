@@ -21,6 +21,7 @@
 #include "displays.h"
 #include "iconprovider.h"
 #include "keyboardlayouts.h"
+#include "mangohud.h"
 #include "language.h"
 #include "levelmeter.h"
 #include "network.h"
@@ -174,6 +175,7 @@ int main(int argc, char* argv[])
     DefaultApps defaultApps(&apps, &preferences);
     KeyboardLayouts layouts;
     SystemStatus status;
+    MangoHud mangoHud;
 
     QQmlApplicationEngine engine;
     qmlEngine = &engine;
@@ -197,6 +199,7 @@ int main(int argc, char* argv[])
     context->setContextProperty(QStringLiteral("DefaultApps"), &defaultApps);
     context->setContextProperty(QStringLiteral("Layouts"), &layouts);
     context->setContextProperty(QStringLiteral("Status"), &status);
+    context->setContextProperty(QStringLiteral("MangoHud"), &mangoHud);
     engine.loadFromModule("Vela.Settings", "Main");
     if (engine.rootObjects().isEmpty()) {
         return 1;
