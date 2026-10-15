@@ -40,6 +40,8 @@ qt_add_executable(vela-shell
     src/jumplists.cpp
     src/jumplists.h
     src/links.h
+    src/launcherbadges.cpp
+    src/launcherbadges.h
     src/mediakeys.cpp
     src/mediakeys.h
     src/asyncprocess.h
@@ -180,6 +182,12 @@ if(VELA_BUILD_TOOLS)
     target_compile_options(vela-mimeapps-test PRIVATE -Wall -Wextra)
     target_link_libraries(vela-mimeapps-test PRIVATE Qt6::Core Qt6::Test)
     add_test(NAME shell-mimeapps COMMAND vela-mimeapps-test)
+
+    qt_add_executable(vela-launcherbadges-test tests/launcherbadges.cpp src/launcherbadges.cpp src/launcherbadges.h)
+    target_include_directories(vela-launcherbadges-test PRIVATE src)
+    target_compile_options(vela-launcherbadges-test PRIVATE -Wall -Wextra)
+    target_link_libraries(vela-launcherbadges-test PRIVATE Qt6::DBus Qt6::Test)
+    add_test(NAME shell-launcherbadges COMMAND vela-launcherbadges-test)
 
     qt_add_executable(vela-tool-path-test tests/velatool.cpp src/velatool.h)
     target_include_directories(vela-tool-path-test PRIVATE src)
