@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: 2026 Vela contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[Desktop Entry]
+Type=Application
+Name=Paint
+GenericName=Drawing Program
+GenericName[tr]=Çizim Programı
+Comment=Draw and edit pictures
+Comment[tr]=Resim çiz ve düzenle
+Exec=vela-paint %f
+Icon=applications-graphics
+Categories=Graphics;2DGraphics;RasterGraphics;
+MimeType=image/png;image/jpeg;image/bmp;image/gif;image/webp;image/tiff;
+Keywords=paint;draw;picture;image;
+StartupNotify=true
