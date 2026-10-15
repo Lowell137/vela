@@ -10,7 +10,15 @@ import Vela.Controls
 Page {
     id: page
     readonly property var themes: Prefs.iconThemes()
-    readonly property var choices: [{ name: "", text: qsTr("Automatic (Breeze)") }].concat(page.themes)
+    // vela and Fluent first (if installed), then the rest.
+    readonly property var choices: {
+        const first = ["vela", "Fluent"]
+        const head = [], tail = []
+        for (const t of page.themes) (first.indexOf(t.name) >= 0 ? head : tail).push(t)
+        head.sort((a, b) => first.indexOf(a.name) - first.indexOf(b.name))
+        return [{ name: "", text: qsTr("Automatic (Breeze)") }].concat(head, tail)
+    }
+    readonly property bool fluentInstalled: page.themes.some(t => t.name === "Fluent")
     readonly property int chosenIndex: {
         for (let i = 0; i < choices.length; ++i) {
             if (choices[i].name === Prefs.iconTheme) return i
@@ -30,6 +38,11 @@ Page {
                 currentIndex: page.chosenIndex
                 onChosen: index => Prefs.iconTheme = page.choices[index].name
             }
+        }
+        Card {
+            visible: !page.fluentInstalled
+            title: qsTr("Fluent app and file icons")
+            description: qsTr("Not installed. The AUR package fluent-icon-theme-git (search \"fluent-icon-theme\") adds it; the Vela theme uses it when present")
         }
         Card {
             title: qsTr("Preview")
