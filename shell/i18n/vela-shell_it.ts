@@ -250,6 +250,223 @@
     </message>
 </context>
 <context>
+    <name>GameBar</name>
+    <message>
+        <source>Unpin from the overlay</source>
+        <translation>Togli dall&apos;overlay</translation>
+    </message>
+    <message>
+        <source>Pin to the overlay</source>
+        <translation>Fissa nell&apos;overlay</translation>
+    </message>
+    <message>
+        <source>Unmute</source>
+        <translation>Riattiva audio</translation>
+    </message>
+    <message>
+        <source>Mute</source>
+        <translation>Disattiva audio</translation>
+    </message>
+    <message>
+        <source>Game Bar</source>
+        <translation>Game Bar</translation>
+    </message>
+    <message>
+        <source>No game in focus</source>
+        <translation>Nessun gioco attivo</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Chiudi</translation>
+    </message>
+    <message>
+        <source>Performance</source>
+        <translation>Prestazioni</translation>
+    </message>
+    <message>
+        <source>FPS</source>
+        <translation>FPS</translation>
+    </message>
+    <message>
+        <source>Nothing is being drawn</source>
+        <translation>Nessun fotogramma disegnato</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n missed frame(s)</source>
+        <translation>
+            <numerusform>%n fotogramma perso</numerusform>
+            <numerusform>%n fotogrammi persi</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Frame time</source>
+        <translation>Tempo fotogramma</translation>
+    </message>
+    <message>
+        <source>FPS, last minute</source>
+        <translation>FPS, ultimo minuto</translation>
+    </message>
+    <message>
+        <source>Frame time, last minute</source>
+        <translation>Tempo fotogramma, ultimo minuto</translation>
+    </message>
+    <message>
+        <source>Show the pinned numbers</source>
+        <translation>Mostra i valori fissati</translation>
+    </message>
+    <message>
+        <source>Pin numbers to show them over the game</source>
+        <translation>Fissa dei valori per vederli sopra il gioco</translation>
+    </message>
+    <message>
+        <source>MangoHud settings</source>
+        <translation>Impostazioni di MangoHud</translation>
+    </message>
+    <message>
+        <source>MangoHud isn&apos;t installed</source>
+        <translation>MangoHud non è installato</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <translation>Audio</translation>
+    </message>
+    <message>
+        <source>Sound isn&apos;t available.</source>
+        <translation>L&apos;audio non è disponibile.</translation>
+    </message>
+    <message>
+        <source>Speakers</source>
+        <translation>Altoparlanti</translation>
+    </message>
+    <message>
+        <source>Output device</source>
+        <translation>Dispositivo di uscita</translation>
+    </message>
+    <message>
+        <source>No apps are playing sound.</source>
+        <translation>Nessuna app sta riproducendo audio.</translation>
+    </message>
+    <message>
+        <source>Capture</source>
+        <translation>Acquisizione</translation>
+    </message>
+    <message>
+        <source>Screenshot</source>
+        <translation>Screenshot</translation>
+    </message>
+    <message>
+        <source>Stop %1</source>
+        <translation>Ferma %1</translation>
+    </message>
+    <message>
+        <source>Record</source>
+        <translation>Registra</translation>
+    </message>
+    <message>
+        <source>Record the microphone</source>
+        <translation>Registra il microfono</translation>
+    </message>
+    <message>
+        <source>Screenshots go to Pictures &gt; Screenshot, recordings to Videos &gt; Screen Recordings.</source>
+        <translation>Gli screenshot vanno in Immagini &gt; Screenshot, le registrazioni in Video &gt; Screen Recordings.</translation>
+    </message>
+    <message>
+        <source>Instant replay</source>
+        <translation>Replay istantaneo</translation>
+    </message>
+    <message>
+        <source>Save the last 30 s</source>
+        <translation>Salva gli ultimi 30 s</translation>
+    </message>
+    <message>
+        <source>Replays go to Videos &gt; Captures.</source>
+        <translation>I replay vanno in Video &gt; Captures.</translation>
+    </message>
+    <message>
+        <source>Install gpu-screen-recorder for instant replay.</source>
+        <translation>Installa gpu-screen-recorder per il replay istantaneo.</translation>
+    </message>
+    <message>
+        <source>Game mode</source>
+        <translation>Modalità gioco</translation>
+    </message>
+    <message>
+        <source>Do not disturb</source>
+        <translation>Non disturbare</translation>
+    </message>
+    <message>
+        <source>GameMode for %1</source>
+        <translation>GameMode per %1</translation>
+    </message>
+    <message>
+        <source>GameMode</source>
+        <translation>GameMode</translation>
+    </message>
+    <message>
+        <source>Power mode</source>
+        <translation>Modalità di alimentazione</translation>
+    </message>
+    <message>
+        <source>Power saver</source>
+        <translation>Risparmio energia</translation>
+    </message>
+    <message>
+        <source>Balanced</source>
+        <translation>Bilanciato</translation>
+    </message>
+    <message>
+        <source>Replay saved</source>
+        <translation>Replay salvato</translation>
+    </message>
+    <message>
+        <source>Saved to Videos &gt; Captures. Click to open it.</source>
+        <translation>Salvato in Video &gt; Captures. Fai clic per aprirlo.</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation>Apri</translation>
+    </message>
+</context>
+<context>
+    <name>GameNumbers</name>
+    <message>
+        <source>FPS</source>
+        <translation>FPS</translation>
+    </message>
+    <message>
+        <source>Frame time</source>
+        <translation>Tempo fotogramma</translation>
+    </message>
+    <message>
+        <source>CPU</source>
+        <translation>CPU</translation>
+    </message>
+    <message>
+        <source>CPU temp</source>
+        <translation>Temp. CPU</translation>
+    </message>
+    <message>
+        <source>GPU</source>
+        <translation>GPU</translation>
+    </message>
+    <message>
+        <source>GPU temp</source>
+        <translation>Temp. GPU</translation>
+    </message>
+    <message>
+        <source>GPU power</source>
+        <translation>Potenza GPU</translation>
+    </message>
+    <message>
+        <source>VRAM</source>
+        <translation>VRAM</translation>
+    </message>
+    <message>
+        <source>RAM</source>
+        <translation>RAM</translation>
+    </message>
+</context>
+<context>
     <name>Menus</name>
     <message>
         <source>&amp;Undo</source>
@@ -1132,6 +1349,10 @@
         <translation>Attività</translation>
     </message>
     <message>
+        <source>Run with MangoHud</source>
+        <translation>Esegui con MangoHud</translation>
+    </message>
+    <message>
         <source>Unpin from &amp;taskbar</source>
         <translation>Rimuovi dalla &amp;barra delle applicazioni</translation>
     </message>
@@ -1313,6 +1534,10 @@
         <translation>Attività</translation>
     </message>
     <message>
+        <source>Run with MangoHud</source>
+        <translation>Esegui con MangoHud</translation>
+    </message>
+    <message>
         <source>Unpin from taskbar</source>
         <translation>Rimuovi dalla barra delle applicazioni</translation>
     </message>
@@ -1490,6 +1715,36 @@
     <message>
         <source>Show desktop</source>
         <translation>Mostra desktop</translation>
+    </message>
+</context>
+<context>
+    <name>TaskbarPreview</name>
+    <message>
+        <source>Previous</source>
+        <translation>Precedente</translation>
+    </message>
+    <message>
+        <source>Next</source>
+        <translation>Successivo</translation>
+    </message>
+    <message>
+        <source>Pause</source>
+        <translation>Pausa</translation>
+    </message>
+    <message>
+        <source>Play</source>
+        <translation>Riproduci</translation>
+    </message>
+</context>
+<context>
+    <name>Toggle</name>
+    <message>
+        <source>On</source>
+        <translation>Attivato</translation>
+    </message>
+    <message>
+        <source>Off</source>
+        <translation>Disattivato</translation>
     </message>
 </context>
 <context>

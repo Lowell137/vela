@@ -998,6 +998,309 @@ Specifiche sistema
     </message>
 </context>
 <context>
+    <name>GamingPage</name>
+    <message>
+        <source>FPS</source>
+        <translation>FPS</translation>
+    </message>
+    <message>
+        <source>Frame time</source>
+        <translation>Tempo fotogramma</translation>
+    </message>
+    <message>
+        <source>CPU</source>
+        <translation>CPU</translation>
+    </message>
+    <message>
+        <source>CPU temp</source>
+        <translation>Temp. CPU</translation>
+    </message>
+    <message>
+        <source>GPU</source>
+        <translation>GPU</translation>
+    </message>
+    <message>
+        <source>GPU temp</source>
+        <translation>Temp. GPU</translation>
+    </message>
+    <message>
+        <source>GPU power</source>
+        <translation>Potenza GPU</translation>
+    </message>
+    <message>
+        <source>VRAM</source>
+        <translation>VRAM</translation>
+    </message>
+    <message>
+        <source>RAM</source>
+        <translation>RAM</translation>
+    </message>
+    <message>
+        <source>Game Bar</source>
+        <translation>Game Bar</translation>
+    </message>
+    <message>
+        <source>Press Win+G during a game for performance, audio, capture and game mode. The shortcut can be changed in Keyboard shortcuts</source>
+        <translation>Premi Win+G durante un gioco per prestazioni, audio, acquisizione e modalità gioco. La scorciatoia si cambia in Scorciatoie da tastiera</translation>
+    </message>
+    <message>
+        <source>Collect frame statistics</source>
+        <translation>Raccogli statistiche dei fotogrammi</translation>
+    </message>
+    <message>
+        <source>Vela measures the frames it shows for the Game Bar&apos;s FPS and frame time. It costs nothing while the Game Bar isn&apos;t running</source>
+        <translation>Vela misura i fotogrammi che mostra per gli FPS e il tempo fotogramma della Game Bar. Non costa nulla quando la Game Bar non è in uso</translation>
+    </message>
+    <message>
+        <source>Overlay</source>
+        <translation>Overlay</translation>
+    </message>
+    <message>
+        <source>Show overlay</source>
+        <translation>Mostra overlay</translation>
+    </message>
+    <message>
+        <source>The pinned numbers stay over the game in a corner. Over a fullscreen game any overlay can stop direct scanout and cost a little latency: MangoHud, drawn inside the game, doesn&apos;t</source>
+        <translation>I valori fissati restano sopra il gioco in un angolo. Su un gioco a schermo intero qualsiasi overlay può fermare la scansione diretta e aggiungere un po&apos; di latenza: MangoHud, disegnato dentro il gioco, no</translation>
+    </message>
+    <message>
+        <source>Pinned numbers</source>
+        <translation>Valori fissati</translation>
+    </message>
+    <message>
+        <source>Also pinned with the pin next to each number in the Game Bar</source>
+        <translation>Si fissano anche con la puntina accanto a ogni valore nella Game Bar</translation>
+    </message>
+    <message>
+        <source>Corner</source>
+        <translation>Angolo</translation>
+    </message>
+    <message>
+        <source>Top left</source>
+        <translation>In alto a sinistra</translation>
+    </message>
+    <message>
+        <source>Top right</source>
+        <translation>In alto a destra</translation>
+    </message>
+    <message>
+        <source>Bottom left</source>
+        <translation>In basso a sinistra</translation>
+    </message>
+    <message>
+        <source>Bottom right</source>
+        <translation>In basso a destra</translation>
+    </message>
+    <message>
+        <source>Layout</source>
+        <translation>Disposizione</translation>
+    </message>
+    <message>
+        <source>Column</source>
+        <translation>Colonna</translation>
+    </message>
+    <message>
+        <source>Row</source>
+        <translation>Riga</translation>
+    </message>
+    <message>
+        <source>Frame time graph</source>
+        <translation>Grafico tempo fotogramma</translation>
+    </message>
+    <message>
+        <source>Background opacity</source>
+        <translation>Opacità dello sfondo</translation>
+    </message>
+    <message>
+        <source>Size</source>
+        <translation>Dimensione</translation>
+    </message>
+    <message>
+        <source>Crosshair</source>
+        <translation>Mirino</translation>
+    </message>
+    <message>
+        <source>A mark in the center of the screen. Win+Alt+C turns it on and off</source>
+        <translation>Un segno al centro dello schermo. Win+Alt+C lo attiva e disattiva</translation>
+    </message>
+    <message>
+        <source>Style</source>
+        <translation>Stile</translation>
+    </message>
+    <message>
+        <source>Dot</source>
+        <translation>Punto</translation>
+    </message>
+    <message>
+        <source>Cross</source>
+        <translation>Croce</translation>
+    </message>
+    <message>
+        <source>Cross with gap</source>
+        <translation>Croce con spazio</translation>
+    </message>
+    <message>
+        <source>Circle</source>
+        <translation>Cerchio</translation>
+    </message>
+    <message>
+        <source>Image</source>
+        <translation>Immagine</translation>
+    </message>
+    <message>
+        <source>A PNG with a transparent background</source>
+        <translation>Un PNG con sfondo trasparente</translation>
+    </message>
+    <message>
+        <source>Browse</source>
+        <translation>Sfoglia</translation>
+    </message>
+    <message>
+        <source>Color</source>
+        <translation>Colore</translation>
+    </message>
+    <message>
+        <source>Green</source>
+        <translation>Verde</translation>
+    </message>
+    <message>
+        <source>Red</source>
+        <translation>Rosso</translation>
+    </message>
+    <message>
+        <source>Cyan</source>
+        <translation>Ciano</translation>
+    </message>
+    <message>
+        <source>Yellow</source>
+        <translation>Giallo</translation>
+    </message>
+    <message>
+        <source>White</source>
+        <translation>Bianco</translation>
+    </message>
+    <message>
+        <source>Magenta</source>
+        <translation>Magenta</translation>
+    </message>
+    <message>
+        <source>Outline</source>
+        <translation>Contorno</translation>
+    </message>
+    <message>
+        <source>A thin black edge, so it shows on light backgrounds</source>
+        <translation>Un sottile bordo nero, per vederlo su sfondi chiari</translation>
+    </message>
+    <message>
+        <source>Thickness</source>
+        <translation>Spessore</translation>
+    </message>
+    <message>
+        <source>Gap</source>
+        <translation>Spazio</translation>
+    </message>
+    <message>
+        <source>Opacity</source>
+        <translation>Opacità</translation>
+    </message>
+    <message>
+        <source>Horizontal offset</source>
+        <translation>Spostamento orizzontale</translation>
+    </message>
+    <message>
+        <source>Vertical offset</source>
+        <translation>Spostamento verticale</translation>
+    </message>
+    <message>
+        <source>MangoHud</source>
+        <translation>MangoHud</translation>
+    </message>
+    <message>
+        <source>MangoHud isn&apos;t installed</source>
+        <translation>MangoHud non è installato</translation>
+    </message>
+    <message>
+        <source>Install the mangohud package to draw the numbers inside the game itself</source>
+        <translation>Installa il pacchetto mangohud per disegnare i valori dentro il gioco</translation>
+    </message>
+    <message>
+        <source>Draws inside the game, so fullscreen games keep direct scanout. Settings are saved in %1</source>
+        <translation>Disegna dentro il gioco, così i giochi a schermo intero mantengono la scansione diretta. Le impostazioni sono salvate in %1</translation>
+    </message>
+    <message>
+        <source>Copy launch option</source>
+        <translation>Copia opzione di avvio</translation>
+    </message>
+    <message>
+        <source>Presets</source>
+        <translation>Preimpostazioni</translation>
+    </message>
+    <message>
+        <source>Steam: paste &quot;mangohud %command%&quot; in a game&apos;s launch options</source>
+        <translation>Steam: incolla &quot;mangohud %command%&quot; nelle opzioni di avvio di un gioco</translation>
+    </message>
+    <message>
+        <source>Minimal</source>
+        <translation>Minima</translation>
+    </message>
+    <message>
+        <source>Full</source>
+        <translation>Completa</translation>
+    </message>
+    <message>
+        <source>Battery</source>
+        <translation>Batteria</translation>
+    </message>
+    <message>
+        <source>CPU load</source>
+        <translation>Carico CPU</translation>
+    </message>
+    <message>
+        <source>CPU temperature</source>
+        <translation>Temperatura CPU</translation>
+    </message>
+    <message>
+        <source>GPU load</source>
+        <translation>Carico GPU</translation>
+    </message>
+    <message>
+        <source>GPU temperature</source>
+        <translation>Temperatura GPU</translation>
+    </message>
+    <message>
+        <source>Position</source>
+        <translation>Posizione</translation>
+    </message>
+    <message>
+        <source>Top center</source>
+        <translation>In alto al centro</translation>
+    </message>
+    <message>
+        <source>Bottom center</source>
+        <translation>In basso al centro</translation>
+    </message>
+    <message>
+        <source>Font size</source>
+        <translation>Dimensione carattere</translation>
+    </message>
+    <message>
+        <source>Show or hide key</source>
+        <translation>Tasto per mostrare o nascondere</translation>
+    </message>
+    <message>
+        <source>In the game, like Shift_R+F12</source>
+        <translation>Nel gioco, come Shift_R+F12</translation>
+    </message>
+    <message>
+        <source>Choose a crosshair image</source>
+        <translation>Scegli un&apos;immagine per il mirino</translation>
+    </message>
+    <message>
+        <source>PNG images (*.png)</source>
+        <translation>Immagini PNG (*.png)</translation>
+    </message>
+</context>
+<context>
     <name>HomePage</name>
     <message>
         <source>Rename</source>
@@ -1344,6 +1647,10 @@ Specifiche sistema
         <translation>Luce notturna</translation>
     </message>
     <message>
+        <source>Gaming</source>
+        <translation>Giochi</translation>
+    </message>
+    <message>
         <source>Accessibility</source>
         <translation>Accessibilità</translation>
     </message>
@@ -1642,6 +1949,14 @@ Specifiche sistema
     <message>
         <source>screenshot capture print screen snip</source>
         <translation>screenshot cattura stamp schermata ritaglio</translation>
+    </message>
+    <message>
+        <source>Game Bar</source>
+        <translation>Game Bar</translation>
+    </message>
+    <message>
+        <source>game bar win+g fps overlay performance crosshair mangohud gamemode</source>
+        <translation>game bar win+g fps overlay prestazioni mirino mangohud gamemode giochi</translation>
     </message>
     <message>
         <source>night warm colors blue evening schedule sunset</source>
@@ -2376,6 +2691,14 @@ Specifiche sistema
     <message>
         <source>Copy text from the screen</source>
         <translation>Copia il testo dallo schermo</translation>
+    </message>
+    <message>
+        <source>Game Bar</source>
+        <translation>Game Bar</translation>
+    </message>
+    <message>
+        <source>Game Bar crosshair</source>
+        <translation>Mirino della Game Bar</translation>
     </message>
     <message>
         <source>Switch windows</source>
