@@ -115,6 +115,7 @@ void Preferences::reload()
         : QStringLiteral("center");
     m_endTask = settings.value(QStringLiteral("taskbar/endTask"), true).toBool();
     m_taskView = settings.value(QStringLiteral("taskbar/taskView"), true).toBool();
+    m_trayOverflow = settings.value(QStringLiteral("taskbar/trayOverflow"), true).toBool();
     m_taskbarAllScreens = settings.value(QStringLiteral("taskbar/allScreens"), true).toBool();
     emit taskbarChanged();
     m_doNotDisturb = settings.value(QStringLiteral("notifications/doNotDisturb"), false).toBool();
@@ -434,6 +435,15 @@ void Preferences::setTaskView(bool on)
     if (on != m_taskView) {
         m_taskView = on;
         setShell(QStringLiteral("taskbar/taskView"), on);
+        emit taskbarChanged();
+    }
+}
+
+void Preferences::setTrayOverflow(bool on)
+{
+    if (on != m_trayOverflow) {
+        m_trayOverflow = on;
+        setShell(QStringLiteral("taskbar/trayOverflow"), on);
         emit taskbarChanged();
     }
 }

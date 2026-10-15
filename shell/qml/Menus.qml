@@ -43,6 +43,9 @@ QtObject {
     // A tooltip above the taskbar (TaskbarTooltip.qml): {text, center (x on
     // the output), screen}, or null.
     property var tooltip: null
+    // The hidden tray icons flyout (TrayOverflow.qml): {center (x of the "^"
+    // button on the output), screen}, or null.
+    property var trayOverflow: null
     // The output of the taskbar a panel was opened from (Start, quick
     // settings, notification center, Task View): the panel goes there. Empty:
     // the main output (opened from the keyboard).
@@ -92,6 +95,23 @@ QtObject {
 
     function close() {
         closeRequested()
+    }
+
+    // A tray icon's menu (TrayModel::menuReady) as menu entries.
+    function trayEntries(row, entries) {
+        const convert = list => list.map(e => e.separator ? { separator: true } : {
+            text: e.label,
+            icon: e.icon,
+            enabled: e.enabled,
+            checked: e.checkable ? e.checked : undefined,
+            radio: e.radio,
+            children: e.children.length > 0 ? convert(e.children) : undefined,
+            action: () => {
+                trayOverflow = null // the flyout closes too, like Windows
+                Tray.activateMenuEntry(row, e.id)
+            }
+        })
+        return convert(entries)
     }
 
     // The menu entries of a text field, like in Windows.

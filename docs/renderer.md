@@ -987,6 +987,10 @@ Shift+right click on the button opens the window menu instead (§14.8).
 ### 14.5 Taskbar: empty space, clock, icons
 
 - **Empty space**: "Task Manager", "Taskbar settings".
+- **Hidden tray icons**: icons of apps (not the system icons) sit behind a `^`
+  button that opens a small flyout (`TrayOverflow.qml`); an icon that needs
+  attention stays visible. Settings > Taskbar > "Hidden icon menu" turns it
+  off (`[taskbar] trayOverflow` in `vela-shell.conf`).
 - **Date and time**: "Adjust date and time", "Notification settings".
 - **System icons** (done with quick settings): volume → "Open volume mixer"
   (quick settings' sound page), "Sound settings" ("Troubleshoot sound problems" has no equivalent); network →

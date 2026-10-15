@@ -22,6 +22,8 @@ class Config : public QObject {
     Q_PROPERTY(bool endTask READ endTask NOTIFY taskbarChanged)
     // The Task View button on the taskbar.
     Q_PROPERTY(bool taskView READ taskView NOTIFY taskbarChanged)
+    // The apps' tray icons behind the "^" button, in a flyout, like Windows 11.
+    Q_PROPERTY(bool trayOverflow READ trayOverflow NOTIFY taskbarChanged)
     // The taskbar on all outputs (like Windows) or only on the main one.
     Q_PROPERTY(bool taskbarAllScreens READ taskbarAllScreens NOTIFY taskbarChanged)
     // Clipboard history (Win+V).
@@ -38,6 +40,7 @@ public:
     QString taskbarAlignment() const { return m_taskbarAlignment; }
     bool endTask() const { return m_endTask; }
     bool taskView() const { return m_taskView; }
+    bool trayOverflow() const { return m_trayOverflow; }
     bool taskbarAllScreens() const { return m_taskbarAllScreens; }
     bool clipboardHistory() const { return m_clipboardHistory; }
     bool doNotDisturb() const { return m_doNotDisturb; }
@@ -62,6 +65,7 @@ private:
     QString m_taskbarAlignment;
     bool m_endTask = true;
     bool m_taskView = true;
+    bool m_trayOverflow = true;
     bool m_taskbarAllScreens = true;
     bool m_clipboardHistory = false;
     bool m_doNotDisturb = false;
