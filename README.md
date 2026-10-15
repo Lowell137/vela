@@ -228,6 +228,11 @@ The whole design is written down in [docs/renderer.md](docs/renderer.md).
   does not turn a good destination file into a partial one.
 - **Unmounted drives** (udisks) in This PC: double-click to mount, eject from the menu.
 
+### Apps
+Small Qt Quick apps built like Files, with Vela's controls and title bar, in English
+and Italian:
+- **Notepad** (`vela-notepad`): tabs, find and replace, encodings, go to line, fonts, and printing through the portal.
+
 ### Settings (`vela-settings`)
 - **Displays**: drag-and-drop arrangement, scale, resolution, refresh rate, rotation, and
   "Keep these settings?" with compositor-owned revert on timeout or a Settings crash.
