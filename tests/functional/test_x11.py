@@ -255,6 +255,29 @@ class X11(unittest.TestCase):
         self.x11_control("--set-wine-style", xid, "0x16cf0008")
         self.assert_fullscreen_remains(view_id, True)
 
+    def test_wine_backdrop_stays_below_the_fullscreen_game(self):
+        """Wine puts a black screen-sized window under a fullscreen game:
+        override-redirect first, then managed, fullscreen, skip-taskbar and
+        (after mapping) below. It must neither cover the game nor take its
+        keyboard, and Alt+Tab goes back to the game, not to it."""
+        self.vela.clients.append(subprocess.Popen(
+            [tool("vela-x11"), "--wine-backdrop", "300", "200"], env=self.env))
+        state = self.vela.wait_for(lambda s: len(s.windows) == 2 and all(w["fullscreen"] for w in s.windows),
+                                   timeout=15, what="the game and its backdrop, both managed and fullscreen")
+        game = next(w["id"] for w in state.windows if w["title"] == "vela-x11")
+        time.sleep(0.5)
+        state = self.vela.wait_for(lambda s: s["focused"] == game, what="the game keeps the keyboard")
+        out = state.output
+        for point in ((out["w"] // 2, out["h"] // 2), (5, 5), (out["w"] - 5, out["h"] - 5)):
+            self.vela.wait_for(lambda s: self.vela.pixels().at(*point) == ORANGE,
+                               what=f"the game is drawn at {point}")
+        other = self.vela.open_window(300, 200)
+        self.vela.wait_for(lambda s: s["focused"] == other, what="the other window has focus")
+        self.vela.keys("alt+Tab")
+        self.vela.wait_for(lambda s: s["focused"] == game, what="back to the game, not to its backdrop")
+        time.sleep(0.4)
+        self.assertEqual(self.vela.pixels().at(out["w"] // 2, out["h"] // 2), ORANGE)
+
     def test_menu_stays_where_the_app_puts_it(self):
         self.open_x11("--menu", "100,120", 300, 200)
         time.sleep(0.4)

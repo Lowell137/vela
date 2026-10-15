@@ -23,6 +23,7 @@
 #include "scene/scene.h"
 #include "server.h"
 #include "snap.h"
+#include "workspace.h"
 
 #include <math.h>
 #include <stdlib.h>
@@ -203,8 +204,13 @@ struct unmanaged {
     struct wl_listener unmap;
     struct wl_listener set_geometry;
     struct wl_listener request_configure;
+    struct wl_listener set_override_redirect;
     struct wl_listener destroy;
 };
+
+static struct vela_view *view_create(struct vela_server *server, struct wlr_xwayland_surface *x11);
+static void handle_associate(struct wl_listener *listener, void *data);
+static void handle_map(struct wl_listener *listener, void *data);
 
 static void handle_unmanaged_map(struct wl_listener *listener, void *data)
 {
@@ -281,6 +287,7 @@ static void handle_unmanaged_destroy(struct wl_listener *listener, void *data)
     vela_unlisten(&menu->unmap);
     vela_unlisten(&menu->set_geometry);
     vela_unlisten(&menu->request_configure);
+    vela_unlisten(&menu->set_override_redirect);
     vela_unlisten(&menu->destroy);
     if (menu->surface_node) {
         vela_node_destroy(&menu->surface_node->node);
@@ -289,7 +296,29 @@ static void handle_unmanaged_destroy(struct wl_listener *listener, void *data)
     free(menu);
 }
 
-static void unmanaged_create(struct vela_server *server, struct wlr_xwayland_surface *x11)
+// Wine creates some windows override-redirect and makes them managed later
+// (its fullscreen backdrop), or back: the window changes kind, keeping its
+// surface and its map state.
+static void handle_unmanaged_set_override_redirect(struct wl_listener *listener, void *data)
+{
+    struct unmanaged *menu = wl_container_of(listener, menu, set_override_redirect);
+    struct vela_server *server = menu->server;
+    struct wlr_xwayland_surface *x11 = menu->x11;
+    bool mapped = x11->surface && x11->surface->mapped;
+    if (mapped) {
+        handle_unmanaged_unmap(&menu->unmap, NULL);
+    }
+    handle_unmanaged_destroy(&menu->destroy, NULL);
+    struct vela_view *view = view_create(server, x11);
+    if (x11->surface) {
+        handle_associate(&view->associate, NULL);
+        if (mapped) {
+            handle_map(&view->map, NULL);
+        }
+    }
+}
+
+static struct unmanaged *unmanaged_create(struct vela_server *server, struct wlr_xwayland_surface *x11)
 {
     struct unmanaged *menu = calloc(1, sizeof(*menu));
     menu->server = server;
@@ -302,7 +331,10 @@ static void unmanaged_create(struct vela_server *server, struct wlr_xwayland_sur
     vela_listen(&x11->events.dissociate, &menu->dissociate, handle_unmanaged_dissociate);
     vela_listen(&x11->events.set_geometry, &menu->set_geometry, handle_unmanaged_set_geometry);
     vela_listen(&x11->events.request_configure, &menu->request_configure, handle_unmanaged_request_configure);
+    vela_listen(&x11->events.set_override_redirect, &menu->set_override_redirect,
+        handle_unmanaged_set_override_redirect);
     vela_listen(&x11->events.destroy, &menu->destroy, handle_unmanaged_destroy);
+    return menu;
 }
 
 // ----------------------------------------------------------- X11 windows --
@@ -493,7 +525,46 @@ static void handle_set_parent(struct wl_listener *listener, void *data)
     vela_view_parent_changed(view);
 }
 
-static void view_create(struct vela_server *server, struct wlr_xwayland_surface *x11)
+static void handle_request_below(struct wl_listener *listener, void *data)
+{
+    struct vela_view *view = wl_container_of(listener, view, request_below);
+    // wlroots has already updated the flag. Wine asks after mapping, when the
+    // backdrop may already have the keyboard and cover the game: give both back.
+    vela_view_keep_below(view);
+    if (view->mapped && vela_view_stays_below(view) && vela_views_focused(view->server) == view) {
+        vela_focus_refocus(view->server);
+    }
+}
+
+static void handle_request_skip_taskbar(struct wl_listener *listener, void *data)
+{
+    struct vela_view *view = wl_container_of(listener, view, request_skip_taskbar);
+    // wlroots has already updated the flag: show or hide the taskbar entry.
+    vela_view_show_in_taskbar(view, !view->x11->skip_taskbar && vela_view_on_current_workspace(view));
+}
+
+static void handle_set_override_redirect(struct wl_listener *listener, void *data)
+{
+    struct vela_view *view = wl_container_of(listener, view, set_override_redirect);
+    struct vela_server *server = view->server;
+    struct wlr_xwayland_surface *x11 = view->x11;
+    bool mapped = view->mapped;
+    cancel_wine_style(view);
+    if (mapped) {
+        vela_view_unmapped(view);
+    }
+    x11->data = NULL;
+    vela_view_destroy(view);
+    struct unmanaged *menu = unmanaged_create(server, x11);
+    if (x11->surface) {
+        handle_unmanaged_associate(&menu->associate, NULL);
+        if (mapped) {
+            handle_unmanaged_map(&menu->map, NULL);
+        }
+    }
+}
+
+static struct vela_view *view_create(struct vela_server *server, struct wlr_xwayland_surface *x11)
 {
     struct vela_view *view = calloc(1, sizeof(*view));
     vela_view_init(view, server);
@@ -513,6 +584,10 @@ static void view_create(struct vela_server *server, struct wlr_xwayland_surface 
     vela_listen(&x11->events.set_decorations, &view->set_decorations, handle_set_decorations);
     vela_listen(&x11->events.set_class, &view->set_app_id, handle_set_class);
     vela_listen(&x11->events.set_parent, &view->set_parent, handle_set_parent);
+    vela_listen(&x11->events.request_below, &view->request_below, handle_request_below);
+    vela_listen(&x11->events.request_skip_taskbar, &view->request_skip_taskbar, handle_request_skip_taskbar);
+    vela_listen(&x11->events.set_override_redirect, &view->set_override_redirect, handle_set_override_redirect);
+    return view;
 }
 
 // --------------------------------------------------------------- Xwayland --

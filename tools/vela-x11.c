@@ -4,7 +4,7 @@
 // vela-x11: a test X11 app (through Xwayland), so the X11 window tests do
 // not depend on installed programs.
 //
-// Usage: vela-x11 [--menu X,Y] [--id-file PATH] [--wine-style HEX] [WIDTH HEIGHT]
+// Usage: vela-x11 [--menu X,Y] [--id-file PATH] [--wine-style HEX] [--wine-backdrop] [WIDTH HEIGHT]
 //        vela-x11 --fullscreen XID on|off
 //        vela-x11 --set-wine-style XID HEX
 //        vela-x11 --delete-wine-style XID
@@ -16,6 +16,10 @@
 // closes on WM_DELETE_WINDOW (Alt+F4). --menu also opens a green 120x80
 // override-redirect menu at (X, Y) on the screen, like the drop-down menus
 // of X11 apps. Like most apps, it draws only when the server asks (Expose).
+// --wine-backdrop also opens Wine's black fullscreen backdrop (same class):
+// override-redirect and as large as the screen; once it is shown the orange
+// window asks for fullscreen and the backdrop becomes managed, asking for
+// fullscreen, skip-taskbar/pager and below after mapping.
 
 #include <fcntl.h>
 #include <stdio.h>
@@ -44,6 +48,38 @@ static xcb_window_t create(xcb_connection_t* connection, xcb_screen_t* screen, i
     return window;
 }
 
+static void send_state(xcb_connection_t* connection, xcb_screen_t* screen, xcb_window_t window, const char* first,
+    const char* second)
+{
+    xcb_client_message_event_t event = { 0 };
+    event.response_type = XCB_CLIENT_MESSAGE;
+    event.window = window;
+    event.type = atom(connection, "_NET_WM_STATE");
+    event.format = 32;
+    event.data.data32[0] = 1; // add
+    event.data.data32[1] = atom(connection, first);
+    event.data.data32[2] = second ? atom(connection, second) : XCB_ATOM_NONE;
+    event.data.data32[3] = 1; // application source
+    xcb_send_event(connection, 0, screen->root, XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT | XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY,
+        (const char*)&event);
+}
+
+// Wine's order: the game goes fullscreen; the backdrop is unmapped, drops
+// override-redirect, is mapped again, then asks for its states.
+static void wine_backdrop_managed(xcb_connection_t* connection, xcb_screen_t* screen, xcb_window_t game,
+    xcb_window_t backdrop)
+{
+    send_state(connection, screen, game, "_NET_WM_STATE_FULLSCREEN", NULL);
+    xcb_unmap_window(connection, backdrop);
+    const uint32_t managed = 0;
+    xcb_change_window_attributes(connection, backdrop, XCB_CW_OVERRIDE_REDIRECT, &managed);
+    xcb_map_window(connection, backdrop);
+    send_state(connection, screen, backdrop, "_NET_WM_STATE_FULLSCREEN", NULL);
+    send_state(connection, screen, backdrop, "_NET_WM_STATE_SKIP_TASKBAR", "_NET_WM_STATE_SKIP_PAGER");
+    send_state(connection, screen, backdrop, "_NET_WM_STATE_BELOW", NULL);
+    xcb_flush(connection);
+}
+
 int main(int argc, char** argv)
 {
     int width = 300;
@@ -55,6 +91,7 @@ int main(int argc, char** argv)
     uint32_t wineStyle = 0;
     int hasWineStyle = 0;
     int startFullscreen = 0;
+    int wineBackdrop = 0;
     int control = (argc == 4
         && (!strcmp(argv[1], "--fullscreen") || !strcmp(argv[1], "--set-wine-style")))
         || (argc == 3 && (!strcmp(argv[1], "--delete-wine-style")
@@ -65,6 +102,11 @@ int main(int argc, char** argv)
         while (arg < argc) {
             if (!strcmp(argv[arg], "--start-fullscreen")) {
                 startFullscreen = 1;
+                ++arg;
+                continue;
+            }
+            if (!strcmp(argv[arg], "--wine-backdrop")) {
+                wineBackdrop = 1;
                 ++arg;
                 continue;
             }
@@ -193,6 +235,13 @@ int main(int argc, char** argv)
     if (menu) {
         xcb_map_window(connection, create(connection, screen, menuX, menuY, 120, 80, 0x00c000, 1));
     }
+    xcb_window_t backdrop = XCB_NONE;
+    if (wineBackdrop) {
+        backdrop = create(connection, screen, 0, 0, screen->width_in_pixels, screen->height_in_pixels, 0x000000, 1);
+        xcb_change_property(connection, XCB_PROP_MODE_REPLACE, backdrop, XCB_ATOM_WM_CLASS, XCB_ATOM_STRING, 8,
+            sizeof(wmClass), wmClass);
+        xcb_map_window(connection, backdrop);
+    }
     xcb_flush(connection);
 
     // One graphics context per color, made on first use.
@@ -201,7 +250,16 @@ int main(int argc, char** argv)
     xcb_generic_event_t* event;
     while ((event = xcb_wait_for_event(connection))) {
         int type = event->response_type & 0x7f;
-        if (type == XCB_EXPOSE) {
+        if (type == XCB_EXPOSE && backdrop != XCB_NONE
+            && ((const xcb_expose_event_t*)event)->window == backdrop) {
+            // Black is its background. Shown as an override-redirect window
+            // once: give the compositor time to show it, then make it managed.
+            if (wineBackdrop) {
+                wineBackdrop = 0;
+                usleep(200000);
+                wine_backdrop_managed(connection, screen, window, backdrop);
+            }
+        } else if (type == XCB_EXPOSE) {
             const xcb_expose_event_t* expose = (const xcb_expose_event_t*)event;
             xcb_gcontext_t* gc = expose->window == window ? &orange : &green;
             if (*gc == XCB_NONE) {
