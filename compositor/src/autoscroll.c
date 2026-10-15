@@ -379,9 +379,10 @@ static bool start(struct vela_autoscroll *autoscroll, uint32_t time_msec)
     struct wlr_seat *seat = server->seat;
     struct wlr_cursor *cursor = server->cursor;
     struct vela_interaction *interaction = server->interaction;
-    if (!autoscroll->enabled || !(autoscroll->click || autoscroll->hold) || !autoscroll->timer || server->locked || server->cursor_mode != VELA_CURSOR_PASSTHROUGH
-        || seat->drag || seat->pointer_state.button_count > 0 || server->input->active_constraint
-        || interaction->keyboard.view || interaction->pending_title_drag.view || vela_switcher_active(server)) {
+    if (!autoscroll->enabled || !(autoscroll->click || autoscroll->hold) || !autoscroll->timer
+        || server->locked || server->cursor_mode != VELA_CURSOR_PASSTHROUGH || seat->drag
+        || seat->pointer_state.button_count > 0 || server->input->active_constraint || interaction->keyboard.view
+        || interaction->pending_title_drag.view || vela_switcher_active(server)) {
         return false;
     }
     struct vela_hit hit = vela_scene_at(server->scene, cursor->x, cursor->y);
