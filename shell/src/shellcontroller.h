@@ -91,6 +91,9 @@ public:
     // A (hidden) shell panel on output `name`: it appears there the next time
     // it opens.
     Q_INVOKABLE void placeOnScreen(QWindow* window, const QString& name);
+    // The window takes the mouse only in these rectangles (window pixels);
+    // with none, nowhere: a click goes through to what is below.
+    Q_INVOKABLE void setInputRegion(QWindow* window, const QVariantList& rects);
     // A layer window in a corner of its output ("top-left", "top-right",
     // "bottom-left", "bottom-right"), `margin` px from both edges.
     Q_INVOKABLE void placeInCorner(QWindow* window, const QString& corner, int margin);

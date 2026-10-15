@@ -6,6 +6,8 @@
 #include <QByteArray>
 #include <QList>
 #include <QSettings>
+#include <QString>
+#include <QStringList>
 #include <QVariantMap>
 #include <QVariantList>
 
@@ -169,6 +171,10 @@ inline QVariantMap readSettings(QSettings& settings)
     settings.beginGroup(QStringLiteral("gamebar"));
     for (const QString& key : settings.childKeys()) {
         QVariant value = settings.value(key);
+        // "a,b" unquoted in the file is a list to QSettings: back to a comma list.
+        if (value.typeId() == QMetaType::QStringList) {
+            value = value.toStringList().join(u',');
+        }
         const QString text = value.toString();
         bool number = false;
         const double n = text.toDouble(&number);
@@ -181,6 +187,99 @@ inline QVariantMap readSettings(QSettings& settings)
     }
     settings.endGroup();
     return map;
+}
+
+// --- Game Bar widgets: where they are, which are pinned over the game ---
+
+// The widgets, in the order the bar lays them out by default.
+inline QStringList widgetIds()
+{
+    return { QStringLiteral("capture"), QStringLiteral("audio"), QStringLiteral("performance"),
+        QStringLiteral("media"), QStringLiteral("crosshair"), QStringLiteral("gamemode") };
+}
+
+// Opened by default (gamebar/widgets not written yet).
+inline QStringList defaultOpenWidgets()
+{
+    return { QStringLiteral("capture"), QStringLiteral("audio"), QStringLiteral("performance") };
+}
+
+// gamebar/pos-<id>: "screen|x|y", the card's top left in the output's pixels.
+struct WidgetPos {
+    QString screen;
+    int x = 0;
+    int y = 0;
+    bool valid = false;
+};
+
+inline WidgetPos parseWidgetPos(const QString& text)
+{
+    const QStringList parts = text.split(u'|');
+    WidgetPos pos;
+    if (parts.size() != 3) {
+        return pos;
+    }
+    bool okX = false;
+    bool okY = false;
+    pos.x = parts.at(1).toInt(&okX);
+    pos.y = parts.at(2).toInt(&okY);
+    pos.screen = parts.at(0);
+    pos.valid = okX && okY;
+    return pos;
+}
+
+inline QString formatWidgetPos(const WidgetPos& pos)
+{
+    return pos.screen + u'|' + QString::number(pos.x) + u'|' + QString::number(pos.y);
+}
+
+inline QStringList widgetList(const QVariantMap& bar, const QString& key, const QStringList& fallback)
+{
+    const QVariant value = bar.value(key);
+    if (!value.isValid()) {
+        return fallback;
+    }
+    const QStringList ids = widgetIds();
+    QStringList out;
+    for (const QString& id : value.toString().split(u',', Qt::SkipEmptyParts)) {
+        if (ids.contains(id) && !out.contains(id)) {
+            out.append(id);
+        }
+    }
+    return out;
+}
+
+// The outputs that need an overlay window: where a pinned widget (the
+// crosshair has its own window) stays over the game. A widget whose output
+// is gone goes to the main one. Empty when "Show overlay" is off.
+inline QStringList overlayScreens(const QVariantMap& bar, const QStringList& screens, const QString& primary)
+{
+    QStringList out;
+    if (!bar.value(QStringLiteral("overlay"), true).toBool()) {
+        return out;
+    }
+    const QStringList open = widgetList(bar, QStringLiteral("widgets"), defaultOpenWidgets());
+    for (const QString& id : widgetList(bar, QStringLiteral("pinned-widgets"), {})) {
+        if (id == QLatin1String("crosshair") || !open.contains(id)) {
+            continue;
+        }
+        QString screen = parseWidgetPos(bar.value(QStringLiteral("pos-") + id).toString()).screen;
+        if (!screens.contains(screen)) {
+            screen = primary;
+        }
+        if (!out.contains(screen)) {
+            out.append(screen);
+        }
+    }
+    return out;
+}
+
+// Is the focused app a game: a Steam game, a "Game" in its .desktop file or
+// already known to gamemoded.
+inline bool looksLikeGame(const QString& appId, const QStringList& categories, bool registered)
+{
+    return !appId.isEmpty()
+        && (registered || appId.startsWith(QLatin1String("steam_app_")) || categories.contains(QLatin1String("Game")));
 }
 
 } // namespace gamestats

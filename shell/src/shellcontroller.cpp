@@ -10,6 +10,7 @@
 #include <QImageReader>
 #include <LayerShellQt/Window>
 #include <QGuiApplication>
+#include <QRegion>
 #include <QJsonArray>
 #include <QScreen>
 #include <QJsonDocument>
@@ -598,6 +599,19 @@ void ShellController::placeOnScreen(QWindow* window, const QString& name)
             return;
         }
     }
+}
+
+void ShellController::setInputRegion(QWindow* window, const QVariantList& rects)
+{
+    if (!window) {
+        return;
+    }
+    QRegion region;
+    for (const QVariant& rect : rects) {
+        region += rect.toRectF().toAlignedRect();
+    }
+    // An empty mask means "no mask" to Qt: one pixel outside the window.
+    window->setMask(region.isEmpty() ? QRegion(-10, -10, 1, 1) : region);
 }
 
 QPoint ShellController::placeAtPoint(QWindow* window, int x, int y)

@@ -69,10 +69,12 @@ GameBar::GameBar(AppModel* apps, NotificationServer* notifications, QObject* par
     m_sampler.setInterval(1000);
     connect(&m_sampler, &QTimer::timeout, this, &GameBar::sample);
     findSensors();
+    m_gameModeInstalled = !QStandardPaths::findExecutable(QStringLiteral("gamemoded")).isEmpty();
     hasService(this, gameModeService, [this](bool) {
         if (!m_gameModeAvailable) {
             m_gameModeAvailable = true;
             emit gameModeChanged();
+            queryRegistered();
         }
     });
     connect(m_notifications, &NotificationServer::ActionInvoked, this, [this](uint id, const QString&) {
@@ -156,6 +158,11 @@ void GameBar::sample()
     if (!m_gpuDevice.isEmpty()) {
         sampleGpuSysfs();
     }
+    const auto percent = [](double used, double total) { return used < 0 || total <= 0 ? 0.0 : used * 100 / total; };
+    m_cpuHistory.push(std::max(0.0, m_cpu));
+    m_gpuHistory.push(std::max(0.0, m_gpu.busy));
+    m_vramHistory.push(percent(m_gpu.memUsedMb, m_gpu.memTotalMb));
+    m_ramHistory.push(percent(m_ramUsed, m_ramTotal));
     emit statsChanged();
 }
 
@@ -230,9 +237,44 @@ void GameBar::focusedApp(const QString& appId, int pid)
     if (id != m_appId || pid != m_pid) {
         m_appId = id;
         m_pid = pid;
+        m_registered = false;
         emit appChanged();
         emit gameModeChanged();
+        queryRegistered();
     }
+}
+
+// QueryStatus(pid): 0 unknown, 1 registered, 2 registered by us, -1 error.
+void GameBar::queryRegistered()
+{
+    if (!m_gameModeAvailable || m_pid <= 0) {
+        return;
+    }
+    QDBusMessage call = QDBusMessage::createMethodCall(gameModeService, QStringLiteral("/com/feralinteractive/GameMode"),
+        gameModeService, QStringLiteral("QueryStatus"));
+    call << m_pid;
+    const int pid = m_pid;
+    auto* watcher = new QDBusPendingCallWatcher(QDBusConnection::sessionBus().asyncCall(call), this);
+    connect(watcher, &QDBusPendingCallWatcher::finished, this, [this, watcher, pid] {
+        watcher->deleteLater();
+        const QDBusPendingReply<int> reply = *watcher;
+        const bool registered = !reply.isError() && reply.value() > 0;
+        if (pid == m_pid && registered != m_registered) {
+            m_registered = registered;
+            emit gameModeChanged();
+        }
+    });
+}
+
+bool GameBar::isGame() const
+{
+    if (m_appId.isEmpty()) {
+        return false;
+    }
+    const QString desktopId = m_apps->findDesktopId(m_appId);
+    const QStringList categories = desktopId.isEmpty() ? QStringList()
+                                                       : m_apps->entry(desktopId).value(QStringLiteral("categories")).toStringList();
+    return gamestats::looksLikeGame(m_appId, categories, m_registered || gameMode());
 }
 
 QString GameBar::appName() const

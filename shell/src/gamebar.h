@@ -49,6 +49,16 @@ class GameBar : public QObject {
     // GameMode (gamemoded on the session bus): the row is hidden without it.
     Q_PROPERTY(bool gameModeAvailable READ gameModeAvailable NOTIFY gameModeChanged)
     Q_PROPERTY(bool gameMode READ gameMode NOTIFY gameModeChanged)
+    // gamemoded is installed (or already running).
+    Q_PROPERTY(bool gameModeInstalled READ gameModeInstalled NOTIFY gameModeChanged)
+    // The focused app is a game: Steam's steam_app_*, a "Game" category or
+    // already known to gamemoded.
+    Q_PROPERTY(bool isGame READ isGame NOTIFY gameModeChanged)
+    // The last minute of each number, oldest first, in % (VRAM and RAM of the total).
+    Q_PROPERTY(QVariantList cpuHistory READ cpuHistory NOTIFY statsChanged)
+    Q_PROPERTY(QVariantList gpuHistory READ gpuHistory NOTIFY statsChanged)
+    Q_PROPERTY(QVariantList vramHistory READ vramHistory NOTIFY statsChanged)
+    Q_PROPERTY(QVariantList ramHistory READ ramHistory NOTIFY statsChanged)
     // Instant replay: gpu-screen-recorder keeps the last 30 s in memory.
     Q_PROPERTY(bool replayAvailable READ replayAvailable CONSTANT)
     Q_PROPERTY(bool replay READ replay NOTIFY replayChanged)
@@ -81,6 +91,12 @@ public:
     double ramTotal() const { return m_ramTotal; }
     bool gameModeAvailable() const { return m_gameModeAvailable; }
     bool gameMode() const { return m_pid > 0 && m_gameModePid == m_pid; }
+    bool gameModeInstalled() const { return m_gameModeAvailable || m_gameModeInstalled; }
+    bool isGame() const;
+    QVariantList cpuHistory() const { return m_cpuHistory.values(); }
+    QVariantList gpuHistory() const { return m_gpuHistory.values(); }
+    QVariantList vramHistory() const { return m_vramHistory.values(); }
+    QVariantList ramHistory() const { return m_ramHistory.values(); }
     Q_INVOKABLE void setGameMode(bool on);
     bool replayAvailable() const { return !m_replayProgram.isEmpty(); }
     bool replay() const { return m_replay != nullptr; }
@@ -106,6 +122,7 @@ private:
     void startNvidia();
     void stopNvidia();
     void findSensors();
+    void queryRegistered();
 
     AppModel* m_apps;
     NotificationServer* m_notifications;
@@ -133,6 +150,12 @@ private:
     bool m_nvidia = false;
     QPointer<QProcess> m_nvidiaSmi;
 
+    gamestats::RingBuffer m_cpuHistory { 60 };
+    gamestats::RingBuffer m_gpuHistory { 60 };
+    gamestats::RingBuffer m_vramHistory { 60 };
+    gamestats::RingBuffer m_ramHistory { 60 };
+    bool m_gameModeInstalled = false;
+    bool m_registered = false; // gamemoded knows the focused app's process
     bool m_gameModeAvailable = false;
     int m_gameModePid = 0;
 

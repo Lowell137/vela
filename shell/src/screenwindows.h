@@ -5,6 +5,9 @@
 
 #include <QHash>
 #include <QObject>
+#include <QStringList>
+
+#include <optional>
 #include <QPointer>
 #include <QQmlComponent>
 #include <QTimer>
@@ -30,6 +33,9 @@ public:
 
     // Only on the main output (the taskbar, if the user wants it there alone).
     void setPrimaryOnly(bool on);
+    // Only on these outputs, by name (none at all if the list is empty): the
+    // Game Bar's pinned widgets exist only where something is pinned.
+    void setScreens(const QStringList& names);
 
 private:
     void sync();
@@ -40,6 +46,7 @@ private:
     QString m_name;
     Setup m_setup;
     bool m_primaryOnly = false;
+    std::optional<QStringList> m_only;
     QHash<QScreen*, QPointer<QQuickWindow>> m_windows;
     QTimer m_syncTimer;
     int m_retries = 0; // reopenings without a new output

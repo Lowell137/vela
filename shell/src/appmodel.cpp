@@ -483,7 +483,8 @@ QVariantMap AppModel::entry(const QString& id) const
 {
     for (const Entry& e : m_all) {
         if (e.id == id) {
-            return { { QStringLiteral("name"), e.name }, { QStringLiteral("iconName"), e.icon } };
+            return { { QStringLiteral("name"), e.name }, { QStringLiteral("iconName"), e.icon },
+                { QStringLiteral("categories"), e.categories } };
         }
     }
     return {};

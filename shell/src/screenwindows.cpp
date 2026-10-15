@@ -55,6 +55,14 @@ void ScreenWindows::setPrimaryOnly(bool on)
     }
 }
 
+void ScreenWindows::setScreens(const QStringList& names)
+{
+    if (m_only != names) {
+        m_only = names;
+        scheduleSync();
+    }
+}
+
 void ScreenWindows::scheduleSync()
 {
     m_syncTimer.start();
@@ -63,6 +71,7 @@ void ScreenWindows::scheduleSync()
 void ScreenWindows::remove(QScreen* screen)
 {
     if (QPointer<QQuickWindow> window = m_windows.take(screen)) {
+        window->disconnect(this); // not a closing to put back
         window->deleteLater();
     }
 }
@@ -74,7 +83,7 @@ void ScreenWindows::sync()
         if (!realScreen(screen)) {
             continue;
         }
-        if (m_primaryOnly && screen != primary) {
+        if ((m_primaryOnly && screen != primary) || (m_only && !m_only->contains(screen->name()))) {
             remove(screen);
             continue;
         }
