@@ -4,7 +4,7 @@
 // vela-x11: a test X11 app (through Xwayland), so the X11 window tests do
 // not depend on installed programs.
 //
-// Usage: vela-x11 [--menu X,Y | --cover] [WIDTH HEIGHT]   (default 300x200)
+// Usage: vela-x11 [--fullscreen] [--menu X,Y | --cover] [WIDTH HEIGHT]   (default 300x200)
 //
 // Opens an orange window with class "vela.x11" and title "vela-x11", which
 // closes on WM_DELETE_WINDOW (Alt+F4). --menu also opens a green 120x80
@@ -45,6 +45,17 @@ int main(int argc, char** argv)
     int menuX = 0;
     int menuY = 0;
     int cover = 0;
+    int fullscreen = 0;
+    // --fullscreen (anywhere): the window asks for _NET_WM_STATE_FULLSCREEN
+    // before mapping, like a game.
+    for (int i = 1; i < argc; ++i) {
+        if (!strcmp(argv[i], "--fullscreen")) {
+            fullscreen = 1;
+            memmove(&argv[i], &argv[i + 1], (size_t)(argc - i) * sizeof(char*));
+            --argc;
+            break;
+        }
+    }
     int arg = 1;
     if (arg + 1 < argc && !strcmp(argv[arg], "--menu") && sscanf(argv[arg + 1], "%d,%d", &menuX, &menuY) == 2) {
         menu = 1;
@@ -73,7 +84,20 @@ int main(int argc, char** argv)
     xcb_atom_t protocols = atom(connection, "WM_PROTOCOLS");
     xcb_atom_t deleteWindow = atom(connection, "WM_DELETE_WINDOW");
     xcb_change_property(connection, XCB_PROP_MODE_REPLACE, window, protocols, XCB_ATOM_ATOM, 32, 1, &deleteWindow);
+    if (fullscreen) {
+        xcb_atom_t state = atom(connection, "_NET_WM_STATE");
+        xcb_atom_t full = atom(connection, "_NET_WM_STATE_FULLSCREEN");
+        xcb_change_property(connection, XCB_PROP_MODE_REPLACE, window, state, XCB_ATOM_ATOM, 32, 1, &full);
+    }
     xcb_map_window(connection, window);
+    if (fullscreen) { // also the message: wlroots rewrites _NET_WM_STATE before reading it
+        xcb_client_message_event_t ev = { .response_type = XCB_CLIENT_MESSAGE, .format = 32, .window = window,
+            .type = atom(connection, "_NET_WM_STATE") };
+        ev.data.data32[0] = 1;
+        ev.data.data32[1] = atom(connection, "_NET_WM_STATE_FULLSCREEN");
+        xcb_send_event(connection, 0, screen->root,
+            XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT | XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY, (const char*)&ev);
+    }
     if (menu) {
         xcb_map_window(connection, create(connection, screen, menuX, menuY, 120, 80, 0x00c000, 1));
     }
