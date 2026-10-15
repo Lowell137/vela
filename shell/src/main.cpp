@@ -7,6 +7,7 @@
 // of the desktop (not an app), keeps it above or below the windows and
 // reserves space for it on the output.
 
+#include "../../common/portaldialogs.h"
 #include "accessibility.h"
 #include "appmodel.h"
 #include "audio.h"
@@ -232,7 +233,9 @@ int main(int argc, char* argv[])
     if (qEnvironmentVariableIsEmpty("QT_QUICK_DEFAULT_TEXT_RENDER_TYPE")) {
         QQuickWindow::setTextRenderType(QQuickWindow::NativeTextRendering);
     }
+    vela::PortalFileDialogs portalDialogs;
     QGuiApplication app(argc, argv);
+    portalDialogs.restore();
     QGuiApplication::setApplicationName(QStringLiteral("vela-shell"));
     QGuiApplication::setOrganizationName(QStringLiteral("Vela"));
     QGuiApplication::setQuitOnLastWindowClosed(false);
