@@ -98,6 +98,22 @@ class X11(unittest.TestCase):
         out = state.output
         self.assertEqual(self.vela.pixels().at(out["w"] // 2, out["h"] // 2), GREEN)
 
+    def test_fullscreen_x11_window_is_shown_and_stays_shown_across_focus_changes(self):
+        """A fullscreen X11 window (a Proton game) is drawn while it has the
+        keyboard, after another window took it and after it comes back."""
+        game = self.open_x11("--fullscreen")
+        state = self.vela.wait_for(lambda s: s.window(game)["fullscreen"] and s["focused"] == game,
+                                   what="fullscreen with focus")
+        out = state.output
+        center = (out["w"] // 2, out["h"] // 2)
+        self.vela.wait_for(lambda s: self.vela.pixels().at(*center) == ORANGE, what="the game is drawn")
+        other = self.vela.open_window(300, 200)
+        self.vela.wait_for(lambda s: s["focused"] == other, what="the other window has focus")
+        self.vela.keys("alt+Tab")
+        self.vela.wait_for(lambda s: s["focused"] == game, what="back to the game")
+        time.sleep(0.4)
+        self.assertEqual(self.vela.pixels().at(*center), ORANGE)
+
 
 if __name__ == "__main__":
     unittest.main()
