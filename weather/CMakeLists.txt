@@ -64,12 +64,12 @@ target_link_libraries(vela-weather PRIVATE
 # cache and the model with a fake fetcher. No network.
 if(VELA_BUILD_TOOLS)
     find_package(Qt6 6.7 REQUIRED COMPONENTS Test)
-    qt_add_executable(vela-weather-test tests/weathertest.cpp)
-    target_compile_options(vela-weather-test PRIVATE -Wall -Wextra)
-    target_compile_definitions(vela-weather-test PRIVATE
+    qt_add_executable(vela-weather-app-test tests/weathertest.cpp)
+    target_compile_options(vela-weather-app-test PRIVATE -Wall -Wextra)
+    target_compile_definitions(vela-weather-app-test PRIVATE
         WEATHER_TEST_DATA="${CMAKE_CURRENT_SOURCE_DIR}/tests/data")
-    target_link_libraries(vela-weather-test PRIVATE vela-weather-core Qt6::Test)
-    add_test(NAME weather COMMAND vela-weather-test)
+    target_link_libraries(vela-weather-app-test PRIVATE vela-weather-core Qt6::Test)
+    add_test(NAME weather COMMAND vela-weather-app-test)
 endif()
 
 install(TARGETS vela-weather RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
