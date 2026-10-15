@@ -281,7 +281,7 @@ Window {
             width: root.natural.width * root.factor
             height: root.natural.height * root.factor
             rotation: root.turn
-            source: Album.current
+            source: Album.shown(Album.current)
             sourceSize: Album.scalable ? root.sharp : undefined
             visible: !Album.animated
             autoTransform: true // the camera's orientation
@@ -457,7 +457,7 @@ Window {
             border.color: Theme.accentFill
             Image {
                 anchors { fill: parent; margins: 4 }
-                source: thumb.modelData
+                source: Album.shown(thumb.modelData)
                 sourceSize.height: 104 // a small copy, not the whole image
                 cache: false // a file saved over shows its new image
                 fillMode: Image.PreserveAspectCrop
@@ -550,7 +550,7 @@ Window {
                 Album.open(saved)
                 if (same) { // the same name, another image
                     image.source = ""
-                    image.source = Qt.binding(() => Album.current)
+                    image.source = Qt.binding(() => Album.shown(Album.current))
                 }
             })
         }

@@ -14,7 +14,9 @@ add_library(vela-photos-core OBJECT
     src/edits.cpp
     src/edits.h
     src/editview.cpp
-    src/editview.h)
+    src/editview.h
+    src/formats.cpp
+    src/formats.h)
 target_include_directories(vela-photos-core PUBLIC src)
 target_compile_options(vela-photos-core PRIVATE -Wall -Wextra)
 target_link_libraries(vela-photos-core PUBLIC Qt6::Gui Qt6::Quick vela-portalprint)
@@ -61,11 +63,15 @@ if(VELA_BUILD_TOOLS)
     target_compile_options(vela-photos-test PRIVATE -Wall -Wextra)
     target_link_libraries(vela-photos-test PRIVATE vela-photos-core Qt6::Test)
     add_test(NAME photos-album COMMAND vela-photos-test)
+    qt_add_executable(vela-photos-formats-test tests/formats.cpp)
+    target_compile_options(vela-photos-formats-test PRIVATE -Wall -Wextra)
+    target_link_libraries(vela-photos-formats-test PRIVATE vela-photos-core Qt6::Test)
+    add_test(NAME photos-formats COMMAND vela-photos-formats-test)
     qt_add_executable(vela-photos-edits-test tests/edits.cpp)
     target_compile_options(vela-photos-edits-test PRIVATE -Wall -Wextra)
     target_link_libraries(vela-photos-edits-test PRIVATE vela-photos-core Qt6::Test)
     add_test(NAME photos-edits COMMAND vela-photos-edits-test)
-    set_tests_properties(photos-album photos-edits PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+    set_tests_properties(photos-album photos-edits photos-formats PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()
 
 install(TARGETS vela-photos RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})

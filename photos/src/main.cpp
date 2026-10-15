@@ -8,6 +8,7 @@
 // Built like Notepad: Qt Quick without Qt Quick Controls at startup.
 
 #include "album.h"
+#include "formats.h"
 #include "controls.h"
 #include "editview.h"
 #include "iconprovider.h"
@@ -60,6 +61,7 @@ int main(int argc, char* argv[])
     qmlEngine = &engine;
     Appearance* style = vela::controls::install(engine, Appearance::Mode::Apps);
     engine.addImageProvider(QStringLiteral("appicon"), new IconProvider(32)); // Photos' icon, in the title bar
+    engine.addImageProvider(QStringLiteral("photo"), new FormatImages(&album)); // AVIF, HEIC, RAW...
     engine.rootContext()->setContextProperty(QStringLiteral("Album"), &album);
     engine.loadFromModule("Vela.Photos", "Main");
     if (engine.rootObjects().isEmpty()) {

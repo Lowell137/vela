@@ -3,6 +3,8 @@
 
 #include "album.h"
 
+#include "formats.h"
+
 #include "portalprint.h"
 
 #include <QClipboard>
@@ -20,6 +22,7 @@
 #include <QPdfWriter>
 #include <QProcess>
 #include <QSettings>
+#include <QStandardPaths>
 #include <QTemporaryFile>
 
 #include <algorithm>
@@ -33,6 +36,11 @@ QStringList patterns()
     const QList<QByteArray> formats = QImageReader::supportedImageFormats();
     for (const QByteArray& format : formats) {
         list.append(QStringLiteral("*.") + QString::fromLatin1(format));
+    }
+    // AVIF, HEIC, JPEG XL, PSD, RAW...: through ImageMagick, when it's there.
+    const QStringList extra = formats::extra();
+    for (const QString& suffix : extra) {
+        list.append(QStringLiteral("*.") + suffix);
     }
     return list;
 }
@@ -72,6 +80,9 @@ QSize Album::dimensions() const
 {
     if (m_index < 0) {
         return {};
+    }
+    if (formats::isExtra(current().toLocalFile())) {
+        return m_sizes.value(current().toLocalFile()); // known once the provider decoded it
     }
     QImageReader reader(current().toLocalFile());
     const QSize size = reader.size();
@@ -141,7 +152,7 @@ QString Album::trash()
 
 void Album::copy() const
 {
-    const QImage image(current().toLocalFile());
+    const QImage image = formats::read(current().toLocalFile());
     if (!image.isNull()) {
         QGuiApplication::clipboard()->setImage(image);
     }
@@ -151,9 +162,20 @@ void Album::copy() const
 // preferences.cpp): the shell watches the file and changes the desktop.
 void Album::setAsWallpaper() const
 {
-    const QString path = current().toLocalFile();
+    QString path = current().toLocalFile();
     if (path.isEmpty()) {
         return;
+    }
+    // The desktop's background reads what Qt reads: the others go as PNG.
+    if (formats::isExtra(path)) {
+        const QImage image = formats::read(path);
+        const QString folder = QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + QStringLiteral("/wallpapers");
+        QDir().mkpath(folder);
+        const QString png = folder + QLatin1Char('/') + QFileInfo(path).completeBaseName() + QStringLiteral(".png");
+        if (image.isNull() || !image.save(png)) {
+            return;
+        }
+        path = png;
     }
     QSettings settings(QStringLiteral("Vela"), QStringLiteral("vela-shell"));
     QStringList recent = settings.value(QStringLiteral("appearance/recentWallpapers")).toStringList();
@@ -165,9 +187,7 @@ void Album::setAsWallpaper() const
 
 void Album::print() const
 {
-    QImageReader reader(current().toLocalFile());
-    reader.setAutoTransform(true);
-    const QImage image = reader.read();
+    const QImage image = formats::read(current().toLocalFile());
     QTemporaryFile file(QDir::temp().filePath(QStringLiteral("vela-photos-XXXXXX.pdf")));
     file.setAutoRemove(false); // the print job removes it
     if (image.isNull() || !file.open()) {
@@ -189,4 +209,20 @@ void Album::print() const
 QString Album::filter() const
 {
     return patterns().join(QLatin1Char(' '));
+}
+
+QUrl Album::shown(const QUrl& file) const
+{
+    return formats::shown(file);
+}
+
+void Album::extraDecoded(const QString& path, const QSize& size)
+{
+    if (m_sizes.value(path) == size) {
+        return;
+    }
+    m_sizes.insert(path, size);
+    if (m_index >= 0 && current().toLocalFile() == path) {
+        emit indexChanged(); // the dimensions the page sizes the picture by
+    }
 }
