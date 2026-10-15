@@ -12,6 +12,6 @@ Comment[tr]=Resimlerini görüntüle
 Exec=vela-photos %f
 Icon=image-viewer
 Categories=Graphics;Viewer;
-MimeType=image/jpeg;image/png;image/gif;image/webp;image/bmp;image/svg+xml;image/tiff;image/x-icon;image/avif;
+MimeType=image/jpeg;image/png;image/gif;image/webp;image/bmp;image/svg+xml;image/tiff;image/x-icon;image/avif;image/heic;image/heif;image/jxl;image/jp2;image/vnd.adobe.photoshop;image/x-exr;image/x-dds;image/x-xcf;image/x-adobe-dng;image/x-canon-cr2;image/x-canon-cr3;image/x-nikon-nef;image/x-sony-arw;
 Keywords=photo;picture;image;viewer;
 StartupNotify=true
