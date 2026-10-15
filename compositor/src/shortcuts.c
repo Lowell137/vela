@@ -46,6 +46,7 @@ static const struct action {
     { "snip-text", KIND_SHELL, "snip-text" },
     { "clipboard", KIND_SHELL, "clipboard" },
     { "emoji", KIND_SHELL, "emoji" },
+    { "gamebar", KIND_SHELL, "gamebar" },
     { "sound-output", KIND_SHELL, "sound-output" },
 };
 #define ACTION_COUNT (sizeof(actions) / sizeof(actions[0]))
@@ -63,6 +64,7 @@ static bool overridden[ACTION_COUNT]; // the user has a "shortcut-<action>" line
 static bool hot_corner = true; // "hot-corner=no" in vela.conf turns it off
 static bool hot_corner_glow = true; // "hot-corner-glow=no": no glow while near
 static bool hot_corner_animation = true; // "hot-corner-animation=no": no ripples
+static bool game_stats = true; // "game-stats=no": no perf lines to the shell
 static struct vela_snap_drag_config snap_drag = { true, 64, 160, 100 }; // "snap-drag-*" in vela.conf
 
 bool vela_shortcut_parse(const char *text, uint32_t *modifiers, uint32_t *sym)
@@ -188,12 +190,18 @@ void vela_shortcuts_load(void)
     hot_corner = vela_config_flag(&config, "hot-corner", true);
     hot_corner_glow = vela_config_flag(&config, "hot-corner-glow", true);
     hot_corner_animation = vela_config_flag(&config, "hot-corner-animation", true);
+    game_stats = vela_config_flag(&config, "game-stats", true);
     snap_drag.enabled = vela_config_flag(&config, "snap-drag-layouts", true);
     snap_drag.distance = vela_clamp(atoi(vela_config_get(&config, "snap-drag-trigger-distance", "64")), 4, 200);
     snap_drag.width = vela_clamp(atoi(vela_config_get(&config, "snap-drag-trigger-width", "160")), 0, 960);
     snap_drag.scale = vela_clamp(atoi(vela_config_get(&config, "snap-drag-scale", "100")), 60, 200);
     vela_config_finish(&config);
     wlr_log(WLR_INFO, "Shortcuts: %d from vela.conf", shortcut_count);
+}
+
+bool vela_game_stats_enabled(void)
+{
+    return game_stats;
 }
 
 bool vela_hot_corner_enabled(void)
@@ -272,8 +280,10 @@ bool vela_shortcuts_dispatch(struct vela_server *server, uint32_t modifiers, uin
             run_native(server, actions[shortcut->action].id);
         } else {
             const char *line = actions[shortcut->action].shell_line;
-            // The clipboard and emoji panel opens next to the pointer.
-            if (strcmp(line, "clipboard") == 0 || strcmp(line, "emoji") == 0) {
+            if (strcmp(line, "gamebar") == 0) {
+                vela_shell_gamebar(server);
+            } else if (strcmp(line, "clipboard") == 0 || strcmp(line, "emoji") == 0) {
+                // The clipboard and emoji panel opens next to the pointer.
                 vela_shell_send_at_pointer(server, line);
             } else {
                 vela_shell_send(server, line);

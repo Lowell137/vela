@@ -224,7 +224,7 @@ These variables are for diagnosis rather than normal user configuration.
 
 | Variable | Effect |
 |---|---|
-| `VELA_STATS=1` | Print per-output FPS, frame cost, draw-to-light latency and missed vblanks every two seconds. |
+| `VELA_STATS=1` | Print per-output FPS, frame cost, draw-to-light latency and missed vblanks every two seconds. The same FPS and missed vblanks go to the shell as `perf` lines for the Game Bar unless `game-stats=no` is in `vela.conf` (see `docs/shortcuts.md`). |
 | `VELA_VULKAN_VALIDATION=1` | Enable Vulkan validation layers. |
 | `VELA_DEBUG=1` | Enable verbose wlroots logging. |
 | `VELA_DEBUG_SCANOUT=1` | Log why a fullscreen surface is not eligible for direct scanout. |

@@ -7,6 +7,8 @@
 // The Qt shell: the startup command (the shell) that the compositor launches
 // and relaunches when it fails, and the messages it sends it.
 
+#include <stdbool.h>
+
 struct vela_server;
 
 // Launches `command` and relaunches it when it fails (not when it exits
@@ -27,5 +29,10 @@ void vela_shell_send(struct vela_server *server, const char *line);
 // The same line followed by where the pointer is, in layout coordinates
 // ("clipboard 812 430"): for the panels that open next to it.
 void vela_shell_send_at_pointer(struct vela_server *server, const char *line);
+// "perfapp <app_id> <pid>" for the focused window (docs/shortcuts.md, Game
+// Bar), sent only when it differs from the last one, or always with `force`.
+void vela_shell_send_perfapp(struct vela_server *server, bool force);
+// The Game Bar shortcut: the focused app, then "gamebar".
+void vela_shell_gamebar(struct vela_server *server);
 
 #endif

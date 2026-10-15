@@ -210,6 +210,11 @@ bool vela_bindings_handle(struct vela_server *server, uint32_t modifiers, uint32
         vela_shell_send_at_pointer(server, "emoji");
         return true;
     }
+    // Win+G: the Game Bar (inside KDE with Alt).
+    if (windows_key && xkb_keysym_to_lower(sym) == XKB_KEY_g && !ctrl && !shift && vela_shortcuts_default_enabled("gamebar")) {
+        vela_shell_gamebar(server);
+        return true;
+    }
     // Win+Shift+T: the Snipping Tool in its Text mode (copy the text of a region).
     if (super && shift && xkb_keysym_to_lower(sym) == XKB_KEY_t && vela_shortcuts_default_enabled("snip-text")) {
         return shell(server, "snip-text");

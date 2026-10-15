@@ -31,6 +31,8 @@ bool vela_shortcuts_dispatch(struct vela_server *server, uint32_t modifiers, uin
 
 // The top-left corner opens Task View (interact.c); "hot-corner=no" turns it off.
 bool vela_hot_corner_enabled(void);
+// "game-stats=no" in vela.conf: no "perf" lines for the Game Bar.
+bool vela_game_stats_enabled(void);
 // What the shell shows of it: the glow while near ("hot-corner-glow=no") and
 // the ripples when it fires ("hot-corner-animation=no").
 bool vela_hot_corner_glow_enabled(void);

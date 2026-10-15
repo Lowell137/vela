@@ -7,6 +7,7 @@
 #include "interact.h"
 #include "layer.h"
 #include "scene/scene.h"
+#include "shell.h"
 #include "server.h"
 #include "snap.h"
 #include "switcher.h"
@@ -80,6 +81,7 @@ void vela_focus_view(struct vela_server *server, struct vela_view *view)
     }
     vela_view_set_activated(view, true);
     vela_input_keyboard_enter(server->input, surface);
+    vela_shell_send_perfapp(server, false);
 }
 
 void vela_focus_new_view(struct vela_server *server, struct vela_view *view)
@@ -171,6 +173,7 @@ void vela_focus_refocus(struct vela_server *server)
         vela_view_set_activated(focused, false);
     }
     wlr_seat_keyboard_notify_clear_focus(server->seat);
+    vela_shell_send_perfapp(server, false);
 }
 
 void vela_focus_forget_view(struct vela_server *server, struct vela_view *view, bool was_focused)

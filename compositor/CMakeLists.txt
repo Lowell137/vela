@@ -118,6 +118,7 @@ add_library(vela-pure STATIC
     src/config.c
     src/diagnostics.c
     src/frame_clock.c
+    src/game_stats.c
     src/geometry.c
     src/legacy_names.c
     src/motion.c
@@ -285,6 +286,7 @@ if(VELA_BUILD_TOOLS)
     if(GTest_FOUND)
         add_executable(vela-compositor-tests
             tests/frame_clock_test.cpp
+            tests/game_stats_test.cpp
             tests/motion_test.cpp
             tests/geometry_test.cpp
             tests/color_sun_test.cpp
