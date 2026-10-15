@@ -39,6 +39,8 @@ optdepends=(
     'networkmanager: network and Wi-Fi (quick settings and Settings)'
     'bluez: Bluetooth'
     'pipewire-pulse: sound for apps that still use PulseAudio'
+    'sound-theme-freedesktop: the alarm sound of Clock'
+    'libpulse: paplay, which plays the alarm sound (pipewire-pulse also provides it)'
     'power-profiles-daemon: energy saver'
     'udisks2: unmounted drives in File Explorer'
     'xdg-utils: share by email, default apps'

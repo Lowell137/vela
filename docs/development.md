@@ -221,6 +221,7 @@ compositor/tests/   compositor unit tests
 shell/              Qt Quick shell: taskbar, launcher, panels and desktop
 explorer/           vela-files
 notepad/            vela-notepad
+clock/              vela-clock (alarms, timers, stopwatch, world clocks)
 settings/           vela-settings
 lock/               vela-lock
 polkit/             vela-polkit-agent and vela-polkit-prompt (docs/polkit-agent.md)
@@ -246,6 +247,7 @@ The interface is in English and Italian. Strings in the code are written in Engl
 | Shell | `shell/i18n/vela-shell_it.ts` |
 | Files | `explorer/i18n/vela-files_it.ts` |
 | Notepad | `notepad/i18n/vela-notepad_it.ts` |
+| Clock | `clock/i18n/vela-clock_it.ts` |
 | Settings | `settings/i18n/vela-settings_it.ts` |
 | Lock screen | `lock/i18n/vela-lock_it.ts` |
 | User Account Control (polkit) | `polkit/i18n/vela-polkit-prompt_it.ts` |
