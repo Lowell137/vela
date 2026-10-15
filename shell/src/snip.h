@@ -58,6 +58,11 @@ public:
     Q_INVOKABLE void toggleMicrophone();
     Q_INVOKABLE void stopRecording();
 
+    // The Game Bar's buttons: the whole output `screen` without the overlays,
+    // saved and notified like a snip; recorded like Record's click.
+    Q_INVOKABLE void captureOutput(const QString& screen);
+    Q_INVOKABLE void recordOutput(const QString& screen);
+
     void start(); // while recording: stops the recording instead
     void startText(); // the Text mode from the start
     Q_INVOKABLE void cancel();

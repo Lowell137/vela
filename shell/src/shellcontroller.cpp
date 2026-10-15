@@ -296,6 +296,16 @@ void ShellController::handleCommand(const QByteArray& command)
     } else if (parts.first() == "clipboard" || parts.first() == "emoji") {
         const bool placed = parts.size() == 3;
         emit clipboardRequested(QString::fromLatin1(parts.first()), placed ? parts.at(1).toInt() : -1, placed ? parts.at(2).toInt() : -1);
+    } else if (command == "gamebar") {
+        emit gameBarRequested();
+    } else if (command == "crosshair") {
+        emit crosshairToggleRequested();
+    } else if (parts.first() == "perf" && parts.size() == 4) {
+        // perf <fps> <frame ms> <missed vblanks>, every 2 s while frames are drawn
+        emit perfReceived(parts.at(1).toDouble(), parts.at(2).toDouble(), parts.at(3).toInt());
+    } else if (parts.first() == "perfapp" && parts.size() == 3) {
+        // perfapp <app_id or -> <pid or 0>: the focused window
+        emit perfAppReceived(QString::fromUtf8(parts.at(1)), parts.at(2).toInt());
     } else if (command == "snip") {
         emit snipRequested();
     } else if (command == "snip-text") {
@@ -559,6 +569,18 @@ void ShellController::placeAtTop(QWindow* window, int top)
         if (margins.top() != top) {
             layer->setMargins(QMargins(margins.left(), top, margins.right(), margins.bottom()));
         }
+    }
+}
+
+void ShellController::placeInCorner(QWindow* window, const QString& corner, int margin)
+{
+    using LayerWindow = LayerShellQt::Window;
+    if (auto* layer = window ? LayerWindow::get(window) : nullptr) {
+        const bool bottom = corner.startsWith(QLatin1String("bottom"));
+        const bool right = corner.endsWith(QLatin1String("right"));
+        layer->setAnchors(LayerWindow::Anchors(bottom ? LayerWindow::AnchorBottom : LayerWindow::AnchorTop)
+            | (right ? LayerWindow::AnchorRight : LayerWindow::AnchorLeft));
+        layer->setMargins(QMargins(margin, margin, margin, margin));
     }
 }
 

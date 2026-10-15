@@ -31,6 +31,7 @@
 #include <QTimer>
 #include <QUrl>
 
+#include <algorithm>
 #include <csignal>
 #include <signal.h>
 
@@ -227,6 +228,43 @@ void Snip::start()
             captured();
         }
     });
+}
+
+// The delayed snip's path: a fresh photo, then the whole output cut from it.
+void Snip::captureOutput(const QString& screenName)
+{
+    const auto screens = QGuiApplication::screens();
+    const auto it = std::find_if(screens.begin(), screens.end(), [&](QScreen* s) { return s->name() == screenName; });
+    if (m_active || m_recorder || it == screens.end()) {
+        return;
+    }
+    m_active = true;
+    m_mode = QStringLiteral("screen");
+    m_delayed = { true, screenName, QRectF(QPointF(), (*it)->geometry().size()) };
+    m_capture->clearFull();
+    m_waiting = m_capture->captureScreensFull();
+    emit modeChanged();
+    emit activeChanged();
+    if (m_waiting == 0) {
+        m_delayed.recapturing = false;
+        cancel();
+        return;
+    }
+    QTimer::singleShot(1500, this, [this] {
+        if (m_waiting > 0) {
+            m_waiting = 0;
+            captured();
+        }
+    });
+}
+
+void Snip::recordOutput(const QString& screenName)
+{
+    for (QScreen* screen : QGuiApplication::screens()) {
+        if (screen->name() == screenName && !m_active) {
+            startRecording(screenName, QRectF(QPointF(), screen->geometry().size()));
+        }
+    }
 }
 
 void Snip::startText()
