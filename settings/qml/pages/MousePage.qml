@@ -61,10 +61,30 @@ Page {
         Card {
             icon: "transform-move"
             title: qsTr("Autoscroll with the middle button")
-            description: qsTr("Click the wheel, then move the mouse to scroll; click again to stop. Terminals keep pasting")
+            description: qsTr("Move the mouse away from where you pressed the wheel to scroll that way. Terminals keep pasting")
             trailing: Toggle {
                 checked: Prefs.middleClickAutoscroll
                 onToggled: on => Prefs.middleClickAutoscroll = on
+            }
+        }
+        Card {
+            visible: Prefs.middleClickAutoscroll
+            icon: "input-mouse"
+            title: qsTr("Start with a middle click (instead of new tab or paste)")
+            description: qsTr("Click again or press Esc to stop")
+            trailing: Toggle {
+                checked: Prefs.autoscrollClick
+                onToggled: on => Prefs.autoscrollClick = on
+            }
+        }
+        Card {
+            visible: Prefs.middleClickAutoscroll
+            icon: "input-mouse"
+            title: qsTr("Scroll by holding and dragging")
+            description: qsTr("Stops when you let go of the button")
+            trailing: Toggle {
+                checked: Prefs.autoscrollHold
+                onToggled: on => Prefs.autoscrollHold = on
             }
         }
         Card {

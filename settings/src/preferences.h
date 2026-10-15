@@ -102,6 +102,8 @@ class Preferences : public QObject {
     // Middle-click autoscroll (compositor/src/autoscroll.h), speed 1-10.
     Q_PROPERTY(bool middleClickAutoscroll READ middleClickAutoscroll WRITE setMiddleClickAutoscroll NOTIFY inputChanged)
     Q_PROPERTY(int autoscrollSpeed READ autoscrollSpeed WRITE setAutoscrollSpeed NOTIFY inputChanged)
+    Q_PROPERTY(bool autoscrollClick READ autoscrollClick WRITE setAutoscrollClick NOTIFY inputChanged)
+    Q_PROPERTY(bool autoscrollHold READ autoscrollHold WRITE setAutoscrollHold NOTIFY inputChanged)
     Q_PROPERTY(bool hasTouchpad READ hasTouchpad NOTIFY inputChanged) // the compositor says so
     Q_PROPERTY(bool touchpad READ touchpad WRITE setTouchpad NOTIFY inputChanged)
     Q_PROPERTY(bool touchpadWithMouse READ touchpadWithMouse WRITE setTouchpadWithMouse NOTIFY inputChanged)
@@ -301,6 +303,10 @@ public:
     void setMiddleClickAutoscroll(bool on);
     int autoscrollSpeed() const { return m_autoscrollSpeed; }
     void setAutoscrollSpeed(int value);
+    bool autoscrollClick() const { return m_autoscrollClick; }
+    void setAutoscrollClick(bool on);
+    bool autoscrollHold() const { return m_autoscrollHold; }
+    void setAutoscrollHold(bool on);
     void setWheelLines(int lines);
     bool hasTouchpad() const { return m_hasTouchpad; }
     bool touchpad() const { return m_touchpad; }
@@ -445,6 +451,8 @@ private:
     int m_wheelLines = 3;
     bool m_middleClickAutoscroll = false;
     int m_autoscrollSpeed = 5;
+    bool m_autoscrollClick = true;
+    bool m_autoscrollHold = true;
     bool m_hasTouchpad = false;
     bool m_touchpad = true;
     bool m_touchpadWithMouse = true;

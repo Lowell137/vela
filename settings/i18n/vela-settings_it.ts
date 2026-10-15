@@ -1759,8 +1759,24 @@ Specifiche sistema
         <translation>Scorrimento automatico con il pulsante centrale</translation>
     </message>
     <message>
-        <source>Click the wheel, then move the mouse to scroll; click again to stop. Terminals keep pasting</source>
-        <translation>Fai clic con la rotellina, poi muovi il mouse per scorrere; fai di nuovo clic per fermarti. Nei terminali incolla ancora</translation>
+        <source>Move the mouse away from where you pressed the wheel to scroll that way. Terminals keep pasting</source>
+        <translation>Allontana il mouse dal punto in cui hai premuto la rotellina per scorrere in quella direzione. Nei terminali incolla ancora</translation>
+    </message>
+    <message>
+        <source>Start with a middle click (instead of new tab or paste)</source>
+        <translation>Avvia con un clic centrale (invece di nuova scheda o incolla)</translation>
+    </message>
+    <message>
+        <source>Click again or press Esc to stop</source>
+        <translation>Fai di nuovo clic o premi Esc per fermarti</translation>
+    </message>
+    <message>
+        <source>Scroll by holding and dragging</source>
+        <translation>Scorri tenendo premuto e trascinando</translation>
+    </message>
+    <message>
+        <source>Stops when you let go of the button</source>
+        <translation>Si ferma quando rilasci il pulsante</translation>
     </message>
     <message>
         <source>Autoscroll speed</source>
