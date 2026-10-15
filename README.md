@@ -232,6 +232,7 @@ The whole design is written down in [docs/renderer.md](docs/renderer.md).
 Small Qt Quick apps built like Files, with Vela's controls and title bar, in English
 and Italian:
 - **Notepad** (`vela-notepad`): tabs, find and replace, encodings, go to line, fonts, and printing through the portal.
+- **Media Player** (`vela-mediaplayer`): plays video and music with libmpv: folder playlist, subtitles, speed, resume and a mini player.
 
 ### Settings (`vela-settings`)
 - **Displays**: drag-and-drop arrangement, scale, resolution, refresh rate, rotation, and
@@ -371,7 +372,7 @@ See [Vela Report](docs/reporting.md) for privacy details, options and limits.
 
 You need CMake ≥ 3.22, Ninja, a C17 and C++20 compiler, **wlroots 0.20**, Qt ≥ 6.7 with its Linguist tools, LayerShellQt,
 the Vulkan headers and loader, `glslc`, GBM, libdrm, FreeType, HarfBuzz, Fontconfig and
-PAM. librsvg is optional (app icons in the title bar). The diagnostic reporter needs
+PAM. librsvg is optional (app icons in the title bar). libmpv is optional (the Media Player is skipped without it). The diagnostic reporter needs
 Python 3.10 or newer; the tests also use GoogleTest. The pixel sharpness
 suites additionally require NumPy and Pillow for Python 3.
 
@@ -383,7 +384,7 @@ sudo pacman -S --needed base-devel git cmake ninja pkgconf wlroots0.20 wayland w
     libxkbcommon pixman libinput qt6-base qt6-declarative qt6-svg qt6-wayland qt6-tools layer-shell-qt \
     vulkan-headers vulkan-icd-loader shaderc mesa libdrm freetype2 harfbuzz fontconfig cairo \
     pam polkit librsvg zlib gtest python python-numpy python-pillow hicolor-icon-theme xorg-xwayland \
-    pipewire wireplumber
+    pipewire wireplumber mpv
 ```
 </details>
 
