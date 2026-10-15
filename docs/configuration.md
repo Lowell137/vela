@@ -95,6 +95,25 @@ The shell's own settings (`~/.config/Vela/vela-shell.conf`, Qt's INI format) are
 
 The taskbar's window previews have a media strip under a window whose app plays through MPRIS (Spotify, a browser's video, VLC, mpv...): the track, previous, play/pause and next. It is there while the player plays, or is paused with a track, and not otherwise (no room is left for it). The player is matched to the window by its `DesktopEntry` against the app id, then by its bus name (`org.mpris.MediaPlayer2.<name>[.instanceN]`) against the app id; when an app has several windows (browsers), only the one whose title holds the track's gets the strip. There is no setting.
 
+## Game Bar settings
+
+Win+G opens a slim toolbar at the top center and the widgets (Capture, Audio, Performance, Media, Crosshair, Game mode) as separate cards under it, dragged by their title. The `[gamebar]` group of `~/.config/Vela/vela-shell.conf` holds what the bar remembers; Settings > Gaming edits the same keys, and the shell rereads them live.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `widgets` | `capture,audio,performance` | Comma list of the open widgets (`capture`, `audio`, `performance`, `media`, `crosshair`, `gamemode`). |
+| `pinned-widgets` | empty | The open widgets that stay over the game after the bar closes. The mouse goes through them, except over a pinned Media card (its buttons and position bar work). |
+| `pos-<widget>` | unset | `output|x|y`, the card's top left in the output's pixels (written when the card is dragged or pinned). A card whose output is gone moves to the main one. Empty: the automatic layout. |
+| `overlay` | `true` | Show pinned widgets over the game at all. Over a fullscreen game any overlay surface can stop direct scanout; MangoHud does not. |
+| `dim` | `true` | A light veil (22 % black) over the game while the bar is open. |
+| `perf-metric` | `fps` | The number the Performance widget graphs (`fps`, `cpu`, `gpu`, `vram`, `ram`). |
+| `crosshair` | `false` | The crosshair on or off (also <kbd>Super</kbd>+<kbd>Alt</kbd>+<kbd>C</kbd>, which changes nothing else). |
+| `crosshair-pinned` | `true` | Keep the crosshair over the game when the bar is closed; off, it shows only while the bar is open. |
+| `crosshair-style` | `cross` | `dot`, `cross`, `gap`, `circle` or `image` (`crosshair-image`, a PNG). |
+| `crosshair-size`, `-thickness`, `-gap`, `-opacity`, `-outline`, `-color` | 24, 2, 4, 1, `true`, `#00ff66` | Look of the mark. |
+| `crosshair-x`, `crosshair-y` | 0, 0 | Offset in pixels from the center of `crosshair-screen`; 0, 0 is the exact center (the Center button, or double-click the mark in the bar). |
+| `crosshair-screen` | the main output | The output the crosshair is on. |
+
 ## Window rules
 
 `window-rule` is the one repeatable key: one line per rule, in `vela.conf` (Settings > Personalization > Window rules writes them).

@@ -1008,26 +1008,6 @@ Specifiche sistema
         <translation>Tempo fotogramma</translation>
     </message>
     <message>
-        <source>CPU</source>
-        <translation>CPU</translation>
-    </message>
-    <message>
-        <source>CPU temp</source>
-        <translation>Temp. CPU</translation>
-    </message>
-    <message>
-        <source>GPU</source>
-        <translation>GPU</translation>
-    </message>
-    <message>
-        <source>GPU temp</source>
-        <translation>Temp. GPU</translation>
-    </message>
-    <message>
-        <source>GPU power</source>
-        <translation>Potenza GPU</translation>
-    </message>
-    <message>
         <source>VRAM</source>
         <translation>VRAM</translation>
     </message>
@@ -1052,30 +1032,6 @@ Specifiche sistema
         <translation>Vela misura i fotogrammi che mostra per gli FPS e il tempo fotogramma della Game Bar. Non costa nulla quando la Game Bar non è in uso</translation>
     </message>
     <message>
-        <source>Overlay</source>
-        <translation>Overlay</translation>
-    </message>
-    <message>
-        <source>Show overlay</source>
-        <translation>Mostra overlay</translation>
-    </message>
-    <message>
-        <source>The pinned numbers stay over the game in a corner. Over a fullscreen game any overlay can stop direct scanout and cost a little latency: MangoHud, drawn inside the game, doesn&apos;t</source>
-        <translation>I valori fissati restano sopra il gioco in un angolo. Su un gioco a schermo intero qualsiasi overlay può fermare la scansione diretta e aggiungere un po&apos; di latenza: MangoHud, disegnato dentro il gioco, no</translation>
-    </message>
-    <message>
-        <source>Pinned numbers</source>
-        <translation>Valori fissati</translation>
-    </message>
-    <message>
-        <source>Also pinned with the pin next to each number in the Game Bar</source>
-        <translation>Si fissano anche con la puntina accanto a ogni valore nella Game Bar</translation>
-    </message>
-    <message>
-        <source>Corner</source>
-        <translation>Angolo</translation>
-    </message>
-    <message>
         <source>Top left</source>
         <translation>In alto a sinistra</translation>
     </message>
@@ -1092,18 +1048,6 @@ Specifiche sistema
         <translation>In basso a destra</translation>
     </message>
     <message>
-        <source>Layout</source>
-        <translation>Disposizione</translation>
-    </message>
-    <message>
-        <source>Column</source>
-        <translation>Colonna</translation>
-    </message>
-    <message>
-        <source>Row</source>
-        <translation>Riga</translation>
-    </message>
-    <message>
         <source>Frame time graph</source>
         <translation>Grafico tempo fotogramma</translation>
     </message>
@@ -1116,12 +1060,44 @@ Specifiche sistema
         <translation>Dimensione</translation>
     </message>
     <message>
+        <source>Widgets</source>
+        <translation>Widget</translation>
+    </message>
+    <message>
+        <source>Show pinned widgets over the game</source>
+        <translation>Mostra i widget fissati sopra il gioco</translation>
+    </message>
+    <message>
+        <source>Widgets pinned in the Game Bar stay where you put them. Over a fullscreen game any overlay can stop direct scanout and cost a little latency: MangoHud, drawn inside the game, doesn&apos;t</source>
+        <translation>I widget fissati nella Game Bar restano dove li hai messi. Sopra un gioco a schermo intero qualunque overlay può impedire lo scanout diretto e costare un po&apos; di latenza: MangoHud, disegnato dentro il gioco, no</translation>
+    </message>
+    <message>
+        <source>Dim the screen</source>
+        <translation>Oscura lo schermo</translation>
+    </message>
+    <message>
+        <source>A light veil over the game while the Game Bar is open</source>
+        <translation>Un leggero velo sopra il gioco mentre la Game Bar è aperta</translation>
+    </message>
+    <message>
+        <source>Widget positions</source>
+        <translation>Posizioni dei widget</translation>
+    </message>
+    <message>
+        <source>Drag the widgets by their title in the Game Bar. This puts them back in the automatic layout</source>
+        <translation>Trascina i widget dal titolo nella Game Bar. Questo li rimette nella disposizione automatica</translation>
+    </message>
+    <message>
+        <source>Reset positions</source>
+        <translation>Reimposta le posizioni</translation>
+    </message>
+    <message>
         <source>Crosshair</source>
         <translation>Mirino</translation>
     </message>
     <message>
-        <source>A mark in the center of the screen. Win+Alt+C turns it on and off</source>
-        <translation>Un segno al centro dello schermo. Win+Alt+C lo attiva e disattiva</translation>
+        <source>A mark over the game. Win+Alt+C turns it on and off. Drag it in the Game Bar&apos;s Crosshair widget to place it anywhere</source>
+        <translation>Un segno sopra il gioco. Win+Alt+C lo attiva e lo disattiva. Trascinalo nel widget Mirino della Game Bar per metterlo dove vuoi</translation>
     </message>
     <message>
         <source>Style</source>
@@ -1190,6 +1166,22 @@ Specifiche sistema
     <message>
         <source>A thin black edge, so it shows on light backgrounds</source>
         <translation>Un sottile bordo nero, per vederlo su sfondi chiari</translation>
+    </message>
+    <message>
+        <source>Center</source>
+        <translation>Centra</translation>
+    </message>
+    <message>
+        <source>Back to the exact center of its screen (double-click it in the Game Bar does the same)</source>
+        <translation>Torna al centro esatto del suo schermo (il doppio clic nella Game Bar fa lo stesso)</translation>
+    </message>
+    <message>
+        <source>Pinned over the game</source>
+        <translation>Fissato sopra il gioco</translation>
+    </message>
+    <message>
+        <source>Off: it shows only while the Game Bar is open</source>
+        <translation>Disattivato: si vede solo mentre la Game Bar è aperta</translation>
     </message>
     <message>
         <source>Thickness</source>
@@ -1396,6 +1388,14 @@ Specifiche sistema
     <message>
         <source>Taskbar, Start, Settings and title bars. A theme&apos;s dark version follows the mode</source>
         <translation>Barra delle applicazioni, Start, Impostazioni e barre del titolo. La versione scura di un tema segue la modalità</translation>
+    </message>
+    <message>
+        <source>Fluent app and file icons</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Not installed. The AUR package fluent-icon-theme-git (search &quot;fluent-icon-theme&quot;) adds it; the Vela theme uses it when present</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Preview</source>
