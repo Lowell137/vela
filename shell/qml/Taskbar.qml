@@ -689,4 +689,43 @@ Window {
             }
         }
     }
+
+    // Show desktop, at the far right edge like Windows 11: a click does what
+    // Win+D does (Tasks.toggleDesktop); the thin line lights up on hover.
+    Item {
+        id: showDesktop
+        visible: root.primary
+        anchors { right: parent.right; top: parent.top; bottom: parent.bottom }
+        // Invisible at rest and over the clock's margin: it takes no room. Only
+        // under the pointer a short line shows, like Windows.
+        width: visible ? 8 : 0
+
+        // A short, 2 px line, only while hovered.
+        Rectangle {
+            anchors { right: parent.right; rightMargin: 2; verticalCenter: parent.verticalCenter }
+            width: 2
+            height: 18
+            radius: 1
+            color: Theme.textSecondary
+            opacity: showDesktopMouse.containsMouse ? 0.9 : 0
+            Behavior on opacity { NumberAnimation { duration: Theme.fast } }
+        }
+        MouseArea {
+            id: showDesktopMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            acceptedButtons: Qt.LeftButton
+            onEntered: {
+                const p = showDesktop.mapToItem(null, showDesktop.width / 2, 0)
+                Menus.tooltip = { text: qsTr("Show desktop"), center: p.x, screen: root.screenName, owner: "show-desktop" }
+            }
+            onExited: {
+                if (Menus.tooltip && Menus.tooltip.owner === "show-desktop") Menus.tooltip = null
+            }
+            onClicked: {
+                root.fromHere()
+                Tasks.toggleDesktop()
+            }
+        }
+    }
 }
