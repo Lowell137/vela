@@ -5,7 +5,7 @@
 // real files in them (made with ImageMagick itself, so they are skipped when
 // it isn't installed).
 
-#include "formats.h"
+#include "imageformats.h"
 
 #include <QProcess>
 #include <QStandardPaths>
@@ -148,4 +148,4 @@ private slots:
 };
 
 QTEST_GUILESS_MAIN(FormatsTest)
-#include "formats.moc"
+#include "imageformats.moc"

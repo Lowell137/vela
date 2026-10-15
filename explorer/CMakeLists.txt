@@ -32,6 +32,7 @@ add_library(vela-files-core OBJECT
 target_include_directories(vela-files-core PUBLIC src ${SHELL_SRC})
 target_compile_options(vela-files-core PRIVATE -Wall -Wextra)
 target_link_libraries(vela-files-core PUBLIC
+    vela-imageformats
     Qt6::DBus
     Qt6::Gui
     Qt6::Network

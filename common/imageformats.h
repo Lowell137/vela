@@ -3,6 +3,8 @@
 
 #pragma once
 
+// Shared by Photos, Paint and the File Explorer (the thumbnails).
+//
 // The images Qt's own plugins can't read here (AVIF, HEIC, JPEG XL, PSD,
 // OpenEXR, camera RAW...): ImageMagick decodes them, when it's installed.
 // Nothing changes without it.

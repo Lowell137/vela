@@ -8,7 +8,7 @@
 // Built like Notepad: Qt Quick without Qt Quick Controls at startup.
 
 #include "album.h"
-#include "formats.h"
+#include "imageformats.h"
 #include "controls.h"
 #include "editview.h"
 #include "iconprovider.h"

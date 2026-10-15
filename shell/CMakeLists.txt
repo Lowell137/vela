@@ -147,6 +147,7 @@ qt_add_qml_module(vela-shell
 
 target_compile_options(vela-shell PRIVATE -Wall -Wextra)
 target_link_libraries(vela-shell PRIVATE
+    vela-imageformats # AVIF, HEIC, RAW... thumbnails (filethumbnails.cpp)
     Qt6::DBus
     Qt6::Gui
     Qt6::Qml

@@ -3,7 +3,7 @@
 
 #include "editview.h"
 
-#include "formats.h"
+#include "imageformats.h"
 
 #include <QFileInfo>
 #include <QImageReader>

@@ -140,7 +140,7 @@ Window {
             }
         }
         picker.nameFilters = save ? [qsTr("PNG (*.png)"), qsTr("JPEG (*.jpg *.jpeg)"), qsTr("Pictures (%1)").arg(canvas.filter())]
-            : [qsTr("Pictures (%1)").arg(canvas.filter()), qsTr("All files (*)")]
+            : [qsTr("Pictures (%1)").arg(canvas.openFilter()), qsTr("All files (*)")]
         const folder = canvas.source.toString() !== "" ? canvas.source.toString().replace(/\/[^\/]*$/, "")
             : StandardPaths.writableLocation(StandardPaths.PicturesLocation).toString()
         picker.pick(save, folder, save ? (canvas.source.toString() !== "" ? name : qsTr("Untitled") + ".png") : "",

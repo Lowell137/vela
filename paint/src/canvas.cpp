@@ -3,6 +3,8 @@
 
 #include "canvas.h"
 
+#include "imageformats.h"
+
 #include <QClipboard>
 #include <QFileInfo>
 #include <QFontDatabase>
@@ -223,11 +225,10 @@ void PaintCanvas::newImage(int width, int height)
 
 QString PaintCanvas::load(const QUrl& url)
 {
-    QImageReader reader(url.toLocalFile());
-    reader.setAutoTransform(true); // turned like the camera was
-    const QImage image = reader.read();
+    QString error;
+    const QImage image = formats::read(url.toLocalFile(), {}, &error); // turned like the camera was
     if (image.isNull()) {
-        return reader.errorString();
+        return error;
     }
     newImage(1, 1);
     setImage(image);
@@ -263,6 +264,21 @@ QString PaintCanvas::save(const QUrl& url)
     emit sourceChanged();
     setModified(false);
     return {};
+}
+
+// What can be opened: what Qt reads, and what ImageMagick adds (AVIF, HEIC, PSD, RAW...).
+QString PaintCanvas::openFilter() const
+{
+    QStringList list;
+    const QList<QByteArray> readable = QImageReader::supportedImageFormats();
+    for (const QByteArray& format : readable) {
+        list.append(QStringLiteral("*.") + QString::fromLatin1(format));
+    }
+    const QStringList extra = formats::extra();
+    for (const QString& suffix : extra) {
+        list.append(QStringLiteral("*.") + suffix);
+    }
+    return list.join(u' ');
 }
 
 QString PaintCanvas::filter() const

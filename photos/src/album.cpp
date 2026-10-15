@@ -3,7 +3,7 @@
 
 #include "album.h"
 
-#include "formats.h"
+#include "imageformats.h"
 
 #include "portalprint.h"
 

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Vela contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "formats.h"
+#include "imageformats.h"
 
 #include <QFileInfo>
 #include <QHash>

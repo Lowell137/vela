@@ -63,6 +63,7 @@ public:
     Q_INVOKABLE QString load(const QUrl& url);
     Q_INVOKABLE QString save(const QUrl& url);
     Q_INVOKABLE QString filter() const; // "*.png *.jpg ...", what can be written
+    Q_INVOKABLE QString openFilter() const; // what can be opened: also AVIF, HEIC, PSD, RAW...
 
     // The pointer; `secondary`: the right button, which draws with color2;
     // `constrain` (Shift): squares, circles and lines at 45 degrees.
