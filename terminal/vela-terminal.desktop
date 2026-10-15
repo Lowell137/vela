@@ -1,0 +1,18 @@
+# SPDX-FileCopyrightText: 2026 Vela contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[Desktop Entry]
+Type=Application
+Name=Terminal
+Name[tr]=Terminal
+Name[it]=Terminale
+GenericName=Terminal
+GenericName[tr]=Uçbirim
+Comment=Command line with tabs and split panes
+Comment[tr]=Sekmeli ve bölünebilen komut satırı
+Comment[it]=Riga di comando con schede e riquadri
+Exec=vela-terminal
+Icon=utilities-terminal
+Categories=System;TerminalEmulator;
+Keywords=shell;prompt;command;commandline;cmd;console;
+StartupNotify=true
