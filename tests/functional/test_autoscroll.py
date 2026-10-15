@@ -39,12 +39,12 @@ def read_log(path):
 
 
 class Autoscroll(unittest.TestCase):
-    def start(self, enabled=True, size="1920x1080@60"):
+    def start(self, enabled=True, size="1920x1080@60", extra=""):
         self.vela = Session(size=size)
         self.vela.start()
         os.makedirs(os.path.dirname(self.vela.config_path()), exist_ok=True)
         with open(self.vela.config_path(), "w") as config:
-            config.write(RULES + ("middle-click-autoscroll=yes\n" if enabled else ""))
+            config.write(RULES + ("middle-click-autoscroll=yes\n" if enabled else "") + extra)
         self.vela.command("reload-config")
 
     def tearDown(self):
@@ -135,6 +135,62 @@ class Autoscroll(unittest.TestCase):
         self.vela.wait_for(lambda s: not s["autoscroll"], what="autoscroll off")
         self.assertTrue(self.events(log, kind="stop"))
         self.assertFalse(self.events(log, kind="button"))
+
+    def hold(self, *between):
+        """Presses the middle button at the center, does `between`, releases;
+        one vela-input in the background (its mouse going away releases)."""
+        return subprocess.Popen([tool("vela-input"), "move", *map(str, CENTER), "sleep", "50", "down", "middle",
+                                 *map(str, between), "up", "middle", "sleep", "300"], env=self.vela.client_env)
+
+    def middle_buttons(self, log):
+        return [e[2] for e in self.events(log, kind="button") if e[2][0] == str(BTN_MIDDLE)]
+
+    def test_click_off_hold_on(self):
+        self.start(extra="autoscroll-click=no\n")
+        _, log = self.open("as-a")
+        # A short click is the app's: press and release, nothing else.
+        self.vela.input("move", *CENTER, "sleep", "50", "click", "middle")
+        time.sleep(0.4)
+        self.assertFalse(self.vela.state()["autoscroll"])
+        self.assertEqual(self.middle_buttons(log), [[str(BTN_MIDDLE), "1"], [str(BTN_MIDDLE), "0"]])
+        # Held and dragged: it scrolls, the app gets no press, the release ends it.
+        clicks = len(self.middle_buttons(log))
+        held = self.hold("sleep", "50", "rel", "0", "80", "sleep", "800")
+        self.vela.wait_for(lambda s: s["autoscroll"], what="autoscroll on")
+        time.sleep(0.3)
+        self.assertTrue(self.events(log, kind="axis"))
+        held.wait(5)
+        self.vela.wait_for(lambda s: not s["autoscroll"], what="autoscroll off")
+        self.assertEqual(len(self.middle_buttons(log)), clicks)
+        # Held still past 200 ms: on too (scrolling starts when it moves).
+        held = self.hold("sleep", "400")
+        self.vela.wait_for(lambda s: s["autoscroll"], what="autoscroll on, held still")
+        held.wait(5)
+        self.vela.wait_for(lambda s: not s["autoscroll"], what="autoscroll off")
+        self.assertEqual(len(self.middle_buttons(log)), clicks)
+
+    def test_click_on_hold_off(self):
+        self.start(extra="autoscroll-hold=no\n")
+        _, log = self.open("as-a")
+        held = self.hold("sleep", "50", "rel", "0", "80", "sleep", "300")
+        self.vela.wait_for(lambda s: s["autoscroll"], what="autoscroll on")
+        held.wait(5)
+        time.sleep(0.2)
+        # Released after a drag: still on (only a click or Esc ends it).
+        self.assertTrue(self.vela.state()["autoscroll"])
+        self.vela.input("click", "left")
+        self.vela.wait_for(lambda s: not s["autoscroll"], what="autoscroll off")
+        self.assertFalse(self.events(log, kind="button"))
+
+    def test_click_off_hold_off(self):
+        self.start(extra="autoscroll-click=no\nautoscroll-hold=no\n")
+        _, log = self.open("as-a")
+        held = self.hold("sleep", "50", "rel", "0", "80", "sleep", "400")
+        time.sleep(0.3)
+        self.assertFalse(self.vela.state()["autoscroll"])
+        held.wait(5)
+        self.assertEqual(self.middle_buttons(log), [[str(BTN_MIDDLE), "1"], [str(BTN_MIDDLE), "0"]])
+        self.assertFalse(self.events(log, kind="axis"))
 
     def test_escape_ends(self):
         self.start()
