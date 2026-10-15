@@ -36,6 +36,7 @@ optdepends=(
     'wf-recorder: screen recording in the snipping tool'
     'xdg-desktop-portal-kde: KDE file chooser for Settings, the shell and apps (without it GTK or Qt fallback)'
     'breeze-icons: Vela icons (breeze and breeze-dark)'
+    'fluent-icon-theme-git: Fluent-style app and file type icons (AUR; the vela theme inherits it)'
     'plasma-workspace: light or dark colors for KDE apps'
     'networkmanager: network and Wi-Fi (quick settings and Settings)'
     'bluez: Bluetooth'
