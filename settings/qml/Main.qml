@@ -217,6 +217,7 @@ Window {
         { page: "gaming", text: qsTr("Game Bar"), keys: qsTr("game bar win+g fps overlay performance crosshair mangohud gamemode") },
         { page: "night-light", text: qsTr("Night light"), keys: qsTr("night warm colors blue evening schedule sunset") },
         { page: "display", text: qsTr("Tearing in games"), keys: qsTr("games tearing latency full screen vsync") },
+        { page: "display", text: qsTr("Direct scanout"), keys: qsTr("direct scanout black screen glitch game full screen flicker") },
         { page: "multitasking", text: qsTr("Snap layouts"), keys: qsTr("snap tile drag top screen edge layouts") },
         { page: "multitasking", text: qsTr("Hot corner"), keys: qsTr("task view corner top-left overview glow animation") },
         { page: "display", text: qsTr("Screen sharing"), keys: qsTr("indicator recording capture share silence notifications do not disturb") },
