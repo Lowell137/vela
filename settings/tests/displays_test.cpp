@@ -254,8 +254,12 @@ private slots:
         QVERIFY(!client->apply("HEADLESS-1", { { "scale", 2 } }));
         QTRY_COMPARE(applied.count(), 1);
         QTRY_COMPARE(output("HEADLESS-2")["scale"].toDouble(), 1.5);
-        QCOMPARE(output("HEADLESS-2")["x"].toInt(), -1280);
-        QCOMPARE(output("HEADLESS-2")["y"].toInt(), -100);
+        // A screen moved above/left of the main one remains there visually,
+        // but the desktop root starts at (0,0) for XWayland compatibility.
+        QTRY_COMPARE(output("HEADLESS-2")["x"].toInt(), 0);
+        QTRY_COMPARE(output("HEADLESS-2")["y"].toInt(), 0);
+        QTRY_COMPARE(output("HEADLESS-1")["x"].toInt(), 1280);
+        QTRY_COMPARE(output("HEADLESS-1")["y"].toInt(), 100);
         QCOMPARE(output("HEADLESS-2")["transform"].toString(), QString("90"));
         QVERIFY(saved().isEmpty());
         QVERIFY(client->secondsRemaining() > 0);
@@ -263,6 +267,8 @@ private slots:
         QTRY_VERIFY(!client->pending());
         QVERIFY(saved().contains("scale=1.5"));
         QVERIFY(saved().contains("rotation=90"));
+        QVERIFY(saved().contains("position=1280,100"));
+        QVERIFY(saved().contains("position=0,0"));
         const auto confirmed = saved();
         QTest::qWait(1400);
         QCOMPARE(output("HEADLESS-2")["scale"].toDouble(), 1.5);
@@ -307,12 +313,33 @@ private slots:
         QTRY_VERIFY(!client->pending());
         const auto before = client->outputs();
         const auto disk = saved();
-        QVERIFY(client->apply("HEADLESS-2", changes));
+        // The explicit-position test vector describes offsets relative to
+        // HEADLESS-1. After root-origin normalization, HEADLESS-1 itself may
+        // have moved, so convert those offsets to absolute protocol positions.
+        QVariantMap requestedChanges = changes;
+        if (requestedChanges.contains("x") && requestedChanges.contains("y")) {
+            requestedChanges["x"] = requestedChanges["x"].toInt() + output("HEADLESS-1")["x"].toInt();
+            requestedChanges["y"] = requestedChanges["y"].toInt() + output("HEADLESS-1")["y"].toInt();
+        }
+        QVERIFY(client->apply("HEADLESS-2", requestedChanges));
         QTRY_VERIFY(client->confirming());
-        QCOMPARE(output("HEADLESS-2")["x"].toInt(), expectedX);
-        QCOMPARE(output("HEADLESS-2")["y"].toInt(), expectedY);
-        QCOMPARE(output("HEADLESS-1")["x"].toInt(), 0);
-        QCOMPARE(output("HEADLESS-1")["y"].toInt(), 0);
+        // PositionForSize() preserves adjacency and the requested relative
+        // offset. The compositor then translates the whole enabled layout:
+        // a monitor above/left of the primary must be at (0,0), never at
+        // negative root coordinates, while the primary moves by the same
+        // translation. Compare both heads, not just the edited output.
+        const int originX = expectedX < 0 ? expectedX : 0;
+        const int originY = expectedY < 0 ? expectedY : 0;
+        const int expectedSecondaryX = expectedX - originX;
+        const int expectedSecondaryY = expectedY - originY;
+        const int expectedPrimaryX = -originX;
+        const int expectedPrimaryY = -originY;
+        QTRY_COMPARE(output("HEADLESS-2")["x"].toInt(), expectedSecondaryX);
+        QTRY_COMPARE(output("HEADLESS-2")["y"].toInt(), expectedSecondaryY);
+        QTRY_COMPARE(output("HEADLESS-1")["x"].toInt(), expectedPrimaryX);
+        QTRY_COMPARE(output("HEADLESS-1")["y"].toInt(), expectedPrimaryY);
+        QCOMPARE(output("HEADLESS-2")["x"].toInt() - output("HEADLESS-1")["x"].toInt(), expectedX);
+        QCOMPARE(output("HEADLESS-2")["y"].toInt() - output("HEADLESS-1")["y"].toInt(), expectedY);
         QCOMPARE(saved(), disk);
         client->revert();
         QTRY_VERIFY(!client->pending());
