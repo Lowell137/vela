@@ -4,14 +4,20 @@
 import QtQuick
 import Vela.Controls
 
-// The Game Bar (Win+G), like Windows': over the game, without dimming it, a
-// top bar with the focused app and cards below: performance, audio, capture
-// and game mode. Esc, the same shortcut or a click outside the cards close
-// it. Every number can be pinned to the always-on overlay (GameOverlay.qml).
+// The Game Bar (Win+G), like Windows': a slim toolbar at the top center (the
+// focused app, the widget menu, the widget buttons, the clock, the battery,
+// settings) and, under it, the widgets as separate floating cards you drag by
+// their title (GameWidget.qml): Capture, Audio, Performance, Media, Crosshair
+// and Game mode. A light veil (Settings > Gaming) dims the game; a click on
+// it, Esc or Win+G close the bar. Pinned widgets stay over the game
+// (GameOverlay.qml) and the crosshair too (Crosshair.qml); the others go.
 Window {
     id: root
     visible: false
     color: "transparent"
+
+    readonly property string screenName: screen ? screen.name : ""
+    readonly property bool dim: (Config.gameBar.dim ?? true) === true
 
     function open() {
         if (!Menus.placeOnTargetScreen(root)) {
@@ -23,12 +29,13 @@ Window {
         slide.y = -12
         appear.restart()
         content.forceActiveFocus()
-        updateBlur()
+        clockTimer.triggered()
+        layoutTimer.restart()
     }
     function close() {
         visible = false
     }
-    // The panel leaves the picture before a screenshot or a recording starts.
+    // The bar leaves the picture before a screenshot or a recording starts.
     function closeThen(action) {
         close()
         after.action = action
@@ -38,7 +45,7 @@ Window {
         id: after
         property var action
         interval: 300
-        onTriggered: action()
+        onTriggered: if (action) action()
     }
 
     Connections {
@@ -48,220 +55,81 @@ Window {
             else root.open()
         }
     }
+    Connections {
+        target: GameNumbers
+        function onCloseRequested(action) { root.closeThen(action) }
+    }
     onActiveChanged: if (!active && visible && !Menus.isOpen) close()
 
-    // The sampling runs while the panel or the overlay is on screen.
+    // The sampling runs while the bar or a pinned widget is on screen; the
+    // overlay and crosshair windows of this output step aside while it's open.
     Binding { target: Game; property: "active"; value: root.visible || GameNumbers.overlayShown }
+    Binding { target: GameNumbers; property: "editScreen"; value: root.visible ? root.screenName : "" }
+
+    // The widgets' automatic layout: left to right under the toolbar, a new
+    // row when the screen is full, for the ones not moved yet.
+    Timer {
+        id: layoutTimer
+        interval: 0
+        onTriggered: {
+            if (!root.visible) return
+            let x = 24
+            let y = toolbar.y + toolbar.height + 16
+            let rowHeight = 0
+            for (let i = 0; i < widgets.count; i++) {
+                const card = widgets.itemAt(i)
+                if (!card || !card.visible || card.stored.stored) continue
+                if (x > 24 && x + card.width + 24 > content.width) {
+                    x = 24
+                    y += rowHeight + 16
+                    rowHeight = 0
+                }
+                card.auto = Qt.point(x, y)
+                x += card.width + 16
+                rowHeight = Math.max(rowHeight, card.height)
+            }
+        }
+    }
 
     function updateBlur() {
         if (!visible) return
-        const rects = [topBar, ...Array.prototype.filter.call(cards.children, c => c.visible && c.width > 0)]
-            .map(i => { const p = i.mapToItem(null, 0, 0); return Qt.rect(p.x, p.y, i.width, i.height) })
-        Effects.setBlur(root, rects)
+        const items = [toolbar]
+        for (let i = 0; i < widgets.count; i++) {
+            const card = widgets.itemAt(i)
+            if (card && card.visible) items.push(card)
+        }
+        Effects.setBlur(root, items.map(i => { const p = i.mapToItem(null, 0, 0); return Qt.rect(p.x, p.y, i.width, i.height) }))
+    }
+    Timer {
+        id: blurTimer
+        interval: 0
+        onTriggered: root.updateBlur()
     }
 
     ParallelAnimation {
         id: appear
         NumberAnimation { target: content; property: "opacity"; to: 1; duration: Theme.fast; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
         NumberAnimation { target: slide; property: "y"; to: 0; duration: Theme.slow; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
-        onFinished: root.updateBlur()
+        onFinished: blurTimer.restart()
     }
 
+    // Outside the cards: a click closes.
     MouseArea {
         anchors.fill: parent
         acceptedButtons: Qt.AllButtons
         onClicked: root.close()
     }
 
-    // A card: a title and what goes in it.
-    component GameCard: Rectangle {
-        id: card
-        property string title
-        property string icon
-        default property alias content: column.data
-        width: 340
-        height: column.height + 32
-        radius: Theme.radiusOverlay
-        color: Theme.surface
-        border.width: 1
-        border.color: Theme.stroke
-        onHeightChanged: root.updateBlur()
-        // Clicks inside the card don't close the bar.
-        MouseArea { anchors.fill: parent; acceptedButtons: Qt.AllButtons }
-        Column {
-            id: column
-            x: 16
-            y: 16
-            width: parent.width - 32
-            spacing: 10
-            Row {
-                spacing: 8
-                Image {
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 16
-                    height: 16
-                    source: Theme.icons + card.icon
-                    sourceSize: Qt.size(width, height)
-                }
-                Text {
-                    text: card.title
-                    color: Theme.text
-                    font.pixelSize: Theme.fontBody
-                    font.weight: Font.DemiBold
-                }
-            }
-        }
-    }
+    // The widgets of the toolbar (the others are in the menu).
+    readonly property var barWidgets: ["capture", "audio", "performance", "media"]
 
-    // A small icon button (pins, close).
-    component IconButton: Rectangle {
-        id: button
-        property string icon
-        property string tip
-        property bool checked: false
-        signal clicked()
-        width: 28
-        height: 28
-        radius: Theme.radius
-        color: mouse.containsMouse ? Theme.subtleHover : checked ? Theme.control : "transparent"
-        Image {
-            anchors.centerIn: parent
-            width: 16
-            height: 16
-            source: Theme.icons + button.icon
-            sourceSize: Qt.size(width, height)
-            opacity: button.checked || mouse.containsMouse ? 1 : 0.6
-        }
-        MouseArea {
-            id: mouse
-            anchors.fill: parent
-            hoverEnabled: true
-            onClicked: button.clicked()
-        }
-        Accessible.role: Accessible.Button
-        Accessible.name: tip
-    }
-
-    component PinButton: IconButton {
-        property string key
-        checked: GameNumbers.isPinned(key)
-        icon: checked ? "window-unpin" : "window-pin"
-        tip: checked ? qsTr("Unpin from the overlay") : qsTr("Pin to the overlay")
-        onClicked: GameNumbers.togglePin(key)
-    }
-
-    // A number with its label and pin.
-    component Stat: Rectangle {
-        id: stat
-        property string key
-        width: (parent.width - 8) / 2
-        height: 52
-        radius: Theme.radius
-        color: Theme.card
-        Column {
-            x: 10
-            anchors.verticalCenter: parent.verticalCenter
-            Text {
-                text: GameNumbers.label(stat.key)
-                color: Theme.textSecondary
-                font.pixelSize: Theme.fontCaption
-            }
-            Text {
-                text: GameNumbers.value(stat.key)
-                color: Theme.text
-                font.pixelSize: Theme.fontBody
-                font.features: { "tnum": 1 }
-            }
-        }
-        PinButton {
-            key: stat.key
-            anchors { right: parent.right; rightMargin: 6; verticalCenter: parent.verticalCenter }
-        }
-    }
-
-    // A volume: the mute button (the icon) and the slider.
-    component Volume: Row {
-        id: volume
-        property string icon
-        property bool appIcon: false
-        property real value
-        property bool muted
-        signal moved(real value)
-        signal muteClicked()
-        width: parent.width
-        spacing: 4
-        Item {
-            width: 32
-            height: 32
-            anchors.verticalCenter: parent.verticalCenter
-            Rectangle { anchors.fill: parent; radius: Theme.radius; color: Theme.subtleHover; opacity: muteMouse.containsMouse ? 1 : 0 }
-            Image {
-                anchors.centerIn: parent
-                width: 18
-                height: 18
-                opacity: volume.muted && volume.appIcon ? 0.45 : 1
-                source: Theme.icons + encodeURIComponent(volume.muted && !volume.appIcon ? "audio-volume-muted" : volume.icon)
-                sourceSize: Qt.size(width, height)
-            }
-            MouseArea {
-                id: muteMouse
-                anchors.fill: parent
-                hoverEnabled: true
-                onClicked: volume.muteClicked()
-            }
-            Accessible.role: Accessible.Button
-            Accessible.name: volume.muted ? qsTr("Unmute") : qsTr("Mute")
-        }
-        BarSlider {
-            width: parent.width - 36
-            anchors.verticalCenter: parent.verticalCenter
-            value: volume.value
-            onMoved: value => volume.moved(value)
-        }
-    }
-
-    // A labelled switch.
-    component SwitchRow: Item {
-        id: row
-        property string text
-        property bool checked
-        property bool usable: true
-        signal toggled(bool on)
-        width: parent.width
-        height: 32
-        Text {
-            anchors.verticalCenter: parent.verticalCenter
-            width: parent.width - 52
-            text: row.text
-            color: row.usable ? Theme.text : Theme.textSecondary
-            font.pixelSize: Theme.fontBody
-            elide: Text.ElideRight
-        }
-        Toggle {
-            anchors { right: parent.right; verticalCenter: parent.verticalCenter }
-            showLabel: false
-            usable: row.usable
-            checked: row.checked
-            onToggled: on => row.toggled(on)
-        }
-    }
-
-    component Caption: Text {
-        width: parent.width
-        color: Theme.textSecondary
-        font.pixelSize: Theme.fontCaption
-        wrapMode: Text.WordWrap
-    }
-
-    // The system output, in a menu under its button.
-    function chooseOutput(button) {
-        const entries = Audio.outputs.map(o => ({ text: o.description.replace(/&/g, "&&"), icon: o.icon, radio: true,
-                                                  checked: o.isDefault, action: () => Audio.setDefault("output", o.name) }))
+    function chooseWidgets(button) {
+        const entries = GameNumbers.widgetIds.map(id => ({ text: GameNumbers.title(id), icon: GameNumbers.icon(id),
+                                                           checked: GameNumbers.isOpen(id),
+                                                           action: () => GameNumbers.toggleOpen(id) }))
+        entries.push({ text: qsTr("Reset positions"), icon: "view-restore", action: () => GameNumbers.resetPositions() })
         const p = button.mapToItem(null, 0, button.height + 4)
-        Menus.open(entries, p.x, p.y, { minWidth: button.width, screen: root.screen ? root.screen.name : "" })
-    }
-    function clock(s) {
-        return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0")
+        Menus.open(entries, p.x, p.y, { minWidth: 200, screen: root.screenName })
     }
 
     Item {
@@ -269,359 +137,209 @@ Window {
         anchors.fill: parent
         focus: true
         Keys.onEscapePressed: root.close()
-        transform: Translate { id: slide; onYChanged: root.updateBlur() }
+        transform: Translate { id: slide; onYChanged: blurTimer.restart() }
 
-        // --- the top bar: the title, the focused app, close ---
+        // A light veil over the game (about a quarter black).
         Rectangle {
-            id: topBar
+            anchors.fill: parent
+            color: "black"
+            opacity: root.dim ? 0.22 : 0
+            Behavior on opacity { NumberAnimation { duration: Theme.fast } }
+        }
+
+        // --- the toolbar ---
+        Rectangle {
+            id: toolbar
             anchors.horizontalCenter: parent.horizontalCenter
             y: 16
-            width: topRow.width + 24
-            height: 48
+            width: toolbarRow.width + 20
+            height: 44
             radius: Theme.radiusOverlay
             color: Theme.surface
             border.width: 1
             border.color: Theme.stroke
+            onWidthChanged: blurTimer.restart()
             MouseArea { anchors.fill: parent; acceptedButtons: Qt.AllButtons }
+
+            Timer {
+                id: clockTimer
+                interval: 10000
+                running: root.visible
+                repeat: true
+                triggeredOnStart: true
+                onTriggered: clockText.text = Qt.formatTime(new Date(), Qt.locale().timeFormat(Locale.ShortFormat))
+            }
+
             Row {
-                id: topRow
-                x: 16
+                id: toolbarRow
+                x: 10
                 anchors.verticalCenter: parent.verticalCenter
-                spacing: 12
+                spacing: 4
                 Image {
                     anchors.verticalCenter: parent.verticalCenter
-                    width: 20
-                    height: 20
-                    source: Theme.icons + "input-gaming"
-                    sourceSize: Qt.size(width, height)
-                }
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: qsTr("Game Bar")
-                    color: Theme.text
-                    font.pixelSize: Theme.fontBody
-                    font.weight: Font.DemiBold
-                }
-                Rectangle { width: 1; height: 20; color: Theme.divider; anchors.verticalCenter: parent.verticalCenter }
-                Image {
                     visible: Game.appIcon !== ""
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 20
-                    height: 20
+                    width: 22
+                    height: 22
                     source: visible ? Theme.icons + encodeURIComponent(Game.appIcon) : ""
                     sourceSize: Qt.size(width, height)
+                    opacity: 0.95
                 }
+                Rectangle { width: 1; height: 20; color: Theme.divider; anchors.verticalCenter: parent.verticalCenter; visible: Game.appIcon !== "" }
+                GameIconButton {
+                    id: menuButton
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 32
+                    height: 32
+                    glyph: 18
+                    icon: "view-list-icons"
+                    tip: qsTr("Widget menu")
+                    onClicked: root.chooseWidgets(menuButton)
+                }
+                Repeater {
+                    model: root.barWidgets
+                    delegate: GameIconButton {
+                        required property string modelData
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 32
+                        height: 32
+                        glyph: 18
+                        icon: GameNumbers.icon(modelData)
+                        tip: GameNumbers.title(modelData)
+                        checked: GameNumbers.isOpen(modelData)
+                        onClicked: GameNumbers.toggleOpen(modelData)
+                    }
+                }
+                Rectangle { width: 1; height: 20; color: Theme.divider; anchors.verticalCenter: parent.verticalCenter }
                 Text {
+                    id: clockText
                     anchors.verticalCenter: parent.verticalCenter
-                    text: Game.appName !== "" ? Game.appName : qsTr("No game in focus")
-                    color: Game.appName !== "" ? Theme.text : Theme.textSecondary
+                    leftPadding: 6
+                    rightPadding: 6
+                    color: Theme.text
                     font.pixelSize: Theme.fontBody
-                    width: Math.min(implicitWidth, 320)
-                    elide: Text.ElideRight
+                    font.features: { "tnum": 1 }
                 }
-                IconButton {
+                Row {
+                    visible: Status.batteryPresent
                     anchors.verticalCenter: parent.verticalCenter
-                    icon: "window-close"
-                    tip: qsTr("Close")
-                    onClicked: root.close()
+                    spacing: 4
+                    Image {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 16
+                        height: 16
+                        source: Theme.icons + (Status.batteryCharging ? "battery-full-charging" : "battery-full")
+                        sourceSize: Qt.size(width, height)
+                    }
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: Status.batteryPercent + " %"
+                        color: Theme.text
+                        font.pixelSize: Theme.fontCaption
+                    }
+                }
+                Rectangle { width: 1; height: 20; color: Theme.divider; anchors.verticalCenter: parent.verticalCenter }
+                GameIconButton {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 32
+                    height: 32
+                    glyph: 18
+                    icon: "preferences-system"
+                    tip: qsTr("Settings")
+                    onClicked: {
+                        root.close()
+                        System.openSettingsPage("gaming")
+                    }
                 }
             }
         }
 
-        // --- the cards ---
-        Flow {
-            id: cards
-            anchors.horizontalCenter: parent.horizontalCenter
-            y: topBar.y + topBar.height + 16
-            // As wide as the cards in one row, wrapping on narrow outputs.
-            width: Math.min(parent.width - 32, Array.prototype.reduce.call(children, (w, c) => w + (c.visible ? c.width + spacing : 0), -spacing))
-            spacing: 16
-            onPositioningComplete: root.updateBlur()
-
-            // Performance: the compositor's frames and the machine's load.
-            GameCard {
-                title: qsTr("Performance")
-                icon: "utilities-system-monitor"
-                width: 420
-
-                Row {
-                    width: parent.width
-                    spacing: 16
-                    Column {
-                        width: (parent.width - 16) / 2
-                        Row {
-                            spacing: 6
-                            Text {
-                                id: fpsText
-                                text: GameNumbers.value("fps")
-                                color: Theme.text
-                                font.pixelSize: Theme.fontTitle * 1.4
-                                font.weight: Font.DemiBold
-                                font.features: { "tnum": 1 }
-                            }
-                            Text {
-                                anchors.baseline: fpsText.baseline
-                                text: qsTr("FPS")
-                                color: Theme.textSecondary
-                                font.pixelSize: Theme.fontBody
-                            }
-                            PinButton { key: "fps"; anchors.verticalCenter: parent.verticalCenter }
-                        }
-                        Text {
-                            text: Game.perfStale ? qsTr("Nothing is being drawn") : qsTr("%n missed frame(s)", "", Game.missed)
-                            color: Theme.textSecondary
-                            font.pixelSize: Theme.fontCaption
-                        }
-                    }
-                    Column {
-                        width: (parent.width - 16) / 2
-                        Row {
-                            spacing: 6
-                            Text {
-                                text: GameNumbers.value("frametime")
-                                color: Theme.text
-                                font.pixelSize: Theme.fontSubtitle
-                                font.features: { "tnum": 1 }
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
-                            PinButton { key: "frametime"; anchors.verticalCenter: parent.verticalCenter }
-                        }
-                        Text {
-                            text: qsTr("Frame time")
-                            color: Theme.textSecondary
-                            font.pixelSize: Theme.fontCaption
-                        }
-                    }
-                }
-                Text {
-                    text: qsTr("FPS, last minute")
-                    color: Theme.textSecondary
-                    font.pixelSize: Theme.fontCaption
-                }
-                Sparkline { width: parent.width; height: 36; values: Game.fpsHistory }
-                Text {
-                    text: qsTr("Frame time, last minute")
-                    color: Theme.textSecondary
-                    font.pixelSize: Theme.fontCaption
-                }
-                Sparkline { width: parent.width; height: 36; values: Game.frameHistory; color: Theme.caution }
-                Flow {
-                    width: parent.width
-                    spacing: 8
-                    Repeater {
-                        model: ["cpu", "cputemp", "gpu", "gputemp", "gpupower", "vram", "ram"]
-                        delegate: Stat { required property string modelData; key: modelData }
-                    }
-                }
-                Item {
-                    width: parent.width
-                    height: 32
-                    Text {
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: GameNumbers.pinned.length > 0 ? qsTr("Show the pinned numbers") : qsTr("Pin numbers to show them over the game")
-                        color: Theme.text
-                        font.pixelSize: Theme.fontBody
-                    }
-                    Toggle {
-                        anchors { right: parent.right; verticalCenter: parent.verticalCenter }
-                        showLabel: false
-                        checked: GameNumbers.overlayOn
-                        onToggled: on => Config.setGameBar("overlay", on)
-                    }
-                }
-                // MangoHud draws inside the game itself (Settings > Gaming).
-                Text {
-                    text: Game.mangoHudInstalled ? qsTr("MangoHud settings") : qsTr("MangoHud isn't installed")
-                    color: Game.mangoHudInstalled ? (linkMouse.containsMouse ? Theme.accentFillHover : Theme.link) : Theme.textSecondary
-                    font.pixelSize: Theme.fontCaption
-                    MouseArea {
-                        id: linkMouse
-                        anchors.fill: parent
-                        enabled: Game.mangoHudInstalled
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            root.close()
-                            System.openSettingsPage("gaming")
-                        }
-                    }
+        // --- the widgets ---
+        Repeater {
+            id: widgets
+            model: GameNumbers.widgetIds
+            delegate: GameWidget {
+                required property string modelData
+                wid: modelData
+                editable: true
+                screenName: root.screenName
+                // A pinned card belongs to the output it was pinned on.
+                visible: GameNumbers.isOpen(modelData)
+                    && (modelData === "crosshair" || !GameNumbers.isPinned(modelData) || GameNumbers.screenOf(modelData) === root.screenName)
+                onGeometryChanged2: {
+                    layoutTimer.restart()
+                    blurTimer.restart()
                 }
             }
+        }
 
-            // Audio: the output, its volume and the apps playing now
-            // (Audio, the same mixer as Quick Settings).
-            GameCard {
-                title: qsTr("Audio")
-                icon: "audio-volume-high"
+        // --- the crosshair, where it can be dragged ---
+        // While the bar is open on its output the bar draws it (Crosshair.qml
+        // steps aside): drag to move, double-click to center.
+        Item {
+            id: aim
+            visible: GameNumbers.crosshairOn && mark.screenName === root.screenName
+            readonly property bool dragging: aimMouse.pressed
+            property real dragX
+            property real dragY
+            readonly property real centerX: content.width / 2 + (dragging ? dragX : mark.dx)
+            readonly property real centerY: content.height / 2 + (dragging ? dragY : mark.dy)
+            width: Math.max(mark.width, 32)
+            height: Math.max(mark.height, 32)
+            x: Math.max(0, Math.min(content.width - width, centerX - width / 2))
+            y: Math.max(0, Math.min(content.height - height, centerY - height / 2))
 
-                Caption {
-                    visible: !Audio.available
-                    text: qsTr("Sound isn't available.")
-                }
-                Rectangle {
-                    id: outputButton
-                    visible: Audio.available
-                    width: parent.width
-                    height: 36
-                    radius: Theme.radius
-                    color: outputMouse.containsMouse ? Theme.controlHover : Theme.control
-                    border.width: 1
-                    border.color: Theme.controlStroke
-                    Text {
-                        x: 12
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: parent.width - 48
-                        text: (Audio.outputs.find(o => o.isDefault) || { description: qsTr("Speakers") }).description
-                        color: Theme.text
-                        font.pixelSize: Theme.fontBody
-                        elide: Text.ElideRight
-                    }
-                    Image {
-                        anchors { right: parent.right; rightMargin: 12; verticalCenter: parent.verticalCenter }
-                        width: 12
-                        height: 12
-                        source: Theme.icons + "go-down"
-                        sourceSize: Qt.size(width, height)
-                    }
-                    MouseArea {
-                        id: outputMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        onClicked: root.chooseOutput(outputButton)
-                    }
-                    Accessible.role: Accessible.ComboBox
-                    Accessible.name: qsTr("Output device")
-                }
-                Volume {
-                    visible: Audio.available && Audio.defaultOutput !== ""
-                    icon: Audio.iconName
-                    value: Audio.volume
-                    muted: Audio.muted
-                    onMoved: value => {
-                        if (Audio.muted) Audio.setMuted("output", Audio.defaultOutput, false)
-                        Audio.setVolume("output", Audio.defaultOutput, value)
-                    }
-                    onMuteClicked: Audio.setMuted("output", Audio.defaultOutput, !Audio.muted)
-                }
-                Repeater {
-                    model: Audio.apps.filter(a => a.playing)
-                    delegate: Column {
-                        id: app
-                        required property var modelData
-                        width: parent.width
-                        Caption {
-                            leftPadding: 36
-                            text: app.modelData.name
-                            elide: Text.ElideRight
-                            wrapMode: Text.NoWrap
-                        }
-                        Volume {
-                            icon: app.modelData.icon
-                            appIcon: true
-                            value: app.modelData.volume
-                            muted: app.modelData.muted
-                            onMoved: value => Audio.setAppVolume(app.modelData.key, value)
-                            onMuteClicked: Audio.setAppMuted(app.modelData.key, !app.modelData.muted)
-                        }
-                    }
-                }
-                Caption {
-                    visible: Audio.available && !Audio.apps.some(a => a.playing)
-                    text: qsTr("No apps are playing sound.")
-                }
+            CrosshairMark {
+                id: mark
+                anchors.centerIn: parent
             }
-
-            // Capture: the whole output (Snipping Tool, wf-recorder) and the
-            // instant replay (gpu-screen-recorder).
-            GameCard {
-                title: qsTr("Capture")
-                icon: "media-record"
-
-                Row {
-                    spacing: 8
-                    Button {
-                        icon: "accessories-screenshot"
-                        text: qsTr("Screenshot")
-                        onClicked: {
-                            const screen = root.screen ? root.screen.name : ""
-                            root.closeThen(() => Snip.captureOutput(screen))
-                        }
-                    }
-                    Button {
-                        icon: "media-record"
-                        text: Snip.recording ? qsTr("Stop %1").arg(root.clock(Snip.recordSeconds)) : qsTr("Record")
-                        onClicked: {
-                            if (Snip.recording) {
-                                Snip.stopRecording()
-                                return
-                            }
-                            const screen = root.screen ? root.screen.name : ""
-                            root.closeThen(() => Snip.recordOutput(screen))
-                        }
-                    }
-                }
-                SwitchRow {
-                    text: qsTr("Record the microphone")
-                    checked: Snip.microphone
-                    usable: !Snip.recording
-                    onToggled: Snip.toggleMicrophone()
-                }
-                Caption { text: qsTr("Screenshots go to Pictures > Screenshot, recordings to Videos > Screen Recordings.") }
-                Rectangle { width: parent.width; height: 1; color: Theme.divider }
-                SwitchRow {
-                    visible: Game.replayAvailable
-                    text: qsTr("Instant replay")
-                    checked: Game.replay
-                    onToggled: on => Game.setReplay(on)
-                }
-                Button {
-                    visible: Game.replayAvailable
-                    usable: Game.replay
-                    icon: "document-save"
-                    text: qsTr("Save the last 30 s")
-                    onClicked: Game.saveReplay()
-                }
-                Caption {
-                    text: Game.replayAvailable ? qsTr("Replays go to Videos > Captures.")
-                                               : qsTr("Install gpu-screen-recorder for instant replay.")
-                }
+            // A frame, so it's clear it can be grabbed.
+            Rectangle {
+                anchors.fill: parent
+                color: "transparent"
+                radius: 4
+                border.width: aimMouse.containsMouse || aim.dragging ? 1 : 0
+                border.color: Theme.accent
             }
-
-            // Game mode: fewer interruptions and more speed.
-            GameCard {
-                title: qsTr("Game mode")
-                icon: "input-gaming"
-
-                SwitchRow {
-                    text: qsTr("Do not disturb")
-                    checked: Notifications.doNotDisturb
-                    onToggled: on => Notifications.doNotDisturb = on
+            MouseArea {
+                id: aimMouse
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+                property point grab
+                property bool moved: false // a click or a double-click doesn't write the position
+                function offset(mouse) {
+                    const p = mapToItem(content, mouse.x, mouse.y)
+                    // As far as the mark can go and stay on the output.
+                    const hx = content.width / 2 - mark.width / 2
+                    const hy = content.height / 2 - mark.height / 2
+                    return Qt.point(Math.max(-hx, Math.min(hx, p.x - grab.x - content.width / 2)),
+                                    Math.max(-hy, Math.min(hy, p.y - grab.y - content.height / 2)))
                 }
-                // Feral's GameMode for the focused app's process.
-                SwitchRow {
-                    visible: Game.gameModeAvailable
-                    text: Game.appName !== "" ? qsTr("GameMode for %1").arg(Game.appName) : qsTr("GameMode")
-                    usable: Game.pid > 0
-                    checked: Game.gameMode
-                    onToggled: on => Game.setGameMode(on)
+                onPressed: mouse => {
+                    const p = mapToItem(content, mouse.x, mouse.y)
+                    grab = Qt.point(p.x - aim.centerX, p.y - aim.centerY)
+                    aim.dragX = mark.dx
+                    aim.dragY = mark.dy
+                    moved = false
                 }
-                Caption {
-                    visible: Status.powerSaverAvailable
-                    text: qsTr("Power mode")
+                onPositionChanged: mouse => {
+                    if (!pressed) return
+                    const o = offset(mouse)
+                    moved = true
+                    aim.dragX = o.x
+                    aim.dragY = o.y
                 }
-                Row {
-                    visible: Status.powerSaverAvailable
-                    spacing: 4
-                    Repeater {
-                        model: Status.powerProfiles
-                        delegate: Button {
-                            required property string modelData
-                            accent: Status.powerProfile === modelData
-                            text: modelData === "power-saver" ? qsTr("Power saver")
-                                : modelData === "performance" ? qsTr("Performance") : qsTr("Balanced")
-                            onClicked: Status.powerProfile = modelData
-                        }
-                    }
+                onReleased: {
+                    if (!moved) return
+                    const x = Math.round(aim.dragX)
+                    const y = Math.round(aim.dragY)
+                    Config.setGameBar("crosshair-screen", root.screenName)
+                    Config.setGameBar("crosshair-x", x)
+                    Config.setGameBar("crosshair-y", y)
+                }
+                onDoubleClicked: {
+                    Config.setGameBar("crosshair-x", 0)
+                    Config.setGameBar("crosshair-y", 0)
                 }
             }
         }

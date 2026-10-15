@@ -161,6 +161,18 @@ set(VELA_QML_FILES
     qml/SnipRecordBar.qml
     qml/GameBar.qml
     qml/GameNumbers.qml
+    qml/GameWidget.qml
+    qml/GameIconButton.qml
+    qml/GameCaption.qml
+    qml/GameSwitchRow.qml
+    qml/GameVolume.qml
+    qml/GameAudioBody.qml
+    qml/GameCaptureBody.qml
+    qml/GameModeBody.qml
+    qml/GamePerformanceBody.qml
+    qml/GameCrosshairBody.qml
+    qml/GameMediaBody.qml
+    qml/CrosshairMark.qml
     qml/Sparkline.qml
     qml/GameOverlay.qml
     qml/Crosshair.qml
