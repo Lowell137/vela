@@ -10,19 +10,17 @@ Canvas {
     id: graph
     property var values: []
     property color color: Theme.accent
-    property real ceiling: 0 // the top of the graph; 0 = the highest value
     implicitWidth: 200
     implicitHeight: 40
     onValuesChanged: requestPaint()
     onColorChanged: requestPaint()
-    onCeilingChanged: requestPaint()
 
     onPaint: {
         const ctx = getContext("2d")
         ctx.reset()
         const n = values.length
         if (n < 2) return
-        const top = ceiling > 0 ? ceiling : Math.max(1, ...values) * 1.1
+        const top = Math.max(1, ...values) * 1.1
         const step = width / (n - 1)
         ctx.beginPath()
         for (let i = 0; i < n; i++) {
