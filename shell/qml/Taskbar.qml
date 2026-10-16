@@ -910,6 +910,9 @@ Window {
         // under the pointer a short line shows, like Windows.
         width: root.vertical ? parent.width : (visible ? 8 : 0)
         height: root.vertical ? (visible ? 8 : 0) : parent.height
+        anchors { right: parent.right; top: parent.top; bottom: parent.bottom }
+        width: 8
+        visible: Config.showDesktopCorner
 
         // A short, 2 px line, only while hovered.
         Rectangle {
