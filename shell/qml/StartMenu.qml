@@ -452,9 +452,9 @@ Window {
                     grid.keyNav = true
                     if (!root.moveExtra(-1)) grid.moveCurrentIndexUp()
                 }
-                // A click in the field is editing again.
+                // A click in the field is editing again. The default (passive) policy: the
+                // text input grabs the mouse itself, which cancels the other policies.
                 TapHandler {
-                    gesturePolicy: TapHandler.ReleaseWithinBounds
                     onTapped: { grid.keyNav = false; root.extraIndex = -1 }
                 }
                 Keys.onTabPressed: { grid.keyNav = true; grid.moveCurrentIndexRight() }
