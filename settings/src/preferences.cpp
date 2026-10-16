@@ -8,7 +8,6 @@ extern "C" {
 #include "legacy_names.h"
 }
 
-#include "gamestats.h"
 #include "iconprovider.h"
 
 #include <QBuffer>
@@ -240,11 +239,6 @@ void Preferences::reload()
     emit taskbarChanged();
     m_doNotDisturb = settings.value(QStringLiteral("notifications/doNotDisturb"), false).toBool();
     emit doNotDisturbChanged();
-    const QVariantMap gameBar = gamestats::readSettings(settings);
-    if (gameBar != m_gameBar) {
-        m_gameBar = gameBar;
-        emit gameBarChanged();
-    }
     m_clipboardHistory = settings.value(QStringLiteral("clipboard/history"), false).toBool();
     m_clipboardAtPointer = settings.value(QStringLiteral("clipboard/atPointer"), true).toBool();
     m_clipboardKeep = settings.value(QStringLiteral("clipboard/keep"), false).toBool();
@@ -381,7 +375,6 @@ void Preferences::reloadCompositor()
     m_touchpadTap = flag(QStringLiteral("touchpad-tap"), true);
     m_touchpadNatural = flag(QStringLiteral("touchpad-natural-scroll"), true);
     m_hotCorner = flag(QStringLiteral("hot-corner"), true);
-    m_gameStats = flag(QStringLiteral("game-stats"), true);
     m_captureIndicator = flag(QStringLiteral("capture-indicator"), true);
     m_captureDnd = flag(QStringLiteral("capture-dnd"), true);
     m_fullscreenDnd = flag(QStringLiteral("fullscreen-dnd"), true);
@@ -1347,22 +1340,6 @@ void Preferences::setTouchpadTap(bool on)
     }
 }
 
-void Preferences::setGameBar(const QString& key, const QVariant& value)
-{
-    setShell(QStringLiteral("gamebar/") + key, value);
-    m_gameBar.insert(key, value);
-    emit gameBarChanged();
-}
-
-void Preferences::setGameStats(bool on)
-{
-    if (on != m_gameStats) {
-        m_gameStats = on;
-        saveCompositor({ { QStringLiteral("game-stats"), yesNo(on) } });
-        emit gameBarChanged();
-    }
-}
-
 void Preferences::setHotCorner(bool on)
 {
     if (on != m_hotCorner) {
@@ -1581,8 +1558,6 @@ const ShortcutAction kShortcutActions[] = {
     { "sound-output", QT_TRANSLATE_NOOP("Preferences", "Sound output and volume mixer"), "Super+Ctrl+V" },
     { "snip", QT_TRANSLATE_NOOP("Preferences", "Snipping tool"), "Super+Shift+S" },
     { "snip-text", QT_TRANSLATE_NOOP("Preferences", "Copy text from the screen"), "Super+Shift+T" },
-    { "gamebar", QT_TRANSLATE_NOOP("Preferences", "Game Bar"), "Super+G" },
-    { "crosshair", QT_TRANSLATE_NOOP("Preferences", "Game Bar crosshair"), "Super+Alt+C" },
 };
 
 struct FixedShortcut {

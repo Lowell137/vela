@@ -139,11 +139,6 @@ class Preferences : public QObject {
     Q_PROPERTY(bool clipboardKeep READ clipboardKeep WRITE setClipboardKeep NOTIFY clipboardChanged)
     Q_PROPERTY(int clipboardDays READ clipboardDays WRITE setClipboardDays NOTIFY clipboardChanged)
     Q_PROPERTY(int clipboardLimit READ clipboardLimit WRITE setClipboardLimit NOTIFY clipboardChanged)
-    // --- Gaming: the Game Bar's overlay and crosshair (vela-shell.conf
-    // [gamebar], as gamestats::readSettings gives them) and the compositor's
-    // frame statistics for it (game-stats= in vela.conf) ---
-    Q_PROPERTY(QVariantMap gameBar READ gameBar NOTIFY gameBarChanged)
-    Q_PROPERTY(bool gameStats READ gameStats WRITE setGameStats NOTIFY gameBarChanged)
     // --- Accessibility ---
     Q_PROPERTY(bool magnifier READ magnifier WRITE setMagnifier NOTIFY accessibilityChanged)
     Q_PROPERTY(int magnifierStep READ magnifierStep WRITE setMagnifierStep NOTIFY accessibilityChanged)
@@ -364,10 +359,6 @@ public:
     int clipboardLimit() const { return m_clipboardLimit; }
     void setClipboardLimit(int limit);
     void setClipboardHistory(bool on);
-    QVariantMap gameBar() const { return m_gameBar; }
-    Q_INVOKABLE void setGameBar(const QString& key, const QVariant& value);
-    bool gameStats() const { return m_gameStats; }
-    void setGameStats(bool on);
     // "Clear clipboard data": the history (except pinned items), in the shell.
     Q_INVOKABLE void clearClipboard();
 
@@ -394,7 +385,6 @@ signals:
     void nightLightChanged();
     void inputChanged();
     void clipboardChanged();
-    void gameBarChanged();
     void accessibilityChanged();
 
 private:
@@ -486,8 +476,6 @@ private:
     int m_snapDragScale = 100;
     QString m_threeFingers = QStringLiteral("app");
     QString m_fourFingers = QStringLiteral("desktop");
-    QVariantMap m_gameBar;
-    bool m_gameStats = true;
     bool m_clipboardHistory = false;
     bool m_clipboardAtPointer = true;
     bool m_clipboardKeep = false;

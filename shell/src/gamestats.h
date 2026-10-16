@@ -5,8 +5,6 @@
 
 #include <QByteArray>
 #include <QList>
-#include <QSettings>
-#include <QVariantMap>
 #include <QVariantList>
 
 #include <algorithm>
@@ -159,28 +157,5 @@ private:
     int m_next = 0;
     int m_count = 0;
 };
-
-// The [gamebar] keys of vela-shell.conf for QML (the shell's Config and
-// Settings): an ini file gives strings, so "true"/"false" become booleans
-// and numbers numbers; the rest stays text.
-inline QVariantMap readSettings(QSettings& settings)
-{
-    QVariantMap map;
-    settings.beginGroup(QStringLiteral("gamebar"));
-    for (const QString& key : settings.childKeys()) {
-        QVariant value = settings.value(key);
-        const QString text = value.toString();
-        bool number = false;
-        const double n = text.toDouble(&number);
-        if (text == QLatin1String("true") || text == QLatin1String("false")) {
-            value = text == QLatin1String("true");
-        } else if (number) {
-            value = n;
-        }
-        map.insert(key, value);
-    }
-    settings.endGroup();
-    return map;
-}
 
 } // namespace gamestats

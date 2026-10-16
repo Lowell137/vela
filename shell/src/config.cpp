@@ -4,7 +4,6 @@
 #include "config.h"
 
 #include "defaults.h"
-#include "gamestats.h"
 
 #include <QDir>
 #include <QFileInfo>
@@ -119,7 +118,21 @@ void Config::reload()
         emit clipboardChanged();
     }
 
-    const QVariantMap gameBar = gamestats::readSettings(settings);
+    QVariantMap gameBar;
+    settings.beginGroup(QStringLiteral("gamebar"));
+    for (const QString& key : settings.childKeys()) {
+        QVariant value = settings.value(key);
+        const QString text = value.toString();
+        bool number = false;
+        const double n = text.toDouble(&number);
+        if (text == QLatin1String("true") || text == QLatin1String("false")) {
+            value = text == QLatin1String("true");
+        } else if (number) {
+            value = n;
+        }
+        gameBar.insert(key, value);
+    }
+    settings.endGroup();
     if (gameBar != m_gameBar) {
         m_gameBar = gameBar;
         emit gameBarChanged();

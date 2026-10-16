@@ -9,7 +9,6 @@
 #include "gamestats.h"
 #include "mangohudconf.h"
 
-#include <QTemporaryDir>
 #include <QTest>
 
 using namespace gamestats;
@@ -81,26 +80,6 @@ private slots:
         QCOMPARE(ring.size(), 0);
         ring.push(5);
         QCOMPARE(ring.values(), (QVariantList { 5.0 }));
-    }
-
-    void settings()
-    {
-        QTemporaryDir dir;
-        QSettings settings(dir.filePath(QStringLiteral("vela-shell.conf")), QSettings::IniFormat);
-        settings.setValue(QStringLiteral("gamebar/overlay"), false);
-        settings.setValue(QStringLiteral("gamebar/opacity"), 0.5);
-        settings.setValue(QStringLiteral("gamebar/pinned"), QStringLiteral("fps,cpu"));
-        settings.setValue(QStringLiteral("gamebar/crosshair-color"), QStringLiteral("#ff0000"));
-        settings.setValue(QStringLiteral("other/key"), 1);
-        settings.sync();
-        QSettings reread(settings.fileName(), QSettings::IniFormat);
-        const QVariantMap map = readSettings(reread);
-        QCOMPARE(map.size(), 4);
-        QCOMPARE(map.value(QStringLiteral("overlay")).typeId(), QMetaType::Bool);
-        QCOMPARE(map.value(QStringLiteral("overlay")).toBool(), false);
-        QCOMPARE(map.value(QStringLiteral("opacity")).toDouble(), 0.5);
-        QCOMPARE(map.value(QStringLiteral("pinned")).toString(), QStringLiteral("fps,cpu"));
-        QCOMPARE(map.value(QStringLiteral("crosshair-color")).toString(), QStringLiteral("#ff0000"));
     }
 
     void mangohudRoundTrip()
