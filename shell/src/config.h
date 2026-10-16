@@ -6,7 +6,6 @@
 #include <QFileSystemWatcher>
 #include <QObject>
 #include <QTimer>
-#include <QVariantMap>
 
 // The user's choices the shell follows live: they're in
 // ~/.config/Vela/vela-shell.conf, written by the Settings app (or the shell
@@ -42,10 +41,6 @@ class Config : public QObject {
     // panels) and for apps (their windows and title bars).
     Q_PROPERTY(QString shellTheme READ shellTheme NOTIFY themeChanged)
     Q_PROPERTY(QString appTheme READ appTheme NOTIFY themeChanged)
-    // The Game Bar's overlay and crosshair (gamebar/* keys, Settings >
-    // Gaming): as stored, "true"/"false" and numbers converted; QML applies
-    // the defaults.
-    Q_PROPERTY(QVariantMap gameBar READ gameBar NOTIFY gameBarChanged)
 
 public:
     explicit Config(QObject* parent = nullptr);
@@ -74,9 +69,6 @@ public:
     bool doNotDisturb() const { return m_doNotDisturb; }
     QString shellTheme() const { return m_shellTheme; }
     QString appTheme() const { return m_appTheme; }
-    QVariantMap gameBar() const { return m_gameBar; }
-    // The pins and the crosshair's shortcut write here too.
-    Q_INVOKABLE void setGameBar(const QString& key, const QVariant& value);
 
 signals:
     void wallpaperChanged();
@@ -84,7 +76,6 @@ signals:
     void doNotDisturbChanged(bool on);
     void themeChanged();
     void clipboardChanged();
-    void gameBarChanged();
 
 private:
     void reload();
@@ -109,5 +100,4 @@ private:
     bool m_doNotDisturb = false;
     QString m_shellTheme = QStringLiteral("dark");
     QString m_appTheme = QStringLiteral("dark");
-    QVariantMap m_gameBar;
 };

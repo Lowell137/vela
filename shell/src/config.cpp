@@ -118,37 +118,9 @@ void Config::reload()
         emit clipboardChanged();
     }
 
-    QVariantMap gameBar;
-    settings.beginGroup(QStringLiteral("gamebar"));
-    for (const QString& key : settings.childKeys()) {
-        QVariant value = settings.value(key);
-        const QString text = value.toString();
-        bool number = false;
-        const double n = text.toDouble(&number);
-        if (text == QLatin1String("true") || text == QLatin1String("false")) {
-            value = text == QLatin1String("true");
-        } else if (number) {
-            value = n;
-        }
-        gameBar.insert(key, value);
-    }
-    settings.endGroup();
-    if (gameBar != m_gameBar) {
-        m_gameBar = gameBar;
-        emit gameBarChanged();
-    }
-
     const bool dnd = settings.value(QStringLiteral("notifications/doNotDisturb"), false).toBool();
     if (dnd != m_doNotDisturb) {
         m_doNotDisturb = dnd;
         emit doNotDisturbChanged(dnd);
     }
-}
-
-void Config::setGameBar(const QString& key, const QVariant& value)
-{
-    QSettings settings;
-    settings.setValue(QStringLiteral("gamebar/") + key, value);
-    settings.sync();
-    reload();
 }

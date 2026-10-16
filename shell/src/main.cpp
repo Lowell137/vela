@@ -23,7 +23,6 @@
 #include "fileproperties.h"
 #include "filethumbnails.h"
 #include "foreigntoplevels.h"
-#include "gamebar.h"
 #include "iconprovider.h"
 #include "jumplists.h"
 #include "language.h"
@@ -194,9 +193,6 @@ const Panel panels[] = {
     { "WeatherFlyout", "vela-weather", layerOverlay, fill, -1, keysOnDemand },
     { "FileDialogs", "vela-file-dialogs", layerTop, centered, 0, keysOnDemand },
     { "ClipboardPanel", "vela-clipboard", layerTop, bottomRight, 0, keysOnDemand },
-    // The Game Bar (Win+G): the whole output, transparent, above fullscreen
-    // games; a click outside its cards closes it.
-    { "GameBar", "vela-game-bar", layerOverlay, fill, -1, keysOnDemand },
 };
 
 // QML windows start invisible: they become layer-shell surfaces BEFORE
@@ -396,10 +392,6 @@ int main(int argc, char* argv[])
     LauncherBadges badges;
     QObject::connect(&shell, &ShellController::mediaKeyPressed, &media, &MediaKeys::press);
 
-    GameBar game(&apps, &notifications);
-    QObject::connect(&shell, &ShellController::perfReceived, &game, &GameBar::perf);
-    QObject::connect(&shell, &ShellController::perfAppReceived, &game, &GameBar::focusedApp);
-
     QQmlApplicationEngine engine;
     qmlEngine = &engine;
     // Theme, Style (the shell's mode, accent, icons) and Effects (the blur):
@@ -439,7 +431,6 @@ int main(int argc, char* argv[])
     engine.rootContext()->setContextProperty(QStringLiteral("Sound"), &sound);
     engine.rootContext()->setContextProperty(QStringLiteral("Media"), &media);
     engine.rootContext()->setContextProperty(QStringLiteral("Badges"), &badges);
-    engine.rootContext()->setContextProperty(QStringLiteral("Game"), &game);
     // The apps' level bars in the quick settings mixer (docs/audio.md §7.1).
     qmlRegisterType<vela::audio::LevelMeter>("Vela.Audio", 1, 0, "LevelMeter");
     engine.rootContext()->setContextProperty(QStringLiteral("Access"), &accessibility);

@@ -91,9 +91,6 @@ public:
     // A (hidden) shell panel on output `name`: it appears there the next time
     // it opens.
     Q_INVOKABLE void placeOnScreen(QWindow* window, const QString& name);
-    // A layer window in a corner of its output ("top-left", "top-right",
-    // "bottom-left", "bottom-right"), `margin` px from both edges.
-    Q_INVOKABLE void placeInCorner(QWindow* window, const QString& corner, int margin);
     // Puts `window` (hidden) with its corner next to a point of the desktop
     // (layout coordinates), on that point's output and inside it; with a
     // negative `x`, back at the bottom right of its output.
@@ -191,12 +188,6 @@ signals:
     // Win+V ("clipboard") and Win+. ("emoji"); the pointer, in layout
     // coordinates, or -1 when it isn't known.
     void clipboardRequested(const QString& tab, int x, int y);
-    // The Game Bar (Win+G) and its crosshair (Win+Alt+C); the compositor's
-    // frame statistics and focused app for it (docs/shortcuts.md).
-    void gameBarRequested();
-    void crosshairToggleRequested();
-    void perfReceived(double fps, double frameMs, int missed);
-    void perfAppReceived(const QString& appId, int pid);
     void snipRequested(); // Win+Shift+S, Print
     void snipTextRequested(); // Win+Shift+T
     void clipboardClearRequested(); // from Settings

@@ -41,9 +41,6 @@ qt_add_executable(vela-shell
     src/desktopmodel.h
     src/foreigntoplevels.cpp
     src/foreigntoplevels.h
-    src/gamebar.cpp
-    src/gamebar.h
-    src/gamestats.h
     src/iconprovider.h
     src/jumplists.cpp
     src/jumplists.h
@@ -158,12 +155,7 @@ set(VELA_QML_FILES
     qml/ClipboardPanel.qml
     qml/SnipOverlay.qml
     qml/SnipCountdown.qml
-    qml/SnipRecordBar.qml
-    qml/GameBar.qml
-    qml/GameNumbers.qml
-    qml/Sparkline.qml
-    ${PROJECT_SOURCE_DIR}/settings/qml/Toggle.qml
-    ${PROJECT_SOURCE_DIR}/settings/qml/Slider.qml)
+    qml/SnipRecordBar.qml)
 
 # The files are in qml/ for tidiness, but in the module they must be at the
 # root: so they see each other without imports.
@@ -171,9 +163,7 @@ foreach(file IN LISTS VELA_QML_FILES)
     get_filename_component(name ${file} NAME)
     set_source_files_properties(${file} PROPERTIES QT_RESOURCE_ALIAS ${name})
 endforeach()
-set_source_files_properties(qml/Menus.qml qml/GameNumbers.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
-# Settings' slider, under a name that doesn't hide QuickSettings' own Slider.
-set_source_files_properties(${PROJECT_SOURCE_DIR}/settings/qml/Slider.qml PROPERTIES QT_RESOURCE_ALIAS BarSlider.qml)
+set_source_files_properties(qml/Menus.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 
 qt_add_qml_module(vela-shell
     URI Vela.Shell
