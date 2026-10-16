@@ -846,6 +846,10 @@ void Preferences::setTaskbarCombine(const QString& mode)
     if (value != m_taskbarCombine) {
         m_taskbarCombine = value;
         setShell(QStringLiteral("taskbar/combine"), value);
+        emit taskbarChanged();
+    }
+}
+
 void Preferences::setShowDesktopCorner(bool on)
 {
     if (on != m_showDesktopCorner) {

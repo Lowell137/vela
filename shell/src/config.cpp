@@ -87,13 +87,11 @@ void Config::reload()
     m_weatherLat = weatherLat;
     m_weatherLon = weatherLon;
     m_weatherUnit = weatherUnit;
+    const bool showDesktopCorner = settings.value(QStringLiteral("taskbar/showDesktopCorner"), true).toBool();
     if (weatherChanged || autoHide != m_taskbarAutoHide || combine != m_taskbarCombine || alignment != m_taskbarAlignment || position != m_taskbarPosition || endTask != m_endTask || taskView != m_taskView
-        || trayOverflow != m_trayOverflow || allScreens != m_taskbarAllScreens) {
+        || trayOverflow != m_trayOverflow || allScreens != m_taskbarAllScreens || showDesktopCorner != m_showDesktopCorner) {
         m_taskbarAutoHide = autoHide;
         m_taskbarCombine = combine;
-    const bool showDesktopCorner = settings.value(QStringLiteral("taskbar/showDesktopCorner"), true).toBool();
-    if (alignment != m_taskbarAlignment || endTask != m_endTask || taskView != m_taskView
-        || allScreens != m_taskbarAllScreens || showDesktopCorner != m_showDesktopCorner) {
         m_taskbarAlignment = alignment;
         m_taskbarPosition = position;
         m_endTask = endTask;
