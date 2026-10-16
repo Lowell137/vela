@@ -189,6 +189,13 @@ if(VELA_BUILD_TOOLS)
     target_link_libraries(vela-launcherbadges-test PRIVATE Qt6::DBus Qt6::Test)
     add_test(NAME shell-launcherbadges COMMAND vela-launcherbadges-test)
 
+    qt_add_executable(vela-notification-unread-test
+        tests/notification_unread.cpp src/notifications.cpp src/notifications.h)
+    target_include_directories(vela-notification-unread-test PRIVATE src)
+    target_compile_options(vela-notification-unread-test PRIVATE -Wall -Wextra)
+    target_link_libraries(vela-notification-unread-test PRIVATE Qt6::Core Qt6::DBus Qt6::Gui Qt6::Quick Qt6::Test)
+    add_test(NAME shell-notification-unread COMMAND vela-notification-unread-test)
+
     qt_add_executable(vela-tool-path-test tests/velatool.cpp src/velatool.h)
     target_include_directories(vela-tool-path-test PRIVATE src)
     target_compile_options(vela-tool-path-test PRIVATE -Wall -Wextra)

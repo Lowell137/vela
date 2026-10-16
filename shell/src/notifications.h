@@ -48,6 +48,7 @@ private:
         QVariantList actions;
         bool hasDefault;
         QDateTime time;
+        QString entry; // the desktop-entry hint
     };
     std::vector<Item> m_items; // most recent at the top
 };
@@ -98,6 +99,13 @@ public:
     QObject* history() { return &m_history; }
     bool doNotDisturb() const { return m_doNotDisturb; }
     void setDoNotDisturb(bool on);
+    int unreadRevision() const { return m_unreadRevision; }
+    // The notifications of an app (any spelling of its desktop id) that came
+    // after it was last seen: the taskbar button's count when the app sends
+    // none of its own.
+    Q_INVOKABLE int unreadFor(const QString& desktopId) const;
+    // The app's window changed focus: what is in the center is read now.
+    Q_INVOKABLE void markSeen(const QString& desktopId);
     Q_INVOKABLE void invokeFromHistory(uint id, const QString& action);
     Q_INVOKABLE void dismissFromHistory(uint id);
     Q_INVOKABLE void clearHistory();
@@ -116,6 +124,7 @@ public Q_SLOTS:
 Q_SIGNALS:
     void countChanged();
     void doNotDisturbChanged();
+    void unreadChanged();
     Q_SCRIPTABLE void NotificationClosed(uint id, uint reason);
     Q_SCRIPTABLE void ActionInvoked(uint id, const QString& action_key);
 
@@ -128,6 +137,8 @@ private:
         QString body;
         QVariantList actions;
         bool hasDefault;
+        QString entry; // the desktop-entry hint
+        QDateTime time;
         bool critical;
         bool transient; // doesn't go to the notification center
         std::unique_ptr<QTimer> timer; // expiry; null: stays until dismissed
@@ -143,6 +154,9 @@ private:
     std::vector<Notification> m_items; // most recent at the end
     QHash<uint, QImage> m_images;
     uint m_nextId = 1;
+    QHash<QString, QDateTime> m_seen; // by app key: when its window was last shown
+    QHash<QString, int> m_replaced; // by short app key: replacements since its window was shown
+    int m_unreadRevision = 0;
     bool m_hovered = false;
     bool m_doNotDisturb = false;
     NotificationHistory m_history;
