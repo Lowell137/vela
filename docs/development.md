@@ -71,6 +71,7 @@ Useful CMake options:
 | `VELA_BUILD_COMPOSITOR` | `ON` | Build the Wayland compositor and session integration. |
 | `VELA_BUILD_SHELL` | `ON` | Build the Qt Quick shell, Settings, Files and lock screen. |
 | `VELA_BUILD_TOOLS` | `ON` | Build development tools and enable the CTest suites. |
+| `VELA_BUILD_STEAM_PROGRESS` | `OFF` | Build `vela-steam-progress`, Steam's download progress for the taskbar ([taskbar badges](taskbar-badges.md#4-steam-download-progress-optional)). |
 | `VELA_BUILD_REPORT` | `ON` | Install the standalone diagnostic reporter; requires Python 3.10 or newer. |
 | `VELA_REPORT_GUI` | Same as `VELA_BUILD_SHELL` | Build the ordinary Qt Widgets reporting window, also usable in other desktops. |
 | `VELA_WLROOTS` | `wlroots-0.20` | pkg-config name used for wlroots. Only wlroots 0.20 is supported. |
@@ -272,6 +273,7 @@ lock/               vela-lock
 polkit/             vela-polkit-agent and vela-polkit-prompt (docs/polkit-agent.md)
 common/             Vela.Controls: theme, controls and blur shared by the Qt Quick apps;
                     audio/: vela-audio, the shell's and Settings' audio backend (docs/audio.md)
+steam-progress/     vela-steam-progress, optional (docs/taskbar-badges.md)
 session/            login entry, systemd target and portal integration
 packaging/          cross-distro vela-update and shared updater tests
 packaging/arch/     Arch Linux PKGBUILD

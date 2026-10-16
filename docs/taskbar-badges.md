@@ -42,7 +42,7 @@ Notify (D-Bus) ---> NotificationServer ---+--> popups / center (unchanged)
 `markSeen()`, plus replacements since then. `unreadRevision` changes with
 every popup, center and reset change, so the taskbar binding re-evaluates.
 
-## 4. Steam download progress (optional, separate commit)
+## 4. Steam download progress (optional)
 
 Steam on Linux sends no progress to the taskbar. It writes progress to
 `steamapps/appmanifest_*.acf`, but that file is only flushed now and then (it
