@@ -91,12 +91,16 @@ void Config::reload()
         || trayOverflow != m_trayOverflow || allScreens != m_taskbarAllScreens) {
         m_taskbarAutoHide = autoHide;
         m_taskbarCombine = combine;
+    const bool showDesktopCorner = settings.value(QStringLiteral("taskbar/showDesktopCorner"), true).toBool();
+    if (alignment != m_taskbarAlignment || endTask != m_endTask || taskView != m_taskView
+        || allScreens != m_taskbarAllScreens || showDesktopCorner != m_showDesktopCorner) {
         m_taskbarAlignment = alignment;
         m_taskbarPosition = position;
         m_endTask = endTask;
         m_taskView = taskView;
         m_trayOverflow = trayOverflow;
         m_taskbarAllScreens = allScreens;
+        m_showDesktopCorner = showDesktopCorner;
         emit taskbarChanged();
     }
 
