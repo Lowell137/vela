@@ -146,6 +146,12 @@ Page {
                 model: [qsTr("Always"), qsTr("Never")]
                 currentIndex: Prefs.taskbarCombine === "never" ? 1 : 0
                 onChosen: index => Prefs.taskbarCombine = index === 1 ? "never" : "always"
+            icon: "user-desktop"
+            title: qsTr("Show desktop from taskbar corner")
+            description: qsTr("Click the far-right edge of any taskbar to show or restore your windows (also with Super+D)")
+            trailing: Toggle {
+                checked: Prefs.showDesktopCorner
+                onToggled: on => Prefs.showDesktopCorner = on
             }
         }
         Card {
