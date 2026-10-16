@@ -50,6 +50,7 @@ private:
         QVariantList actions;
         bool hasDefault;
         QDateTime time;
+        QString entry; // the desktop-entry hint: which taskbar button it belongs to
     };
     std::vector<Item> m_items; // most recent at the top
 };
@@ -58,6 +59,8 @@ class NotificationServer : public QAbstractListModel, protected QDBusContext {
     Q_OBJECT
     Q_CLASSINFO("D-Bus Interface", "org.freedesktop.Notifications")
     Q_PROPERTY(int count READ count NOTIFY countChanged)
+    // Bumped when the unread counts of unreadFor() may have changed.
+    Q_PROPERTY(int unreadRevision READ unreadRevision NOTIFY unreadChanged)
     Q_PROPERTY(QObject* history READ history CONSTANT)
     // "Do not disturb": no popups (except critical ones), everything in the
     // center.
@@ -112,6 +115,13 @@ public:
     bool silenced() const { return m_doNotDisturb || m_captureSilenced || m_fullscreenSilenced; }
     void setFullscreenSilenced(bool on);
     void setCaptureSilenced(bool on);
+    int unreadRevision() const { return m_unreadRevision; }
+    // The notifications of an app (any spelling of its desktop id) that came
+    // after it was last seen: the taskbar button's count when the app sends
+    // none of its own.
+    Q_INVOKABLE int unreadFor(const QString& desktopId) const;
+    // The app's window was shown: what is in the center is read now.
+    Q_INVOKABLE void markSeen(const QString& desktopId);
     Q_INVOKABLE void invokeFromHistory(uint id, const QString& action);
     Q_INVOKABLE void dismissFromHistory(uint id);
     Q_INVOKABLE void clearHistory();
@@ -133,6 +143,7 @@ Q_SIGNALS:
     void countChanged();
     void doNotDisturbChanged();
     void silencedChanged();
+    void unreadChanged();
     Q_SCRIPTABLE void NotificationClosed(uint id, uint reason);
     Q_SCRIPTABLE void ActionInvoked(uint id, const QString& action_key);
 
@@ -147,6 +158,8 @@ private:
         bool hasDefault;
         bool critical;
         bool transient; // doesn't go to the notification center
+        QString entry; // the desktop-entry hint
+        QDateTime time;
         std::unique_ptr<QTimer> timer; // expiry; null: stays until dismissed
     };
     void toHistory(const Notification& n);
@@ -160,6 +173,8 @@ private:
     std::vector<Notification> m_items; // most recent at the end
     QHash<uint, QImage> m_images;
     uint m_nextId = 1;
+    QHash<QString, QDateTime> m_seen; // by app key: when its window was last shown
+    int m_unreadRevision = 0;
     bool m_hovered = false;
     bool m_doNotDisturb = false;
     bool m_captureSilenced = false; // not remembered: follows the sharing

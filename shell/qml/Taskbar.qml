@@ -384,8 +384,18 @@ Window {
                 required property bool windowActive
                 required property string desktopId
 
-                // Unread count / progress / urgent the app sent (Unity LauncherEntry).
-                readonly property var badge: { Badges.revision; return Badges.entry(desktopId) }
+                // Unread count / progress / urgent the app sent (Unity LauncherEntry);
+                // without a count of its own, its notifications since it was last seen.
+                readonly property var badge: {
+                    Badges.revision
+                    Notifications.unreadRevision
+                    const entry = Badges.entry(desktopId)
+                    if (entry.count === 0 && !windowActive) {
+                        entry.count = Notifications.unreadFor(desktopId)
+                    }
+                    return entry
+                }
+                onWindowActiveChanged: if (windowActive) Notifications.markSeen(desktopId)
                 tooltip: name
                 running: windowCount > 0
                 progress: badge.progress

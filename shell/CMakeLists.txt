@@ -324,6 +324,13 @@ if(VELA_BUILD_TOOLS)
     target_compile_options(vela-notification-silence-test PRIVATE -Wall -Wextra)
     target_link_libraries(vela-notification-silence-test PRIVATE Qt6::Core Qt6::DBus Qt6::Gui Qt6::Quick Qt6::Test)
     add_test(NAME shell-notification-silence COMMAND vela-notification-silence-test)
+
+    qt_add_executable(vela-notification-unread-test
+        tests/notification_unread.cpp src/notifications.cpp src/notifications.h)
+    target_include_directories(vela-notification-unread-test PRIVATE src)
+    target_compile_options(vela-notification-unread-test PRIVATE -Wall -Wextra)
+    target_link_libraries(vela-notification-unread-test PRIVATE Qt6::Core Qt6::DBus Qt6::Gui Qt6::Quick Qt6::Test)
+    add_test(NAME shell-notification-unread COMMAND vela-notification-unread-test)
 endif()
 
 # Italian translation: strings in the code are in English, Italian lives
