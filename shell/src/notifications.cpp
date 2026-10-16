@@ -3,6 +3,8 @@
 
 #include "notifications.h"
 
+#include "launcherbadges.h"
+
 #include <algorithm>
 
 #include <QSettings>
@@ -64,6 +66,13 @@ QString iconSource(const QString& icon)
 NotificationServer::NotificationServer(QObject* parent)
     : QAbstractListModel(parent)
 {
+    // The popups and the center changing is what changes the unread counts.
+    const auto bump = [this] {
+        ++m_unreadRevision;
+        Q_EMIT unreadChanged();
+    };
+    connect(this, &NotificationServer::countChanged, this, bump);
+    connect(&m_history, &NotificationHistory::countChanged, this, bump);
 }
 
 NotificationServer::~NotificationServer() = default;
@@ -217,6 +226,8 @@ uint NotificationServer::Notify(const QString& app_name, uint replaces_id, const
             n.actions.append(QVariantMap { { QStringLiteral("key"), actions[i] }, { QStringLiteral("label"), actions[i + 1] } });
         }
     }
+    n.entry = hints.value(QStringLiteral("desktop-entry")).toString();
+    n.time = QDateTime::currentDateTime();
     n.critical = hints.value(QStringLiteral("urgency")).toInt() == 2;
     n.transient = hints.value(QStringLiteral("transient")).toBool();
 
@@ -313,7 +324,7 @@ void NotificationServer::toHistory(const Notification& n)
     m_history.layoutAboutToBeChanged();
     auto& items = m_history.m_items;
     items.insert(items.begin(),
-        { n.id, n.appName, n.icon, n.summary, n.body, n.actions, n.hasDefault, QDateTime::currentDateTime() });
+        { n.id, n.appName, n.icon, n.summary, n.body, n.actions, n.hasDefault, n.time, n.entry });
     std::stable_partition(items.begin(), items.end(),
         [&](const NotificationHistory::Item& i) { return i.appName == n.appName; });
     m_history.layoutChanged();
@@ -481,4 +492,55 @@ QImage NotificationImageProvider::requestImage(const QString& id, QSize* size, c
         return image;
     }
     return image.scaled(requestedSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+}
+
+// ----------------------------------------------------------------- unread --
+
+namespace {
+// The key an app is known by: its desktop-entry hint, else its name.
+QString appKey(const QString& entry, const QString& appName)
+{
+    return vela::badgeKey(entry.isEmpty() ? appName : entry);
+}
+// "discord" against "com.discordapp.discord" (the taskbar's spelling).
+bool sameApp(const QString& a, const QString& b)
+{
+    return a == b || vela::badgeShortKey(a) == vela::badgeShortKey(b);
+}
+}
+
+int NotificationServer::unreadFor(const QString& desktopId) const
+{
+    const QString key = vela::badgeKey(desktopId);
+    if (key.isEmpty()) {
+        return 0;
+    }
+    QDateTime seen;
+    for (auto it = m_seen.constBegin(); it != m_seen.constEnd(); ++it) {
+        if (sameApp(it.key(), key)) {
+            seen = it.value();
+        }
+    }
+    int count = 0;
+    const auto unread = [&](const QString& entry, const QString& appName, const QDateTime& time) {
+        return sameApp(appKey(entry, appName), key) && (!seen.isValid() || time > seen);
+    };
+    for (const auto& n : m_items) {
+        count += unread(n.entry, n.appName, n.time);
+    }
+    for (const auto& i : m_history.m_items) {
+        count += unread(i.entry, i.appName, i.time);
+    }
+    return count;
+}
+
+void NotificationServer::markSeen(const QString& desktopId)
+{
+    const QString key = vela::badgeKey(desktopId);
+    if (key.isEmpty() || unreadFor(desktopId) == 0) {
+        return;
+    }
+    m_seen.insert(key, QDateTime::currentDateTime());
+    ++m_unreadRevision;
+    Q_EMIT unreadChanged();
 }
