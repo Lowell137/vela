@@ -313,6 +313,8 @@ Window {
 
                 onTextChanged: {
                     Apps.query = text
+                    // Typing goes back to editing: the caret keeps its arrows.
+                    grid.keyNav = false
                     grid.currentIndex = 0
                     grid.positionViewAtBeginning()
                 }
@@ -322,17 +324,31 @@ Window {
                 Keys.onReturnPressed: root.launch(grid.currentIndex)
                 Keys.onEnterPressed: root.launch(grid.currentIndex)
                 Keys.onDownPressed: { grid.keyNav = true; grid.moveCurrentIndexDown() }
-                Keys.onUpPressed: { grid.keyNav = true; grid.moveCurrentIndexUp() }
+                Keys.onUpPressed: {
+                    // Up from the first row goes back to the text: the caret keeps its arrows.
+                    if (grid.keyNav && grid.currentIndex < 6) {
+                        grid.keyNav = false
+                        return
+                    }
+                    grid.keyNav = true
+                    grid.moveCurrentIndexUp()
+                }
+                // A click in the field is editing again. The default (passive) policy: the
+                // text input grabs the mouse itself, which cancels the other policies.
+                TapHandler {
+                    onTapped: grid.keyNav = false
+                }
                 Keys.onTabPressed: { grid.keyNav = true; grid.moveCurrentIndexRight() }
                 Keys.onBacktabPressed: { grid.keyNav = true; grid.moveCurrentIndexLeft() }
-                // Left and Right move the caret while there is text to edit.
+                // Left and Right move the caret while typing, and the grid once a result
+                // has been chosen with the arrows.
                 Keys.onLeftPressed: event => {
-                    if (text.length > 0) { event.accepted = false; return }
+                    if (text.length > 0 && !grid.keyNav) { event.accepted = false; return }
                     grid.keyNav = true
                     grid.moveCurrentIndexLeft()
                 }
                 Keys.onRightPressed: event => {
-                    if (text.length > 0) { event.accepted = false; return }
+                    if (text.length > 0 && !grid.keyNav) { event.accepted = false; return }
                     grid.keyNav = true
                     grid.moveCurrentIndexRight()
                 }
