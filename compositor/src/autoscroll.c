@@ -70,7 +70,6 @@ struct vela_autoscroll {
     struct wl_listener surface_destroy;
     double carry[2]; // what wl_fixed (1/256 px) couldn't carry yet, per axis
     bool scrolled[2]; // events sent since the start: axis_stop at the end
-    int cursor_kind; // 0 all-scroll, 1 vertical, 2 horizontal: what the pointer shows now
     int64_t last_tick; // on the vblank grid
     int64_t next_tick;
     // Presses it took: their releases are taken too (bit: button - BTN_MOUSE).
@@ -233,8 +232,6 @@ static bool still_valid(struct vela_autoscroll *autoscroll)
         && output_alive(server, autoscroll->output);
 }
 
-static const char *scroll_cursor(struct vela_server *server, int kind);
-
 static void scroll(struct vela_autoscroll *autoscroll, double seconds)
 {
     struct vela_server *server = autoscroll->server;
@@ -242,14 +239,6 @@ static void scroll(struct vela_autoscroll *autoscroll, double seconds)
     double offsets[2] = { cursor->y - autoscroll->anchor_y, cursor->x - autoscroll->anchor_x };
     uint32_t ms = (uint32_t)(vela_now_ns() / VELA_NS_PER_MS);
     bool any = false;
-    // Which way it goes shows in the pointer: the axis it is farther off.
-    double away_y = fabs(offsets[0]) - VELA_AUTOSCROLL_DEAD_ZONE;
-    double away_x = fabs(offsets[1]) - VELA_AUTOSCROLL_DEAD_ZONE;
-    int kind = away_y <= 0.0 && away_x <= 0.0 ? 0 : away_y >= away_x ? 1 : 2;
-    if (kind != autoscroll->cursor_kind) {
-        autoscroll->cursor_kind = kind;
-        vela_input_set_xcursor(server, scroll_cursor(server, kind));
-    }
     for (int axis = 0; axis < 2; ++axis) {
         double speed = vela_autoscroll_speed(offsets[axis], autoscroll->speed);
         if (speed == 0.0) {
@@ -321,19 +310,12 @@ static void handle_surface_destroy(struct wl_listener *listener, void *data)
     arm(autoscroll, vela_now_ns());
 }
 
-// The theme's autoscroll cursors: the four-way one at rest and sideways, the
-// vertical double arrow once the pointer moves off up or down (themes have no
-// dedicated autoscroll cursors, so these are their own icons).
-static const char *scroll_cursor(struct vela_server *server, int kind)
+// The theme's four-way cursor (themes have no dedicated autoscroll cursor).
+static const char *scroll_cursor(struct vela_server *server)
 {
-    static const char *const all[] = { "all-scroll", "fleur", "move" };
-    static const char *const vertical[] = { "v_double_arrow", "ns-resize", "sb_v_double_arrow", "row-resize" };
-    // Horizontal moves keep the four-way cursor: the side arrows are the
-    // theme's resize cursors and flicker with small vertical drift.
-    const char *const *names = kind == 1 ? vertical : all;
-    size_t count = kind == 1 ? 4 : 3;
+    static const char *const names[] = { "all-scroll", "fleur", "move" };
     if (wlr_xcursor_manager_load(server->cursor_manager, 1.0f)) {
-        for (size_t i = 0; i < count; ++i) {
+        for (size_t i = 0; i < sizeof(names) / sizeof(names[0]); ++i) {
             if (wlr_xcursor_manager_get_xcursor(server->cursor_manager, names[i], 1.0f)) {
                 return names[i];
             }
@@ -356,8 +338,7 @@ static void activate(struct vela_autoscroll *autoscroll)
     autoscroll->held = true;
     autoscroll->carry[0] = autoscroll->carry[1] = 0.0;
     autoscroll->scrolled[0] = autoscroll->scrolled[1] = false;
-    autoscroll->cursor_kind = 0;
-    vela_input_set_xcursor(server, scroll_cursor(server, 0));
+    vela_input_set_xcursor(server, scroll_cursor(server));
     // The app gets no more motion from here: where it is now.
     autoscroll->last_tick = vela_now_ns();
     autoscroll->next_tick = next_vblank(autoscroll, autoscroll->last_tick);
