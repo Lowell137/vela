@@ -395,7 +395,7 @@ Window {
                     }
                     return entry
                 }
-                onWindowActiveChanged: if (windowActive) Notifications.markSeen(desktopId)
+                onWindowActiveChanged: Notifications.markSeen(desktopId)
                 tooltip: name
                 running: windowCount > 0
                 progress: badge.progress

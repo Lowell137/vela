@@ -174,6 +174,7 @@ private:
     QHash<uint, QImage> m_images;
     uint m_nextId = 1;
     QHash<QString, QDateTime> m_seen; // by app key: when its window was last shown
+    QHash<QString, int> m_replaced; // by short app key: replacements since its window was shown
     int m_unreadRevision = 0;
     bool m_hovered = false;
     bool m_doNotDisturb = false;

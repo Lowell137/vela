@@ -228,6 +228,12 @@ uint NotificationServer::Notify(const QString& app_name, uint replaces_id, const
     }
     n.entry = hints.value(QStringLiteral("desktop-entry")).toString();
     n.time = QDateTime::currentDateTime();
+    // A replacement (a chat app updates its one notification per message) is still a new message.
+    if (replaces_id && (existing >= 0 || historyRow(replaces_id) >= 0)) {
+        ++m_replaced[vela::badgeShortKey(vela::badgeKey(n.entry.isEmpty() ? app_name : n.entry))];
+        ++m_unreadRevision;
+        Q_EMIT unreadChanged();
+    }
     n.critical = hints.value(QStringLiteral("urgency")).toInt() == 2;
     n.transient = hints.value(QStringLiteral("transient")).toBool();
 
@@ -531,7 +537,8 @@ int NotificationServer::unreadFor(const QString& desktopId) const
     for (const auto& i : m_history.m_items) {
         count += unread(i.entry, i.appName, i.time);
     }
-    return count;
+    // The replaced ones only add while something of the app is still shown.
+    return count > 0 ? count + m_replaced.value(vela::badgeShortKey(key)) : 0;
 }
 
 void NotificationServer::markSeen(const QString& desktopId)
@@ -541,6 +548,7 @@ void NotificationServer::markSeen(const QString& desktopId)
         return;
     }
     m_seen.insert(key, QDateTime::currentDateTime());
+    m_replaced.remove(vela::badgeShortKey(key));
     ++m_unreadRevision;
     Q_EMIT unreadChanged();
 }

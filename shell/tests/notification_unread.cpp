@@ -42,6 +42,16 @@ private Q_SLOTS:
         s.Notify("a", 0, "", "two", "", {}, {}, 5000);
         QCOMPARE(s.unreadFor("a.desktop"), 1);
     }
+    void replacementsCountAsMessages()
+    {
+        NotificationServer s;
+        const uint id = s.Notify("Discord", 0, "", "one", "", {}, { { "desktop-entry", "discord" } }, 5000);
+        s.Notify("Discord", id, "", "two", "", {}, { { "desktop-entry", "discord" } }, 5000);
+        s.Notify("Discord", id, "", "three", "", {}, { { "desktop-entry", "discord" } }, 5000);
+        QCOMPARE(s.unreadFor("discord.desktop"), 3);
+        s.markSeen("discord.desktop");
+        QCOMPARE(s.unreadFor("discord.desktop"), 0);
+    }
     void dismissedOnesDoNotCount()
     {
         NotificationServer s;
