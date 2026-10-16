@@ -35,6 +35,8 @@ class Config : public QObject {
     Q_PROPERTY(bool taskbarAutoHide READ taskbarAutoHide NOTIFY taskbarChanged)
     // "always" (one button per app) or "never" (one per window).
     Q_PROPERTY(QString taskbarCombine READ taskbarCombine NOTIFY taskbarChanged)
+    // Clickable right-hand taskbar corner that toggles the desktop.
+    Q_PROPERTY(bool showDesktopCorner READ showDesktopCorner NOTIFY taskbarChanged)
     // Clipboard history (Win+V).
     Q_PROPERTY(bool clipboardHistory READ clipboardHistory NOTIFY clipboardChanged)
     // "Choose your mode": "dark" or "light", for the shell (taskbar, menus,
@@ -65,6 +67,7 @@ public:
     QString weatherLat() const { return m_weatherLat; }
     QString weatherLon() const { return m_weatherLon; }
     QString weatherUnit() const { return m_weatherUnit; }
+    bool showDesktopCorner() const { return m_showDesktopCorner; }
     bool clipboardHistory() const { return m_clipboardHistory; }
     bool doNotDisturb() const { return m_doNotDisturb; }
     QString shellTheme() const { return m_shellTheme; }
@@ -96,6 +99,7 @@ private:
     bool m_weather = false;
     QString m_weatherCity, m_weatherLat, m_weatherLon;
     QString m_weatherUnit = QStringLiteral("c");
+    bool m_showDesktopCorner = true;
     bool m_clipboardHistory = false;
     bool m_doNotDisturb = false;
     QString m_shellTheme = QStringLiteral("dark");
