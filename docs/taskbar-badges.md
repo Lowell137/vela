@@ -1,7 +1,11 @@
 # Taskbar badges from notifications
 
 Builds on the taskbar badges (Unity LauncherEntry): a count, progress and an
-urgent state on the buttons of apps that send them.
+urgent state on the buttons of apps that send them. This document describes
+what a button shows for apps that send nothing of their own.
+
+> **Status:** implemented (the notification count and the optional Steam
+> helper); tested on one machine, see §6.
 
 ## 1. Goals
 
@@ -13,8 +17,7 @@ urgent state on the buttons of apps that send them.
 - An app that does send its own LauncherEntry count or progress is never
   overridden.
 
-Not goals: a count in the notification center itself, per-app rules, a badge
-for apps that have no taskbar button.
+Not goals: see §5.
 
 ## 2. Decisions taken
 
@@ -61,14 +64,11 @@ Chromium browsers (Brave, Chrome 155) were tried and send no LauncherEntry
 signal, with or without libunity and `XDG_CURRENT_DESKTOP=Unity`; there is no
 progress for them.
 
-## 5. Open questions
+## 5. Not in scope
 
-1. **Where the count resets.** The draft resets on activate and deactivate.
-   Resetting only on activate keeps the count while the user switches away.
-2. **The Steam helper.** Wanted at all, and if so in `tools/` behind a CMake
-   option, or left out of the repository.
-3. **Apps without a taskbar button** (tray-only) get no count; the tray has
-   its own indicators.
+- A count in the notification center itself, per-app rules.
+- Apps without a taskbar button (tray-only): the tray has its own indicators.
+- Progress for Chromium browsers (see §4).
 
 ## 6. Tests
 
