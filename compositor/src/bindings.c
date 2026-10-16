@@ -215,10 +215,6 @@ bool vela_bindings_handle(struct vela_server *server, uint32_t modifiers, uint32
         vela_shell_gamebar(server);
         return true;
     }
-    // Win+Alt+C: the Game Bar's crosshair on or off.
-    if (super && alt && !ctrl && !shift && xkb_keysym_to_lower(sym) == XKB_KEY_c && vela_shortcuts_default_enabled("crosshair")) {
-        return shell(server, "crosshair");
-    }
     // Win+Shift+T: the Snipping Tool in its Text mode (copy the text of a region).
     if (super && shift && xkb_keysym_to_lower(sym) == XKB_KEY_t && vela_shortcuts_default_enabled("snip-text")) {
         return shell(server, "snip-text");

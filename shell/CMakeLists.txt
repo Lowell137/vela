@@ -162,8 +162,6 @@ set(VELA_QML_FILES
     qml/GameBar.qml
     qml/GameNumbers.qml
     qml/Sparkline.qml
-    qml/GameOverlay.qml
-    qml/Crosshair.qml
     ${PROJECT_SOURCE_DIR}/settings/qml/Toggle.qml
     ${PROJECT_SOURCE_DIR}/settings/qml/Slider.qml)
 

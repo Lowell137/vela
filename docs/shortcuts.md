@@ -33,7 +33,6 @@ Those nested alternatives are active only in nested mode; in a normal Vela sessi
 | Quick settings | <kbd>Super</kbd>+<kbd>A</kbd> | <kbd>Alt</kbd>+<kbd>A</kbd> |
 | Notification center | <kbd>Super</kbd>+<kbd>N</kbd> | <kbd>Alt</kbd>+<kbd>N</kbd> |
 | Game Bar | <kbd>Super</kbd>+<kbd>G</kbd> | <kbd>Alt</kbd>+<kbd>G</kbd> |
-| Game Bar crosshair on/off | <kbd>Super</kbd>+<kbd>Alt</kbd>+<kbd>C</kbd> | — |
 | Clipboard history | <kbd>Super</kbd>+<kbd>V</kbd> | — |
 | Sound output and volume mixer | <kbd>Super</kbd>+<kbd>Ctrl</kbd>+<kbd>V</kbd> | — |
 | Snipping tool | <kbd>Super</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> or <kbd>PrtSc</kbd> | <kbd>PrtSc</kbd> |

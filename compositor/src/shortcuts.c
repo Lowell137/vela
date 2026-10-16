@@ -47,7 +47,6 @@ static const struct action {
     { "clipboard", KIND_SHELL, "clipboard" },
     { "emoji", KIND_SHELL, "emoji" },
     { "gamebar", KIND_SHELL, "gamebar" },
-    { "crosshair", KIND_SHELL, "crosshair" },
     { "sound-output", KIND_SHELL, "sound-output" },
 };
 #define ACTION_COUNT (sizeof(actions) / sizeof(actions[0]))
