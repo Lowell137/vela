@@ -250,7 +250,86 @@
     </message>
 </context>
 <context>
-    <name>GameAudioBody</name>
+    <name>GameBar</name>
+    <message>
+        <source>Unpin from the overlay</source>
+        <translation>Togli dall&apos;overlay</translation>
+    </message>
+    <message>
+        <source>Pin to the overlay</source>
+        <translation>Fissa nell&apos;overlay</translation>
+    </message>
+    <message>
+        <source>Unmute</source>
+        <translation>Riattiva audio</translation>
+    </message>
+    <message>
+        <source>Mute</source>
+        <translation>Disattiva audio</translation>
+    </message>
+    <message>
+        <source>Game Bar</source>
+        <translation>Game Bar</translation>
+    </message>
+    <message>
+        <source>No game in focus</source>
+        <translation>Nessun gioco attivo</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Chiudi</translation>
+    </message>
+    <message>
+        <source>Performance</source>
+        <translation>Prestazioni</translation>
+    </message>
+    <message>
+        <source>FPS</source>
+        <translation>FPS</translation>
+    </message>
+    <message>
+        <source>Nothing is being drawn</source>
+        <translation>Nessun fotogramma disegnato</translation>
+    </message>
+    <message numerus="yes">
+        <source>%n missed frame(s)</source>
+        <translation>
+            <numerusform>%n fotogramma perso</numerusform>
+            <numerusform>%n fotogrammi persi</numerusform>
+        </translation>
+    </message>
+    <message>
+        <source>Frame time</source>
+        <translation>Tempo fotogramma</translation>
+    </message>
+    <message>
+        <source>FPS, last minute</source>
+        <translation>FPS, ultimo minuto</translation>
+    </message>
+    <message>
+        <source>Frame time, last minute</source>
+        <translation>Tempo fotogramma, ultimo minuto</translation>
+    </message>
+    <message>
+        <source>Show the pinned numbers</source>
+        <translation>Mostra i valori fissati</translation>
+    </message>
+    <message>
+        <source>Pin numbers to show them over the game</source>
+        <translation>Fissa dei valori per vederli sopra il gioco</translation>
+    </message>
+    <message>
+        <source>MangoHud settings</source>
+        <translation>Impostazioni di MangoHud</translation>
+    </message>
+    <message>
+        <source>MangoHud isn&apos;t installed</source>
+        <translation>MangoHud non è installato</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <translation>Audio</translation>
+    </message>
     <message>
         <source>Sound isn&apos;t available.</source>
         <translation>L&apos;audio non è disponibile.</translation>
@@ -267,40 +346,10 @@
         <source>No apps are playing sound.</source>
         <translation>Nessuna app sta riproducendo audio.</translation>
     </message>
-</context>
-<context>
-    <name>GameBar</name>
     <message>
-        <source>Game Bar</source>
-        <translation>Game Bar</translation>
+        <source>Capture</source>
+        <translation>Acquisizione</translation>
     </message>
-    <message>
-        <source>Replay saved</source>
-        <translation>Replay salvato</translation>
-    </message>
-    <message>
-        <source>Saved to Videos &gt; Captures. Click to open it.</source>
-        <translation>Salvato in Video &gt; Captures. Fai clic per aprirlo.</translation>
-    </message>
-    <message>
-        <source>Open</source>
-        <translation>Apri</translation>
-    </message>
-    <message>
-        <source>Reset positions</source>
-        <translation>Reimposta le posizioni</translation>
-    </message>
-    <message>
-        <source>Widget menu</source>
-        <translation>Menu dei widget</translation>
-    </message>
-    <message>
-        <source>Settings</source>
-        <translation>Impostazioni</translation>
-    </message>
-</context>
-<context>
-    <name>GameCaptureBody</name>
     <message>
         <source>Screenshot</source>
         <translation>Screenshot</translation>
@@ -314,129 +363,44 @@
         <translation>Registra</translation>
     </message>
     <message>
-        <source>Last 30 s</source>
-        <translation>Ultimi 30 s</translation>
-    </message>
-    <message>
         <source>Record the microphone</source>
         <translation>Registra il microfono</translation>
+    </message>
+    <message>
+        <source>Screenshots go to Pictures &gt; Screenshot, recordings to Videos &gt; Screen Recordings.</source>
+        <translation>Gli screenshot vanno in Immagini &gt; Screenshot, le registrazioni in Video &gt; Screen Recordings.</translation>
     </message>
     <message>
         <source>Instant replay</source>
         <translation>Replay istantaneo</translation>
     </message>
     <message>
-        <source>Screenshots go to Pictures &gt; Screenshot, recordings to Videos &gt; Screen Recordings, replays to Videos &gt; Captures.</source>
-        <translation>Gli screenshot vanno in Immagini &gt; Screenshot, le registrazioni in Video &gt; Screen Recordings, i replay in Video &gt; Captures.</translation>
+        <source>Save the last 30 s</source>
+        <translation>Salva gli ultimi 30 s</translation>
     </message>
     <message>
-        <source>Screenshots go to Pictures &gt; Screenshot, recordings to Videos &gt; Screen Recordings. Install gpu-screen-recorder for instant replay.</source>
-        <translation>Gli screenshot vanno in Immagini &gt; Screenshot, le registrazioni in Video &gt; Screen Recordings. Installa gpu-screen-recorder per il replay istantaneo.</translation>
+        <source>Replays go to Videos &gt; Captures.</source>
+        <translation>I replay vanno in Video &gt; Captures.</translation>
     </message>
     <message>
-        <source>Show all captures</source>
-        <translation>Mostra tutte le catture</translation>
-    </message>
-</context>
-<context>
-    <name>GameCrosshairBody</name>
-    <message>
-        <source>Dot</source>
-        <translation>Punto</translation>
+        <source>Install gpu-screen-recorder for instant replay.</source>
+        <translation>Installa gpu-screen-recorder per il replay istantaneo.</translation>
     </message>
     <message>
-        <source>Cross</source>
-        <translation>Croce</translation>
+        <source>Game mode</source>
+        <translation>Modalità gioco</translation>
     </message>
-    <message>
-        <source>Gap</source>
-        <translation>Croce aperta</translation>
-    </message>
-    <message>
-        <source>Circle</source>
-        <translation>Cerchio</translation>
-    </message>
-    <message>
-        <source>Show the crosshair</source>
-        <translation>Mostra il mirino</translation>
-    </message>
-    <message>
-        <source>Size</source>
-        <translation>Dimensione</translation>
-    </message>
-    <message>
-        <source>Thickness</source>
-        <translation>Spessore</translation>
-    </message>
-    <message>
-        <source>Opacity</source>
-        <translation>Opacità</translation>
-    </message>
-    <message>
-        <source>Outline</source>
-        <translation>Contorno</translation>
-    </message>
-    <message>
-        <source>Center</source>
-        <translation>Centra</translation>
-    </message>
-    <message>
-        <source>Drag the crosshair on the screen to move it; double-click it to center it. The pin keeps it over the game when the Game Bar closes.</source>
-        <translation>Trascina il mirino sullo schermo per spostarlo; fai doppio clic per centrarlo. La puntina lo tiene sopra il gioco quando la Game Bar si chiude.</translation>
-    </message>
-</context>
-<context>
-    <name>GameMediaBody</name>
-    <message>
-        <source>Nothing is playing.</source>
-        <translation>Non c&apos;è niente in riproduzione.</translation>
-    </message>
-    <message>
-        <source>Next player</source>
-        <translation>Lettore successivo</translation>
-    </message>
-    <message>
-        <source>Previous</source>
-        <translation>Precedente</translation>
-    </message>
-    <message>
-        <source>Pause</source>
-        <translation>Pausa</translation>
-    </message>
-    <message>
-        <source>Play</source>
-        <translation>Riproduci</translation>
-    </message>
-    <message>
-        <source>Next</source>
-        <translation>Successivo</translation>
-    </message>
-</context>
-<context>
-    <name>GameModeBody</name>
     <message>
         <source>Do not disturb</source>
         <translation>Non disturbare</translation>
     </message>
     <message>
+        <source>GameMode for %1</source>
+        <translation>GameMode per %1</translation>
+    </message>
+    <message>
         <source>GameMode</source>
         <translation>GameMode</translation>
-    </message>
-    <message>
-        <source>CPU and GPU priority for the game (Feral GameMode). Focused app: %1</source>
-        <translation>Priorità di CPU e GPU per il gioco (Feral GameMode). App in primo piano: %1</translation>
-    </message>
-    <message>
-        <source>none</source>
-        <translation>nessuna</translation>
-    </message>
-    <message>
-        <source>The gamemode package isn&apos;t installed.</source>
-        <translation>Il pacchetto gamemode non è installato.</translation>
-    </message>
-    <message>
-        <source>This app doesn&apos;t look like a game.</source>
-        <translation>Questa app non sembra un gioco.</translation>
     </message>
     <message>
         <source>Power mode</source>
@@ -444,43 +408,27 @@
     </message>
     <message>
         <source>Power saver</source>
-        <translation>Risparmio energetico</translation>
-    </message>
-    <message>
-        <source>Performance</source>
-        <translation>Prestazioni</translation>
+        <translation>Risparmio energia</translation>
     </message>
     <message>
         <source>Balanced</source>
-        <translation>Bilanciata</translation>
+        <translation>Bilanciato</translation>
+    </message>
+    <message>
+        <source>Replay saved</source>
+        <translation>Replay salvato</translation>
+    </message>
+    <message>
+        <source>Saved to Videos &gt; Captures. Click to open it.</source>
+        <translation>Salvato in Video &gt; Captures. Fai clic per aprirlo.</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation>Apri</translation>
     </message>
 </context>
 <context>
     <name>GameNumbers</name>
-    <message>
-        <source>Capture</source>
-        <translation>Cattura</translation>
-    </message>
-    <message>
-        <source>Audio</source>
-        <translation>Audio</translation>
-    </message>
-    <message>
-        <source>Performance</source>
-        <translation>Prestazioni</translation>
-    </message>
-    <message>
-        <source>Media</source>
-        <translation>Multimedia</translation>
-    </message>
-    <message>
-        <source>Crosshair</source>
-        <translation>Mirino</translation>
-    </message>
-    <message>
-        <source>Game mode</source>
-        <translation>Modalità gioco</translation>
-    </message>
     <message>
         <source>FPS</source>
         <translation>FPS</translation>
@@ -516,55 +464,6 @@
     <message>
         <source>RAM</source>
         <translation>RAM</translation>
-    </message>
-</context>
-<context>
-    <name>GamePerformanceBody</name>
-    <message>
-        <source>Nothing is being drawn</source>
-        <translation>Non viene disegnato nulla</translation>
-    </message>
-    <message>
-        <source>Last minute</source>
-        <translation>Ultimo minuto</translation>
-    </message>
-    <message>
-        <source>MangoHud settings</source>
-        <translation>Impostazioni di MangoHud</translation>
-    </message>
-    <message>
-        <source>MangoHud isn&apos;t installed</source>
-        <translation>MangoHud non è installato</translation>
-    </message>
-</context>
-<context>
-    <name>GameVolume</name>
-    <message>
-        <source>Unmute</source>
-        <translation>Riattiva l&apos;audio</translation>
-    </message>
-    <message>
-        <source>Mute</source>
-        <translation>Disattiva l&apos;audio</translation>
-    </message>
-</context>
-<context>
-    <name>GameWidget</name>
-    <message>
-        <source>Settings</source>
-        <translation>Impostazioni</translation>
-    </message>
-    <message>
-        <source>Unpin from the screen</source>
-        <translation>Stacca dallo schermo</translation>
-    </message>
-    <message>
-        <source>Pin over the game</source>
-        <translation>Fissa sopra il gioco</translation>
-    </message>
-    <message>
-        <source>Close</source>
-        <translation>Chiudi</translation>
     </message>
 </context>
 <context>
