@@ -255,6 +255,83 @@ class X11(unittest.TestCase):
         self.x11_control("--set-wine-style", xid, "0x16cf0008")
         self.assert_fullscreen_remains(view_id, True)
 
+    def test_wine_backdrop_stays_below_the_fullscreen_game(self):
+        """Wine puts a black screen-sized window under a fullscreen game:
+        override-redirect first, then managed, fullscreen, skip-taskbar and
+        (after mapping) below. It must neither cover the game nor take its
+        keyboard, and Alt+Tab goes back to the game, not to it."""
+        self.vela.clients.append(subprocess.Popen(
+            [tool("vela-x11"), "--wine-backdrop", "300", "200"], env=self.env))
+        state = self.vela.wait_for(lambda s: len(s.windows) == 2 and all(w["fullscreen"] for w in s.windows),
+                                   timeout=15, what="the game and its backdrop, both managed and fullscreen")
+        game = next(w["id"] for w in state.windows if w["title"] == "vela-x11")
+        time.sleep(0.5)
+        state = self.vela.wait_for(lambda s: s["focused"] == game, what="the game keeps the keyboard")
+        out = state.output
+        for point in ((out["w"] // 2, out["h"] // 2), (5, 5), (out["w"] - 5, out["h"] - 5)):
+            self.vela.wait_for(lambda s: self.vela.pixels().at(*point) == ORANGE,
+                               what=f"the game is drawn at {point}")
+        other = self.vela.open_window(300, 200)
+        self.vela.wait_for(lambda s: s["focused"] == other, what="the other window has focus")
+        self.vela.keys("alt+Tab")
+        self.vela.wait_for(lambda s: s["focused"] == game, what="back to the game, not to its backdrop")
+        time.sleep(0.4)
+        self.assertEqual(self.vela.pixels().at(out["w"] // 2, out["h"] // 2), ORANGE)
+
+    def test_x11_override_redirect_switches_kind_without_unmapping(self):
+        """An already mapped X11 surface can become unmanaged and managed
+        again without a new Wayland buffer or an X11 unmap/map cycle."""
+        path = os.path.join(self.vela.directory, "override-redirect-xid")
+        original = self.open_x11("--id-file", path, 300, 200)
+        with open(path, encoding="ascii") as xids:
+            xid = xids.read().strip()
+
+        position = self.vela.state().window(original)
+        point = (position["x"] + 150, position["y"] + position["h"] - 60)
+        self.assertEqual(self.vela.pixels().at(*point), ORANGE)
+
+        self.x11_control("--override-redirect", xid, "on")
+        self.vela.wait_for(lambda s: not s.has(original),
+                           what="mapped X11 window became an unmanaged surface")
+        # It is still the same live X11 surface, with its old pixels.
+        self.vela.wait_for(lambda s: self.vela.pixels().at(*point) == ORANGE,
+                           what="the unmanaged surface is visible without a remap")
+
+        self.x11_control("--override-redirect", xid, "off")
+        state = self.vela.wait_for(lambda s: any(
+            w["app"] == "vela.x11" for w in s.windows),
+            what="unmanaged X11 surface became a managed view")
+        restored = next(w["id"] for w in state.windows if w["app"] == "vela.x11")
+        self.vela.wait_for(lambda s: s["focused"] == restored,
+                           what="promoted X11 surface receives focus")
+        self.vela.wait_still(restored)
+        new_pos = self.vela.state().window(restored)
+        new_point = (new_pos["x"] + 150, new_pos["y"] + new_pos["h"] - 60)
+        self.assertEqual(self.vela.pixels().at(*new_point), ORANGE)
+
+    def test_below_state_changes_after_mapping(self):
+        """A newly BELOW window stops taking focus and Alt+Tab can return
+        to it after BELOW is removed; SKIP_TASKBAR updates do not unmap it."""
+        first = self.open_x11(320, 240)
+        path = os.path.join(self.vela.directory, "below-xid")
+        second = self.open_x11("--id-file", path, 300, 200)
+        with open(path, encoding="ascii") as xids:
+            xid = xids.read().strip()
+        self.vela.wait_for(lambda s: s["focused"] == second,
+                           what="second X11 window initially receives focus")
+
+        self.x11_control("--state", xid, "skip-taskbar", "on")
+        self.x11_control("--state", xid, "below", "on")
+        self.vela.wait_for(lambda s: s["focused"] == first,
+                           what="BELOW view yields keyboard focus")
+        self.assertTrue(self.vela.state().has(second))
+
+        self.x11_control("--state", xid, "below", "off")
+        self.x11_control("--state", xid, "skip-taskbar", "off")
+        self.vela.keys("alt+Tab")
+        self.vela.wait_for(lambda s: s["focused"] == second,
+                           what="view is selectable again when BELOW is cleared")
+
     def test_menu_stays_where_the_app_puts_it(self):
         self.open_x11("--menu", "100,120", 300, 200)
         time.sleep(0.4)
