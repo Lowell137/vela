@@ -62,8 +62,6 @@ QString playbackStatus(const QString& service)
 MediaKeys::MediaKeys(QObject* parent)
     : QObject(parent)
 {
-    m_positionTimer.setInterval(1000);
-    connect(&m_positionTimer, &QTimer::timeout, this, &MediaKeys::pollPosition);
     // Every player's changes (any sender): which one started playing.
     QDBusConnection::sessionBus().connect(QString(), mprisPath, propertiesInterface, QStringLiteral("PropertiesChanged"),
         this, SLOT(onPropertiesChanged(QString, QVariantMap, QStringList)));
@@ -198,10 +196,6 @@ void MediaKeys::update()
             { QStringLiteral("playing"), p.player.value(QStringLiteral("PlaybackStatus")).toString() == QLatin1String("Playing") },
             { QStringLiteral("canGoNext"), p.player.value(QStringLiteral("CanGoNext"), true).toBool() },
             { QStringLiteral("canGoPrevious"), p.player.value(QStringLiteral("CanGoPrevious"), true).toBool() },
-            // µs to s; the player's own volume (-1: it has none).
-            { QStringLiteral("length"), metadata.value(QStringLiteral("mpris:length")).toLongLong() / 1e6 },
-            { QStringLiteral("canSeek"), p.player.value(QStringLiteral("CanSeek"), false).toBool() },
-            { QStringLiteral("volume"), p.player.contains(QStringLiteral("Volume")) ? p.player.value(QStringLiteral("Volume")).toDouble() : -1.0 },
         };
         break;
     }
@@ -315,65 +309,4 @@ void MediaKeys::commandTo(const QString& service, const QString& key)
     if (!name.isEmpty() && service.startsWith(mprisPrefix)) {
         QDBusConnection::sessionBus().asyncCall(QDBusMessage::createMethodCall(service, mprisPath, playerInterface, name));
     }
-}
-
-// Position (µs) of the shown player, asked asynchronously.
-void MediaKeys::pollPosition()
-{
-    const QString service = m_current.value(QStringLiteral("service")).toString();
-    if (service.isEmpty()) {
-        if (m_position != -1) {
-            m_position = -1;
-            Q_EMIT positionChanged();
-        }
-        return;
-    }
-    QDBusMessage get = QDBusMessage::createMethodCall(service, mprisPath, propertiesInterface, QStringLiteral("Get"));
-    get << playerInterface << QStringLiteral("Position");
-    auto* watcher = new QDBusPendingCallWatcher(QDBusConnection::sessionBus().asyncCall(get, 1000), this);
-    connect(watcher, &QDBusPendingCallWatcher::finished, this, [this, service](QDBusPendingCallWatcher* w) {
-        w->deleteLater();
-        const QDBusPendingReply<QDBusVariant> reply = *w;
-        const double seconds = reply.isError() || service != m_current.value(QStringLiteral("service")).toString()
-            ? -1.0 : reply.value().variant().toLongLong() / 1e6;
-        if (seconds != m_position) {
-            m_position = seconds;
-            Q_EMIT positionChanged();
-        }
-    });
-}
-
-void MediaKeys::watchPosition(bool on)
-{
-    m_watchers = std::max(0, m_watchers + (on ? 1 : -1));
-    if (m_watchers > 0 && !m_positionTimer.isActive()) {
-        m_positionTimer.start();
-        pollPosition();
-    } else if (m_watchers == 0) {
-        m_positionTimer.stop();
-    }
-}
-
-void MediaKeys::seekTo(double seconds)
-{
-    const QString service = m_current.value(QStringLiteral("service")).toString();
-    if (service.isEmpty() || m_position < 0 || !m_current.value(QStringLiteral("canSeek")).toBool()) {
-        return;
-    }
-    QDBusMessage seek = QDBusMessage::createMethodCall(service, mprisPath, playerInterface, QStringLiteral("Seek"));
-    seek << qlonglong((seconds - m_position) * 1e6);
-    QDBusConnection::sessionBus().asyncCall(seek);
-    m_position = seconds;
-    Q_EMIT positionChanged();
-}
-
-void MediaKeys::setVolume(double volume)
-{
-    const QString service = m_current.value(QStringLiteral("service")).toString();
-    if (service.isEmpty()) {
-        return;
-    }
-    QDBusMessage set = QDBusMessage::createMethodCall(service, mprisPath, propertiesInterface, QStringLiteral("Set"));
-    set << playerInterface << QStringLiteral("Volume") << QVariant::fromValue(QDBusVariant(std::clamp(volume, 0.0, 1.0)));
-    QDBusConnection::sessionBus().asyncCall(set);
 }

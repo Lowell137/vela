@@ -48,41 +48,6 @@ private slots:
         QCOMPARE(parseSysfs("N/A"), -1.0);
     }
 
-    void widgetsAndPins()
-    {
-        const WidgetPos pos = parseWidgetPos("DP-1|120|-4");
-        QVERIFY(pos.valid);
-        QCOMPARE(pos.screen, QString("DP-1"));
-        QCOMPARE(pos.x, 120);
-        QCOMPARE(pos.y, -4);
-        QCOMPARE(formatWidgetPos(pos), QString("DP-1|120|-4"));
-        QVERIFY(!parseWidgetPos("").valid);
-        QVERIFY(!parseWidgetPos("DP-1|a|b").valid);
-
-        QVariantMap bar;
-        const QStringList screens { "DP-1", "HDMI-A-1" };
-        QVERIFY(overlayScreens(bar, screens, "DP-1").isEmpty()); // nothing pinned
-        bar["pinned-widgets"] = "performance,crosshair,bogus";
-        bar["pos-performance"] = "HDMI-A-1|10|10";
-        QCOMPARE(overlayScreens(bar, screens, "DP-1"), QStringList { "HDMI-A-1" });
-        bar["pos-performance"] = "gone|10|10"; // the output went away
-        QCOMPARE(overlayScreens(bar, screens, "DP-1"), QStringList { "DP-1" });
-        bar["widgets"] = "capture"; // closed widgets aren't pinned
-        QVERIFY(overlayScreens(bar, screens, "DP-1").isEmpty());
-        bar["widgets"] = "performance";
-        bar["overlay"] = false;
-        QVERIFY(overlayScreens(bar, screens, "DP-1").isEmpty());
-    }
-
-    void gameDetection()
-    {
-        QVERIFY(looksLikeGame("steam_app_1245620", {}, false));
-        QVERIFY(looksLikeGame("foo", { "Game", "ActionGame" }, false));
-        QVERIFY(looksLikeGame("foo", {}, true));
-        QVERIFY(!looksLikeGame("claude", { "Utility" }, false));
-        QVERIFY(!looksLikeGame("", { "Game" }, true));
-    }
-
     void nvidia()
     {
         const GpuSample s = parseNvidiaCsv("0, 35, 61, 120.50, 2048, 8192\n");

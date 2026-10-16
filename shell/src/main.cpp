@@ -54,7 +54,6 @@
 #include <QQmlContext>
 #include <QQmlEngine>
 #include <QQuickWindow>
-#include <QRegion>
 #include <QScreen>
 #include <QTimer>
 #include <QtDebug>
@@ -102,22 +101,6 @@ void setupTaskbar(QQuickWindow* window, QScreen* screen)
     layer->setExclusiveZone(std::min(window->width(), window->height())); // its thickness; maximized windows don't cover it
     layer->setKeyboardInteractivity(LayerWindow::KeyboardInteractivityNone);
     taskbarShell->followTaskbar(window, ShellController::FollowKind::Taskbar);
-}
-
-// The Game Bar's pinned widgets: the whole output, over everything. The mouse
-// goes through, except over a pinned Media card (GameOverlay.qml sets the
-// input region); they are dragged in the Game Bar itself.
-void setupGameOverlay(QQuickWindow* window, QScreen* screen)
-{
-    LayerWindow* layer = LayerWindow::get(window);
-    layer->setScreen(screen);
-    layer->setScope(QStringLiteral("vela-game-overlay"));
-    layer->setLayer(LayerWindow::LayerOverlay);
-    layer->setAnchors(LayerWindow::Anchors(LayerWindow::AnchorTop) | LayerWindow::AnchorBottom
-        | LayerWindow::AnchorLeft | LayerWindow::AnchorRight);
-    layer->setExclusiveZone(-1);
-    layer->setKeyboardInteractivity(LayerWindow::KeyboardInteractivityNone);
-    window->setMask(QRegion(-10, -10, 1, 1)); // the mouse goes through until a card asks
 }
 
 void setupWallpaper(QQuickWindow* window, QScreen* screen)
@@ -214,8 +197,9 @@ const Panel panels[] = {
     // The Game Bar (Win+G): the whole output, transparent, above fullscreen
     // games; a click outside its cards closes it.
     { "GameBar", "vela-game-bar", layerOverlay, fill, -1, keysOnDemand },
-    // The crosshair in the center (moved by its offsets): the mouse goes
-    // through. The pinned widgets are one window per output (GameOverlay.qml).
+    // The pinned numbers in a corner (GameOverlay.qml moves it) and the
+    // crosshair in the center: the mouse goes through both.
+    { "GameOverlay", "vela-game-overlay", layerOverlay, topLeft, -1, keysNone, {}, true },
     { "Crosshair", "vela-crosshair", layerOverlay, centered, -1, keysNone, {}, true },
 };
 
@@ -494,21 +478,7 @@ int main(int argc, char* argv[])
     taskbars.setPrimaryOnly(!config.taskbarAllScreens());
     QObject::connect(&config, &Config::taskbarChanged, &taskbars,
         [&config, &taskbars] { taskbars.setPrimaryOnly(!config.taskbarAllScreens()); });
-    // The pinned Game Bar widgets, only on the outputs that have one.
-    ScreenWindows pins(&engine, "GameOverlay", setupGameOverlay);
-    const auto syncPins = [&config, &pins] {
-        QStringList names;
-        for (const QScreen* screen : QGuiApplication::screens()) {
-            names.append(screen->name());
-        }
-        const QScreen* primary = QGuiApplication::primaryScreen();
-        pins.setScreens(gamestats::overlayScreens(config.gameBar(), names, primary ? primary->name() : QString()));
-    };
-    QObject::connect(&config, &Config::gameBarChanged, &pins, syncPins);
-    QObject::connect(qGuiApp, &QGuiApplication::screenAdded, &pins, syncPins);
-    QObject::connect(qGuiApp, &QGuiApplication::screenRemoved, &pins, syncPins);
-    syncPins();
-    if (!wallpapers.start() || !taskbars.start() || !pins.start()) {
+    if (!wallpapers.start() || !taskbars.start()) {
         return 1;
     }
 

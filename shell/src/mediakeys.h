@@ -7,7 +7,6 @@
 #include <QHash>
 #include <QObject>
 #include <QString>
-#include <QTimer>
 #include <QStringList>
 #include <QVariantList>
 #include <QVariantMap>
@@ -24,10 +23,6 @@ class MediaKeys : public QObject, protected QDBusContext {
     Q_PROPERTY(QVariantMap current READ current NOTIFY currentChanged)
     // Every player: [{service, desktopEntry, identity, title, artist, status, playing, canGoNext, canGoPrevious}]
     Q_PROPERTY(QVariantList players READ players NOTIFY playersChanged)
-    // Where the shown player is, in seconds (-1 unknown): asked once a second
-    // while someone watches (the Game Bar's Media widget), as players don't
-    // announce it.
-    Q_PROPERTY(double position READ position NOTIFY positionChanged)
 
 public:
     explicit MediaKeys(QObject* parent = nullptr);
@@ -48,18 +43,10 @@ public:
     Q_INVOKABLE QVariantMap playerFor(const QString& appId, const QString& title, int sameAppWindows) const;
     // `key` (see command) for one player, by its bus name.
     Q_INVOKABLE void commandTo(const QString& service, const QString& key);
-    // Seek to `seconds` in the shown player (Seek by the difference) and set
-    // its own volume (0..1).
-    Q_INVOKABLE void seekTo(double seconds);
-    Q_INVOKABLE void setVolume(double volume);
-    // Counted: the position is polled while someone watches.
-    Q_INVOKABLE void watchPosition(bool on);
-    double position() const { return m_position; }
 
 Q_SIGNALS:
     void currentChanged();
     void playersChanged();
-    void positionChanged();
 
 private Q_SLOTS:
     void onPropertiesChanged(const QString& interface, const QVariantMap& changed, const QStringList& invalidated);
@@ -74,7 +61,6 @@ private:
     void add(const QString& name, const QString& owner);
     void fetch(const QString& owner, const QString& interface);
     void update();
-    void pollPosition();
 
     QHash<QString, Player> m_players; // by unique bus name
     QVariantMap m_current;
@@ -85,8 +71,5 @@ private:
 
     QString m_selected; // the unique bus name the user picked for the card, or empty
     QString m_shown; // the one the card shows
-    QTimer m_positionTimer;
-    int m_watchers = 0;
-    double m_position = -1;
     QString m_lastPlaying; // the unique bus name of the player that played last
 };
