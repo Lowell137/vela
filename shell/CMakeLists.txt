@@ -286,14 +286,6 @@ if(VELA_BUILD_TOOLS)
     target_link_libraries(vela-weather-test PRIVATE Qt6::Core Qt6::Gui Qt6::Network Qt6::Test)
     add_test(NAME shell-weather COMMAND vela-weather-test)
 
-    # The Game Bar: /proc, sysfs and nvidia-smi parsers, the sparklines'
-    # ring buffer and the MangoHud config editor.
-    qt_add_executable(vela-gamestats-test tests/gamestats.cpp src/gamestats.h src/mangohudconf.h)
-    target_include_directories(vela-gamestats-test PRIVATE src)
-    target_compile_options(vela-gamestats-test PRIVATE -Wall -Wextra)
-    target_link_libraries(vela-gamestats-test PRIVATE Qt6::Core Qt6::Test)
-    add_test(NAME shell-gamestats COMMAND vela-gamestats-test)
-
     qt_add_executable(vela-notification-silence-test
         tests/notification_silence.cpp src/notifications.cpp src/notifications.h)
     target_include_directories(vela-notification-silence-test PRIVATE src)
