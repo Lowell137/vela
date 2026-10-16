@@ -11,6 +11,9 @@ qt_add_executable(vela-steam-progress steam-progress.cpp progress.h)
 target_compile_options(vela-steam-progress PRIVATE -Wall -Wextra)
 target_link_libraries(vela-steam-progress PRIVATE Qt6::Core Qt6::DBus)
 install(TARGETS vela-steam-progress RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+# A user service tied to Vela's session (vela-session.target wants it).
+configure_file(vela-steam-progress.service.in vela-steam-progress.service @ONLY)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/vela-steam-progress.service DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/systemd/user)
 
 if(VELA_BUILD_TOOLS)
     find_package(Qt6 6.5 REQUIRED COMPONENTS Test)

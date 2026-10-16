@@ -11,3 +11,5 @@ BindsTo=graphical-session.target
 Wants=graphical-session-pre.target
 After=graphical-session-pre.target
 Wants=xdg-desktop-autostart.target
+# The Steam download progress, when it is installed (a missing unit is ignored).
+Wants=vela-steam-progress.service

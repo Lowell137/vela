@@ -1,0 +1,18 @@
+# SPDX-FileCopyrightText: 2026 Brando Giuffrida
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[Unit]
+Description=Steam download progress on the Vela taskbar
+Documentation=https://github.com/vela-desktop/vela
+# Runs only while Vela's session does: vela-session.target starts it, and
+# stopping the session stops it.
+PartOf=vela-session.target
+After=vela-session.target
+
+[Service]
+ExecStart=@CMAKE_INSTALL_FULL_BINDIR@/vela-steam-progress
+Restart=on-failure
+Nice=10
+
+[Install]
+WantedBy=vela-session.target

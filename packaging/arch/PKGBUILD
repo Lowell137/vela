@@ -73,6 +73,7 @@ build() {
         -DCMAKE_INSTALL_PREFIX=/usr \
         -DCMAKE_INSTALL_LIBEXECDIR=lib/vela \
         -DVELA_BUILD_TOOLS=OFF \
+        -DVELA_BUILD_STEAM_PROGRESS=ON \
         -Wno-dev
     cmake --build build
 }
