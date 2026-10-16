@@ -3,11 +3,9 @@
 
 #include "shell.h"
 
-#include "game_stats.h"
 #include "process.h"
 #include "server.h"
 #include "util.h"
-#include "view.h"
 
 #include <wlr/types/wlr_cursor.h>
 
@@ -61,25 +59,6 @@ void vela_shell_send_at_pointer(struct vela_server *server, const char *line)
     } else {
         vela_shell_send(server, line);
     }
-}
-
-void vela_shell_send_perfapp(struct vela_server *server, bool force)
-{
-    static char last[160];
-    char line[160];
-    struct vela_view *view = vela_views_focused(server);
-    if (!vela_game_app_line(line, sizeof(line), view ? vela_view_app_id(view) : NULL, view ? vela_view_pid(view) : 0)
-        || (!force && strcmp(line, last) == 0)) {
-        return;
-    }
-    memcpy(last, line, strlen(line) + 1);
-    vela_shell_send(server, line);
-}
-
-void vela_shell_gamebar(struct vela_server *server)
-{
-    vela_shell_send_perfapp(server, true);
-    vela_shell_send(server, "gamebar");
 }
 
 // -------------------------------------------------------------- supervision --

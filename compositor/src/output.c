@@ -4,7 +4,6 @@
 #include "output.h"
 
 #include "config.h"
-#include "game_stats.h"
 #include "geometry.h"
 #include "layer.h"
 #include "listen.h"
@@ -16,8 +15,6 @@
 #include "scene/frame.h"
 #include "scene/scene.h"
 #include "server.h"
-#include "shell.h"
-#include "shortcuts.h"
 #include "util.h"
 #include "view.h"
 
@@ -485,23 +482,7 @@ static void log_stats(struct vela_output *output, int64_t now)
     // VELA_STATS=1: statistics even without the verbose log.
     bool requested = vela_env_flag("VELA_STATS");
     struct vela_frame_stats stats;
-    if (!vela_frame_clock_take_stats(&output->clock, now, &stats)) {
-        return;
-    }
-    // The Game Bar's numbers: the output of the focused window, else the
-    // first one. Reuses this 2 s statistic, so no extra wakeups.
-    if (vela_game_stats_enabled()) {
-        struct vela_view *focused = vela_views_focused(output->server);
-        struct vela_output *shown = focused ? vela_view_output(focused) : NULL;
-        if (!shown && !wl_list_empty(&output->server->outputs)) {
-            shown = wl_container_of(output->server->outputs.next, shown, link);
-        }
-        char line[64];
-        if (shown == output && vela_game_perf_line(line, sizeof(line), stats.fps, stats.missed)) {
-            vela_shell_send(output->server, line);
-        }
-    }
-    if (stats.fps <= 0.0) {
+    if (!vela_frame_clock_take_stats(&output->clock, now, &stats) || stats.fps <= 0.0) {
         return;
     }
     wlr_log(requested ? WLR_INFO : WLR_DEBUG,
