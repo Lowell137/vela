@@ -68,6 +68,7 @@ class Preferences : public QObject {
     Q_PROPERTY(QStringList windowBlurExclude READ windowBlurExclude WRITE setWindowBlurExclude NOTIFY windowBlurChanged)
     // window-opacity= (percent, 30-100): the same windows drawn translucent.
     Q_PROPERTY(int windowOpacity READ windowOpacity WRITE setWindowOpacity NOTIFY windowBlurChanged)
+    Q_PROPERTY(bool showDesktopCorner READ showDesktopCorner WRITE setShowDesktopCorner NOTIFY taskbarChanged)
     // --- Notifications ---
     Q_PROPERTY(bool doNotDisturb READ doNotDisturb WRITE setDoNotDisturb NOTIFY doNotDisturbChanged)
     // --- Power ---
@@ -223,6 +224,8 @@ public:
     // The user clicks a window on screen ("pick-window" on the compositor's
     // socket); windowPicked comes later, with empty strings if cancelled.
     Q_INVOKABLE void pickWindow();
+    bool showDesktopCorner() const { return m_showDesktopCorner; }
+    void setShowDesktopCorner(bool on);
 
     bool doNotDisturb() const { return m_doNotDisturb; }
     void setDoNotDisturb(bool on);
@@ -424,6 +427,7 @@ private:
     QStringList m_windowBlurExclude;
     QStringList m_windowRules;
     int m_windowOpacity = 100;
+    bool m_showDesktopCorner = true;
     bool m_doNotDisturb = false;
     int m_screenOffMinutes = 10;
     bool m_lockOnIdle = true;
