@@ -3115,6 +3115,14 @@ Specifiche sistema
         <translation>Mai</translation>
     </message>
     <message>
+        <source>Show desktop from taskbar corner</source>
+        <translation>Mostra il desktop dall'angolo della barra delle applicazioni</translation>
+    </message>
+    <message>
+        <source>Click the far-right edge of any taskbar to show or restore your windows (also with Super+D)</source>
+        <translation>Fai clic sul bordo destro di una barra delle applicazioni per mostrare o ripristinare le finestre (anche con Super+D)</translation>
+    </message>
+    <message>
         <source>End task</source>
         <translation>Termina attività</translation>
     </message>
