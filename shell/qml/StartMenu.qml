@@ -443,7 +443,20 @@ Window {
                 Keys.onReturnPressed: root.launchCurrent()
                 Keys.onEnterPressed: root.launchCurrent()
                 Keys.onDownPressed: { grid.keyNav = true; if (!root.moveExtra(1)) grid.moveCurrentIndexDown() }
-                Keys.onUpPressed: { grid.keyNav = true; if (!root.moveExtra(-1)) grid.moveCurrentIndexUp() }
+                Keys.onUpPressed: {
+                    // Up from the first row goes back to the text: the caret keeps its arrows.
+                    if (root.extraIndex < 0 && grid.keyNav && grid.currentIndex < 6) {
+                        grid.keyNav = false
+                        return
+                    }
+                    grid.keyNav = true
+                    if (!root.moveExtra(-1)) grid.moveCurrentIndexUp()
+                }
+                // A click in the field is editing again.
+                TapHandler {
+                    gesturePolicy: TapHandler.ReleaseWithinBounds
+                    onTapped: { grid.keyNav = false; root.extraIndex = -1 }
+                }
                 Keys.onTabPressed: { grid.keyNav = true; grid.moveCurrentIndexRight() }
                 Keys.onBacktabPressed: { grid.keyNav = true; grid.moveCurrentIndexLeft() }
                 // Left and Right move the caret while typing, and the grid once a result
