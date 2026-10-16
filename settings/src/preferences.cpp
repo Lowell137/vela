@@ -236,6 +236,7 @@ void Preferences::reload()
     m_weatherUnit = settings.value(QStringLiteral("taskbar/weather-unit")).toString().toLower() == QLatin1String("f")
         ? QStringLiteral("f")
         : QStringLiteral("c");
+    m_showDesktopCorner = settings.value(QStringLiteral("taskbar/showDesktopCorner"), true).toBool();
     emit taskbarChanged();
     m_doNotDisturb = settings.value(QStringLiteral("notifications/doNotDisturb"), false).toBool();
     emit doNotDisturbChanged();
@@ -845,6 +846,11 @@ void Preferences::setTaskbarCombine(const QString& mode)
     if (value != m_taskbarCombine) {
         m_taskbarCombine = value;
         setShell(QStringLiteral("taskbar/combine"), value);
+void Preferences::setShowDesktopCorner(bool on)
+{
+    if (on != m_showDesktopCorner) {
+        m_showDesktopCorner = on;
+        setShell(QStringLiteral("taskbar/showDesktopCorner"), on);
         emit taskbarChanged();
     }
 }
