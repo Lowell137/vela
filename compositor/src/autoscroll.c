@@ -321,16 +321,17 @@ static void handle_surface_destroy(struct wl_listener *listener, void *data)
     arm(autoscroll, vela_now_ns());
 }
 
-// The theme's autoscroll cursors: the four-way one at rest and, once the
-// pointer moves off along one axis, the double arrow of that axis (themes
-// have no dedicated autoscroll cursors, so these are their own icons).
+// The theme's autoscroll cursors: the four-way one at rest and sideways, the
+// vertical double arrow once the pointer moves off up or down (themes have no
+// dedicated autoscroll cursors, so these are their own icons).
 static const char *scroll_cursor(struct vela_server *server, int kind)
 {
     static const char *const all[] = { "all-scroll", "fleur", "move" };
     static const char *const vertical[] = { "v_double_arrow", "ns-resize", "sb_v_double_arrow", "row-resize" };
-    static const char *const horizontal[] = { "h_double_arrow", "ew-resize", "sb_h_double_arrow", "col-resize" };
-    const char *const *names = kind == 1 ? vertical : kind == 2 ? horizontal : all;
-    size_t count = kind == 0 ? 3 : 4;
+    // Horizontal moves keep the four-way cursor: the side arrows are the
+    // theme's resize cursors and flicker with small vertical drift.
+    const char *const *names = kind == 1 ? vertical : all;
+    size_t count = kind == 1 ? 4 : 3;
     if (wlr_xcursor_manager_load(server->cursor_manager, 1.0f)) {
         for (size_t i = 0; i < count; ++i) {
             if (wlr_xcursor_manager_get_xcursor(server->cursor_manager, names[i], 1.0f)) {
