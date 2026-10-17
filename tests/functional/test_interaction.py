@@ -9,10 +9,11 @@ The shell is a FakeShell collecting the messages."""
 
 import json
 import os
+import subprocess
 import time
 import unittest
 
-from harness import Session
+from harness import Session, tool
 
 
 class Interaction(unittest.TestCase):
@@ -118,6 +119,23 @@ class Interaction(unittest.TestCase):
         line = self.shell.wait_for("snap-assist ")
         self.assertIn(f'"window":"{window}"', line)
         self.assertIn(f'"candidates":["{other}"]', line)
+
+    def test_snap_preview_uses_the_accent_the_shell_sends(self):
+        self.vela.command("theme dark dark #ff0000")
+        window = self.vela.open_window(300, 200, decorated=True)
+        x, y, _, _ = self.frame(window)
+        grab_x, grab_y = x + 100, y + 16
+        # Held at the left edge: the preview stays until the button goes up.
+        pointer = subprocess.Popen([tool("vela-input"), *map(str, ["move", grab_x, grab_y, "sleep", "50", "down", "sleep", "50",
+                                    "move", grab_x - 200, grab_y + 100, "sleep", "50", "move", 0, 500,
+                                    "sleep", "1500", "up"])], env=self.vela.client_env)
+        try:
+            def red(_):
+                r, g, b = self.vela.pixels().at(60, 1000)
+                return r > 40 and g < 10 and b < 10
+            self.vela.wait_for(red, timeout=1.4, read_state=False, what="the preview in the accent (red)")
+        finally:
+            pointer.wait(timeout=5)
 
     def drag_to_top(self, window, then=(), top=4):
         """Grabs the title bar and drags to the top center of the output."""

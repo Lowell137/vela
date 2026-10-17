@@ -193,8 +193,7 @@ void vela_snap_keyboard(struct vela_server *server, struct vela_view *view, uint
 #define CORNER_SIZE 96
 // The mouse resting on the Maximize button: how long before the layouts open.
 #define LAYOUTS_DELAY_MS 450
-// The shell's accent (Theme.accent, #5b8cff), translucent.
-static const float preview_color[3] = { 0.357f, 0.549f, 1.0f };
+// The shell's accent (server->accent, sent with `theme`), translucent.
 #define PREVIEW_ALPHA 0.28f
 
 struct vela_snapping *vela_snapping_create(void)
@@ -241,9 +240,9 @@ bool vela_snap_tick_preview(struct vela_server *server, double now_ms)
         snapping->target_y + (snapping->target_height - height) / 2);
     float alpha = PREVIEW_ALPHA * (float)p;
     const struct wlr_render_color color = {
-        preview_color[0] * alpha,
-        preview_color[1] * alpha,
-        preview_color[2] * alpha,
+        server->accent[0] * alpha,
+        server->accent[1] * alpha,
+        server->accent[2] * alpha,
         alpha,
     };
     vela_rect_node_set_color(snapping->rect, &color);

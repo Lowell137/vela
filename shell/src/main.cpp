@@ -313,9 +313,15 @@ int main(int argc, char* argv[])
     shell.listen();
     shell.sendWallpaperTint(config.wallpaper());
     QObject::connect(&config, &Config::wallpaperChanged, &shell, [&] { shell.sendWallpaperTint(config.wallpaper()); });
-    // The mode to the compositor (acrylic tint, title bars).
-    auto sendTheme = [&config] {
-        ShellController::sendToCompositor("theme " + config.shellTheme().toLatin1() + ' ' + config.appTheme().toLatin1());
+    // The mode to the compositor (acrylic tint, title bars) and, once
+    // Vela.Controls is installed below, the accent (the snap preview).
+    Appearance* appearance = nullptr;
+    auto sendTheme = [&config, &appearance] {
+        QByteArray line = "theme " + config.shellTheme().toLatin1() + ' ' + config.appTheme().toLatin1();
+        if (appearance) {
+            line += ' ' + appearance->accent().name(QColor::HexRgb).toLatin1();
+        }
+        ShellController::sendToCompositor(line);
     };
     sendTheme();
     QObject::connect(&config, &Config::themeChanged, &shell, sendTheme);
@@ -396,7 +402,10 @@ int main(int argc, char* argv[])
     qmlEngine = &engine;
     // Theme, Style (the shell's mode, accent, icons) and Effects (the blur):
     // Vela.Controls, like the apps.
-    vela::controls::install(engine, Appearance::Mode::Shell)->watch();
+    appearance = vela::controls::install(engine, Appearance::Mode::Shell);
+    appearance->watch();
+    QObject::connect(appearance, &Appearance::changed, &shell, sendTheme);
+    sendTheme();
     engine.addImageProvider(QStringLiteral("fileicon"), new IconProvider(32));
     engine.addImageProvider(QStringLiteral("wallpaper"), new WallpaperProvider);
     engine.addImageProvider(QStringLiteral("thumbnail"), new ThumbnailProvider(&capture));

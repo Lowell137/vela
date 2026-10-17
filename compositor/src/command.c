@@ -397,13 +397,21 @@ static void wallpaper_tint(struct vela_server *server, const char *arguments)
     refresh_decorations(server);
 }
 
-// theme <shell> <apps>, "light" or "dark": Vela's mode and the apps' mode.
+// theme <shell> <apps> [<accent>]: "light" or "dark", Vela's mode and the
+// apps' mode, and the accent as #rrggbb (without it the accent stays).
 static void theme(struct vela_server *server, const char *arguments)
 {
     char shell_mode[16] = "";
     char app_mode[16] = "";
-    if (sscanf(arguments, "%15s %15s", shell_mode, app_mode) != 2) {
+    char accent_text[16] = "";
+    if (sscanf(arguments, "%15s %15s %15s", shell_mode, app_mode, accent_text) < 2) {
         return;
+    }
+    unsigned rgb = 0;
+    if (strlen(accent_text) == 7 && sscanf(accent_text, "#%6x", &rgb) == 1) {
+        server->accent[0] = ((rgb >> 16) & 0xff) / 255.0f;
+        server->accent[1] = ((rgb >> 8) & 0xff) / 255.0f;
+        server->accent[2] = (rgb & 0xff) / 255.0f;
     }
     bool shell_light = strcmp(shell_mode, "light") == 0;
     bool apps_light = strcmp(app_mode, "light") == 0;

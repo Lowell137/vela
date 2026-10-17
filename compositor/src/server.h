@@ -142,6 +142,8 @@ struct vela_server {
     // light shell (acrylic tint) and light apps (title bars).
     bool light_shell;
     bool light_apps;
+    // The shell's accent, sent with the theme (the snap preview; sRGB, opaque).
+    float accent[3];
     // The taskbar hides by itself ("taskbar-autohide", from the shell): windows
     // use the space it reserves for the panels.
     bool taskbar_autohide;
