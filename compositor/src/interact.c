@@ -314,7 +314,7 @@ static void decoration_press(struct vela_server *server, struct vela_view *view,
     vela_focus_view(server, view);
     switch (vela_decoration_part_at(view->decoration, cursor->x, cursor->y)) {
     case VELA_DECORATION_CLOSE:
-        vela_view_close(view);
+        vela_view_close(view, "title bar button");
         return;
     case VELA_DECORATION_MAXIMIZE:
         vela_view_set_maximized(view, !view->maximized, true);
@@ -331,7 +331,7 @@ static void decoration_press(struct vela_server *server, struct vela_view *view,
         interaction->last_icon_click.time_msec = time_msec;
         if (double_click) {
             memset(&interaction->last_icon_click, 0, sizeof(interaction->last_icon_click));
-            vela_view_close(view);
+            vela_view_close(view, "icon double click");
             return;
         }
         struct wlr_box frame = vela_view_frame_box(view);

@@ -227,7 +227,7 @@ static void run_native(struct vela_server *server, const char *id)
     if (strcmp(id, "close") == 0) {
         struct vela_view *active = vela_views_focused(server);
         if (active) {
-            vela_view_close(active);
+            vela_view_close(active, "close shortcut");
         }
     } else if (strcmp(id, "terminal") == 0) {
         // The Settings choice (Default apps) first, then the environment,

@@ -230,8 +230,9 @@ static void send_activated(struct vela_view *view, bool on)
 #endif
 }
 
-void vela_view_close(struct vela_view *view)
+void vela_view_close(struct vela_view *view, const char *why)
 {
+    wlr_log(WLR_INFO, "Close requested (%s): %s", why, vela_view_app_id(view));
     if (view->xdg) {
         wlr_xdg_toplevel_send_close(view->xdg);
         return;
@@ -616,7 +617,7 @@ static void handle_taskbar_activate(struct wl_listener *listener, void *data)
 static void handle_taskbar_close(struct wl_listener *listener, void *data)
 {
     struct vela_view *view = wl_container_of(listener, view, handle_close);
-    vela_view_close(view);
+    vela_view_close(view, "taskbar");
 }
 
 static void handle_taskbar_maximize(struct wl_listener *listener, void *data)
@@ -1366,6 +1367,7 @@ static void remember_position(struct vela_view *view)
 /** Tear down an unmapped view and revoke any retained window-capture source. */
 void vela_view_unmapped(struct vela_view *view)
 {
+    wlr_log(WLR_INFO, "Window unmapped: %s", vela_view_app_id(view));
     remember_position(view);
     // Close: the scene still has the last buffers (even if it has already
     // disabled the tree), we photograph them and fade them out. If the window

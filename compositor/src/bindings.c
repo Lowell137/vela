@@ -127,7 +127,7 @@ bool vela_bindings_handle(struct vela_server *server, uint32_t modifiers, uint32
     struct vela_view *active = vela_views_focused(server);
     if (((alt && sym == XKB_KEY_F4) || (alt_nested && sym == XKB_KEY_q)) && vela_shortcuts_default_enabled("close")) {
         if (active) {
-            vela_view_close(active);
+            vela_view_close(active, "Alt+F4");
         }
         return true;
     }
@@ -326,7 +326,7 @@ void vela_window_action(struct vela_server *server, struct vela_view *view, cons
     } else if (strcmp(action, "maximize") == 0) {
         vela_view_set_maximized(view, true, true);
     } else if (strcmp(action, "close") == 0) {
-        vela_view_close(view);
+        vela_view_close(view, "window action");
     } else if (strncmp(action, "always-on-top", 13) == 0) {
         // "always-on-top [on|off|toggle]" (from the window menu: toggle).
         const char *arg = action[13] == ' ' ? action + 14 : "toggle";

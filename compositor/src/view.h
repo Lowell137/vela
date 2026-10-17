@@ -266,7 +266,7 @@ pid_t vela_view_pid(const struct vela_view *view); // the process (for "End task
 void vela_view_configure_size(struct vela_view *view, int width, int height);
 void vela_view_send_maximized(struct vela_view *view, bool on);
 void vela_view_send_tiled(struct vela_view *view, uint32_t edges);
-void vela_view_close(struct vela_view *view);
+void vela_view_close(struct vela_view *view, const char *why); // why: logged, to tell who closed it
 // X11: apps must know where the window is on screen (to place their own
 // menus). Called on every frame.
 void vela_view_sync_x11(struct vela_view *view);
