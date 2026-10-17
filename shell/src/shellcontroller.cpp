@@ -337,6 +337,15 @@ void ShellController::handleCommand(const QByteArray& command)
         if (!folders.isEmpty()) {
             emit newShortcutRequested(folders.first().toString());
         }
+    } else if (parts.first() == "desktop-transfer-ready" && parts.size() == 2) {
+        bool ok = false;
+        const qint64 pid = parts.at(1).toLongLong(&ok);
+        if (ok && pid > 0) {
+            emit desktopTransferReadyReceived(pid);
+        }
+    } else if (command.startsWith("desktop-transfer-undo ")) {
+        // A completed transfer from vela-files, with actual Undo paths.
+        emit desktopTransferUndoReceived(command.mid(sizeof("desktop-transfer-undo ") - 1));
     } else if (parts.first() == "accessibility") {
         emit accessibilityReceived(command.mid(14));
     } else if (parts.first() == "snap-assist") {
@@ -396,7 +405,7 @@ QString ShellController::userName() const
     return qEnvironmentVariable("USER");
 }
 
-void ShellController::sendWallpaperTint(const QString& wallpaper) const
+QColor ShellController::wallpaperTint(const QString& wallpaper) const
 {
     // Scaled down to a few pixels already while reading (SVGs too): then the
     // average.
@@ -404,7 +413,7 @@ void ShellController::sendWallpaperTint(const QString& wallpaper) const
     reader.setScaledSize(QSize(32, 18));
     const QImage image = reader.read().convertToFormat(QImage::Format_RGB32);
     if (image.isNull()) {
-        return;
+        return {};
     }
     qint64 sum[3] {};
     for (int y = 0; y < image.height(); ++y) {
@@ -416,9 +425,9 @@ void ShellController::sendWallpaperTint(const QString& wallpaper) const
         }
     }
     const qint64 count = qint64(image.width()) * image.height();
-    saveWallpaperTint(QColor(int(sum[0] / count), int(sum[1] / count), int(sum[2] / count)));
-    sendToCompositor(QByteArray("wallpaper-tint ") + QByteArray::number(sum[0] / count) + ' '
-        + QByteArray::number(sum[1] / count) + ' ' + QByteArray::number(sum[2] / count));
+    const QColor tint(int(sum[0] / count), int(sum[1] / count), int(sum[2] / count));
+    saveWallpaperTint(tint);
+    return tint;
 }
 
 QString ShellController::userInitial() const
