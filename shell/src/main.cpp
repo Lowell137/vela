@@ -34,9 +34,11 @@
 #include "systemactions.h"
 #include "systemstatus.h"
 #include "taskbarmodel.h"
+#include "transfermonitor.h"
 #include "tray.h"
 #include "wallpaperprovider.h"
 #include "screenwindows.h"
+#include "../../common/primaryoutput.h"
 #include "workspaces.h"
 #include "windowcapture.h"
 
@@ -49,6 +51,7 @@
 #include <QQmlContext>
 #include <QQmlEngine>
 #include <QQuickWindow>
+#include <QPointer>
 #include <QScreen>
 #include <QTimer>
 #include <QtDebug>
@@ -282,6 +285,9 @@ int main(int argc, char* argv[])
     apps.reload();
 
     ShellController shell;
+    shell.setPreferredPrimaryOutput(config.primaryOutput());
+    QObject::connect(&config, &Config::primaryOutputChanged, &shell,
+        [&shell, &config] { shell.setPreferredPrimaryOutput(config.primaryOutput()); });
     Workspaces workspaces;
     QObject::connect(&shell, &ShellController::workspacesReceived, &workspaces, &Workspaces::update);
     workspaces.query();
@@ -297,6 +303,16 @@ int main(int argc, char* argv[])
     WindowCapture capture;
     NotificationServer notifications;
     notifications.registerService();
+    TransferMonitor transfers;
+    QObject::connect(&transfers, &TransferMonitor::completed, &notifications,
+        [&notifications](const QString& title, const QString& error) {
+            const QString summary = error.isEmpty()
+                ? QCoreApplication::translate("Shell", "File transfer complete")
+                : QCoreApplication::translate("Shell", "File transfer interrupted");
+            notifications.Notify(QStringLiteral("Vela Files"), 0,
+                QStringLiteral("system-file-manager"), summary,
+                error.isEmpty() ? title : error, {}, {}, 6000);
+        });
     notifications.setDoNotDisturb(config.doNotDisturb());
     QObject::connect(&config, &Config::doNotDisturbChanged, &notifications, &NotificationServer::setDoNotDisturb);
     TrayModel tray;
@@ -308,6 +324,10 @@ int main(int argc, char* argv[])
     QObject::connect(&shell, &ShellController::filesRequested, &system, [&system] { system.trigger(QStringLiteral("files")); });
     JumpLists jumps(&apps);
     DesktopModel desktop(&apps);
+    QObject::connect(&shell, &ShellController::desktopTransferUndoReceived,
+        &desktop, &DesktopModel::recordExternalTransfer);
+    QObject::connect(&shell, &ShellController::desktopTransferReadyReceived,
+        &desktop, &DesktopModel::acknowledgeTransferStart);
     QObject::connect(&desktop, &DesktopModel::chooseAppRequested, &shell, &ShellController::openWithRequested);
     desktopModel = &desktop;
     ServiceMenus serviceMenus;
@@ -369,6 +389,7 @@ int main(int argc, char* argv[])
     engine.rootContext()->setContextProperty(QStringLiteral("Config"), &config);
     engine.rootContext()->setContextProperty(QStringLiteral("Desktops"), &workspaces);
     engine.rootContext()->setContextProperty(QStringLiteral("Tasks"), &tasks);
+    engine.rootContext()->setContextProperty(QStringLiteral("Transfers"), &transfers);
     engine.rootContext()->setContextProperty(QStringLiteral("Capture"), &capture);
     engine.rootContext()->setContextProperty(QStringLiteral("Notifications"), &notifications);
     engine.rootContext()->setContextProperty(QStringLiteral("Tray"), &tray);
@@ -389,6 +410,7 @@ int main(int argc, char* argv[])
     engine.rootContext()->setContextProperty(QStringLiteral("Network"), &network);
 
     QQuickWindow* startMenu = nullptr;
+    QQuickWindow* notificationPopups = nullptr;
     for (const Panel& panel : panels) {
         QQuickWindow* window = loadPanel(engine, panel);
         if (!window) {
@@ -397,6 +419,8 @@ int main(int argc, char* argv[])
         }
         if (qstrcmp(panel.qml, "StartMenu") == 0) {
             startMenu = window;
+        } else if (qstrcmp(panel.qml, "NotificationPopups") == 0) {
+            notificationPopups = window;
         }
     }
     placeStartMenu(startMenu, config.taskbarAlignment());
@@ -407,12 +431,47 @@ int main(int argc, char* argv[])
     // the main one, if the user wants that).
     ScreenWindows wallpapers(&engine, "Wallpaper", setupWallpaper);
     ScreenWindows taskbars(&engine, "Taskbar", setupTaskbar);
+    wallpapers.setPreferredPrimary(config.primaryOutput());
+    taskbars.setPreferredPrimary(config.primaryOutput());
+    QObject::connect(&config, &Config::primaryOutputChanged, &wallpapers,
+        [&] { wallpapers.setPreferredPrimary(config.primaryOutput()); });
+    QObject::connect(&config, &Config::primaryOutputChanged, &taskbars,
+        [&] { taskbars.setPreferredPrimary(config.primaryOutput()); });
     taskbars.setPrimaryOnly(!config.taskbarAllScreens());
     QObject::connect(&config, &Config::taskbarChanged, &taskbars,
         [&config, &taskbars] { taskbars.setPrimaryOnly(!config.taskbarAllScreens()); });
     if (!wallpapers.start() || !taskbars.start()) {
         return 1;
     }
+
+    // An existing layer-shell surface cannot change wl_output while mapped.
+    // Recreate only the surface; keep notification models and timers intact.
+    QPointer<QScreen> notificationScreen;
+    const auto refreshNotifications = [&config, &notifications, notificationPopups, &notificationScreen] {
+        QScreen* target = vela::primaryOutputScreen(config.primaryOutput());
+        if (!target) {
+            notificationPopups->hide();
+            return;
+        }
+        if (notificationScreen != target) {
+            notificationPopups->hide();
+            notificationPopups->destroy();
+            notificationPopups->setScreen(target);
+            LayerWindow::get(notificationPopups)->setScreen(target);
+            notificationScreen = target;
+        }
+        if (notifications.count() > 0) notificationPopups->show();
+        else notificationPopups->hide();
+    };
+    QObject::connect(&notifications, &NotificationServer::countChanged, notificationPopups, refreshNotifications);
+    QObject::connect(&config, &Config::primaryOutputChanged, notificationPopups, refreshNotifications);
+    const auto resyncNotifications = [notificationPopups, refreshNotifications] {
+        QTimer::singleShot(0, notificationPopups, refreshNotifications);
+    };
+    QObject::connect(&app, &QGuiApplication::screenAdded, notificationPopups, resyncNotifications);
+    QObject::connect(&app, &QGuiApplication::screenRemoved, notificationPopups, resyncNotifications);
+    QObject::connect(&app, &QGuiApplication::primaryScreenChanged, notificationPopups, resyncNotifications);
+    refreshNotifications();
 
     return app.exec();
 }
