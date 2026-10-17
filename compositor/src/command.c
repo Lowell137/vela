@@ -21,6 +21,8 @@
 #include "view.h"
 #include "workspace.h"
 
+#include <errno.h>
+#include <math.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -60,6 +62,35 @@ struct vela_commands {
 static bool starts_with(const char *text, const char *prefix)
 {
     return strncmp(text, prefix, strlen(prefix)) == 0;
+}
+
+// Apply a caffeine request on the compositor thread. The confirmed command
+// socket variant returns the authoritative resulting state to the shell.
+static bool set_caffeine_command(struct vela_server *server, const char *arg)
+{
+    if (starts_with(arg, "on ")) {
+        const char *value = arg + 3;
+        char *end = NULL;
+        errno = 0;
+        const double minutes = strtod(value, &end);
+        if (end == value || *end != '\0' || errno == ERANGE || !isfinite(minutes)
+            || minutes <= 0 || minutes > VELA_CAFFEINE_MAX_MINUTES) {
+            wlr_log(WLR_ERROR, "Invalid caffeine duration (expected >0 to 1440 minutes)");
+            return false; // Never mutate existing state for invalid input.
+        }
+        if (!vela_lock_set_caffeine_for(server->lock, minutes)) {
+            vela_a11y_announce(server->a11y); // Includes fail-closed timer errors.
+            return false;
+        }
+    } else if (strcmp(arg, "on") == 0 || strcmp(arg, "off") == 0 || strcmp(arg, "toggle") == 0) {
+        const bool on = strcmp(arg, "toggle") == 0 ? !server->lock->caffeine : strcmp(arg, "on") == 0;
+        vela_lock_set_caffeine(server->lock, on);
+    } else {
+        wlr_log(WLR_ERROR, "Unknown caffeine command");
+        return false;
+    }
+    vela_a11y_announce(server->a11y);
+    return true;
 }
 
 // -------------------------------------------------------------- answers --
@@ -114,9 +145,9 @@ static void state_json(struct vela_server *server, struct vela_buffer *json)
             vela_buffer_append(json, "null");
         }
         vela_buffer_appendf(json,
-            ",\"workspace\":%d,\"sticky\":%s,\"maximized\":%s,\"minimized\":%s,\"fullscreen\":%s,\"snap\":",
+            ",\"workspace\":%d,\"sticky\":%s,\"maximized\":%s,\"minimized\":%s,\"fullscreen\":%s,\"below\":%s,\"snap\":",
             view->workspace, view->sticky ? t : f, view->maximized ? t : f, view->minimized ? t : f,
-            view->fullscreen ? t : f);
+            view->fullscreen ? t : f, vela_view_stays_below(view) ? t : f);
         if (vela_snap_is_none(view->snap)) {
             vela_buffer_append(json, "null");
         } else {
@@ -201,6 +232,18 @@ static bool answer(struct vela_server *server, int fd, const char *line)
         window_rects_json(server, &reply);
     } else if (strcmp(line, "state") == 0) {
         state_json(server, &reply);
+    } else if (strcmp(line, "caffeine status") == 0) {
+        vela_buffer_append(&reply, server->lock->caffeine ? "on" : "off");
+    } else if (starts_with(line, "caffeine-set ")) {
+        // Unlike the fire-and-forget CLI, the shell waits for this reply.
+        // Apply first, then report the resulting compositor state, not the
+        // requested one. A failed delivery cannot masquerade as "off".
+        const bool ok = set_caffeine_command(server, line + 13);
+        char json[512];
+        if (!vela_a11y_json(server->a11y, json, sizeof(json))) {
+            return true;
+        }
+        vela_buffer_appendf(&reply, "{\"ok\":%s,\"state\":%s}", ok ? "true" : "false", json);
     } else if (strcmp(line, "accessibility") == 0) {
         char json[512];
         if (!vela_a11y_json(server->a11y, json, sizeof(json))) {
@@ -211,7 +254,7 @@ static bool answer(struct vela_server *server, int fd, const char *line)
         return false;
     }
     vela_buffer_append(&reply, "\n");
-    (void)!write(fd, reply.data, reply.length);
+    (void)!send(fd, reply.data, reply.length, MSG_NOSIGNAL);
     vela_buffer_finish(&reply);
     return true;
 }
@@ -369,7 +412,8 @@ static void run_command(struct vela_server *server, const char *line)
     } else if (strcmp(line, "paste") == 0) {
         vela_input_paste(server->input); // Win+V: the shell has put the item on the clipboard
     } else if (strcmp(line, "modifiers") == 0 || strcmp(line, "workspaces") == 0
-        || strcmp(line, "accessibility") == 0 || strcmp(line, "window-rects") == 0) {
+        || strcmp(line, "accessibility") == 0 || strcmp(line, "window-rects") == 0
+        || strcmp(line, "caffeine status") == 0 || starts_with(line, "caffeine-set ")) {
         // already answered to whoever asked
     } else if (starts_with(line, "workspace ")) {
         workspace(server, line);
@@ -391,6 +435,10 @@ static void run_command(struct vela_server *server, const char *line)
         vela_a11y_set_magnifier(a11y, wanted(line + 10, a11y->magnifier));
     } else if (starts_with(line, "sticky-keys ")) {
         vela_a11y_set_sticky_keys(a11y, wanted(line + 12, a11y->sticky_keys), true);
+    } else if (starts_with(line, "caffeine ")) {
+        // Existing CLI remains fire-and-forget; only the shell uses the
+        // caffeine-set command with a synchronized state reply.
+        (void)set_caffeine_command(server, line + 9);
     } else if (starts_with(line, "switcher-pick ")) {
         // A click on an Alt+Tab preview: switch to that window.
         vela_switcher_pick(server, atoi(line + 14));
