@@ -196,12 +196,17 @@ int main(int argc, char** argv)
             free(location);
             xcb_disconnect(connection);
             return 0;
-        } else if (!strcmp(argv[1], "--set-wine-style")) {
+        }
+        // Checked, and waited for: the server must have handled the request
+        // before we disconnect (Xwayland can drop the last request of a client
+        // that closes right after sending it), and a rejected one is a failure.
+        xcb_void_cookie_t cookie;
+        if (!strcmp(argv[1], "--set-wine-style")) {
             uint32_t style = (uint32_t)strtoul(argv[3], NULL, 0);
-            xcb_change_property(connection, XCB_PROP_MODE_REPLACE, target,
+            cookie = xcb_change_property_checked(connection, XCB_PROP_MODE_REPLACE, target,
                 atom(connection, "_WINE_HWND_STYLE"), XCB_ATOM_CARDINAL, 32, 1, &style);
         } else if (!strcmp(argv[1], "--delete-wine-style")) {
-            xcb_delete_property(connection, target, atom(connection, "_WINE_HWND_STYLE"));
+            cookie = xcb_delete_property_checked(connection, target, atom(connection, "_WINE_HWND_STYLE"));
         } else if (!strcmp(argv[1], "--override-redirect")) {
             if (strcmp(argv[3], "on") && strcmp(argv[3], "off")) {
                 fprintf(stderr, "vela-x11: expected on or off\n");
@@ -209,7 +214,7 @@ int main(int argc, char** argv)
                 return 2;
             }
             uint32_t redirect = !strcmp(argv[3], "on");
-            xcb_change_window_attributes(connection, target, XCB_CW_OVERRIDE_REDIRECT, &redirect);
+            cookie = xcb_change_window_attributes_checked(connection, target, XCB_CW_OVERRIDE_REDIRECT, &redirect);
         } else {
             const int setState = !strcmp(argv[1], "--state");
             const char* requested = setState ? argv[3] : "fullscreen";
@@ -232,14 +237,19 @@ int main(int argc, char** argv)
             event.data.data32[0] = !strcmp(desired, "on") ? 1 : 0;
             event.data.data32[1] = atom(connection, name);
             event.data.data32[3] = 1; // application source
-            xcb_send_event(connection, 0, screen->root,
+            cookie = xcb_send_event_checked(connection, 0, screen->root,
                 XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT | XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY,
                 (const char*)&event);
         }
-        xcb_flush(connection);
         int failed = xcb_connection_has_error(connection);
+        xcb_generic_error_t* error = xcb_request_check(connection, cookie);
+        if (error) {
+            fprintf(stderr, "vela-x11: %s failed (X11 error %d)\n", argv[1], error->error_code);
+            free(error);
+            failed = 1;
+        }
         xcb_disconnect(connection);
-        return failed != 0;
+        return failed;
     }
     xcb_window_t window = create(connection, screen, 0, 0, width, height, 0xff8000, 0);
     if (idFile && write_xid_file(idFile, window) != 0) {

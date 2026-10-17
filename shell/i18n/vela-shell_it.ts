@@ -28,6 +28,10 @@
         <translation>Non c&apos;è niente qui. Quando copi qualcosa, lo ritrovi qui per incollarlo di nuovo.</translation>
     </message>
     <message>
+        <source>See more</source>
+        <translation>Visualizza altro</translation>
+    </message>
+    <message>
         <source>&amp;Unpin</source>
         <translation>&amp;Rimuovi fissaggio</translation>
     </message>
@@ -311,6 +315,13 @@
     </message>
 </context>
 <context>
+    <name>NotificationPopups</name>
+    <message>
+        <source>Close</source>
+        <translation>Chiudi</translation>
+    </message>
+</context>
+<context>
     <name>Properties</name>
     <message>
         <source>%1 (%2 bytes)</source>
@@ -503,6 +514,22 @@
         <translation>Ingresso predefinito</translation>
     </message>
     <message>
+        <source>%1 settings</source>
+        <translation>Impostazioni di %1</translation>
+    </message>
+    <message>
+        <source>Unmute</source>
+        <translation>Riattiva audio</translation>
+    </message>
+    <message>
+        <source>Mute</source>
+        <translation>Disattiva audio</translation>
+    </message>
+    <message>
+        <source>Back</source>
+        <translation>Indietro</translation>
+    </message>
+    <message>
         <source>Wi-Fi</source>
         <translation>Wi-Fi</translation>
     </message>
@@ -587,6 +614,10 @@
         <translation>Altre impostazioni Wi-Fi</translation>
     </message>
     <message>
+        <source>Settings</source>
+        <translation>Impostazioni</translation>
+    </message>
+    <message>
         <source>Sound output</source>
         <translation>Uscita audio</translation>
     </message>
@@ -628,6 +659,10 @@
     <message>
         <source>Browse</source>
         <translation>Sfoglia</translation>
+    </message>
+    <message>
+        <source>Browse...</source>
+        <translation>Sfoglia...</translation>
     </message>
     <message>
         <source>Type the name of a program, folder, document or Internet resource, and Vela will open it for you.</source>
@@ -741,6 +776,10 @@
         <translation>Aggiungi alla &amp;barra delle applicazioni</translation>
     </message>
     <message>
+        <source>Add to &amp;desktop</source>
+        <translation>Aggiungi al &amp;desktop</translation>
+    </message>
+    <message>
         <source>Open file &amp;location</source>
         <translation>Apri &amp;percorso file</translation>
     </message>
@@ -765,6 +804,10 @@
         <translation>A&amp;ltro</translation>
     </message>
     <message>
+        <source>Couldn&apos;t find this application&apos;s launcher.</source>
+        <translation>Impossibile trovare l&apos;avviatore di questa applicazione.</translation>
+    </message>
+    <message>
         <source>Search apps</source>
         <translation>Cerca app</translation>
     </message>
@@ -783,6 +826,10 @@
     <message>
         <source>No apps found</source>
         <translation>Nessuna app trovata</translation>
+    </message>
+    <message>
+        <source>Power</source>
+        <translation>Arresta</translation>
     </message>
     <message>
         <source>Sleep</source>

@@ -346,8 +346,9 @@ void vela_test_output_command(struct vela_server *server, const char *arguments)
     }
     int width = 0;
     int height = 0;
+    double hz = 0.0; // add 1920x1080@180: with that refresh rate
     char name[64] = "";
-    if (sscanf(arguments, "add %dx%d", &width, &height) == 2 && width > 0 && height > 0) {
+    if (sscanf(arguments, "add %dx%d@%lf", &width, &height, &hz) >= 2 && width > 0 && height > 0) {
         struct wlr_output *wlr = wlr_headless_add_output(headless, (unsigned)width, (unsigned)height);
         // VELA_OUTPUT_SIZE applies to the initial outputs: this one has its
         // own.
@@ -355,11 +356,11 @@ void vela_test_output_command(struct vela_server *server, const char *arguments)
         if (output) {
             struct wlr_output_state state;
             wlr_output_state_init(&state);
-            wlr_output_state_set_custom_mode(&state, width, height, 0);
+            wlr_output_state_set_custom_mode(&state, width, height, (int32_t)(hz * 1000.0));
             vela_output_commit_mode(output, &state);
             wlr_output_state_finish(&state);
         }
-        wlr_log(WLR_INFO, "test-output: connected %s (%dx%d)", wlr ? wlr->name : "(none)", width, height);
+        wlr_log(WLR_INFO, "test-output: connected %s (%dx%d@%g)", wlr ? wlr->name : "(none)", width, height, hz);
     } else if (sscanf(arguments, "remove %63s", name) == 1) {
         struct vela_output *output = vela_output_named(server, name);
         if (output) {

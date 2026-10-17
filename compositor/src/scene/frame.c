@@ -23,6 +23,7 @@
 #include <wlr/render/swapchain.h>
 #include <wlr/types/wlr_buffer.h>
 #include <wlr/types/wlr_compositor.h>
+#include <wlr/types/wlr_layer_shell_v1.h>
 #include <wlr/types/wlr_linux_dmabuf_v1.h>
 #include <wlr/types/wlr_linux_drm_syncobj_v1.h>
 #include <wlr/types/wlr_output.h>
@@ -212,6 +213,23 @@ struct visit {
     struct clip clip;
 };
 
+// Sharpness (§3.3, §3.4): an image drawn at the output's scale (a buffer as
+// large as its physical area, up to rounding) snaps to a physical pixel and
+// covers exactly the buffer's pixels: a 1:1 copy, unfiltered, even when the
+// logical position falls in the middle of a pixel. Whoever drew it: an app, or
+// the compositor (title, icon, glyphs).
+static void snap_to_buffer(struct wlr_box *box, const struct wlr_fbox *src, enum wl_output_transform transform,
+    double width, double height, double scale)
+{
+    bool swapped = transform & WL_OUTPUT_TRANSFORM_90;
+    double buffer_width = swapped ? src->height : src->width;
+    double buffer_height = swapped ? src->width : src->height;
+    if (vela_buffer_matches_area(src->x, src->y, buffer_width, buffer_height, width, height, scale)) {
+        box->width = (int)buffer_width;
+        box->height = (int)buffer_height;
+    }
+}
+
 static void add_surface(struct wlr_surface *surface, int sx, int sy, void *data)
 {
     struct visit *v = data;
@@ -229,18 +247,7 @@ static void add_surface(struct wlr_surface *surface, int sx, int sy, void *data)
     enum wl_output_transform transform = wlr_output_transform_invert(surface->current.transform);
     struct wlr_box box = to_pixels(lx, ly, width, height, p);
 
-    // Sharpness (§3.3, §3.4): if the app drew at this output's scale (a buffer
-    // as large as its physical area, up to rounding), the surface snaps to a
-    // physical pixel and covers exactly the buffer's pixels: a 1:1 copy,
-    // unfiltered, even when the logical position falls in the middle of a
-    // pixel.
-    bool swapped = transform & WL_OUTPUT_TRANSFORM_90;
-    double buffer_width = swapped ? src.height : src.width;
-    double buffer_height = swapped ? src.width : src.height;
-    if (vela_buffer_matches_area(src.x, src.y, buffer_width, buffer_height, width, height, p->scale)) {
-        box.width = (int)buffer_width;
-        box.height = (int)buffer_height;
-    }
+    snap_to_buffer(&box, &src, transform, width, height, p->scale);
     if (!on_screen(&box, p)) {
         return;
     }
@@ -266,6 +273,13 @@ static void add_surface(struct wlr_surface *surface, int sx, int sy, void *data)
         if (pixman_region32_not_empty(&pixels)) {
             const pixman_box32_t *ext = pixman_region32_extents(&pixels);
             e->blur_box = (struct wlr_box) { ext->x1, ext->y1, ext->x2 - ext->x1, ext->y2 - ext->y1 };
+            // Mechanism for clients, policy for ourselves: Vela's surfaces
+            // are layer surfaces named vela-... (the shell's panels, the
+            // polkit prompt); a client that picks such a name only changes its
+            // own look.
+            struct wlr_layer_surface_v1 *layer
+                = wlr_layer_surface_v1_try_from_wlr_surface(wlr_surface_get_root_surface(surface));
+            e->acrylic = layer && layer->namespace && strncmp(layer->namespace, "vela-", 5) == 0;
         }
         pixman_region32_fini(&pixels);
     }
@@ -339,6 +353,7 @@ static void visit(struct vela_scene *scene, struct vela_node *node, double lx, d
     case VELA_NODE_BUFFER: {
         struct vela_buffer_node *buffer = (struct vela_buffer_node *)node;
         struct wlr_box box = to_pixels(lx, ly, buffer->width, buffer->height, p);
+        snap_to_buffer(&box, &buffer->src, buffer->transform, buffer->width, buffer->height, p->scale);
         if (!on_screen(&box, p) || !buffer->texture) {
             break;
         }
@@ -480,7 +495,7 @@ static bool same_look(const struct vela_element *a, const struct vela_element *b
         && a->transform == b->transform && a->opacity == b->opacity && a->linear == b->linear
         && same_color(&a->color, &b->color) && same_box(&a->shape_rect, &b->shape_rect)
         && a->shape_radius == b->shape_radius && same_box(&a->shadow_window, &b->shadow_window)
-        && a->shadow_sigma == b->shadow_sigma && same_box(&a->blur_box, &b->blur_box);
+        && a->shadow_sigma == b->shadow_sigma && same_box(&a->blur_box, &b->blur_box) && a->acrylic == b->acrylic;
 }
 
 // ---------------------------------------------------------------- drawing --
@@ -567,7 +582,8 @@ void vela_draw_elements(struct vela_scene *scene, struct vela_pass *pass, const 
             if (pixman_region32_not_empty(&region)) {
                 struct vela_texture_draw panel = draw;
                 panel.clip = NULL;
-                vela_pass_add_blur(pass, &panel, &region, blur_strength(e->scale_x), &scene->acrylic_tint);
+                vela_pass_add_blur(
+                    pass, &panel, &region, blur_strength(e->scale_x), e->acrylic ? &scene->acrylic_tint : NULL);
             }
             pixman_region32_fini(&region);
         }
@@ -600,15 +616,10 @@ static void handle_damage(struct wl_listener *listener, void *data)
 {
     struct vela_output_frame *frame = wl_container_of(listener, frame, damage);
     const struct wlr_output_event_damage *event = data;
-    // wlroots emits output-buffer-local damage (not upright scene coordinates).
-    // Convert it at the boundary; render() transforms scene_damage back into
-    // buffer coordinates only once, when adding it to the damage ring.
-    pixman_region32_t upright;
-    pixman_region32_init(&upright);
-    wlr_region_transform(&upright, event->damage, frame->output->transform,
-        frame->output->width, frame->output->height);
-    pixman_region32_union(&frame->scene_damage, &frame->scene_damage, &upright);
-    pixman_region32_fini(&upright);
+    // Upright output coordinates, already like scene_damage: wlroots' header
+    // calls them buffer-local, but its cursors emit their box as is, and its
+    // own scene converts that damage to the buffer as we do in render(), once.
+    pixman_region32_union(&frame->scene_damage, &frame->scene_damage, event->damage);
     vela_output_schedule_frame(frame->owner);
 }
 
@@ -726,7 +737,11 @@ static void prepare_night_light(struct vela_output_frame *frame)
     struct wlr_output_state test;
     wlr_output_state_init(&test);
     wlr_output_state_set_color_transform(&test, transform);
+    int64_t test_start = vela_now_ns();
     bool ok = wlr_output_test_state(frame->output, &test);
+    if (vela_env_flag("VELA_STATS")) {
+        wlr_log(WLR_INFO, "%s: gamma LUT test: %.2f ms", frame->output->name, (double)(vela_now_ns() - test_start) / 1e6);
+    }
     wlr_output_state_finish(&test);
     if (!ok) {
         wlr_log(WLR_INFO, "%s: the monitor doesn't accept night light in the gamma LUT, rendering applies it",
@@ -1225,7 +1240,14 @@ bool vela_output_frame_render(struct vela_output_frame *frame, double lx, double
                 wlr_presentation_surface_textured_on_output(surface, output);
             }
         }
+        // VELA_STATS=1: how long a commit with a new gamma LUT holds the
+        // compositor (on amdgpu it waits for every output's flips).
+        int64_t commit_start = frame->night_commit_pending ? vela_now_ns() : 0;
         ok = wlr_output_commit_state(output, state);
+        if (commit_start && vela_env_flag("VELA_STATS")) {
+            wlr_log(WLR_INFO, "%s: commit with a gamma LUT: %.2f ms", output->name,
+                (double)(vela_now_ns() - commit_start) / 1e6);
+        }
         if (!ok && frame->night_commit_pending) {
             // A commit can fail for reasons unrelated to gamma. Try the same
             // buffer/mode without changing the color transform before deciding
