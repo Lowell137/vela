@@ -308,6 +308,10 @@ int main(int argc, char* argv[])
     QObject::connect(&shell, &ShellController::filesRequested, &system, [&system] { system.trigger(QStringLiteral("files")); });
     JumpLists jumps(&apps);
     DesktopModel desktop(&apps);
+    QObject::connect(&shell, &ShellController::desktopTransferUndoReceived,
+        &desktop, &DesktopModel::recordExternalTransfer);
+    QObject::connect(&shell, &ShellController::desktopTransferReadyReceived,
+        &desktop, &DesktopModel::acknowledgeTransferStart);
     QObject::connect(&desktop, &DesktopModel::chooseAppRequested, &shell, &ShellController::openWithRequested);
     desktopModel = &desktop;
     ServiceMenus serviceMenus;
