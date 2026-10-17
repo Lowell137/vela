@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "snip.h"
+#include "snipcrop.h"
 #include "../../common/privatefile.h"
 
 #include "clipboard.h"
@@ -71,6 +72,14 @@ Snip::Snip(QQmlEngine* engine, WindowCapture* capture, Clipboard* clipboard, Not
     connect(&m_idle, &QTimer::timeout, this, [this] {
         if (m_worker && !m_pending.file) {
             m_worker->closeWriteChannel(); // vela-ocr --serve ends at the end of its input
+        }
+    });
+    m_captureTimeout.setSingleShot(true);
+    m_captureTimeout.setInterval(1500);
+    connect(&m_captureTimeout, &QTimer::timeout, this, [this] {
+        if (m_waiting > 0) {
+            m_waiting = 0;
+            captured();
         }
     });
     connect(m_capture, &WindowCapture::screenCaptured, this, [this](const QString&, bool) {
@@ -221,12 +230,7 @@ void Snip::start()
         return;
     }
     // If a capture doesn't come back, go on with those there are.
-    QTimer::singleShot(1500, this, [this] {
-        if (m_waiting > 0) {
-            m_waiting = 0;
-            captured();
-        }
-    });
+    m_captureTimeout.start();
 }
 
 void Snip::startText()
@@ -237,6 +241,7 @@ void Snip::startText()
 
 void Snip::showOverlays()
 {
+    m_captureTimeout.stop();
     for (QScreen* screen : QGuiApplication::screens()) {
         if (m_capture->fullImage(screen->name()).isNull()) {
             continue;
@@ -283,6 +288,8 @@ void Snip::cancel()
     if (!m_active) {
         return;
     }
+    m_captureTimeout.stop();
+    m_waiting = 0;
     closeOverlays();
     m_capture->clearFull();
     m_active = false;
@@ -348,12 +355,10 @@ void Snip::finishNow(const QString& screenName, qreal x, qreal y, qreal width, q
         cancel();
         return;
     }
-    // From logical coordinates to image pixels (the output's scale).
-    const qreal sx = full.width() / qreal(screen->geometry().width());
-    const qreal sy = full.height() / qreal(screen->geometry().height());
-    const QRect area = QRect(qRound(x * sx), qRound(y * sy), qRound(width * sx), qRound(height * sy))
-                           .intersected(full.rect());
-    const QImage cut = full.copy(area);
+    // Empty pixel rectangles must never reach QImage::copy: a null QRect
+    // requests the entire image, potentially exposing unselected pixels.
+    const QImage cut = vela::cropSnipImage(full, screen->geometry().size(), QRectF(x, y, width, height));
+    m_captureTimeout.stop();
     closeOverlays();
     m_capture->clearFull();
     m_active = false;

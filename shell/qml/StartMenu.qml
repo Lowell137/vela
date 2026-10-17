@@ -19,6 +19,10 @@ Window {
     color: "transparent"
 
     property bool closing: false
+    // Pinned tiles are in the GridView header rather than its model.
+    // -1 means the keyboard selection is in the app model.
+    property int selectedPinnedIndex: -1
+    property string shortcutError: ""
     // Asked of logind only once: can the computer suspend?
     readonly property bool canSuspend: Shell.canSuspend()
 
@@ -103,12 +107,14 @@ Window {
         }
         close()
     }
+    // Up/Down between the app grid and the extras below it (only while
+    // searching, so never next to the pinned apps); false: not handled here.
     function moveExtra(delta) {
         const next = extraIndex + delta
         if (extraIndex >= 0) {
             if (next < 0 && grid.count > 0) {
                 extraIndex = -1
-                grid.currentIndex = grid.count - 1
+                selectApp(grid.count - 1)
             } else {
                 extraIndex = Math.max(0, Math.min(extras.length - 1, next))
                 grid.positionViewAtEnd()
@@ -140,6 +146,21 @@ Window {
         return Qt.point(left + p.x, Config.taskbarTop ? Theme.taskbarHeight + p.y : Screen.height - Theme.taskbarHeight - root.height + p.y)
     }
 
+    function addToDesktop(id) {
+        const path = Apps.desktopFile(id)
+        const error = path === ""
+            ? qsTr("Couldn't find this application's launcher.")
+            : FileActions.createShortcut(Desktop.directory, path, "")
+        if (error !== "") {
+            shortcutError = error
+            shortcutErrorTimer.restart()
+            return
+        }
+        shortcutError = ""
+        Desktop.refresh()
+        root.close()
+    }
+
     // An app's menu (docs/renderer.md §14.7): recent files and tasks at the
     // top, like the jump list; then the Start entries.
     function appMenu(id, pinnedTile) {
@@ -161,7 +182,7 @@ Window {
         const taskbar = Tasks.isPinned(id)
             ? { text: qsTr("Unpin from &taskbar"), icon: "window-unpin", action: () => Tasks.unpin(id) }
             : { text: qsTr("Pin to &taskbar"), icon: "window-pin", action: () => Tasks.pin(id) }
-        const desktop = { text: qsTr("Add to &desktop"), icon: "user-desktop", action: () => { FileActions.createLinks([Apps.desktopFile(id)], System.desktopDirectory()); root.close() } }
+        const desktop = { text: qsTr("Add to &desktop"), icon: "user-desktop", action: () => root.addToDesktop(id) }
         const folder = { text: qsTr("Open file &location"), icon: "document-open-folder", action: () => { System.showInFolder(Apps.desktopFile(id)); root.close() } }
         const uninstall = { text: qsTr("&Uninstall"), icon: "edit-delete", enabled: System.canUninstall(Apps.desktopFile(id)), action: () => { System.uninstall(Apps.desktopFile(id)); root.close() } }
         if (pinnedTile) {
@@ -182,7 +203,7 @@ Window {
 
     function openAppMenu(item, x, y, id, pinnedTile) {
         const p = screenPoint(item, x, y)
-        Menus.open(appMenu(id, pinnedTile), p.x, p.y)
+        Menus.open(appMenu(id, pinnedTile), p.x, p.y, { screen: root.screen ? root.screen.name : Shell.primaryScreen })
     }
 
     // An entry of the power menu.
@@ -256,6 +277,9 @@ Window {
         search.text = ""
         grid.currentIndex = 0
         grid.keyNav = false
+        selectedPinnedIndex = -1
+        shortcutError = ""
+        shortcutErrorTimer.stop()
         grid.positionViewAtBeginning()
         panel.opacity = 0
         panel.offset = panel.slide
@@ -279,18 +303,110 @@ Window {
         closeAnimation.restart()
     }
 
-    function launchCurrent() {
+    function launch(row) {
+        if (row >= 0 && row < grid.count && Apps.launch(row)) {
+            close()
+        }
+    }
+
+    function launchSelection() {
         if (extraIndex >= 0) {
             openExtra(extraIndex)
+        } else if (showPinned && selectedPinnedIndex >= 0 && selectedPinnedIndex < pinned.length) {
+            if (Apps.launchId(pinned[selectedPinnedIndex].id)) {
+                close()
+            }
         } else {
             launch(grid.currentIndex)
         }
     }
 
-    function launch(row) {
-        if (row >= 0 && row < grid.count && Apps.launch(row)) {
-            close()
+    function selectPinned(index) {
+        selectedPinnedIndex = index
+        // A long pinned section may itself be taller than the visible grid.
+        const top = Math.floor(index / 6) * grid.cellHeight
+        if (grid.contentY > top) grid.contentY = top
+        else if (grid.contentY + grid.height < top + grid.cellHeight)
+            grid.contentY = top + grid.cellHeight - grid.height
+    }
+
+    function selectApp(index) {
+        selectedPinnedIndex = -1
+        grid.currentIndex = index
+        grid.positionViewAtIndex(index, GridView.Contain)
+    }
+
+    // Navigate between the pinned header and the app model by column.
+    // Left/right wrap inside the current section; up/down cross sections.
+    function navigate(direction) {
+        if (direction === "up" || direction === "down") {
+            if (moveExtra(direction === "down" ? 1 : -1)) {
+                grid.keyNav = true
+                return
+            }
+        } else if (extraIndex >= 0) {
+            return // Settings and Files rows: nothing to the sides
         }
+        const pinCount = showPinned ? pinned.length : 0
+        const appCount = grid.count
+        if (pinCount === 0 && appCount === 0) return
+
+        // No tile is highlighted before keyboard navigation starts, except
+        // search results. The first arrow should select, not skip, tile zero.
+        if (!grid.keyNav && search.text.length === 0) {
+            grid.keyNav = true
+            if (pinCount > 0) selectPinned(0)
+            else selectApp(0)
+            return
+        }
+
+        grid.keyNav = true
+        const columns = 6
+        if (selectedPinnedIndex >= 0 && pinCount > 0) {
+            const index = selectedPinnedIndex
+            if (direction === "left") selectPinned((index + pinCount - 1) % pinCount)
+            else if (direction === "right") selectPinned((index + 1) % pinCount)
+            else if (direction === "down") {
+                if (index + columns < pinCount) selectPinned(index + columns)
+                else if (appCount > 0) selectApp(Math.min(index % columns, appCount - 1))
+                else selectPinned(index % columns)
+            } else if (direction === "up") {
+                if (index >= columns) selectPinned(index - columns)
+                else if (appCount > 0) {
+                    const lastRow = Math.floor((appCount - 1) / columns) * columns
+                    selectApp(Math.min(lastRow + index % columns, appCount - 1))
+                } else {
+                    const lastRow = Math.floor((pinCount - 1) / columns) * columns
+                    selectPinned(Math.min(lastRow + index % columns, pinCount - 1))
+                }
+            }
+        } else if (appCount > 0) {
+            const index = Math.max(0, grid.currentIndex)
+            if (direction === "left") selectApp((index + appCount - 1) % appCount)
+            else if (direction === "right") selectApp((index + 1) % appCount)
+            else if (direction === "down") {
+                if (index + columns < appCount) selectApp(index + columns)
+                else if (pinCount > 0) selectPinned(Math.min(index % columns, pinCount - 1))
+                else selectApp(index % columns)
+            } else if (direction === "up") {
+                if (index >= columns) selectApp(index - columns)
+                else if (pinCount > 0) {
+                    const lastRow = Math.floor((pinCount - 1) / columns) * columns
+                    selectPinned(Math.min(lastRow + index % columns, pinCount - 1))
+                } else {
+                    const lastRow = Math.floor((appCount - 1) / columns) * columns
+                    selectApp(Math.min(lastRow + index % columns, appCount - 1))
+                }
+            }
+        } else {
+            selectPinned(0)
+        }
+    }
+
+    Timer {
+        id: shortcutErrorTimer
+        interval: 7000
+        onTriggered: root.shortcutError = ""
     }
 
     Connections {
@@ -429,48 +545,33 @@ Window {
                     Apps.query = text
                     FileSearch.query = text
                     root.extraIndex = -1
-                    // Typing goes back to editing: the caret keeps its arrows.
-                    grid.keyNav = false
                     grid.currentIndex = 0
+                    root.selectedPinnedIndex = -1
+                    grid.keyNav = false
                     grid.positionViewAtBeginning()
                 }
 
                 // The keyboard stays in the search; the arrows move the grid.
                 Keys.onEscapePressed: root.close()
-                Keys.onReturnPressed: root.launchCurrent()
-                Keys.onEnterPressed: root.launchCurrent()
-                Keys.onDownPressed: { grid.keyNav = true; if (!root.moveExtra(1)) grid.moveCurrentIndexDown() }
-                Keys.onUpPressed: {
-                    // Up from the first row goes back to the text: the caret keeps its arrows.
-                    if (root.extraIndex < 0 && grid.keyNav && grid.currentIndex < 6) {
-                        grid.keyNav = false
-                        return
-                    }
-                    grid.keyNav = true
-                    if (!root.moveExtra(-1)) grid.moveCurrentIndexUp()
-                }
+                Keys.onReturnPressed: root.launchSelection()
+                Keys.onEnterPressed: root.launchSelection()
+                Keys.onDownPressed: root.navigate("down")
+                Keys.onUpPressed: root.navigate("up")
+                Keys.onTabPressed: root.navigate("right")
+                Keys.onBacktabPressed: root.navigate("left")
                 // A click in the field is editing again. The default (passive) policy: the
                 // text input grabs the mouse itself, which cancels the other policies.
                 TapHandler {
                     onTapped: { grid.keyNav = false; root.extraIndex = -1 }
                 }
-                Keys.onTabPressed: { grid.keyNav = true; grid.moveCurrentIndexRight() }
-                Keys.onBacktabPressed: { grid.keyNav = true; grid.moveCurrentIndexLeft() }
-                // Left and Right move the caret while typing, and the grid once a result
-                // has been chosen with the arrows.
+                // Left and Right edit text if the search isn't empty.
                 Keys.onLeftPressed: event => {
-                    // The caret, until Up/Down/Tab picked a result.
-                    if (text.length > 0 && !grid.keyNav) { event.accepted = false; return }
-                    if (root.extraIndex >= 0) { return } // Settings and Files rows: nothing
-                    grid.keyNav = true
-                    grid.moveCurrentIndexLeft()
+                    if (text.length > 0) { event.accepted = false; return }
+                    root.navigate("left")
                 }
                 Keys.onRightPressed: event => {
-                    // The caret, until Up/Down/Tab picked a result.
-                    if (text.length > 0 && !grid.keyNav) { event.accepted = false; return }
-                    if (root.extraIndex >= 0) { return } // Settings and Files rows: nothing
-                    grid.keyNav = true
-                    grid.moveCurrentIndexRight()
+                    if (text.length > 0) { event.accepted = false; return }
+                    root.navigate("right")
                 }
             }
         }
@@ -499,18 +600,21 @@ Window {
             keyNavigationWraps: true
             boundsBehavior: Flickable.StopAtBounds
             highlightFollowsCurrentItem: false
-            // The selection is drawn once the arrows have been used (always while searching).
+            // Search results are selected immediately; otherwise the first
+            // navigation key makes the selection visible.
             property bool keyNav: false
 
             // With the arrows the selection can leave the view: we follow it.
-            onCurrentIndexChanged: positionViewAtIndex(currentIndex, GridView.Contain)
+            onCurrentIndexChanged: if (currentIndex >= 0 && root.selectedPinnedIndex < 0)
+                positionViewAtIndex(currentIndex, GridView.Contain)
 
             delegate: AppTile {
                 id: tile
                 required property string appId
                 width: grid.cellWidth
                 height: grid.cellHeight
-                current: root.extraIndex < 0 && index === grid.currentIndex && (search.text.length > 0 || grid.keyNav)
+                current: root.extraIndex < 0 && root.selectedPinnedIndex < 0 && index === grid.currentIndex
+                    && (search.text.length > 0 || grid.keyNav)
                 onActivated: root.launch(index)
                 onContextRequested: (x, y) => root.openAppMenu(tile, x, y, tile.appId, false)
             }
@@ -537,6 +641,7 @@ Window {
                             name: modelData.name
                             iconName: modelData.iconName
                             comment: ""
+                            current: grid.keyNav && root.showPinned && root.selectedPinnedIndex === index
                             onActivated: {
                                 if (Apps.launchId(modelData.id)) {
                                     root.close()
@@ -637,6 +742,29 @@ Window {
                 text: qsTr("No apps found")
                 color: Theme.textSecondary
                 font.pixelSize: Theme.fontBody
+            }
+        }
+
+        // A failed shortcut must not appear to have succeeded.
+        Rectangle {
+            visible: root.shortcutError !== ""
+            z: 3
+            anchors { left: parent.left; right: parent.right; bottom: footer.top
+                leftMargin: 24; rightMargin: 24; bottomMargin: 8 }
+            height: shortcutErrorText.implicitHeight + 24
+            radius: Theme.radius
+            color: Theme.popup
+            border.width: 1
+            border.color: Theme.stroke
+
+            Text {
+                id: shortcutErrorText
+                width: parent.width - 24
+                anchors.centerIn: parent
+                text: root.shortcutError
+                color: Theme.text
+                font.pixelSize: Theme.fontBody
+                wrapMode: Text.WordWrap
             }
         }
 

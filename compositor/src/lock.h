@@ -38,6 +38,7 @@ struct wlr_session_lock_manager_v1;
 struct wlr_session_lock_v1;
 
 #define VELA_LOCK_RESPAWNS 5 // at most, in one minute
+#define VELA_CAFFEINE_MAX_MINUTES 1440.0 // 24 hours; fits the event-loop timer
 
 struct vela_lock {
     struct vela_server *server;
@@ -65,6 +66,7 @@ struct vela_lock {
     bool screens_off;
     bool caffeine; // for this session only
     int64_t caffeine_until_ns; // CLOCK_MONOTONIC deadline, 0: no deadline
+    int caffeine_duration_s; // originally chosen duration; 0 if indefinite or off
     struct wl_event_source *caffeine_timer; // turns itself off when time is up
 
     struct wl_listener new_lock;
@@ -87,9 +89,9 @@ void vela_lock_engage(struct vela_lock *lock);
 void vela_lock_note_activity(struct vela_lock *lock);
 // Caffeine: no inactivity (no lock, outputs on, apps never told idle).
 void vela_lock_set_caffeine(struct vela_lock *lock, bool on);
-// Caffeine for a while: like above, but turns itself off after `minutes`
-// (fractions for tests). Non-positive minutes mean indefinite (as above).
-void vela_lock_set_caffeine_for(struct vela_lock *lock, double minutes);
+// Caffeine for a while: accept only positive finite minutes and only if its
+// expiry timer was armed successfully. On timer failure, fail closed (off).
+bool vela_lock_set_caffeine_for(struct vela_lock *lock, double minutes);
 // Seconds left (rounded up): 0 when off, -1 when on with no deadline.
 int vela_lock_caffeine_remaining_s(struct vela_lock *lock);
 // Rereads vela.conf (the "reload-config" command).

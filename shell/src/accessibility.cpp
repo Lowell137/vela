@@ -5,14 +5,38 @@
 
 #include "shellcontroller.h"
 
+#include <QDebug>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLocalSocket>
 #include <QStandardPaths>
 
+#include <cmath>
+
 Accessibility::Accessibility(QObject* parent)
     : QObject(parent)
 {
+    m_caffeineTicker.setInterval(500);
+    connect(&m_caffeineTicker, &QTimer::timeout, this, [this] {
+        const int remaining = qMax(0, m_caffeineStartSecs - (int)(m_caffeineElapsed.elapsed() / 1000));
+        if (remaining != m_caffeineSecs) {
+            m_caffeineSecs = remaining;
+            emit changed();
+        }
+        if (remaining == 0) {
+            m_caffeineTicker.stop(); // compositor will confirm expiry
+        }
+    });
+}
+
+void Accessibility::resetCaffeineCountdown()
+{
+    m_caffeineTicker.stop();
+    if (m_caffeine && m_caffeineSecs > 0) {
+        m_caffeineStartSecs = m_caffeineSecs;
+        m_caffeineElapsed.start();
+        m_caffeineTicker.start();
+    }
 }
 
 void Accessibility::query()
@@ -47,6 +71,8 @@ void Accessibility::update(const QByteArray& json)
     m_stickyKeys = state[QStringLiteral("stickyKeys")].toBool();
     m_caffeine = state[QStringLiteral("caffeine")].toBool();
     m_caffeineSecs = state[QStringLiteral("caffeineSecs")].toInt();
+    m_caffeineDurationSecs = state[QStringLiteral("caffeineDurationSecs")].toInt();
+    resetCaffeineCountdown();
     emit changed();
 }
 
@@ -80,22 +106,56 @@ void Accessibility::setStickyKeys(bool on)
     ShellController::sendToCompositor(on ? "sticky-keys on" : "sticky-keys off");
 }
 
+bool Accessibility::sendCaffeineCommand(const QByteArray& command)
+{
+    const QString runtimeDir = QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation);
+    const QString display = qEnvironmentVariable("WAYLAND_DISPLAY", QStringLiteral("wayland-0"));
+    QLocalSocket socket;
+    socket.connectToServer(runtimeDir + QStringLiteral("/vela-") + display + QStringLiteral(".sock"));
+    bool confirmed = false;
+    if (socket.waitForConnected(300)) {
+        QByteArray request("caffeine-set ");
+        request += command;
+        request += '\n';
+        if (socket.write(request) == request.size()
+            && (socket.bytesToWrite() == 0 || socket.waitForBytesWritten(300))) {
+            QByteArray reply;
+            while (!reply.contains('\n') && socket.waitForReadyRead(300)) {
+                reply += socket.readAll();
+            }
+            const QJsonObject response = QJsonDocument::fromJson(reply.trimmed()).object();
+            if (response.value(QStringLiteral("state")).isObject()
+                && response.value(QStringLiteral("ok")).isBool()) {
+                // The compositor applied or rejected the request before
+                // generating this state. Never display a speculative "off".
+                update(QJsonDocument(response.value(QStringLiteral("state")).toObject())
+                    .toJson(QJsonDocument::Compact));
+                confirmed = true;
+                if (!response.value(QStringLiteral("ok")).toBool()) {
+                    qWarning() << "vela-shell: compositor rejected caffeine command:" << command;
+                }
+                return response.value(QStringLiteral("ok")).toBool();
+            }
+        }
+    }
+    if (!confirmed) {
+        qWarning() << "vela-shell: caffeine state unconfirmed; keeping last known state:" << command;
+        // The compositor may have applied a request despite a lost reply.
+        QTimer::singleShot(250, this, &Accessibility::query);
+        QTimer::singleShot(1000, this, &Accessibility::query);
+    }
+    return false;
+}
+
 void Accessibility::setCaffeine(bool on)
 {
-    m_caffeine = on;
-    m_caffeineSecs = on ? -1 : 0;
-    emit changed();
-    ShellController::sendToCompositor(on ? "caffeine on" : "caffeine off");
+    sendCaffeineCommand(on ? "on" : "off");
 }
 
 void Accessibility::setCaffeineMinutes(double minutes)
 {
-    if (!(minutes > 0)) {
-        setCaffeine(false);
+    if (!std::isfinite(minutes) || minutes <= 0 || minutes > 1440.0) {
         return;
     }
-    m_caffeine = true;
-    m_caffeineSecs = (int)(minutes * 60 + 0.5);
-    emit changed();
-    ShellController::sendToCompositor(QStringLiteral("caffeine on %1").arg(minutes).toUtf8());
+    sendCaffeineCommand(QStringLiteral("on %1").arg(minutes).toUtf8());
 }

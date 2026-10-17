@@ -19,8 +19,10 @@
 #include "util.h"
 #include "view.h"
 
+#include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -284,8 +286,16 @@ void vela_lock_load_settings(struct vela_lock *lock)
     if (!minutes || !*minutes) {
         minutes = vela_config_get(&settings, "screen-off", "");
     }
-    const double wait = *minutes ? atof(minutes) : 10.0; // fractions for tests
-    lock->screen_off_ms = wait > 0 ? (int)(wait * 60 * 1000) : 0;
+    char *end = NULL;
+    errno = 0;
+    const double parsed = *minutes ? strtod(minutes, &end) : 10.0; // fractions for tests
+    const bool valid = !*minutes || (end != minutes && *end == '\0' && errno != ERANGE
+        && isfinite(parsed) && parsed >= 0 && parsed <= INT_MAX / 60000.0);
+    if (!valid) {
+        wlr_log(WLR_ERROR, "Invalid screen-off timeout: using 10 minutes");
+    }
+    const double wait = valid ? parsed : 10.0;
+    lock->screen_off_ms = wait > 0 ? vela_max(1, (int)ceil(wait * 60000.0)) : 0;
     const char *on_idle = getenv("VELA_LOCK_ON_IDLE");
     if (!on_idle || !*on_idle) {
         on_idle = vela_config_get(&settings, "lock-on-idle", "");
@@ -321,10 +331,29 @@ void vela_lock_note_activity(struct vela_lock *lock)
     }
 }
 
+// Arm from the monotonic deadline, rounding up whole milliseconds.
+static bool arm_caffeine_timer(struct vela_lock *lock, int64_t deadline_ns)
+{
+    if (!lock->caffeine_timer) {
+        return false;
+    }
+    int64_t remaining = deadline_ns - vela_now_ns();
+    if (remaining < 1) {
+        remaining = 1;
+    }
+    const int ms = (int)((remaining + VELA_NS_PER_MS - 1) / VELA_NS_PER_MS);
+    if (wl_event_source_timer_update(lock->caffeine_timer, ms) < 0) {
+        wlr_log_errno(WLR_ERROR, "Could not arm caffeine expiry timer");
+        return false;
+    }
+    return true;
+}
+
 void vela_lock_set_caffeine(struct vela_lock *lock, bool on)
 {
     lock->caffeine = on;
     lock->caffeine_until_ns = 0;
+    lock->caffeine_duration_s = 0;
     if (lock->caffeine_timer) {
         wl_event_source_timer_update(lock->caffeine_timer, 0);
     }
@@ -336,19 +365,34 @@ void vela_lock_set_caffeine(struct vela_lock *lock, bool on)
     wlr_log(WLR_INFO, "Caffeine %s", on ? "on" : "off");
 }
 
-void vela_lock_set_caffeine_for(struct vela_lock *lock, double minutes)
+bool vela_lock_set_caffeine_for(struct vela_lock *lock, double minutes)
 {
-    if (minutes <= 0) {
-        vela_lock_set_caffeine(lock, true);
-        return;
+    if (!isfinite(minutes) || minutes <= 0 || minutes > VELA_CAFFEINE_MAX_MINUTES) {
+        wlr_log(WLR_ERROR, "Invalid caffeine duration");
+        return false;
     }
-    vela_lock_set_caffeine(lock, true);
-    lock->caffeine_until_ns = vela_now_ns() + (int64_t)(minutes * 60 * VELA_NS_PER_SEC);
-    if (lock->caffeine_timer) {
-        int ms = (int)(minutes * 60 * 1000);
-        wl_event_source_timer_update(lock->caffeine_timer, ms > 0 ? ms : 1);
+    if (!lock->caffeine_timer) {
+        wlr_log(WLR_ERROR, "Caffeine expiry timer unavailable; refusing timed inhibition");
+        vela_lock_set_caffeine(lock, false); // A previous indefinite session must not survive.
+        return false;
     }
+    const int64_t duration_ns = (int64_t)ceil(minutes * 60.0 * VELA_NS_PER_SEC);
+    const int64_t deadline_ns = vela_now_ns() + duration_ns;
+    // A timed session must never become active without a working expiry
+    // timer. If rearming fails, fail closed even when replacing old caffeine.
+    if (!arm_caffeine_timer(lock, deadline_ns)) {
+        vela_lock_set_caffeine(lock, false);
+        return false;
+    }
+    lock->caffeine_until_ns = deadline_ns;
+    lock->caffeine_duration_s = (int)ceil(minutes * 60.0);
+    lock->caffeine = true;
+    if (lock->idle_notifier) {
+        wlr_idle_notifier_v1_set_inhibited(lock->idle_notifier, true);
+    }
+    vela_lock_note_activity(lock);
     wlr_log(WLR_INFO, "Caffeine on for %.2f minutes", minutes);
+    return true;
 }
 
 int vela_lock_caffeine_remaining_s(struct vela_lock *lock)
@@ -369,11 +413,21 @@ int vela_lock_caffeine_remaining_s(struct vela_lock *lock)
 static int handle_caffeine_timer(void *data)
 {
     struct vela_lock *lock = data;
-    if (lock->caffeine && lock->caffeine_until_ns > 0 && vela_now_ns() >= lock->caffeine_until_ns) {
+    if (!lock->caffeine || lock->caffeine_until_ns <= 0) {
+        return 0;
+    }
+    if (vela_now_ns() < lock->caffeine_until_ns) {
+        if (arm_caffeine_timer(lock, lock->caffeine_until_ns)) {
+            return 0; // timer woke before the monotonic deadline
+        }
+        // Timer rearming failed: do not leave indefinite idle inhibition.
         vela_lock_set_caffeine(lock, false);
         vela_a11y_announce(lock->server->a11y);
-        wlr_log(WLR_INFO, "Caffeine time is up");
+        return 0;
     }
+    vela_lock_set_caffeine(lock, false);
+    vela_a11y_announce(lock->server->a11y);
+    wlr_log(WLR_INFO, "Caffeine time is up");
     return 0;
 }
 
@@ -397,6 +451,9 @@ struct vela_lock *vela_lock_create(struct vela_server *server)
 
     // Timed caffeine turns itself off (cheap in every session, tests too).
     lock->caffeine_timer = wl_event_loop_add_timer(server->loop, handle_caffeine_timer, lock);
+    if (!lock->caffeine_timer) {
+        wlr_log_errno(WLR_ERROR, "Unable to create caffeine expiry timer");
+    }
 
     lock->idle_notifier = wlr_idle_notifier_v1_create(server->display);
     lock->idle_inhibit = wlr_idle_inhibit_v1_create(server->display);
@@ -416,6 +473,9 @@ void vela_lock_destroy(struct vela_lock *lock)
 {
     if (!lock) {
         return;
+    }
+    if (lock->caffeine_timer) {
+        wl_event_source_remove(lock->caffeine_timer);
     }
     clear_backdrop(lock);
     vela_node_destroy(&lock->backdrop_tree->node);

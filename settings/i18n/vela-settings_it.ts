@@ -985,6 +985,10 @@ Specifiche sistema
 <context>
     <name>Displays</name>
     <message>
+        <source>Move this display to make room before changing its size or orientation.</source>
+        <translation>Sposta questo schermo per creare spazio prima di modificarne le dimensioni o l’orientamento.</translation>
+    </message>
+    <message>
         <source>The display connection was lost. Reopen Settings to try again.</source>
         <translation>La connessione agli schermi è stata interrotta. Riapri Impostazioni per riprovare.</translation>
     </message>
@@ -3113,6 +3117,14 @@ Specifiche sistema
     <message>
         <source>Never</source>
         <translation>Mai</translation>
+    </message>
+    <message>
+        <source>Show desktop from taskbar corner</source>
+        <translation>Mostra il desktop dall'angolo della barra delle applicazioni</translation>
+    </message>
+    <message>
+        <source>Click the far-right edge of any taskbar to show or restore your windows (also with Super+D)</source>
+        <translation>Fai clic sul bordo destro di una barra delle applicazioni per mostrare o ripristinare le finestre (anche con Super+D)</translation>
     </message>
     <message>
         <source>Show desktop from taskbar corner</source>

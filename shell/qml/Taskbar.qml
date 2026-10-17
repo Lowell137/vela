@@ -903,7 +903,7 @@ Window {
     // the thin line lights up on hover.
     Item {
         id: showDesktop
-        visible: root.primary && Config.showDesktopCorner
+        visible: Config.showDesktopCorner // on every taskbar, like upstream
         x: root.vertical ? 0 : parent.width - width
         y: root.vertical ? parent.height - height : 0
         // Invisible at rest and over the clock's margin: it takes no room. Only
@@ -940,4 +940,5 @@ Window {
             }
         }
     }
+
 }

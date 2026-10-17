@@ -113,6 +113,7 @@ private:
     QTimer m_countdown;
     QPointer<QQuickWindow> m_counter;
     QQmlComponent m_counterComponent;
+    QTimer m_captureTimeout;
     QVariantList m_windows;
     QList<QPointer<QQuickWindow>> m_overlays;
     QHash<uint, QString> m_saved; // notification -> saved file

@@ -336,7 +336,14 @@ struct wlr_box vela_view_restore_box(struct vela_view *view)
     }
     const struct wlr_box area = output->usable;
     struct wlr_box frame = { 0, 0, area.width * 2 / 3, area.height * 2 / 3 };
-    if (view->x11 && view->x11_initial.width > 0 && view->x11_initial.height > 0) {
+    // A game opened directly in fullscreen may report its monitor-sized
+    // geometry as the "initial" X11 size. Restoring that would recreate the
+    // same oversized window instead of making a usable normal window.
+    struct wlr_box full = vela_output_box(output);
+    bool initial_fullscreen = view->x11 && view->x11_initial.width >= full.width
+        && view->x11_initial.height >= full.height;
+    if (view->x11 && !initial_fullscreen && view->x11_initial.width > 0
+        && view->x11_initial.height > 0) {
         frame.width = view->x11_initial.width;
         frame.height = view->x11_initial.height + (view->decoration ? VELA_DECORATION_HEIGHT : 0);
     }
@@ -662,6 +669,11 @@ static void handle_taskbar_rectangle(struct wl_listener *listener, void *data)
 
 static void create_taskbar_handle(struct vela_view *view)
 {
+#if WLR_HAS_XWAYLAND
+    if (view->x11 && view->x11->skip_taskbar) {
+        return; // _NET_WM_STATE_SKIP_TASKBAR (Wine's fullscreen backdrop)
+    }
+#endif
     struct wlr_foreign_toplevel_handle_v1 *handle
         = wlr_foreign_toplevel_handle_v1_create(view->server->foreign_toplevels);
     view->handle = handle;
@@ -903,22 +915,27 @@ static void apply_maximized(struct vela_view *view)
     }
     vela_view_send_maximized(view, true);
     struct vela_placement place = vela_output_place(output, vela_output_usable_area(output));
+    // Set the scene position first. vela_view_configure_size() sends an X11
+    // ConfigureWindow request using the scene node's *current* coordinates.
+    // Sending the new size first leaves Xwayland at the old window position.
+    vela_view_keep_in_place(view);
     vela_view_configure_size(view, place.width, place.height);
     if (view->handle) {
         wlr_foreign_toplevel_handle_v1_set_maximized(view->handle, true);
     }
-    vela_view_keep_in_place(view);
 }
 
 // Back to the free frame it had before being maximized or fullscreen.
 static void restore(struct vela_view *view)
 {
     struct wlr_box back = vela_view_restore_box(view);
-    vela_view_configure_size(view, back.width, back.height);
     if (view->mapped && back.width > 0) {
         struct wlr_box geometry = vela_view_geometry(view);
         vela_node_set_position(&view->tree->node, back.x - geometry.x, back.y - geometry.y);
     }
+    // For X11, configure after positioning: size-only then move-only
+    // configurations can leave the X11 window offset from Vela's scene.
+    vela_view_configure_size(view, back.width, back.height);
 }
 
 void vela_view_set_maximized(struct vela_view *view, bool on, bool animate)
@@ -978,6 +995,12 @@ void vela_view_set_fullscreen(struct vela_view *view, bool on)
     if (!vela_view_configurable(view)) {
         return;
     }
+    // Actual fullscreen state changes override an outstanding Wine restore
+    // hint. Redundant requests must not: Wine can echo fullscreen-off after
+    // Vela reconciled a popup -> decorated style change.
+    if (on != view->fullscreen) {
+        view->x11_wine_restore_fullscreen = false;
+    }
     if (on == view->fullscreen) {
         if (view->xdg) {
             wlr_xdg_surface_schedule_configure(view->xdg->base);
@@ -996,13 +1019,16 @@ void vela_view_set_fullscreen(struct vela_view *view, bool on)
         if (view->handle) {
             wlr_foreign_toplevel_handle_v1_set_fullscreen(view->handle, true);
         }
+        // Above taskbar and panels. Position the scene before configuring
+        // the X11 window so it gets the final fullscreen origin (not the
+        // old centered windowed origin) in the same ConfigureWindow request.
+        vela_node_reparent(&view->tree->node, view->server->layers.fullscreen);
+        vela_view_keep_below(view); // Wine's backdrop must not cover the game
+        vela_view_keep_in_place(view);
         if (output) {
             struct vela_placement place = vela_output_place(output, vela_output_full_area(output));
             vela_view_configure_size(view, place.width, place.height);
         }
-        // Above taskbar and panels.
-        vela_node_reparent(&view->tree->node, view->server->layers.fullscreen);
-        vela_view_keep_in_place(view);
         vela_view_refresh_decoration(view); // fullscreen hides the bar
         return;
     }
@@ -1014,6 +1040,7 @@ void vela_view_set_fullscreen(struct vela_view *view, bool on)
     }
     vela_node_reparent(&view->tree->node, view->server->layers.windows);
     vela_views_raise_always_on_top(view->server); // the flag was kept
+    vela_view_keep_below(view);
     if (view->maximized) {
         apply_maximized(view);
     } else if (!vela_snap_is_none(view->snap)) {
@@ -1102,7 +1129,7 @@ static void move_to_output(struct vela_view *view, struct vela_output *output, i
 
 // Every listener of a view: they all start disconnected, so all of them
 // can be disconnected at the end.
-enum { VIEW_LISTENERS = 28 };
+enum { VIEW_LISTENERS = 31 };
 
 static void listeners(struct vela_view *view, struct wl_listener *out[VIEW_LISTENERS])
 {
@@ -1129,6 +1156,9 @@ static void listeners(struct vela_view *view, struct wl_listener *out[VIEW_LISTE
         &view->request_configure,
         &view->request_activate,
         &view->set_decorations,
+        &view->set_override_redirect,
+        &view->request_below,
+        &view->request_skip_taskbar,
         &view->handle_activate,
         &view->handle_close,
         &view->handle_maximize,
@@ -1137,6 +1167,27 @@ static void listeners(struct vela_view *view, struct wl_listener *out[VIEW_LISTE
         &view->handle_rectangle,
     };
     memcpy(out, all, sizeof(all));
+}
+
+bool vela_view_stays_below(const struct vela_view *view)
+{
+#if WLR_HAS_XWAYLAND
+    return view->x11 && view->x11->below;
+#else
+    return false;
+#endif
+}
+
+void vela_view_keep_below(struct vela_view *view)
+{
+    struct vela_tree *parent = view->tree->node.parent;
+    if (!vela_view_stays_below(view) || !parent) {
+        return;
+    }
+    struct vela_node *bottom = wl_container_of(parent->children.next, bottom, link);
+    if (bottom != &view->tree->node) {
+        vela_node_place_below(&view->tree->node, bottom);
+    }
 }
 
 void vela_view_init(struct vela_view *view, struct vela_server *server)
@@ -1276,7 +1327,9 @@ void vela_view_mapped(struct vela_view *view)
         }
     }
     create_handles(view);
-    if (!elsewhere) {
+    if (vela_view_stays_below(view)) {
+        vela_view_keep_below(view); // no keyboard either: it is a backdrop
+    } else if (!elsewhere) {
         vela_focus_new_view(server, view);
     }
     if (rule && rule->always_on_top == 1 && !view->fullscreen) {
