@@ -181,11 +181,12 @@ Item {
                 visible: textFlick.visible && ratio < 1
                 anchors { right: textFlick.right; top: textFlick.top; bottom: textFlick.bottom }
             }
-            // Folder, other types, a PDF without QtPdf, or a video or sound
-            // when QtMultimedia is missing at run time: the large icon.
+            // Folder, other types, a PDF without QtPdf, or a PDF, video or sound
+            // when QtPdf or QtMultimedia is missing at run time: the large icon.
             Column {
                 anchors.centerIn: parent
                 visible: peek.kind === "folder" || peek.kind === "other"
+                    || (peek.kind === "pdf" && pdf.status === Loader.Error)
                     || (peek.kind === "media" && mediaLoader.status === Loader.Error)
                 spacing: 12
                 Image {
