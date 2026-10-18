@@ -16,6 +16,7 @@ private slots:
         QCOMPARE(peek::classify("inode/directory", true, false, true), QString("folder"));
         QCOMPARE(peek::classify("image/png", false, true, true), QString("image"));
         QCOMPARE(peek::classify("application/pdf", false, false, true), QString("pdf"));
+        QCOMPARE(peek::classify("application/pdf", false, true, true), QString("pdf"));
         QCOMPARE(peek::classify("application/pdf", false, false, false), QString("other"));
         QCOMPARE(peek::classify("text/x-python", false, false, false), QString("text"));
         QCOMPARE(peek::classify("text/markdown", false, false, false), QString("text"));

@@ -28,6 +28,8 @@ Item {
         function focusView() {}
         function dragUrls(row) { return [] }
         function zoom(step) {}
+        function pressItem(row, button, modifiers) {}
+        function releaseItem(row, button, modifiers) {}
     }
     DetailsView { id: details; anchors.fill: parent; tab: tab }
 
@@ -148,6 +150,26 @@ Item {
             }
             touch.release(0, box, cx - 160, y).release(1, box, cx + 160, y).commit()
             verify(box.zoom > 2, "zoom after spreading two fingers: " + box.zoom)
+        }
+
+        function test_pdf_goes_page_by_page() {
+            if (TestPdf === "") skip("built without QtPdf")
+            peek.show(TestPdf)
+            tryCompare(peek, "pages", 3, 5000)
+            const pager = findChild(peek, "pager")
+            verify(pager.visible)
+            compare(peek.page, 0)
+            mouseWheel(box, 50, 50, 0, 480)
+            mouseClick(pager.children[2])
+            compare(peek.page, 1)
+            compare(box.zoom, 1, "a new page starts fitted")
+            peek.pageBy(5)
+            compare(peek.page, 2)
+            mouseClick(pager.children[0])
+            compare(peek.page, 1)
+            peek.path = TestImage
+            compare(peek.page, 0)
+            tryVerify(() => !pager.visible)
         }
     }
 }

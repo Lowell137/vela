@@ -431,6 +431,8 @@ Item {
             event.accepted = true
             // Quick preview: Space or Esc closes it; the arrows go on moving the selection.
             if (peek.visible && (event.key === Qt.Key_Space || event.key === Qt.Key_Escape)) peek.hide()
+            else if (peek.visible && peek.kind === "pdf" && (event.key === Qt.Key_PageUp || event.key === Qt.Key_PageDown))
+                peek.pageBy(event.key === Qt.Key_PageUp ? -1 : 1)
             else if (event.key === Qt.Key_Space && !ctrl && !alt && page.isFolder && folder.selectionCount === 1)
                 peek.show(folder.selectedPaths()[0])
             // Back and Forward (Alt+arrows): Main.qml, for the whole window.

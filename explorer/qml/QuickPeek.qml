@@ -4,10 +4,10 @@
 import QtQuick
 import Vela.Controls
 
-// Quick preview (Space): a card over the folder, about 70% of the window, for
+// Quick preview (Space): a card over the folder, about 85% of the window, for
 // the chosen item. Space or Esc closes it; the arrows keep moving the
 // selection in the view and the card follows. Images, text (the first 64 KB),
-// the first page of a PDF, folders and everything else by icon and properties.
+// PDFs a page at a time (Page Up and Page Down or the buttons), folders and everything else by icon and properties.
 // Images and PDFs zoom with the mouse wheel or a pinch (touchpad, touch
 // screen) around the pointer, pan with a drag once zoomed, and a double click
 // fits them again.
@@ -17,6 +17,8 @@ Item {
     property string path: ""
     property var result: null // answer of Ops.peek() for `path`
     readonly property string kind: result ? result.kind : ""
+    property int page: 0 // of a PDF
+    readonly property int pages: pdf.item ? pdf.item.pages : 0
 
     anchors.fill: parent
     visible: false
@@ -25,7 +27,9 @@ Item {
     // Shown again for the same item: asked again, the old answer stays until the new one.
     function show(p) { if (p === path && p !== "") Ops.peek(p); else path = p; visible = true }
     function hide() { visible = false }
-    onPathChanged: { result = null; zoomBox.reset(); if (path !== "") Ops.peek(path) }
+    onPathChanged: { result = null; page = 0; zoomBox.reset(); textFlick.contentY = 0; if (path !== "") Ops.peek(path) }
+    onPageChanged: zoomBox.reset()
+    function pageBy(n) { page = Math.max(0, Math.min(pages - 1, page + n)) }
 
     Connections {
         target: Ops
@@ -40,8 +44,8 @@ Item {
     Rectangle {
         id: card
         anchors.centerIn: parent
-        width: Math.round(parent.width * 0.7)
-        height: Math.round(parent.height * 0.7)
+        width: Math.round(parent.width * 0.85)
+        height: Math.round(parent.height * 0.85)
         radius: Theme.radiusOverlay
         color: Theme.dialog
         border.width: 1
@@ -110,12 +114,14 @@ Item {
                         smooth: true
                     }
                     Loader {
+                        id: pdf
                         anchors.fill: parent
                         active: peek.kind === "pdf"
                         source: active ? "PeekPdf.qml" : ""
                         onLoaded: {
                             item.path = Qt.binding(() => peek.path)
                             item.detail = Qt.binding(() => zoomBox.detail)
+                            item.page = Qt.binding(() => peek.page)
                         }
                     }
                 }
@@ -140,6 +146,8 @@ Item {
                 }
             }
             Flickable {
+                id: textFlick
+                objectName: "textFlick"
                 anchors.fill: parent
                 visible: peek.kind === "text"
                 contentHeight: textView.height
@@ -147,7 +155,7 @@ Item {
                 boundsBehavior: Flickable.StopAtBounds
                 Text {
                     id: textView
-                    width: parent.width
+                    width: parent.width - 14 // room for the scroll bar
                     text: peek.result && peek.result.text !== undefined ? peek.result.text : ""
                     textFormat: Text.PlainText
                     color: Theme.text
@@ -155,6 +163,11 @@ Item {
                     font.pixelSize: Theme.fontCaption
                     wrapMode: Text.WrapAnywhere
                 }
+            }
+            ScrollBar {
+                flickable: textFlick
+                visible: textFlick.visible && ratio < 1
+                anchors { right: textFlick.right; top: textFlick.top; bottom: textFlick.bottom }
             }
             // Folder, other types, or a PDF without QtPdf: the large icon.
             Column {
@@ -177,9 +190,23 @@ Item {
                 }
             }
         }
+        Row {
+            id: pager
+            objectName: "pager"
+            anchors { right: parent.right; bottom: parent.bottom; margins: 6 }
+            visible: peek.kind === "pdf" && peek.pages > 1
+            ToolButton { icon.name: "go-previous"; tooltip: qsTr("Previous page (Page Up)"); usable: peek.page > 0; onClicked: peek.pageBy(-1); width: 36 }
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: (peek.page + 1) + " / " + peek.pages
+                color: Theme.textSecondary
+                font.pixelSize: Theme.fontCaption
+            }
+            ToolButton { icon.name: "go-next"; tooltip: qsTr("Next page (Page Down)"); usable: peek.page < peek.pages - 1; onClicked: peek.pageBy(1); width: 36 }
+        }
         Text {
             id: meta
-            anchors { left: parent.left; right: parent.right; bottom: parent.bottom; margins: 12 }
+            anchors { left: parent.left; right: pager.visible ? pager.left : parent.right; bottom: parent.bottom; margins: 12 }
             text: {
                 const r = peek.result
                 if (!r) return ""
