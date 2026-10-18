@@ -48,6 +48,7 @@ optdepends=(
     'libpulse: paplay, which plays the alarm sound (pipewire-pulse also provides it)'
     'power-profiles-daemon: energy saver'
     'udisks2: unmounted drives in File Explorer'
+    'kimageformats: AVIF, HEIF, JPEG XL and other pictures in File Explorer (thumbnails, quick preview)'
     'xdg-utils: share by email, default apps'
     'kdeconnect: share with your phone'
     'bluedevil: share via Bluetooth'

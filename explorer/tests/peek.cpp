@@ -22,6 +22,15 @@ private slots:
         QCOMPARE(peek::classify("application/json", false, false, false), QString("text"));
         QCOMPARE(peek::classify("application/zip", false, false, false), QString("other"));
     }
+    void sniff()
+    {
+        QVERIFY(peek::looksLikeText("[section]\nkey = value\n"));
+        QVERIFY(peek::looksLikeText(QString("çalışma: ok").toUtf8()));
+        QVERIFY(peek::looksLikeText(QString("aé").toUtf8().chopped(1))); // cut inside the last character
+        QVERIFY(!peek::looksLikeText(QByteArray("\x89PNG\r\n\x1a\n\0\0", 10)));
+        QVERIFY(!peek::looksLikeText(QByteArray("\xff\xfe\xfd text")));
+        QVERIFY(!peek::looksLikeText(QByteArray()));
+    }
     void truncateShort()
     {
         bool cut = true;
