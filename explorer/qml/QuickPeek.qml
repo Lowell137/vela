@@ -207,14 +207,14 @@ Item {
             objectName: "pager"
             anchors { right: parent.right; bottom: parent.bottom; margins: 6 }
             visible: peek.kind === "pdf" && peek.pages > 1
-            ToolButton { icon.name: "go-previous"; tooltip: qsTr("Previous page (Page Up)"); usable: peek.page > 0; onClicked: peek.pageBy(-1); width: 36 }
+            ToolButton { icon: "go-previous"; tooltip: qsTr("Previous page (Page Up)"); usable: peek.page > 0; onClicked: peek.pageBy(-1); width: 36 }
             Text {
                 anchors.verticalCenter: parent.verticalCenter
                 text: (peek.page + 1) + " / " + peek.pages
                 color: Theme.textSecondary
                 font.pixelSize: Theme.fontCaption
             }
-            ToolButton { icon.name: "go-next"; tooltip: qsTr("Next page (Page Down)"); usable: peek.page < peek.pages - 1; onClicked: peek.pageBy(1); width: 36 }
+            ToolButton { icon: "go-next"; tooltip: qsTr("Next page (Page Down)"); usable: peek.page < peek.pages - 1; onClicked: peek.pageBy(1); width: 36 }
         }
         Text {
             id: meta
