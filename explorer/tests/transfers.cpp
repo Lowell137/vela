@@ -9,6 +9,7 @@
 
 #include "appmodel.h"
 #include "fileops.h"
+#include "places.h"
 #include "systemactions.h"
 
 #include <QDateTime>
@@ -148,6 +149,18 @@ private slots:
     {
         delete m_ops;
         delete m_dir;
+    }
+
+    // Quick access order: a pinned folder dragged before or after another.
+    void movePin()
+    {
+        const QStringList pins { "/a", "/b", "/c", "/d" };
+        QCOMPARE(Places::movedPin(pins, "/d", "/a", false), QStringList({ "/d", "/a", "/b", "/c" }));
+        QCOMPARE(Places::movedPin(pins, "/a", "/c", true), QStringList({ "/b", "/c", "/a", "/d" }));
+        QCOMPARE(Places::movedPin(pins, "/a", "/b", false), pins); // already there
+        QCOMPARE(Places::movedPin(pins, "/b", "/b", true), pins);
+        QCOMPARE(Places::movedPin(pins, "/x", "/a", false), pins); // not pinned
+        QCOMPARE(Places::movedPin(pins, "/a", "/x", false), pins);
     }
 
     void copyNewFile()

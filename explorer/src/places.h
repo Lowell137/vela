@@ -48,6 +48,9 @@ public:
     Q_INVOKABLE bool isPinned(const QString& path) const;
     Q_INVOKABLE void pin(const QString& path);
     Q_INVOKABLE void unpin(const QString& path);
+    // Moves a pinned folder before (or after) another pinned one.
+    Q_INVOKABLE void movePin(const QString& path, const QString& target, bool after);
+    static QStringList movedPin(QStringList pinned, const QString& path, const QString& target, bool after);
     // The recently used files: [{name, path, icon, modified, location}], most
     // recent first.
     Q_INVOKABLE QVariantList recentFiles(int limit) const;

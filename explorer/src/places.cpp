@@ -182,6 +182,25 @@ void Places::unpin(const QString& path)
     }
 }
 
+QStringList Places::movedPin(QStringList pinned, const QString& path, const QString& target, bool after)
+{
+    if (path == target || !pinned.contains(path) || !pinned.contains(target)) {
+        return pinned;
+    }
+    pinned.removeAll(path);
+    pinned.insert(pinned.indexOf(target) + (after ? 1 : 0), path);
+    return pinned;
+}
+
+void Places::movePin(const QString& path, const QString& target, bool after)
+{
+    const QStringList moved = movedPin(m_pinned, path, target, after);
+    if (moved != m_pinned) {
+        m_pinned = moved;
+        saveQuickAccess();
+    }
+}
+
 void Places::refreshDrives()
 {
     // Real drives (a device in /dev), once even when mounted in several places

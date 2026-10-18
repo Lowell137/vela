@@ -7,7 +7,8 @@ import Vela.Controls
 // The navigation pane on the left, like Windows 11: Home, the Quick access
 // folders (with the pin), This PC with the drives (also unmounted ones,
 // mounted when opened), the Recycle Bin. Files can be dropped on an entry to
-// move or copy them there.
+// move or copy them there; a pinned folder dragged onto another one goes
+// before or after it (the line shows where).
 Flickable {
     id: pane
     property string current // the open location, to highlight it
@@ -31,10 +32,13 @@ Flickable {
         property bool droppable: location.startsWith("/")
         property int indent: 0
         readonly property bool selected: pane.current === location
+        readonly property bool dragging: mouse.drag.active
+        // A pinned folder dragged here: -1 goes above, 1 below.
+        readonly property int pinDrop: drop.containsDrag && drop.pinDrag ? (drop.drag.y < height / 2 ? -1 : 1) : 0
         width: column.width
         height: 32
         radius: Theme.radius
-        color: drop.containsDrag ? Theme.selectionHover : selected ? Theme.selection : mouse.containsMouse ? Theme.subtleHover : "transparent"
+        color: drop.containsDrag && pinDrop === 0 ? Theme.selectionHover : selected ? Theme.selection : mouse.containsMouse ? Theme.subtleHover : "transparent"
 
         Rectangle {
             visible: entry.selected
@@ -68,11 +72,34 @@ Flickable {
             font.pixelSize: 10
             opacity: 0.55
         }
+        Rectangle {
+            visible: entry.pinDrop !== 0
+            x: 8
+            y: entry.pinDrop < 0 ? -2 : entry.height
+            width: parent.width - 16
+            height: 2
+            radius: 1
+            color: Theme.accentFill
+        }
+        // A pinned folder is dragged inside the pane only: it carries no files.
+        Item {
+            id: pinProxy
+            Drag.active: mouse.drag.active
+            Drag.keys: ["vela/pin"]
+            Drag.source: entry
+        }
         MouseArea {
             id: mouse
             anchors.fill: parent
             hoverEnabled: true
             acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
+            drag.target: entry.pinned ? pinProxy : null
+            drag.axis: Drag.YAxis
+            preventStealing: entry.pinned // the pane would take the vertical drag
+            drag.threshold: 8
+            drag.smoothed: false // the drop point is the pointer, not 8 px behind it
+            onPressed: mouse => { pinProxy.Drag.hotSpot.x = mouse.x; pinProxy.Drag.hotSpot.y = mouse.y }
+            onReleased: { if (entry.dragging) pinProxy.Drag.drop(); pinProxy.x = 0; pinProxy.y = 0 }
             onClicked: mouse => {
                 if (mouse.button === Qt.MiddleButton) {
                     pane.openInNewTab(entry.location)
@@ -90,8 +117,23 @@ Flickable {
             id: drop
             anchors.fill: parent
             enabled: entry.droppable
-            onEntered: drag => { if (!drag.hasUrls) drag.accepted = false }
+            property bool pinDrag: false
+            onEntered: drag => {
+                pinDrag = drag.keys.indexOf("vela/pin") >= 0
+                if (pinDrag) {
+                    if (!entry.pinned || drag.source === entry) drag.accepted = false
+                } else if (!drag.hasUrls) {
+                    drag.accepted = false
+                }
+            }
+            onExited: pinDrag = false
             onDropped: drop => {
+                if (drop.keys.indexOf("vela/pin") >= 0) {
+                    Places.movePin(drop.source.location, entry.location, drop.y >= entry.height / 2)
+                    pinDrag = false
+                    drop.accept()
+                    return
+                }
                 Ops.drop(drop.urls.map(u => u.toString()), entry.location, 0)
                 drop.accept(Qt.MoveAction)
             }
@@ -145,6 +187,7 @@ Flickable {
                 label: modelData.name
                 location: modelData.path
                 pinned: true
+                opacity: dragging ? 0.5 : 1
             }
         }
         Rectangle { width: parent.width; height: 1; color: Theme.divider }
