@@ -58,6 +58,8 @@ BuildRequires:  layer-shell-qt-devel
 BuildRequires:  python3
 BuildRequires:  pipewire-devel
 BuildRequires:  wireplumber-devel
+# sd-bus: the laptop backlight through logind (docs/brightness.md §5.3).
+BuildRequires:  systemd-devel
 
 Requires:       wlroots >= 0.20
 # Tools required by the installed vela-update command even without a build.
@@ -127,6 +129,8 @@ install -Dm644 packaging/verify-attestation.py %{buildroot}%{_libexecdir}/vela/v
 %{_datadir}/wayland-sessions/vela.desktop
 %{_datadir}/xdg-desktop-portal/vela-portals.conf
 %{_prefix}/lib/systemd/user/vela-session.target
+%{_prefix}/lib/udev/rules.d/70-vela-i2c.rules
+%{_prefix}/lib/modules-load.d/vela-i2c.conf
 %config(noreplace) /etc/pam.d/vela-lock
 %config(noreplace) /etc/xdg/xdg-desktop-portal-wlr/Vela
 
