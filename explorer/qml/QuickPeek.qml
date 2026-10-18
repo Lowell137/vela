@@ -22,8 +22,9 @@ Item {
     visible: false
     z: 100
 
-    function show(p) { path = p; visible = true }
-    function hide() { visible = false; result = null }
+    // Shown again for the same item: asked again, the old answer stays until the new one.
+    function show(p) { if (p === path && p !== "") Ops.peek(p); else path = p; visible = true }
+    function hide() { visible = false }
     onPathChanged: { result = null; zoomBox.reset(); if (path !== "") Ops.peek(path) }
 
     Connections {
@@ -34,7 +35,7 @@ Item {
     function fileUrl(p) { return "file://" + encodeURI(p).replace(/#/g, "%23").replace(/\?/g, "%3F") }
 
     Rectangle { anchors.fill: parent; color: Theme.smoke
-        MouseArea { anchors.fill: parent; onClicked: peek.hide() } }
+        MouseArea { anchors.fill: parent; onClicked: peek.hide(); onWheel: {} } } // nothing reaches the folder behind
 
     Rectangle {
         id: card
@@ -46,7 +47,7 @@ Item {
         border.width: 1
         border.color: Theme.dialogStroke
         clip: true
-        MouseArea { anchors.fill: parent } // clicks on the card do not close it
+        MouseArea { anchors.fill: parent; onWheel: {} } // clicks on the card do not close it
 
         Text {
             id: title
@@ -74,6 +75,7 @@ Item {
                 readonly property real detail: Math.pow(2, Math.ceil(Math.log2(zoom) - 0.001))
 
                 function reset() { zoom = 1; content.x = 0; content.y = 0 }
+                function panBy(dx, dy) { content.x += dx; content.y += dy; keepInside() }
                 function keepInside() {
                     content.x = Math.min(0, Math.max(width - width * zoom, content.x))
                     content.y = Math.min(0, Math.max(height - height * zoom, content.y))
@@ -118,30 +120,24 @@ Item {
                     }
                 }
 
-                WheelHandler {
-                    acceptedDevices: PointerDevice.Mouse
-                    onWheel: event => zoomBox.zoomAt(Math.pow(1.0015, event.angleDelta.y), point.position.x, point.position.y)
-                }
                 PinchHandler {
                     target: null
                     onScaleChanged: delta => zoomBox.zoomAt(delta, centroid.position.x, centroid.position.y)
-                    onTranslationChanged: delta => {
-                        content.x += delta.x
-                        content.y += delta.y
-                        zoomBox.keepInside()
-                    }
+                    onTranslationChanged: delta => zoomBox.panBy(delta.x, delta.y)
                 }
-                DragHandler {
-                    target: null
-                    enabled: zoomBox.zoom > 1
-                    cursorShape: active ? Qt.ClosedHandCursor : Qt.OpenHandCursor
-                    onTranslationChanged: delta => {
-                        content.x += delta.x
-                        content.y += delta.y
-                        zoomBox.keepInside()
+                // The wheel zooms, a drag pans once zoomed, a double click fits again.
+                MouseArea {
+                    anchors.fill: parent
+                    property point last
+                    cursorShape: zoomBox.zoom > 1 ? (pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor) : Qt.ArrowCursor
+                    onPressed: mouse => last = Qt.point(mouse.x, mouse.y)
+                    onPositionChanged: mouse => {
+                        if (zoomBox.zoom > 1) zoomBox.panBy(mouse.x - last.x, mouse.y - last.y)
+                        last = Qt.point(mouse.x, mouse.y)
                     }
+                    onDoubleClicked: zoomBox.reset()
+                    onWheel: wheel => zoomBox.zoomAt(Math.pow(1.0015, wheel.angleDelta.y), wheel.x, wheel.y)
                 }
-                MouseArea { anchors.fill: parent; onDoubleClicked: zoomBox.reset() }
             }
             Flickable {
                 anchors.fill: parent

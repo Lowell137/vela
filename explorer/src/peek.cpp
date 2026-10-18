@@ -27,6 +27,22 @@ QString classify(const QString& mime, bool isDir, bool imageReadable, bool pdfSu
     return QStringLiteral("other");
 }
 
+bool looksLikeText(const QByteArray& head)
+{
+    if (head.isEmpty() || head.contains('\0')) {
+        return false;
+    }
+    // Invalid UTF-8 decodes to U+FFFD; the read may have cut the last
+    // sequence (at most 3 bytes of it), and the file may hold U+FFFD itself.
+    const bool hasReplacement = head.contains("\xEF\xBF\xBD");
+    for (int drop = 0; drop <= 3 && drop < head.size(); ++drop) {
+        if (hasReplacement || !QString::fromUtf8(head.chopped(drop)).contains(QChar::ReplacementCharacter)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 QString truncateText(const QByteArray& head, qint64 fileSize, int maxBytes, bool* truncated)
 {
     QByteArray bytes = head.left(maxBytes);

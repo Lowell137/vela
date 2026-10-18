@@ -92,6 +92,7 @@ Recommends:     breeze-icon-theme
 Recommends:     NetworkManager
 Recommends:     bluez
 Recommends:     udisks2
+Recommends:     kf6-kimageformats
 Recommends:     power-profiles-daemon
 
 %description

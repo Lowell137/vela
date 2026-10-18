@@ -1432,8 +1432,14 @@ void FileOps::peek(const QString& path)
         }
         QVariantMap out = self->details(path);
         const bool isDir = out.value(QStringLiteral("isDir")).toBool();
-        const QString kind = peek::classify(out.value(QStringLiteral("mime")).toString(), isDir,
+        QString kind = peek::classify(out.value(QStringLiteral("mime")).toString(), isDir,
             !isDir && QImageReader(path).canRead(), self->pdfSupported());
+        if (kind == QLatin1String("other")) {
+            QFile file(path);
+            if (file.open(QIODevice::ReadOnly) && peek::looksLikeText(file.read(peek::sniffBytes))) {
+                kind = QStringLiteral("text");
+            }
+        }
         out[QStringLiteral("kind")] = kind;
         if (kind == QLatin1String("folder")) {
             // A bounded walk: a huge tree must not hold the preview.

@@ -4,6 +4,7 @@
 import QtQuick
 import QtTest
 import Vela.Controls
+import Vela.Files.Backend
 import "../qml"
 
 // The quick preview's zoom: the wheel and a pinch zoom around the pointer
@@ -13,6 +14,22 @@ Item {
     id: root
     width: 700
     height: 500
+
+    // A folder view behind, like in the window: the wheel must not reach it.
+    FolderModel { id: folder; path: TestFolder }
+    QtObject {
+        id: tab
+        property var model: folder
+        property bool viewFocused: false
+        property string renamingPath: ""
+        property bool isTrash: false
+        property bool writable: false
+        property string location: TestFolder
+        function focusView() {}
+        function dragUrls(row) { return [] }
+        function zoom(step) {}
+    }
+    DetailsView { id: details; anchors.fill: parent; tab: tab }
 
     QuickPeek { id: peek; tab: null }
 
@@ -24,6 +41,8 @@ Item {
         property var content
 
         function init() {
+            tryCompare(folder, "count", 300, 5000)
+            mouseClick(details, 200, 60) // a file chosen with the mouse, as before Space
             peek.show(TestImage)
             tryVerify(() => peek.kind === "image")
             box = findChild(peek, "zoomBox")
@@ -47,6 +66,30 @@ Item {
             fuzzyCompare(after.y, before.y, 0.5)
             mouseWheel(box, x, y, 0, -120)
             fuzzyCompare(box.zoom, 1, 0.001)
+        }
+
+        // The folder view's Flickable, behind the preview.
+        function listOf(item) {
+            if (item.contentY !== undefined && item.contentHeight !== undefined) return item
+            for (const child of item.children) {
+                const found = listOf(child)
+                if (found) return found
+            }
+            return null
+        }
+
+        function test_wheel_and_clicks_stay_in_the_preview() {
+            const list = listOf(details)
+            verify(list && list.contentHeight > list.height)
+            for (const p of [[box.width / 2, box.height / 2], [5, 5]]) { // the picture, the backdrop
+                const at = box.mapToItem(root, p[0], p[1])
+                mouseWheel(root, at.x, at.y, 0, -360)
+                compare(list.contentY, 0)
+            }
+            mouseWheel(root, 5, 5, 0, -360) // the backdrop, outside the card
+            compare(list.contentY, 0)
+            mouseClick(root, 5, root.height - 5)
+            verify(!peek.visible) // a click outside closes it, and goes no further
         }
 
         function test_zoom_stays_between_1x_and_8x() {
@@ -78,6 +121,14 @@ Item {
             mouseDoubleClickSequence(box, 50, 50)
             compare(box.zoom, 1)
             compare(content.x, 0)
+        }
+
+        function test_space_again_and_again_shows_the_item() {
+            for (let i = 0; i < 6; ++i) {
+                peek.hide()
+                peek.show(TestImage)
+                verify(peek.result !== null && peek.kind === "image", "after " + (i + 1) + " reopenings")
+            }
         }
 
         function test_another_item_starts_fitted() {

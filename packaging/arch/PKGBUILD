@@ -42,6 +42,7 @@ optdepends=(
     'pipewire-pulse: sound for apps that still use PulseAudio'
     'power-profiles-daemon: energy saver'
     'udisks2: unmounted drives in File Explorer'
+    'kimageformats: AVIF, HEIF, JPEG XL and other pictures in File Explorer (thumbnails, quick preview)'
     'xdg-utils: share by email, default apps'
     'kdeconnect: share with your phone'
     'bluedevil: share via Bluetooth'
