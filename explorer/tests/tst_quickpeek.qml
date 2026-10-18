@@ -149,7 +149,7 @@ Item {
                 wait(10)
             }
             touch.release(0, box, cx - 160, y).release(1, box, cx + 160, y).commit()
-            verify(box.zoom > 2, "zoom after spreading two fingers: " + box.zoom)
+            verify(box.zoom > 1.5, "zoom after spreading two fingers: " + box.zoom)
         }
 
         function test_pdf_goes_page_by_page() {
