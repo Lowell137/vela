@@ -1180,6 +1180,15 @@ bool FileOps::pdfSupported() const
 #endif
 }
 
+bool FileOps::mediaSupported() const
+{
+#ifdef VELA_FILES_MEDIA
+    return true;
+#else
+    return false;
+#endif
+}
+
 void FileOps::peek(const QString& path)
 {
     QPointer<FileOps> self(this);
@@ -1190,7 +1199,7 @@ void FileOps::peek(const QString& path)
         QVariantMap out = self->details(path);
         const bool isDir = out.value(QStringLiteral("isDir")).toBool();
         QString kind = peek::classify(out.value(QStringLiteral("mime")).toString(), isDir,
-            !isDir && QImageReader(path).canRead(), self->pdfSupported());
+            !isDir && QImageReader(path).canRead(), self->pdfSupported(), self->mediaSupported());
         if (kind == QLatin1String("other")) {
             QFile file(path);
             if (file.open(QIODevice::ReadOnly) && peek::looksLikeText(file.read(peek::sniffBytes))) {

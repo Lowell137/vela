@@ -104,6 +104,7 @@ public:
     // text, truncated, items, sizeText, ...} (details() plus the content).
     Q_INVOKABLE void peek(const QString& path);
     Q_INVOKABLE bool pdfSupported() const;
+    Q_INVOKABLE bool mediaSupported() const;
 
 signals:
     void peekReady(const QString& path, const QVariantMap& result);

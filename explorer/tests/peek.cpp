@@ -13,15 +13,18 @@ class PeekTest : public QObject {
 private slots:
     void classify()
     {
-        QCOMPARE(peek::classify("inode/directory", true, false, true), QString("folder"));
-        QCOMPARE(peek::classify("image/png", false, true, true), QString("image"));
-        QCOMPARE(peek::classify("application/pdf", false, false, true), QString("pdf"));
-        QCOMPARE(peek::classify("application/pdf", false, true, true), QString("pdf"));
-        QCOMPARE(peek::classify("application/pdf", false, false, false), QString("other"));
-        QCOMPARE(peek::classify("text/x-python", false, false, false), QString("text"));
-        QCOMPARE(peek::classify("text/markdown", false, false, false), QString("text"));
-        QCOMPARE(peek::classify("application/json", false, false, false), QString("text"));
-        QCOMPARE(peek::classify("application/zip", false, false, false), QString("other"));
+        QCOMPARE(peek::classify("inode/directory", true, false, true, false), QString("folder"));
+        QCOMPARE(peek::classify("image/png", false, true, true, false), QString("image"));
+        QCOMPARE(peek::classify("application/pdf", false, false, true, false), QString("pdf"));
+        QCOMPARE(peek::classify("application/pdf", false, true, true, false), QString("pdf"));
+        QCOMPARE(peek::classify("application/pdf", false, false, false, false), QString("other"));
+        QCOMPARE(peek::classify("text/x-python", false, false, false, false), QString("text"));
+        QCOMPARE(peek::classify("text/markdown", false, false, false, false), QString("text"));
+        QCOMPARE(peek::classify("application/json", false, false, false, false), QString("text"));
+        QCOMPARE(peek::classify("application/zip", false, false, false, false), QString("other"));
+        QCOMPARE(peek::classify("video/mp4", false, false, false, true), QString("media"));
+        QCOMPARE(peek::classify("audio/flac", false, false, false, true), QString("media"));
+        QCOMPARE(peek::classify("video/mp4", false, false, false, false), QString("other"));
     }
     void sniff()
     {

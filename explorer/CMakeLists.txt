@@ -14,6 +14,11 @@ find_package(Qt6 6.5 QUIET COMPONENTS Pdf PdfQuick)
 if(Qt6Pdf_FOUND AND Qt6PdfQuick_FOUND)
     set(FILES_HAVE_PDF TRUE)
 endif()
+# Optional: videos and sounds playing in the quick preview.
+find_package(Qt6 6.5 QUIET COMPONENTS Multimedia)
+if(Qt6Multimedia_FOUND)
+    set(FILES_HAVE_MEDIA TRUE)
+endif()
 
 set(SHELL_SRC ${PROJECT_SOURCE_DIR}/shell/src)
 
@@ -42,6 +47,9 @@ target_compile_options(vela-files-core PRIVATE -Wall -Wextra)
 if(FILES_HAVE_PDF)
     target_compile_definitions(vela-files-core PUBLIC VELA_FILES_PDF)
 endif()
+if(FILES_HAVE_MEDIA)
+    target_compile_definitions(vela-files-core PUBLIC VELA_FILES_MEDIA)
+endif()
 target_link_libraries(vela-files-core PUBLIC
     vela-imageformats
     Qt6::DBus
@@ -56,6 +64,10 @@ qt_add_executable(vela-files src/main.cpp)
 set(PEEK_PDF_QML "")
 if(FILES_HAVE_PDF)
     set(PEEK_PDF_QML qml/PeekPdf.qml)
+endif()
+set(PEEK_MEDIA_QML "")
+if(FILES_HAVE_MEDIA)
+    set(PEEK_MEDIA_QML qml/PeekMedia.qml)
 endif()
 
 set(FILES_QML_FILES
@@ -79,6 +91,7 @@ set(FILES_QML_FILES
     qml/PreviewPane.qml
     qml/QuickPeek.qml
     ${PEEK_PDF_QML}
+    ${PEEK_MEDIA_QML}
     ${PROJECT_SOURCE_DIR}/shell/qml/MenuPanel.qml
     ${PROJECT_SOURCE_DIR}/shell/qml/PanelShadow.qml)
 

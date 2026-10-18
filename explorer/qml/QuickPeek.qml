@@ -7,7 +7,8 @@ import Vela.Controls
 // Quick preview (Space): a card over the folder, about 85% of the window, for
 // the chosen item. Space or Esc closes it; the arrows keep moving the
 // selection in the view and the card follows. Images, text (the first 64 KB),
-// PDFs a page at a time (Page Up and Page Down or the buttons), folders and everything else by icon and properties.
+// PDFs a page at a time (Page Up and Page Down or the buttons), videos and
+// sounds playing at once, folders and everything else by icon and properties.
 // Images and PDFs zoom with the mouse wheel or a pinch (touchpad, touch
 // screen) around the pointer, pan with a drag once zoomed, and a double click
 // fits them again.
@@ -162,6 +163,17 @@ Item {
                     font.family: "monospace"
                     font.pixelSize: Theme.fontCaption
                     wrapMode: Text.WrapAnywhere
+                }
+            }
+            // Videos and sounds: only while shown, so closing stops them.
+            Loader {
+                objectName: "mediaLoader"
+                anchors.fill: parent
+                active: peek.visible && peek.kind === "media"
+                source: active ? "PeekMedia.qml" : ""
+                onLoaded: {
+                    item.path = Qt.binding(() => peek.path)
+                    item.icon = Qt.binding(() => peek.result ? peek.result.icon : "")
                 }
             }
             ScrollBar {
