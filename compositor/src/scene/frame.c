@@ -887,7 +887,7 @@ void vela_output_frame_surface_committed(struct vela_output_frame *frame, struct
     // as damage, which can be empty: nothing would be redrawn and the window
     // kept its previous frame. A new buffer from X11 is damaged whole.
     if (!pixman_region32_not_empty(&region) && (surface->current.committed & WLR_SURFACE_STATE_BUFFER)
-        && surface->current.buffer && wlr_xwayland_surface_try_from_wlr_surface(surface)) {
+        && wlr_surface_state_has_buffer(&surface->current) && wlr_xwayland_surface_try_from_wlr_surface(surface)) {
         pixman_region32_union_rect(&region, &region, 0, 0, (unsigned)surface->current.width,
             (unsigned)surface->current.height);
     }

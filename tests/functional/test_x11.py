@@ -8,6 +8,7 @@ window is tools/vela-x11, which draws only on Expose; Xwayland starts with
 it, so its window is created while the X window manager is being set up."""
 
 import os
+import select
 import subprocess
 import time
 import unittest
@@ -391,7 +392,15 @@ class X11(unittest.TestCase):
         self.vela.clients.append(app)
         self.addCleanup(app.stdout.close)
         self.addCleanup(app.stdin.close)
-        if app.stdout.readline().split() != ["orange", "1"]:
+
+        def status():
+            # The helper waits on Present: a line within the deadline, or the test fails.
+            if not select.select([app.stdout], [], [], 15)[0]:
+                app.kill()
+                self.fail("vela-x11-present gave no status")
+            return app.stdout.readline().split()
+
+        if status() != ["orange", "1"]:
             self.skipTest("Xwayland copies instead of flipping (no glamor)")
         w = self.vela.wait_for(lambda s: s.windows, what="the X11 window").windows[0]
         point = (w["x"] + w["w"] // 2, w["y"] + w["h"] - 60)
@@ -399,7 +408,7 @@ class X11(unittest.TestCase):
                            what="the first frame")
         app.stdin.write("next\n")
         app.stdin.flush()
-        self.assertEqual(app.stdout.readline().split(), ["green", "1"])
+        self.assertEqual(status(), ["green", "1"])
         self.vela.wait_for(lambda _: self.vela.pixels().at(*point) == GREEN, read_state=False,
                            what="the frame flipped without damage")
 
