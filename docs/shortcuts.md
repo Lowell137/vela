@@ -49,6 +49,7 @@ Those nested alternatives are active only in nested mode; in a normal Vela sessi
 | Zoom an image or PDF in the preview (1x to 8x, around the pointer) | Mouse wheel, or pinch on a touchpad or touch screen |
 | Move around a zoomed preview | Drag |
 | Fit the preview again | Double click |
+| Next or previous page of a PDF | <kbd>Page Down</kbd> / <kbd>Page Up</kbd> |
 
 Space types normally in the rename field and the search box.
 

@@ -17,6 +17,8 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QImage>
+#include <QPainter>
+#include <QPdfWriter>
 #include <QQmlContext>
 #include <QQmlEngine>
 #include <QTemporaryDir>
@@ -28,6 +30,7 @@ Q_IMPORT_QML_PLUGIN(Vela_ControlsPlugin)
 namespace {
 QString folder;
 QString image; // for the quick preview
+QString pdf; // three pages, empty without QtPdf
 }
 
 class TestTransferOps : public QObject {
@@ -83,10 +86,11 @@ public:
     }
     int lastCancelled() const { return m_lastCancelled; }
     Q_INVOKABLE void cancelJob(int id) { m_lastCancelled = id; emit cancelledChanged(); }
-    // The quick preview's answer, at once: every path is an image.
+    // The quick preview's answer, at once: a PDF or else an image.
     Q_INVOKABLE void peek(const QString& path)
     {
-        emit peekReady(path, QVariantMap { { QStringLiteral("kind"), QStringLiteral("image") },
+        const bool isPdf = path.endsWith(QLatin1String(".pdf"));
+        emit peekReady(path, QVariantMap { { QStringLiteral("kind"), isPdf ? QStringLiteral("pdf") : QStringLiteral("image") },
                                  { QStringLiteral("name"), QFileInfo(path).fileName() } });
     }
     Q_INVOKABLE void dismissJob(int id)
@@ -126,6 +130,7 @@ public slots:
         engine->addImageProvider(QStringLiteral("fileicon"), new IconProvider(32));
         engine->rootContext()->setContextProperty(QStringLiteral("TestFolder"), folder);
         engine->rootContext()->setContextProperty(QStringLiteral("TestImage"), image);
+        engine->rootContext()->setContextProperty(QStringLiteral("TestPdf"), pdf);
         engine->rootContext()->setContextProperty(QStringLiteral("Ops"), &m_ops);
     }
 private:
@@ -166,6 +171,16 @@ int main(int argc, char** argv)
     if (!picture.save(image)) {
         return 1;
     }
+#ifdef VELA_FILES_PDF
+    pdf = home.filePath(QStringLiteral("peek.pdf"));
+    {
+        QPdfWriter writer(pdf);
+        QPainter painter(&writer);
+        for (int i = 1; i < 3; ++i) {
+            writer.newPage();
+        }
+    }
+#endif
 
     qmlRegisterType<FolderModel>("Vela.Files.Backend", 1, 0, "FolderModel");
     Setup setup;
