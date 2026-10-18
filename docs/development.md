@@ -53,6 +53,8 @@ sudo zypper install cmake ninja gcc-c++ wlroots-devel wayland-protocols-devel \
 ```
 </details>
 
+Optional: `qt6-multimedia` (Fedora: `qt6-qtmultimedia-devel`) plays videos and sounds in File Explorer's quick preview (Space); without it they show as an icon.
+
 ## Build commands
 
 The normal development build is:

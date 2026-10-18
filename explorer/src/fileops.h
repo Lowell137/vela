@@ -119,6 +119,7 @@ public:
     // text, truncated, items, sizeText, ...} (details() plus the content).
     Q_INVOKABLE void peek(const QString& path);
     Q_INVOKABLE bool pdfSupported() const;
+    Q_INVOKABLE bool mediaSupported() const;
 
 public Q_SLOTS:
     Q_SCRIPTABLE void Cancel(int id);

@@ -12,7 +12,7 @@ namespace peek {
 constexpr int maxTextBytes = 64 * 1024;
 
 // "folder", "image", "text", "pdf" or "other".
-QString classify(const QString& mime, bool isDir, bool imageReadable, bool pdfSupported);
+QString classify(const QString& mime, bool isDir, bool imageReadable, bool pdfSupported, bool mediaSupported);
 
 // A file whose type says nothing (no extension, an unknown one) is text when
 // its beginning has no NUL byte and is valid UTF-8.

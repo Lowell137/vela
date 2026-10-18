@@ -43,7 +43,7 @@ Those nested alternatives are active only in nested mode; in a normal Vela sessi
 
 | Action | Shortcut |
 |---|---|
-| Quick preview of the chosen item (images, text, PDF, folders, properties) | <kbd>Space</kbd> |
+| Quick preview of the chosen item (images, text, PDF, videos, sounds, folders, properties) | <kbd>Space</kbd> |
 | Close the quick preview | <kbd>Space</kbd> or <kbd>Esc</kbd> |
 | Another item while previewing | <kbd>Up</kbd> / <kbd>Down</kbd> / <kbd>Left</kbd> / <kbd>Right</kbd> |
 | Zoom an image or PDF in the preview (1x to 8x, around the pointer) | Mouse wheel, or pinch on a touchpad or touch screen |

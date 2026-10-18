@@ -7,7 +7,7 @@
 
 namespace peek {
 
-QString classify(const QString& mime, bool isDir, bool imageReadable, bool pdfSupported)
+QString classify(const QString& mime, bool isDir, bool imageReadable, bool pdfSupported, bool mediaSupported)
 {
     static const QMimeDatabase mimes;
     if (isDir) {
@@ -19,6 +19,9 @@ QString classify(const QString& mime, bool isDir, bool imageReadable, bool pdfSu
     }
     if (imageReadable) {
         return QStringLiteral("image");
+    }
+    if (mediaSupported && (mime.startsWith(QLatin1String("video/")) || mime.startsWith(QLatin1String("audio/")))) {
+        return QStringLiteral("media");
     }
     const QMimeType type = mimes.mimeTypeForName(mime);
     if ((type.isValid() && type.inherits(QStringLiteral("text/plain"))) || mime == QLatin1String("application/json")
