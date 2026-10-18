@@ -42,6 +42,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/socket.h>
 #include <wlr/backend.h>
 #include <wlr/backend/multi.h>
 #include <wlr/backend/wayland.h>
@@ -119,6 +120,20 @@ static void handle_layout_change(struct wl_listener *listener, void *data)
     vela_views_check_outputs_later(server);
 }
 
+// A client that stops reading for a moment (Brave leaving fullscreen) is
+// disconnected by libwayland once its socket buffer is full ("Data too big
+// for buffer"). The default (net.core.wmem_default, 208 KiB) fills in a
+// second or two of input events; this asks for the unprivileged maximum
+// (wmem_max, 4 MiB by default) so a short stall doesn't close the window.
+static void handle_client_created(struct wl_listener *listener, void *data)
+{
+    (void)listener;
+    int size = 4 * 1024 * 1024;
+    setsockopt(wl_client_get_fd(data), SOL_SOCKET, SO_SNDBUF, &size, sizeof size);
+}
+
+static struct wl_listener client_created = {.notify = handle_client_created};
+
 // The frame loop must wake at the right moment even with the CPU busy (a
 // build, a game): realtime scheduling, at low priority, for the main thread,
 // like KWin. What Vela launches (shell, apps) doesn't inherit it. Needs
@@ -160,6 +175,7 @@ static bool init(struct vela_server *server)
     server->vrr_mode = 1;
     server->display = wl_display_create();
     server->loop = wl_display_get_event_loop(server->display);
+    wl_display_add_client_created_listener(server->display, &client_created);
     struct wl_display *display = server->display;
     server->shell.display = display; // the shell's connection is ours (docs/renderer.md §15.3)
 
