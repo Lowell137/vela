@@ -8,6 +8,9 @@ import Vela.Controls
 // the chosen item. Space or Esc closes it; the arrows keep moving the
 // selection in the view and the card follows. Images, text (the first 64 KB),
 // the first page of a PDF, folders and everything else by icon and properties.
+// Images and PDFs zoom with the mouse wheel or a pinch (touchpad, touch
+// screen) around the pointer, pan with a drag once zoomed, and a double click
+// fits them again.
 Item {
     id: peek
     property var tab
@@ -21,7 +24,7 @@ Item {
 
     function show(p) { path = p; visible = true }
     function hide() { visible = false; result = null }
-    onPathChanged: { result = null; if (path !== "") Ops.peek(path) }
+    onPathChanged: { result = null; zoomBox.reset(); if (path !== "") Ops.peek(path) }
 
     Connections {
         target: Ops
@@ -58,15 +61,87 @@ Item {
             id: body
             anchors { left: parent.left; right: parent.right; top: title.bottom; bottom: meta.top; margins: 12 }
 
-            Image {
+            // Images and PDFs: zoom around the pointer, 1x to 8x.
+            Item {
+                id: zoomBox
+                objectName: "zoomBox"
                 anchors.fill: parent
-                visible: peek.kind === "image"
-                source: visible ? peek.fileUrl(peek.path) : ""
-                sourceSize: Qt.size(width, height)
-                fillMode: Image.PreserveAspectFit
-                asynchronous: true
-                autoTransform: true
-                smooth: true
+                clip: true
+                visible: peek.kind === "image" || peek.kind === "pdf"
+                property real zoom: 1
+                // Decoded at the next power of two of the zoom, so it stays sharp
+                // without decoding again at every wheel step.
+                readonly property real detail: Math.pow(2, Math.ceil(Math.log2(zoom) - 0.001))
+
+                function reset() { zoom = 1; content.x = 0; content.y = 0 }
+                function keepInside() {
+                    content.x = Math.min(0, Math.max(width - width * zoom, content.x))
+                    content.y = Math.min(0, Math.max(height - height * zoom, content.y))
+                }
+                // Scales by `factor` keeping the point (px, py) of the box still.
+                function zoomAt(factor, px, py) {
+                    const z = Math.min(8, Math.max(1, zoom * factor))
+                    const k = z / zoom
+                    content.x = px - (px - content.x) * k
+                    content.y = py - (py - content.y) * k
+                    zoom = z
+                    keepInside()
+                }
+
+                Item {
+                    id: content
+                    objectName: "zoomContent"
+                    width: zoomBox.width
+                    height: zoomBox.height
+                    scale: zoomBox.zoom
+                    transformOrigin: Item.TopLeft
+
+                    Image {
+                        anchors.fill: parent
+                        visible: peek.kind === "image"
+                        source: visible ? peek.fileUrl(peek.path) : ""
+                        sourceSize: Qt.size(width * zoomBox.detail, height * zoomBox.detail)
+                        retainWhileLoading: true
+                        fillMode: Image.PreserveAspectFit
+                        asynchronous: true
+                        autoTransform: true
+                        smooth: true
+                    }
+                    Loader {
+                        anchors.fill: parent
+                        active: peek.kind === "pdf"
+                        source: active ? "PeekPdf.qml" : ""
+                        onLoaded: {
+                            item.path = Qt.binding(() => peek.path)
+                            item.detail = Qt.binding(() => zoomBox.detail)
+                        }
+                    }
+                }
+
+                WheelHandler {
+                    acceptedDevices: PointerDevice.Mouse
+                    onWheel: event => zoomBox.zoomAt(Math.pow(1.0015, event.angleDelta.y), point.position.x, point.position.y)
+                }
+                PinchHandler {
+                    target: null
+                    onScaleChanged: delta => zoomBox.zoomAt(delta, centroid.position.x, centroid.position.y)
+                    onTranslationChanged: delta => {
+                        content.x += delta.x
+                        content.y += delta.y
+                        zoomBox.keepInside()
+                    }
+                }
+                DragHandler {
+                    target: null
+                    enabled: zoomBox.zoom > 1
+                    cursorShape: active ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+                    onTranslationChanged: delta => {
+                        content.x += delta.x
+                        content.y += delta.y
+                        zoomBox.keepInside()
+                    }
+                }
+                MouseArea { anchors.fill: parent; onDoubleClicked: zoomBox.reset() }
             }
             Flickable {
                 anchors.fill: parent
@@ -84,12 +159,6 @@ Item {
                     font.pixelSize: Theme.fontCaption
                     wrapMode: Text.WrapAnywhere
                 }
-            }
-            Loader {
-                anchors.fill: parent
-                active: peek.kind === "pdf"
-                source: active ? "PeekPdf.qml" : ""
-                onLoaded: item.path = Qt.binding(() => peek.path)
             }
             // Folder, other types, or a PDF without QtPdf: the large icon.
             Column {
