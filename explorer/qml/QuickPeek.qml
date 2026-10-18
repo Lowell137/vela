@@ -108,7 +108,6 @@ Item {
                         visible: peek.kind === "image"
                         source: visible ? peek.fileUrl(peek.path) : ""
                         sourceSize: Qt.size(width * zoomBox.detail, height * zoomBox.detail)
-                        retainWhileLoading: true
                         fillMode: Image.PreserveAspectFit
                         asynchronous: true
                         autoTransform: true
@@ -167,6 +166,7 @@ Item {
             }
             // Videos and sounds: only while shown, so closing stops them.
             Loader {
+                id: mediaLoader
                 objectName: "mediaLoader"
                 anchors.fill: parent
                 active: peek.visible && peek.kind === "media"
@@ -181,10 +181,12 @@ Item {
                 visible: textFlick.visible && ratio < 1
                 anchors { right: textFlick.right; top: textFlick.top; bottom: textFlick.bottom }
             }
-            // Folder, other types, or a PDF without QtPdf: the large icon.
+            // Folder, other types, a PDF without QtPdf, or a video or sound
+            // when QtMultimedia is missing at run time: the large icon.
             Column {
                 anchors.centerIn: parent
                 visible: peek.kind === "folder" || peek.kind === "other"
+                    || (peek.kind === "media" && mediaLoader.status === Loader.Error)
                 spacing: 12
                 Image {
                     anchors.horizontalCenter: parent.horizontalCenter

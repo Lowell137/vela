@@ -1372,12 +1372,15 @@ QVariantMap FileOps::details(const QString& path) const
     } else {
         out[QStringLiteral("size")] = double(info.size());
         out[QStringLiteral("sizeText")] = ::formatSize(info.size());
-        QImageReader reader(path);
-        if (reader.canRead()) {
-            const QSize size = reader.size();
-            if (size.isValid()) {
-                out[QStringLiteral("width")] = size.width();
-                out[QStringLiteral("height")] = size.height();
+        // Only regular files are read: opening a FIFO with no writer blocks.
+        if (info.isFile()) {
+            QImageReader reader(path);
+            if (reader.canRead()) {
+                const QSize size = reader.size();
+                if (size.isValid()) {
+                    out[QStringLiteral("width")] = size.width();
+                    out[QStringLiteral("height")] = size.height();
+                }
             }
         }
     }
@@ -1441,9 +1444,13 @@ void FileOps::peek(const QString& path)
         }
         QVariantMap out = self->details(path);
         const bool isDir = out.value(QStringLiteral("isDir")).toBool();
+        // A FIFO, socket or device is never opened: it could block this thread for good.
+        const bool regular = QFileInfo(path).isFile();
         QString kind = peek::classify(out.value(QStringLiteral("mime")).toString(), isDir,
-            !isDir && QImageReader(path).canRead(), self->pdfSupported(), self->mediaSupported());
-        if (kind == QLatin1String("other")) {
+            regular && QImageReader(path).canRead(), self->pdfSupported(), self->mediaSupported());
+        if (!isDir && !regular) {
+            kind = QStringLiteral("other");
+        } else if (kind == QLatin1String("other")) {
             QFile file(path);
             if (file.open(QIODevice::ReadOnly) && peek::looksLikeText(file.read(peek::sniffBytes))) {
                 kind = QStringLiteral("text");
