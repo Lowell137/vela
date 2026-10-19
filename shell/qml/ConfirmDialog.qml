@@ -19,11 +19,15 @@ Window {
     property string yesText: qsTr("Yes")
     property var action: null
     property var noAction: null
+    // A portal question stays up when the focus goes elsewhere (an app that asks
+    // at login would otherwise be refused before anyone sees it).
+    property bool keepOnBlur: false
 
     Connections {
         target: Menus
         function onConfirmRequested(title, text, yesText, action, noAction) {
             root.noAction = noAction
+            root.keepOnBlur = false
             root.title = title
             root.text = text
             root.yesText = yesText || qsTr("Yes")
@@ -40,6 +44,7 @@ Window {
             Menus.confirm(qsTr("%1 wants global shortcuts").arg(app),
                 text + "\n\n" + qsTr("They work in any window. You can change or remove them in Settings."),
                 qsTr("Allow"), () => GlobalShortcuts.answer(request, true), () => GlobalShortcuts.answer(request, false))
+            root.keepOnBlur = true
         }
     }
 
@@ -54,7 +59,7 @@ Window {
     }
 
     onActiveChanged: {
-        if (!active && visible) {
+        if (!active && visible && !keepOnBlur) {
             answer(false)
         }
     }
