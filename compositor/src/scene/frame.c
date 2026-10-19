@@ -1197,6 +1197,9 @@ bool vela_output_frame_render(struct vela_output_frame *frame, double lx, double
     if (!damaged && !output->needs_frame && !pending) {
         return false;
     }
+    // A failed replacement commit must leave the last delivered state intact.
+    // In particular, scanout and tearing are still active on the output.
+    const struct vela_frame_delivered previous_delivery = frame->delivered;
     frame->delivered = (struct vela_frame_delivered) { 0, -1, false, false };
 
     // The commit's state: the caller's (mode change, drawn at once at the new
@@ -1233,23 +1236,20 @@ bool vela_output_frame_render(struct vela_output_frame *frame, double lx, double
         return true;
     }
     if (frame->scanout) {
-        // Back to compositing: our buffers haven't seen the scanout frames,
-        // they're redrawn whole.
-        wlr_log(WLR_INFO, "%s: direct scanout off", output->name);
-        frame->scanout = false;
-        if (frame->tearing) {
-            wlr_log(WLR_INFO, "%s: tearing off", output->name);
-            frame->tearing = false;
-        }
+        // Our swapchain is stale after scanout. Render a full replacement
+        // but only report leaving scanout after a successful output commit.
+        // On failure the damage remains pending for the next attempt.
         union_box(&frame->scene_damage, &whole);
     }
 
     if (!wlr_output_configure_primary_swapchain(output, state, &output->swapchain)) {
+        frame->delivered = previous_delivery;
         wlr_output_state_finish(&own);
         return false;
     }
     struct wlr_buffer *buffer = wlr_swapchain_acquire(output->swapchain);
     if (!buffer) {
+        frame->delivered = previous_delivery;
         wlr_output_state_finish(&own);
         return false;
     }
@@ -1361,8 +1361,19 @@ bool vela_output_frame_render(struct vela_output_frame *frame, double lx, double
     }
     wlr_buffer_unlock(buffer);
     wlr_output_state_finish(&own);
+    if (ok && frame->scanout) {
+        // The output only leaves direct scanout after a composed commit
+        // succeeds (including a successful gamma-fallback retry).
+        wlr_log(WLR_INFO, "%s: direct scanout off", output->name);
+        frame->scanout = false;
+        if (frame->tearing) {
+            wlr_log(WLR_INFO, "%s: tearing off", output->name);
+            frame->tearing = false;
+        }
+    }
     if (!ok) {
         // The frame didn't reach the output: its damage must be redrawn.
+        frame->delivered = previous_delivery;
         wlr_damage_ring_add(&frame->ring, &frame_damage);
     }
     if (color_commit_failed) {
