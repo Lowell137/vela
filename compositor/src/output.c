@@ -154,11 +154,22 @@ void vela_output_load_settings(struct vela_server *server)
     if (env && *env) {
         server->vrr_mode = strcmp(env, "0") == 0 ? 0 : strcmp(env, "1") == 0 ? 2 : server->vrr_mode;
     }
-    vela_server_schedule_frames(server);
     server->scene->allow_tearing = vela_config_flag(&settings, "tearing", true) && !vela_env_off("VELA_TEARING");
     // auto (default) and yes: when possible. no: always composite.
-    server->scene->allow_scanout = strcmp(vela_config_get(&settings, "direct-scanout", "auto"), "no") != 0;
+    bool allow_scanout = strcmp(vela_config_get(&settings, "direct-scanout", "auto"), "no") != 0;
+    bool scanout_changed = server->scene->allow_scanout != allow_scanout;
+    server->scene->allow_scanout = allow_scanout;
     vela_config_finish(&settings);
+    if (scanout_changed) {
+        // The fullscreen client may be idle: force a commit to enter/leave
+        // scanout immediately instead of waiting for its next surface commit.
+        struct vela_output *output;
+        wl_list_for_each (output, &server->outputs, link) {
+            vela_output_frame_damage_whole(output->frame);
+        }
+    } else {
+        vela_server_schedule_frames(server);
+    }
 }
 
 static void handle_frame_event(struct wl_listener *listener, void *data);
