@@ -59,6 +59,23 @@ class DirectScanout(unittest.TestCase):
                 lambda s: s.output["frames"] > composed.output["frames"] and scanning(s),
                 timeout=8, what="direct scanout restored by reload-config")
 
+    def test_reload_from_scanout_with_idle_client(self):
+        with Session(size=SIZE) as vela:
+            self.open_app(vela)
+            vela.wait_for(scanning, timeout=8, what="direct scanout")
+            # Stop the client without unmapping it. A settings reload must
+            # still force a replacement frame even without any new commits.
+            client = vela.clients[-1]
+            client.send_signal(signal.SIGSTOP)
+            try:
+                before = vela.state().output["frames"]
+                self.configure(vela, "no")
+                vela.wait_for(
+                    lambda s: s.output["frames"] > before and not scanning(s),
+                    timeout=8, what="composited frame with idle fullscreen client")
+            finally:
+                client.send_signal(signal.SIGCONT)
+
     def test_yes_alias_keeps_scanout_enabled(self):
         with Session(size=SIZE) as vela:
             self.configure(vela, "yes")
