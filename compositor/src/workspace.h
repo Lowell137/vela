@@ -54,6 +54,8 @@ void vela_workspaces_destroy(struct vela_workspaces *workspaces);
 // refocus_after: the keyboard goes to a window of the new desktop (not when
 // it's already being given to a window there).
 void vela_workspaces_switch(struct vela_server *server, int index, bool refocus_after);
+bool vela_workspaces_taskbar_shows(struct vela_view *view); // does the taskbar list it now?
+void vela_workspaces_load_settings(struct vela_server *server); // taskbar-all-desktops
 int vela_workspaces_add(struct vela_server *server); // the new desktop's index
 void vela_workspaces_remove(struct vela_server *server, int index);
 void vela_workspaces_rename(struct vela_server *server, int index, const char *name);

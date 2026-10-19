@@ -389,6 +389,10 @@ void vela_input_constrain(struct vela_input *input, struct wlr_surface *surface)
     struct wlr_cursor *cursor = input->server->cursor;
     struct wlr_pointer_constraint_v1 *constraint
         = surface ? wlr_pointer_constraints_v1_constraint_for_surface(input->pointer_constraints, surface, seat) : NULL;
+    // A window the keyboard has left (Alt+Tab) doesn't keep the pointer.
+    if (constraint && seat->keyboard_state.focused_surface != surface) {
+        constraint = NULL;
+    }
     if (constraint == input->active_constraint) {
         return;
     }
@@ -716,6 +720,7 @@ void vela_input_keyboard_enter(struct vela_input *input, struct wlr_surface *sur
     } else {
         wlr_seat_keyboard_notify_enter(seat, surface, NULL, 0, NULL);
     }
+    vela_input_constrain(input, seat->pointer_state.focused_surface);
 }
 
 void vela_input_update_drag_icon(struct vela_input *input)

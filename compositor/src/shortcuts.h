@@ -47,6 +47,10 @@ struct vela_snap_drag_config {
 };
 const struct vela_snap_drag_config *vela_snap_drag_config(void);
 
+// A key went up: an app shortcut held with it is released (the portal's
+// Deactivated, for push-to-talk).
+void vela_shortcuts_key_released(struct vela_server *server, uint32_t sym);
+
 // false if the user remapped (or turned off) the built-in key of this action.
 bool vela_shortcuts_default_enabled(const char *action);
 

@@ -27,6 +27,7 @@
 #include <wlr/util/log.h>
 
 static void finish_switch(struct vela_server *server);
+static void sync_taskbar(struct vela_server *server);
 
 static void push_string(char ***items, int *count, int *capacity, const char *text)
 {
@@ -265,6 +266,27 @@ static int compare_map_serial(const void *a, const void *b)
 
 // The taskbar handles: only the windows of the current desktop, in opening
 // order.
+// "taskbar-all-desktops=yes" in vela.conf: the taskbar lists the windows of
+// every desktop, not only the current one.
+static bool taskbar_all_desktops;
+
+bool vela_workspaces_taskbar_shows(struct vela_view *view)
+{
+    return taskbar_all_desktops || vela_view_on_current_workspace(view);
+}
+
+void vela_workspaces_load_settings(struct vela_server *server)
+{
+    struct vela_config config;
+    vela_config_read(&config);
+    bool all = vela_config_flag(&config, "taskbar-all-desktops", false);
+    vela_config_finish(&config);
+    if (all != taskbar_all_desktops) {
+        taskbar_all_desktops = all;
+        sync_taskbar(server);
+    }
+}
+
 static void sync_taskbar(struct vela_server *server)
 {
     // In opening order: the taskbar shows them in that order.
@@ -278,7 +300,7 @@ static void sync_taskbar(struct vela_server *server)
     qsort(ordered, (size_t)n, sizeof(*ordered), compare_map_serial);
     for (int i = 0; i < n; ++i) {
         if (ordered[i]->mapped) {
-            vela_view_show_in_taskbar(ordered[i], vela_view_on_current_workspace(ordered[i]));
+            vela_view_show_in_taskbar(ordered[i], vela_workspaces_taskbar_shows(ordered[i]));
         }
     }
     free(ordered);

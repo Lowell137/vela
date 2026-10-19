@@ -161,6 +161,8 @@ signals:
     // Windows shortcuts arriving from the compositor.
     void winXRequested(); // Win+X
     void runRequested(); // Win+R
+    void appShortcutEvent(int number, bool pressed); // an app's global shortcut (globalshortcuts.h)
+    void spotlightRequested(); // Win+Space
     void showDesktopRequested(); // Win+D
     void quickSettingsRequested(); // Win+A
     void soundOutputRequested(); // Win+Ctrl+V: quick settings' sound page

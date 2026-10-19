@@ -130,6 +130,15 @@ Page {
             }
         }
         Card {
+            icon: "view-grid"
+            title: qsTr("Show windows from all desktops")
+            description: qsTr("The taskbar lists the open apps of every desktop, not only the current one")
+            trailing: Toggle {
+                checked: Prefs.taskbarAllDesktops
+                onToggled: on => Prefs.taskbarAllDesktops = on
+            }
+        }
+        Card {
             icon: "view-fullscreen"
             title: qsTr("Automatically hide the taskbar")
             description: qsTr("Hides until you move the pointer to the screen edge")

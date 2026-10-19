@@ -281,6 +281,8 @@ void ShellController::handleCommand(const QByteArray& command)
         emit winXRequested();
     } else if (command == "run") {
         emit runRequested();
+    } else if (command == "spotlight") {
+        emit spotlightRequested();
     } else if (command == "show-desktop") {
         emit showDesktopRequested();
     } else if (command == "quick-settings") {
@@ -331,6 +333,9 @@ void ShellController::handleCommand(const QByteArray& command)
         }
     } else if (command == "task-view") {
         emit taskViewRequested();
+    } else if (parts.first() == "app-shortcut" && parts.size() >= 3) {
+        // app-shortcut press|release <number>: a key an app asked for (portal)
+        emit appShortcutEvent(parts.at(2).toInt(), parts.at(1) == "press");
     } else if (parts.first() == "workspaces") {
         emit workspacesReceived(command.mid(11));
     } else if (parts.first() == "snap-drag" && parts.size() >= 2) {

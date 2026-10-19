@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "preferences.h"
+#include "appshortcuts.h"
 #include "../../common/privatefile.h"
 
 extern "C" {
@@ -378,6 +379,7 @@ void Preferences::reloadCompositor()
     m_touchpadTap = flag(QStringLiteral("touchpad-tap"), true);
     m_touchpadNatural = flag(QStringLiteral("touchpad-natural-scroll"), true);
     m_hotCorner = flag(QStringLiteral("hot-corner"), true);
+    m_taskbarAllDesktops = flag(QStringLiteral("taskbar-all-desktops"), false);
     m_captureIndicator = flag(QStringLiteral("capture-indicator"), true);
     m_captureDnd = flag(QStringLiteral("capture-dnd"), true);
     m_fullscreenDnd = flag(QStringLiteral("fullscreen-dnd"), true);
@@ -1362,6 +1364,15 @@ void Preferences::setTouchpadTap(bool on)
     }
 }
 
+void Preferences::setTaskbarAllDesktops(bool on)
+{
+    if (on != m_taskbarAllDesktops) {
+        m_taskbarAllDesktops = on;
+        saveCompositor({ { QStringLiteral("taskbar-all-desktops"), yesNo(on) } });
+        emit taskbarChanged();
+    }
+}
+
 void Preferences::setHotCorner(bool on)
 {
     if (on != m_hotCorner) {
@@ -1568,6 +1579,7 @@ const ShortcutAction kShortcutActions[] = {
     { "terminal", QT_TRANSLATE_NOOP("Preferences", "Terminal"), "Super+Return" },
     { "lock", QT_TRANSLATE_NOOP("Preferences", "Lock"), "Super+L" },
     { "task-view", QT_TRANSLATE_NOOP("Preferences", "Task View"), "Super+Tab" },
+    { "spotlight", QT_TRANSLATE_NOOP("Preferences", "Spotlight search"), "Super+Space" },
     { "show-desktop", QT_TRANSLATE_NOOP("Preferences", "Show desktop"), "Super+D" },
     { "files", QT_TRANSLATE_NOOP("Preferences", "File Explorer"), "Super+E" },
     { "settings", QT_TRANSLATE_NOOP("Preferences", "Settings"), "Super+I" },
@@ -1594,6 +1606,7 @@ const FixedShortcut kFixedShortcuts[] = {
     { QT_TRANSLATE_NOOP("Preferences", "Snap layouts"), "Super+Z" },
     { QT_TRANSLATE_NOOP("Preferences", "Previous / next desktop"), "Super+Ctrl+Left / Super+Ctrl+Right" },
     { QT_TRANSLATE_NOOP("Preferences", "Move the window to the previous / next desktop"), "Super+Ctrl+Shift+Left / Super+Ctrl+Shift+Right" },
+    { QT_TRANSLATE_NOOP("Preferences", "Go to desktop 1 to 10"), "Super+1 ... Super+9, Super+0" },
     { QT_TRANSLATE_NOOP("Preferences", "New desktop"), "Super+Ctrl+D" },
     { QT_TRANSLATE_NOOP("Preferences", "Close desktop"), "Super+Ctrl+F4" },
     { QT_TRANSLATE_NOOP("Preferences", "Window menu"), "Alt+Space" },
@@ -1732,6 +1745,13 @@ void Preferences::loadShortcuts()
         m_customShortcuts.append(QVariantMap { { QStringLiteral("number"), number },
             { QStringLiteral("combo"), normalizeShortcut(value.left(bar)) }, { QStringLiteral("command"), value.mid(bar + 1) } });
     }
+    // The keys apps asked for through the portal (appshortcuts.h).
+    m_appShortcuts.clear();
+    for (const vela::AppShortcut& s : vela::loadAppShortcuts()) {
+        m_appShortcuts.append(QVariantMap { { QStringLiteral("number"), s.number },
+            { QStringLiteral("combo"), normalizeShortcut(s.combo) }, { QStringLiteral("app"), s.appId },
+            { QStringLiteral("description"), s.description.isEmpty() ? s.id : s.description } });
+    }
     emit shortcutsChanged();
 }
 
@@ -1750,6 +1770,13 @@ QString Preferences::shortcutConflict(const QString& combo, const QString& excep
         const QString key = QStringLiteral("shortcut-custom-") + map.value(QStringLiteral("number")).toString();
         if (key != exceptKey && map.value(QStringLiteral("combo")).toString().toLower() == wanted) {
             return tr("Another shortcut already uses %1").arg(combo);
+        }
+    }
+    for (const QVariant& entry : m_appShortcuts) {
+        const QVariantMap map = entry.toMap();
+        const QString key = QStringLiteral("shortcut-app-") + map.value(QStringLiteral("number")).toString();
+        if (key != exceptKey && map.value(QStringLiteral("combo")).toString().toLower() == wanted) {
+            return tr("%1 already uses %2").arg(map.value(QStringLiteral("app")).toString(), combo);
         }
     }
     for (const FixedShortcut& fixed : kFixedShortcuts) {
@@ -1825,4 +1852,39 @@ QString Preferences::updateCustomShortcut(int number, const QString& combo, cons
 void Preferences::removeCustomShortcut(int number)
 {
     saveCompositor({ { QStringLiteral("shortcut-custom-") + QString::number(number), QString() } });
+}
+
+QString Preferences::setAppShortcut(int number, const QString& combo)
+{
+    QList<vela::AppShortcut> all = vela::loadAppShortcuts();
+    auto it = std::find_if(all.begin(), all.end(), [&](const vela::AppShortcut& s) { return s.number == number; });
+    if (it == all.end()) {
+        return tr("Unknown shortcut");
+    }
+    QString normal;
+    if (!combo.trimmed().isEmpty()) {
+        normal = normalizeShortcut(combo);
+        if (normal.isEmpty()) {
+            return tr("Use modifiers and a key, for example Super+Q");
+        }
+        const QString conflict = shortcutConflict(normal, QStringLiteral("shortcut-app-") + QString::number(number));
+        if (!conflict.isEmpty()) {
+            return conflict;
+        }
+    }
+    it->combo = normal;
+    if (!vela::saveAppShortcuts(all)) {
+        return tr("Couldn't save the shortcut");
+    }
+    sendToCompositor("reload-config");
+    return {};
+}
+
+void Preferences::removeAppShortcut(int number)
+{
+    QList<vela::AppShortcut> all = vela::loadAppShortcuts();
+    all.removeIf([&](const vela::AppShortcut& s) { return s.number == number; });
+    if (vela::saveAppShortcuts(all)) {
+        sendToCompositor("reload-config");
+    }
 }

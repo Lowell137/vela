@@ -23,6 +23,35 @@ import Vela.Controls
 // (x is the center), keyboard (opened from the keyboard), minWidth, rebuild
 // (a function rebuilding the entries, such as after pinning a file), onClosed.
 QtObject {
+    // Vela Settings pages searchable from the Start menu and Spotlight; texts and keys follow the
+    // Settings window's own search index (settings/qml/Main.qml).
+    readonly property var settingsIndex: [
+        { page: "display", text: qsTr("Display"), keys: qsTr("resolution scale refresh rate hz orientation monitor multiple displays arrangement") },
+        { page: "sound", text: qsTr("Sound"), keys: qsTr("volume speakers headphones microphone output input sound") },
+        { page: "volume-mixer", text: qsTr("Volume mixer"), keys: qsTr("app volume apps sound output input per app mixer reset") },
+        { page: "notifications", text: qsTr("Notifications"), keys: qsTr("do not disturb alerts") },
+        { page: "multitasking", text: qsTr("Multitasking"), keys: qsTr("snap layouts windows hot corner task view arrange") },
+        { page: "power", text: qsTr("Power"), keys: qsTr("screen off sleep idle battery energy saver lock") },
+        { page: "about", text: qsTr("About"), keys: qsTr("specifications processor ram memory pc name rename version kernel graphics card") },
+        { page: "bluetooth", text: qsTr("Bluetooth"), keys: qsTr("devices headphones mouse keyboard pair add") },
+        { page: "network", text: qsTr("Network & internet"), keys: qsTr("wifi wi-fi ethernet cable ip dns connection") },
+        { page: "personalization", text: qsTr("Personalization"), keys: qsTr("theme appearance") },
+        { page: "background", text: qsTr("Background"), keys: qsTr("picture desktop photo wallpaper") },
+        { page: "colors", text: qsTr("Colors"), keys: qsTr("accent color theme dark light mode") },
+        { page: "taskbar", text: qsTr("Taskbar"), keys: qsTr("taskbar alignment left center end task") },
+        { page: "window-rules", text: qsTr("Window rules"), keys: qsTr("rules monitor output desktop position size always on top maximized app window placement") },
+        { page: "shortcuts", text: qsTr("Keyboard shortcuts"), keys: qsTr("keys hotkeys keybindings shortcut super close window command") },
+        { page: "pointer", text: qsTr("Mouse pointer"), keys: qsTr("cursor pointer theme size arrow xcursor") },
+        { page: "apps", text: qsTr("Apps"), keys: qsTr("programs applications") },
+        { page: "installed-apps", text: qsTr("Installed apps"), keys: qsTr("uninstall remove programs") },
+        { page: "default-apps", text: qsTr("Default apps"), keys: qsTr("browser mail player open with default") },
+        { page: "datetime", text: qsTr("Date & time"), keys: qsTr("clock time zone sync ntp") },
+        { page: "time-language", text: qsTr("Language"), keys: qsTr("language english italian italiano inglese translation") },
+        { page: "keyboard", text: qsTr("Keyboard"), keys: qsTr("layout language input typing key repeat") },
+        { page: "night-light", text: qsTr("Night light"), keys: qsTr("night warm colors blue evening schedule sunset") },
+        { page: "accessibility", text: qsTr("Accessibility"), keys: qsTr("low vision color blindness") }
+    ]
+
     id: menus
 
     // Open: the panels it starts from (such as the Start menu) don't close
@@ -97,10 +126,11 @@ QtObject {
     signal openRequested(var entries, real x, real y, var options)
     signal closeRequested()
     // A Yes/No question (such as "Empty Recycle Bin"): ConfirmDialog.qml.
-    signal confirmRequested(string title, string text, string yesText, var action)
+    signal confirmRequested(string title, string text, string yesText, var action, var noAction)
 
-    function confirm(title, text, yesText, action) {
-        confirmRequested(title, text, yesText, action)
+    // noAction (optional): when the answer is No, or the dialog is dismissed.
+    function confirm(title, text, yesText, action, noAction) {
+        confirmRequested(title, text, yesText, action, noAction || null)
     }
 
     // The Properties window (PropertiesDialog.qml) for these files.

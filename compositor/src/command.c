@@ -565,6 +565,7 @@ static void run_command(struct vela_server *server, const char *line)
         vela_views_load_settings(server); // window blur, title bars for the listed app ids
         vela_a11y_load(a11y);
         vela_shortcuts_load();
+        vela_workspaces_load_settings(server);
         vela_capture_watch_load(server->capture_watch);
         reload_icons(server);
     } else if (starts_with(line, "night-light ")) {

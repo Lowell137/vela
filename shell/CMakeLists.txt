@@ -45,6 +45,9 @@ qt_add_executable(vela-shell
     src/jumplists.cpp
     src/jumplists.h
     src/links.h
+    src/globalshortcuts.cpp
+    src/globalshortcuts.h
+    src/appshortcuts.h
     src/launcherbadges.cpp
     src/launcherbadges.h
     src/mediakeys.cpp
@@ -136,6 +139,7 @@ set(VELA_QML_FILES
     qml/MenuPanel.qml
     qml/MenuTextField.qml
     qml/RunDialog.qml
+    qml/Spotlight.qml
     qml/ConfirmDialog.qml
     qml/SourceChooser.qml
     qml/PropertiesDialog.qml
@@ -226,6 +230,16 @@ if(VELA_BUILD_TOOLS)
     target_compile_options(vela-launcherbadges-test PRIVATE -Wall -Wextra)
     target_link_libraries(vela-launcherbadges-test PRIVATE Qt6::DBus Qt6::Test)
     add_test(NAME shell-launcherbadges COMMAND vela-launcherbadges-test)
+
+    qt_add_executable(vela-globalshortcuts-test tests/globalshortcuts.cpp src/globalshortcuts.cpp src/globalshortcuts.h src/appshortcuts.h)
+    target_include_directories(vela-globalshortcuts-test PRIVATE src)
+    target_compile_options(vela-globalshortcuts-test PRIVATE -Wall -Wextra)
+    target_link_libraries(vela-globalshortcuts-test PRIVATE Qt6::DBus Qt6::Test)
+    # Its own session bus: the real one may already have the shell's portal.
+    find_program(DBUS_RUN_SESSION dbus-run-session)
+    if(DBUS_RUN_SESSION)
+        add_test(NAME shell-globalshortcuts COMMAND ${DBUS_RUN_SESSION} -- $<TARGET_FILE:vela-globalshortcuts-test>)
+    endif()
 
     qt_add_executable(vela-config-test tests/config.cpp src/config.cpp src/config.h src/defaults.h)
     target_include_directories(vela-config-test PRIVATE src)

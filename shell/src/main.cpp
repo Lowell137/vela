@@ -30,6 +30,7 @@
 #include "launcherbadges.h"
 #include "mediakeys.h"
 #include "network.h"
+#include "globalshortcuts.h"
 #include "notifications.h"
 #include "servicemenus.h"
 #include "shellcontroller.h"
@@ -183,6 +184,8 @@ const Panel panels[] = {
     { "SnapAssist", "vela-snap-assist", layerTop, fill, 0, keysExclusive },
     // The distance from the left edge is decided by the button
     // (ShellController::placeAtLeft).
+    // Spotlight (Win+Space): the centered search, near the top.
+    { "Spotlight", "vela-spotlight", layerOverlay, LayerWindow::Anchors(LayerWindow::AnchorTop), -1, keysOnDemand, QMargins(0, 140, 0, 0) },
     { "TaskbarPreview", "vela-taskbar-preview", layerTop, bottomLeft, 0, keysNone },
     // Above the taskbar too, placed the same way; the mouse goes through.
     { "TaskbarTooltip", "vela-taskbar-tooltip", layerTop, bottomLeft, 0, keysNone, {}, true },
@@ -365,6 +368,11 @@ int main(int argc, char* argv[])
     silenceForSharing();
     QObject::connect(&shell, &ShellController::fullscreenActiveChanged, &notifications,
         [&] { notifications.setFullscreenSilenced(shell.fullscreenActive()); });
+    // Global shortcuts for apps (xdg-desktop-portal's GlobalShortcuts).
+    GlobalShortcuts globalShortcuts;
+    globalShortcuts.registerService();
+    QObject::connect(&globalShortcuts, &GlobalShortcuts::saved, &app, [] { ShellController::sendToCompositor("reload-config"); });
+    QObject::connect(&shell, &ShellController::appShortcutEvent, &globalShortcuts, &GlobalShortcuts::keyEvent);
     TrayModel tray;
     tray.start();
     SystemActions system;
@@ -424,6 +432,7 @@ int main(int argc, char* argv[])
     engine.rootContext()->setContextProperty(QStringLiteral("Tasks"), &tasks);
     engine.rootContext()->setContextProperty(QStringLiteral("Capture"), &capture);
     engine.rootContext()->setContextProperty(QStringLiteral("Notifications"), &notifications);
+    engine.rootContext()->setContextProperty(QStringLiteral("GlobalShortcuts"), &globalShortcuts);
     engine.rootContext()->setContextProperty(QStringLiteral("Tray"), &tray);
     engine.rootContext()->setContextProperty(QStringLiteral("System"), &system);
     engine.rootContext()->setContextProperty(QStringLiteral("Jumps"), &jumps);

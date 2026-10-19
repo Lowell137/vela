@@ -19,7 +19,8 @@
 #include <wlr/util/log.h>
 #include <xkbcommon/xkbcommon.h>
 
-#define MAX_SHORTCUTS 64
+#define MAX_SHORTCUTS 128
+#define ACTION_APP (-2) // a shortcut an app asked for through the portal
 #define MODIFIER_MASK (WLR_MODIFIER_ALT | WLR_MODIFIER_CTRL | WLR_MODIFIER_SHIFT | WLR_MODIFIER_LOGO)
 
 enum kind { KIND_NATIVE, KIND_SHELL };
@@ -36,6 +37,7 @@ static const struct action {
     { "start", KIND_SHELL, "toggle-start" },
     { "winx", KIND_SHELL, "winx" },
     { "run", KIND_SHELL, "run" },
+    { "spotlight", KIND_SHELL, "spotlight" },
     { "show-desktop", KIND_SHELL, "show-desktop" },
     { "quick-settings", KIND_SHELL, "quick-settings" },
     { "notification-center", KIND_SHELL, "notification-center" },
@@ -53,12 +55,15 @@ static const struct action {
 struct shortcut {
     uint32_t modifiers;
     uint32_t sym; // lowercase
-    int action; // index in actions[], or -1: a command
+    int action; // index in actions[], -1: a command, ACTION_APP: an app's
     char *command;
+    int number; // ACTION_APP: the shell's number for it
 };
 
 static struct shortcut shortcuts[MAX_SHORTCUTS];
 static int shortcut_count;
+static uint32_t active_app_sym; // the key of the app shortcut being held, 0: none
+static int active_app_number;
 static bool overridden[ACTION_COUNT]; // the user has a "shortcut-<action>" line
 static bool hot_corner = true; // "hot-corner=no" in vela.conf turns it off
 static bool hot_corner_glow = true; // "hot-corner-glow=no": no glow while near
@@ -138,10 +143,51 @@ static void add(uint32_t modifiers, uint32_t sym, int action, const char *comman
         return;
     }
     struct shortcut *slot = &shortcuts[shortcut_count++];
+    slot->number = 0;
     slot->modifiers = modifiers;
     slot->sym = sym;
     slot->action = action;
     slot->command = command ? strdup(command) : NULL;
+}
+
+// ~/.config/vela/app-shortcuts.conf, "number|Super+Q|app id|shortcut id|text"
+// (shell/src/appshortcuts.h): the keys apps asked for in the portal.
+static void load_app_shortcuts(void)
+{
+    char path[512];
+    if (!vela_config_path("app-shortcuts.conf", path, sizeof(path))) {
+        return;
+    }
+    FILE *file = fopen(path, "r");
+    if (!file) {
+        return;
+    }
+    char line[1024];
+    while (fgets(line, sizeof(line), file)) {
+        if (line[0] == '#' || line[0] == '\n') {
+            continue;
+        }
+        char *bar = strchr(line, '|');
+        if (!bar) {
+            continue;
+        }
+        *bar = '\0';
+        int number = atoi(line);
+        char *combo = bar + 1;
+        bar = strchr(combo, '|');
+        if (number <= 0 || !bar || bar == combo) {
+            continue; // no keys yet
+        }
+        *bar = '\0';
+        uint32_t mods, sym;
+        if (vela_shortcut_parse(combo, &mods, &sym)) {
+            add(mods, sym, ACTION_APP, NULL);
+            if (shortcut_count > 0 && shortcuts[shortcut_count - 1].action == ACTION_APP) {
+                shortcuts[shortcut_count - 1].number = number;
+            }
+        }
+    }
+    fclose(file);
 }
 
 void vela_shortcuts_load(void)
@@ -193,6 +239,7 @@ void vela_shortcuts_load(void)
     snap_drag.width = vela_clamp(atoi(vela_config_get(&config, "snap-drag-trigger-width", "160")), 0, 960);
     snap_drag.scale = vela_clamp(atoi(vela_config_get(&config, "snap-drag-scale", "100")), 60, 200);
     vela_config_finish(&config);
+    load_app_shortcuts();
     wlr_log(WLR_INFO, "Shortcuts: %d from vela.conf", shortcut_count);
 }
 
@@ -266,7 +313,14 @@ bool vela_shortcuts_dispatch(struct vela_server *server, uint32_t modifiers, uin
         if (shortcut->modifiers != mods || shortcut->sym != lower) {
             continue;
         }
-        if (shortcut->action < 0) {
+        if (shortcut->action == ACTION_APP) {
+            // Held down until the key goes up (vela_shortcuts_key_released).
+            char line[64];
+            snprintf(line, sizeof(line), "app-shortcut press %d", shortcut->number);
+            vela_shell_send(server, line);
+            active_app_sym = lower;
+            active_app_number = shortcut->number;
+        } else if (shortcut->action < 0) {
             vela_spawn(shortcut->command);
         } else if (actions[shortcut->action].kind == KIND_NATIVE) {
             run_native(server, actions[shortcut->action].id);
@@ -282,4 +336,14 @@ bool vela_shortcuts_dispatch(struct vela_server *server, uint32_t modifiers, uin
         return true;
     }
     return false;
+}
+
+void vela_shortcuts_key_released(struct vela_server *server, uint32_t sym)
+{
+    if (active_app_sym != 0 && xkb_keysym_to_lower(sym) == active_app_sym) {
+        char line[64];
+        snprintf(line, sizeof(line), "app-shortcut release %d", active_app_number);
+        vela_shell_send(server, line);
+        active_app_sym = 0;
+    }
 }

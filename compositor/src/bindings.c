@@ -176,6 +176,11 @@ bool vela_bindings_handle(struct vela_server *server, uint32_t modifiers, uint32
             return true;
         }
     }
+    // Win+1..9 and Win+0: go to that desktop (the tenth with 0), if it exists.
+    if (windows_key && !ctrl && !shift && ((sym >= XKB_KEY_1 && sym <= XKB_KEY_9) || sym == XKB_KEY_0)) {
+        vela_workspaces_switch(server, sym == XKB_KEY_0 ? 9 : (int)(sym - XKB_KEY_1), true);
+        return true;
+    }
     // Accessibility: Win+Ctrl+C the color filters (if the shortcut is on in
     // Settings, like Windows); Win+plus and Win+minus the magnifier, Win+Esc
     // closes it.
@@ -264,6 +269,10 @@ bool vela_bindings_handle(struct vela_server *server, uint32_t modifiers, uint32
         if (lower == shell_keys[i].key && vela_shortcuts_default_enabled(shell_keys[i].command)) {
             return shell(server, shell_keys[i].command);
         }
+    }
+    // Win+Space: Spotlight, the centered search (inside KDE Alt+Space).
+    if (windows_key && sym == XKB_KEY_space && vela_shortcuts_default_enabled("spotlight")) {
+        return shell(server, "spotlight");
     }
     // Alt+Space: the window menu, under its title bar.
     if (alt && !super && sym == XKB_KEY_space && active) {

@@ -14,6 +14,7 @@
 #include "config.h"
 #include "focus.h"
 #include "input.h"
+#include "shortcuts.h"
 #include "server.h"
 #include "shell.h"
 #include "util.h"
@@ -352,6 +353,7 @@ static void handle_key(struct wl_listener *listener, void *data)
             }
             continue;
         }
+        vela_shortcuts_key_released(server, syms[i]);
         if (is_super(syms[i]) && input->super_tap) {
             input->super_tap = false;
             vela_shell_send(server, "toggle-start");

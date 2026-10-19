@@ -11,17 +11,19 @@ Window {
     id: root
     visible: false
     width: 420
-    height: 170
+    height: Math.max(170, 52 + body.implicitHeight + 76)
     color: "transparent"
 
     property string title
     property string text
     property string yesText: qsTr("Yes")
     property var action: null
+    property var noAction: null
 
     Connections {
         target: Menus
-        function onConfirmRequested(title, text, yesText, action) {
+        function onConfirmRequested(title, text, yesText, action, noAction) {
+            root.noAction = noAction
             root.title = title
             root.text = text
             root.yesText = yesText || qsTr("Yes")
@@ -31,10 +33,21 @@ Window {
         }
     }
 
+    // An app asks for global shortcuts (xdg-desktop-portal): Allow or not.
+    Connections {
+        target: GlobalShortcuts
+        function onBindRequested(request, app, text) {
+            Menus.confirm(qsTr("%1 wants global shortcuts").arg(app),
+                text + "\n\n" + qsTr("They work in any window. You can change or remove them in Settings."),
+                qsTr("Allow"), () => GlobalShortcuts.answer(request, true), () => GlobalShortcuts.answer(request, false))
+        }
+    }
+
     function answer(yes) {
-        const run = yes ? action : null
+        const run = yes ? action : noAction
         visible = false
         action = null
+        noAction = null
         if (run) {
             Qt.callLater(run)
         }
@@ -67,6 +80,7 @@ Window {
             font.weight: Font.DemiBold
         }
         Text {
+            id: body
             x: 24
             y: 52
             width: parent.width - 48

@@ -16,6 +16,7 @@ for path in \
     /usr/share/applications/vela-report.desktop \
     /usr/lib/vela/report/vela_report/cli.py \
     /usr/share/xdg-desktop-portal/vela-portals.conf \
+    /usr/share/xdg-desktop-portal/portals/vela.portal \
     /usr/lib/systemd/user/vela-session.target \
     /etc/xdg/xdg-desktop-portal-wlr/Vela \
     /etc/pam.d/vela-lock; do

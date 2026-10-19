@@ -11,7 +11,7 @@ Page {
 
     // What the dialog is editing: a built-in action (id), a new custom
     // shortcut, or an existing one (number).
-    property string editKind: "builtin" // builtin, custom-new, custom-edit
+    property string editKind: "builtin" // builtin, custom-new, custom-edit, app
     property string editId: ""
     property int editNumber: 0
     property string editError: ""
@@ -71,7 +71,7 @@ Page {
         editNumber = number
         comboField.text = combo
         commandField.text = command
-        shortcutDialog.title = kind === "custom-new" ? qsTr("New shortcut") : kind === "custom-edit" ? qsTr("Change shortcut") : qsTr("Change ") + Prefs.shortcuts.filter(s => s.id === id)[0].title
+        shortcutDialog.title = kind === "custom-new" ? qsTr("New shortcut") : kind === "custom-edit" ? qsTr("Change shortcut") : kind === "app" ? qsTr("Change ") + command : qsTr("Change ") + Prefs.shortcuts.filter(s => s.id === id)[0].title
         shortcutDialog.open()
         comboField.forceActiveFocus()
     }
@@ -80,6 +80,8 @@ Page {
         let error = ""
         if (editKind === "builtin") {
             error = Prefs.setShortcut(editId, comboField.text)
+        } else if (editKind === "app") {
+            error = Prefs.setAppShortcut(editNumber, comboField.text)
         } else if (editKind === "custom-new") {
             error = Prefs.addCustomShortcut(comboField.text, commandField.text)
         } else {
@@ -159,6 +161,34 @@ Page {
     }
 
     CardGroup {
+        title: qsTr("Asked for by apps")
+        visible: Prefs.appShortcuts.length > 0
+        Repeater {
+            model: Prefs.appShortcuts
+            delegate: Card {
+                id: appRow
+                required property var modelData
+                icon: "input-keyboard"
+                title: modelData.description
+                description: modelData.app + "   " + (modelData.combo !== "" ? modelData.combo : qsTr("No key yet"))
+                trailing: Row {
+                    spacing: 4
+                    Button {
+                        subtle: true
+                        text: qsTr("Change")
+                        onClicked: page.edit("app", "", appRow.modelData.number, appRow.modelData.combo, appRow.modelData.description)
+                    }
+                    Button {
+                        subtle: true
+                        text: qsTr("Remove")
+                        onClicked: Prefs.removeAppShortcut(appRow.modelData.number)
+                    }
+                }
+            }
+        }
+    }
+
+    CardGroup {
         title: qsTr("Also available")
         Repeater {
             model: Prefs.fixedShortcuts()
@@ -176,8 +206,8 @@ Page {
         parent: root.contentItem
         primaryText: qsTr("Save")
         primaryEnabled: Prefs.normalizeShortcut(comboField.text) !== ""
-            && (page.editKind === "builtin" || commandField.text.trim() !== "")
-            || (page.editKind === "builtin" && comboField.text.trim() === "")
+            && (page.editKind === "builtin" || page.editKind === "app" || commandField.text.trim() !== "")
+            || ((page.editKind === "builtin" || page.editKind === "app") && comboField.text.trim() === "")
         dialogWidth: 520
         onAccepted: page.apply()
         Column {
@@ -185,7 +215,7 @@ Page {
             spacing: 10
             Text {
                 width: parent.width
-                text: page.editKind === "builtin"
+                text: page.editKind === "builtin" || page.editKind === "app"
                     ? qsTr("Click the box and press the keys. Leave it empty to turn this shortcut off.")
                     : qsTr("Click the first box and press the keys, then type the command to run.")
                 color: Theme.text
@@ -207,7 +237,7 @@ Page {
             TextBox {
                 id: commandField
                 width: parent.width
-                visible: page.editKind !== "builtin"
+                visible: page.editKind === "custom-new" || page.editKind === "custom-edit"
                 placeholderText: qsTr("Command, for example foot or xdg-open https://velade.org")
             }
             Text {

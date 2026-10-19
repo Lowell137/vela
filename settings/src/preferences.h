@@ -40,6 +40,7 @@ class Preferences : public QObject {
     Q_PROPERTY(bool taskView READ taskView WRITE setTaskView NOTIFY taskbarChanged)
     // The apps' tray icons behind the "^" button (taskbar/trayOverflow).
     Q_PROPERTY(bool trayOverflow READ trayOverflow WRITE setTrayOverflow NOTIFY taskbarChanged)
+    Q_PROPERTY(bool taskbarAllDesktops READ taskbarAllDesktops WRITE setTaskbarAllDesktops NOTIFY taskbarChanged)
     Q_PROPERTY(bool taskbarAllScreens READ taskbarAllScreens WRITE setTaskbarAllScreens NOTIFY taskbarChanged)
     // taskbar/autoHide, and taskbar/combine: "always" or "never".
     Q_PROPERTY(bool taskbarAutoHide READ taskbarAutoHide WRITE setTaskbarAutoHide NOTIFY taskbarChanged)
@@ -178,6 +179,8 @@ public:
     void setTaskView(bool on);
     bool trayOverflow() const { return m_trayOverflow; }
     void setTrayOverflow(bool on);
+    bool taskbarAllDesktops() const { return m_taskbarAllDesktops; }
+    void setTaskbarAllDesktops(bool on);
     bool taskbarAllScreens() const { return m_taskbarAllScreens; }
     void setTaskbarAllScreens(bool on);
     bool taskbarAutoHide() const { return m_taskbarAutoHide; }
@@ -247,8 +250,13 @@ public:
     // defaultCombo, changed. Each of `customShortcuts`: number, combo, command.
     Q_PROPERTY(QVariantList shortcuts READ shortcuts NOTIFY shortcutsChanged)
     Q_PROPERTY(QVariantList customShortcuts READ customShortcuts NOTIFY shortcutsChanged)
+    // The global shortcuts apps asked for (portal): number, combo, app, description.
+    Q_PROPERTY(QVariantList appShortcuts READ appShortcuts NOTIFY shortcutsChanged)
     QVariantList shortcuts() const { return m_shortcuts; }
     QVariantList customShortcuts() const { return m_customShortcuts; }
+    QVariantList appShortcuts() const { return m_appShortcuts; }
+    Q_INVOKABLE QString setAppShortcut(int number, const QString& combo); // "" for no key
+    Q_INVOKABLE void removeAppShortcut(int number);
     Q_INVOKABLE QVariantList fixedShortcuts() const; // listed, not editable: title, combo
     Q_INVOKABLE QString normalizeShortcut(const QString& text) const; // "" if it isn't valid
     // These return an error text, or "" when done.
@@ -417,6 +425,7 @@ private:
     bool m_taskView = true;
     bool m_trayOverflow = true;
     bool m_taskbarAllScreens = true;
+    bool m_taskbarAllDesktops = false;
     bool m_taskbarAutoHide = false;
     QString m_taskbarCombine = QStringLiteral("always");
     bool m_weather = false;
@@ -439,6 +448,7 @@ private:
     QVariantList m_layouts;
     QVariantList m_shortcuts;
     QVariantList m_customShortcuts;
+    QVariantList m_appShortcuts;
     int m_repeatDelay = 400;
     int m_repeatRate = 30;
     bool m_nightLight = false;

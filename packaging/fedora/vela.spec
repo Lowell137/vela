@@ -126,6 +126,7 @@ install -Dm644 packaging/verify-attestation.py %{buildroot}%{_libexecdir}/vela/v
 %{_datadir}/applications/vela-*.desktop
 %{_datadir}/wayland-sessions/vela.desktop
 %{_datadir}/xdg-desktop-portal/vela-portals.conf
+%{_datadir}/xdg-desktop-portal/portals/vela.portal
 %{_prefix}/lib/systemd/user/vela-session.target
 %config(noreplace) /etc/pam.d/vela-lock
 %config(noreplace) /etc/xdg/xdg-desktop-portal-wlr/Vela

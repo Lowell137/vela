@@ -171,6 +171,7 @@ void vela_focus_refocus(struct vela_server *server)
         vela_view_set_activated(focused, false);
     }
     wlr_seat_keyboard_notify_clear_focus(server->seat);
+    vela_input_constrain(server->input, server->seat->pointer_state.focused_surface);
 }
 
 void vela_focus_forget_view(struct vela_server *server, struct vela_view *view, bool was_focused)
