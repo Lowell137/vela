@@ -38,6 +38,7 @@ class Preferences : public QObject {
     Q_PROPERTY(bool endTask READ endTask WRITE setEndTask NOTIFY taskbarChanged)
     Q_PROPERTY(bool taskView READ taskView WRITE setTaskView NOTIFY taskbarChanged)
     Q_PROPERTY(bool taskbarAllScreens READ taskbarAllScreens WRITE setTaskbarAllScreens NOTIFY taskbarChanged)
+    Q_PROPERTY(bool showDesktopCorner READ showDesktopCorner WRITE setShowDesktopCorner NOTIFY taskbarChanged)
     // --- Notifications ---
     Q_PROPERTY(bool doNotDisturb READ doNotDisturb WRITE setDoNotDisturb NOTIFY doNotDisturbChanged)
     // --- Power ---
@@ -53,7 +54,8 @@ class Preferences : public QObject {
     Q_PROPERTY(int repeatRate READ repeatRate WRITE setRepeatRate NOTIFY keyboardChanged)
     // --- Display: night light and games ---
     Q_PROPERTY(bool nightLight READ nightLight WRITE setNightLight NOTIFY nightLightChanged)
-    Q_PROPERTY(int nightStrength READ nightStrength WRITE setNightStrength NOTIFY nightLightChanged)
+    // Kelvin, 1700-6500 (night-light-temperature; the older strength without it).
+    Q_PROPERTY(int nightTemperature READ nightTemperature WRITE setNightTemperature NOTIFY nightLightChanged)
     Q_PROPERTY(bool nightNvidiaFix READ nightNvidiaFix WRITE setNightNvidiaFix NOTIFY nightLightChanged)
     // "no", "sunset" (from sunset to sunrise) or "hours"
     Q_PROPERTY(QString nightSchedule READ nightSchedule WRITE setNightSchedule NOTIFY nightLightChanged)
@@ -90,6 +92,9 @@ class Preferences : public QObject {
     Q_PROPERTY(QString colorFilterKind READ colorFilterKind WRITE setColorFilterKind NOTIFY accessibilityChanged)
     Q_PROPERTY(bool colorFilterShortcut READ colorFilterShortcut WRITE setColorFilterShortcut NOTIFY accessibilityChanged)
     Q_PROPERTY(bool stickyKeys READ stickyKeys WRITE setStickyKeys NOTIFY accessibilityChanged)
+    Q_PROPERTY(bool animationEffects READ animationEffects WRITE setAnimationEffects NOTIFY accessibilityChanged)
+    // Percent of Vela's animation durations (100: Vela's).
+    Q_PROPERTY(int animationDuration READ animationDuration WRITE setAnimationDuration NOTIFY accessibilityChanged)
 
 public:
     explicit Preferences(QObject* parent = nullptr);
@@ -117,6 +122,8 @@ public:
     void setTaskView(bool on);
     bool taskbarAllScreens() const { return m_taskbarAllScreens; }
     void setTaskbarAllScreens(bool on);
+    bool showDesktopCorner() const { return m_showDesktopCorner; }
+    void setShowDesktopCorner(bool on);
 
     bool doNotDisturb() const { return m_doNotDisturb; }
     void setDoNotDisturb(bool on);
@@ -139,8 +146,8 @@ public:
 
     bool nightLight() const { return m_nightLight; }
     void setNightLight(bool on);
-    int nightStrength() const { return m_nightStrength; }
-    void setNightStrength(int strength);
+    int nightTemperature() const { return m_nightTemperature; }
+    void setNightTemperature(int kelvin);
     /** Whether Night Light uses Vulkan tinting instead of the DRM gamma LUT. */
     bool nightNvidiaFix() const { return m_nightNvidiaFix; }
     void setNightNvidiaFix(bool on);
@@ -171,6 +178,10 @@ public:
     void setColorFilterShortcut(bool on);
     bool stickyKeys() const { return m_stickyKeys; }
     void setStickyKeys(bool on);
+    bool animationEffects() const { return m_animationEffects; }
+    void setAnimationEffects(bool on);
+    int animationDuration() const { return m_animationDuration; }
+    void setAnimationDuration(int percent);
 
     int mouseSpeed() const { return m_mouseSpeed; }
     void setMouseSpeed(int value);
@@ -240,6 +251,7 @@ private:
     bool m_endTask = true;
     bool m_taskView = true;
     bool m_taskbarAllScreens = true;
+    bool m_showDesktopCorner = true;
     bool m_doNotDisturb = false;
     int m_screenOffMinutes = 10;
     bool m_lockOnIdle = true;
@@ -248,7 +260,7 @@ private:
     int m_repeatDelay = 400;
     int m_repeatRate = 30;
     bool m_nightLight = false;
-    int m_nightStrength = 48;
+    int m_nightTemperature = 4200;
     bool m_nightNvidiaFix = false;
     QString m_nightSchedule = QStringLiteral("no");
     QString m_nightFrom = QStringLiteral("21:00");
@@ -264,6 +276,8 @@ private:
     QString m_colorFilterKind = QStringLiteral("grayscale");
     bool m_colorFilterShortcut = false;
     bool m_stickyKeys = false;
+    bool m_animationEffects = true;
+    int m_animationDuration = 100;
     int m_mouseSpeed = 10;
     bool m_mousePrecision = true;
     bool m_mouseLeftHanded = false;

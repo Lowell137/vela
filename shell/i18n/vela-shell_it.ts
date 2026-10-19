@@ -28,6 +28,10 @@
         <translation>Non c&apos;è niente qui. Quando copi qualcosa, lo ritrovi qui per incollarlo di nuovo.</translation>
     </message>
     <message>
+        <source>See more</source>
+        <translation>Visualizza altro</translation>
+    </message>
+    <message>
         <source>&amp;Unpin</source>
         <translation>&amp;Rimuovi fissaggio</translation>
     </message>
@@ -58,8 +62,16 @@
 <context>
     <name>Desktop</name>
     <message>
+        <source>Could not launch Vela Files to transfer the selected items.</source>
+        <translation>Impossibile avviare Vela Files per trasferire gli elementi selezionati.</translation>
+    </message>
+    <message>
         <source>Couldn&apos;t create the shortcut.</source>
         <translation>Impossibile creare il collegamento.</translation>
+    </message>
+    <message>
+        <source>Vela Files did not confirm that the transfer window opened.</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Recycle Bin</source>
@@ -84,22 +96,6 @@
     <message>
         <source>New Text Document.txt</source>
         <translation>Nuovo documento di testo.txt</translation>
-    </message>
-    <message>
-        <source>Move</source>
-        <translation>Sposta</translation>
-    </message>
-    <message>
-        <source>Copy</source>
-        <translation>Copia</translation>
-    </message>
-    <message>
-        <source> - Copy.</source>
-        <translation> - Copia.</translation>
-    </message>
-    <message>
-        <source> - Copy</source>
-        <translation> - Copia</translation>
     </message>
     <message>
         <source>Compress</source>
@@ -311,6 +307,13 @@
     </message>
 </context>
 <context>
+    <name>NotificationPopups</name>
+    <message>
+        <source>Close</source>
+        <translation>Chiudi</translation>
+    </message>
+</context>
+<context>
     <name>Properties</name>
     <message>
         <source>%1 (%2 bytes)</source>
@@ -503,6 +506,42 @@
         <translation>Ingresso predefinito</translation>
     </message>
     <message>
+        <source>%1 settings</source>
+        <translation>Impostazioni di %1</translation>
+    </message>
+    <message>
+        <source>Unmute</source>
+        <translation>Riattiva audio</translation>
+    </message>
+    <message>
+        <source>Mute</source>
+        <translation>Disattiva audio</translation>
+    </message>
+    <message>
+        <source>Brightness of %1</source>
+        <translation>Luminosità di %1</translation>
+    </message>
+    <message>
+        <source>Brightness</source>
+        <translation>Luminosità</translation>
+    </message>
+    <message>
+        <source>Brightness of each display</source>
+        <translation>Luminosità di ogni schermo</translation>
+    </message>
+    <message>
+        <source>This display isn&apos;t responding</source>
+        <translation>Questo schermo non risponde</translation>
+    </message>
+    <message>
+        <source>The display didn&apos;t accept the change</source>
+        <translation>Lo schermo non ha accettato la modifica</translation>
+    </message>
+    <message>
+        <source>Back</source>
+        <translation>Indietro</translation>
+    </message>
+    <message>
         <source>Wi-Fi</source>
         <translation>Wi-Fi</translation>
     </message>
@@ -587,6 +626,14 @@
         <translation>Altre impostazioni Wi-Fi</translation>
     </message>
     <message>
+        <source>More display settings</source>
+        <translation>Altre impostazioni dello schermo</translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation>Impostazioni</translation>
+    </message>
+    <message>
         <source>Sound output</source>
         <translation>Uscita audio</translation>
     </message>
@@ -630,6 +677,10 @@
         <translation>Sfoglia</translation>
     </message>
     <message>
+        <source>Browse...</source>
+        <translation>Sfoglia...</translation>
+    </message>
+    <message>
         <source>Type the name of a program, folder, document or Internet resource, and Vela will open it for you.</source>
         <translation>Digita il nome di un programma, cartella, documento o risorsa Internet e Vela lo aprirà.</translation>
     </message>
@@ -647,6 +698,21 @@
     <message>
         <source>Lock the screen before suspending</source>
         <translation>Blocca lo schermo prima di sospendere</translation>
+    </message>
+</context>
+<context>
+    <name>Shell</name>
+    <message>
+        <source>File transfer complete</source>
+        <translation>Trasferimento file completato</translation>
+    </message>
+    <message>
+        <source>File transfer interrupted</source>
+        <translation>Trasferimento file interrotto</translation>
+    </message>
+    <message>
+        <source>File Explorer closed before this transfer finished.</source>
+        <translation>Esplora file è stato chiuso prima del completamento del trasferimento.</translation>
     </message>
 </context>
 <context>
@@ -741,6 +807,10 @@
         <translation>Aggiungi alla &amp;barra delle applicazioni</translation>
     </message>
     <message>
+        <source>Add to &amp;desktop</source>
+        <translation>Aggiungi al &amp;desktop</translation>
+    </message>
+    <message>
         <source>Open file &amp;location</source>
         <translation>Apri &amp;percorso file</translation>
     </message>
@@ -765,6 +835,10 @@
         <translation>A&amp;ltro</translation>
     </message>
     <message>
+        <source>Couldn&apos;t find this application&apos;s launcher.</source>
+        <translation>Impossibile trovare l&apos;avviatore di questa applicazione.</translation>
+    </message>
+    <message>
         <source>Search apps</source>
         <translation>Cerca app</translation>
     </message>
@@ -783,6 +857,10 @@
     <message>
         <source>No apps found</source>
         <translation>Nessuna app trovata</translation>
+    </message>
+    <message>
+        <source>Power</source>
+        <translation>Arresta</translation>
     </message>
     <message>
         <source>Sleep</source>
@@ -865,6 +943,74 @@
 </context>
 <context>
     <name>Taskbar</name>
+    <message>
+        <source>1 minute remaining</source>
+        <translation>1 minuto rimanente</translation>
+    </message>
+    <message>
+        <source>%1 minutes remaining</source>
+        <translation>%1 minuti rimanenti</translation>
+    </message>
+    <message>
+        <source>%1 h remaining</source>
+        <translation>%1 h rimanenti</translation>
+    </message>
+    <message>
+        <source>%1 h %2 min remaining</source>
+        <translation>%1 h %2 min rimanenti</translation>
+    </message>
+    <message>
+        <source>Caffeine: off</source>
+        <translation>Caffeina: disattivata</translation>
+    </message>
+    <message>
+        <source>Caffeine: %1</source>
+        <translation>Caffeina: %1</translation>
+    </message>
+    <message>
+        <source>Caffeine: keeping the computer awake</source>
+        <translation>Caffeina: il computer resta attivo</translation>
+    </message>
+    <message>
+        <source>15 minutes</source>
+        <translation>15 minuti</translation>
+    </message>
+    <message>
+        <source>30 minutes</source>
+        <translation>30 minuti</translation>
+    </message>
+    <message>
+        <source>1 hour</source>
+        <translation>1 ora</translation>
+    </message>
+    <message>
+        <source>2 hours</source>
+        <translation>2 ore</translation>
+    </message>
+    <message>
+        <source>3 hours</source>
+        <translation>3 ore</translation>
+    </message>
+    <message>
+        <source>5 hours</source>
+        <translation>5 ore</translation>
+    </message>
+    <message>
+        <source>8 hours</source>
+        <translation>8 ore</translation>
+    </message>
+    <message>
+        <source>&amp;Indefinitely</source>
+        <translation>A tempo &amp;indeterminato</translation>
+    </message>
+    <message>
+        <source>Turn &amp;off</source>
+        <translation>&amp;Disattiva</translation>
+    </message>
+    <message>
+        <source>&amp;Power settings</source>
+        <translation>Impostazioni di &amp;alimentazione</translation>
+    </message>
     <message>
         <source>&amp;Open</source>
         <translation>&amp;Apri</translation>
@@ -1014,6 +1160,54 @@
         <translation>Visualizzazione attività</translation>
     </message>
     <message>
+        <source>File transfers</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Transfer removed</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Finished</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Preparing</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Bytes transferred</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>calculating</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Calculating speed</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Transfer finished</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Calculating transfer speed…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>time unknown</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 seconds remaining</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cancel transfer</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>%1 is using your microphone</source>
         <translation>%1 sta usando il microfono</translation>
     </message>
@@ -1044,6 +1238,10 @@
     <message>
         <source>&amp;Notification settings</source>
         <translation>Impostazioni di &amp;notifica</translation>
+    </message>
+    <message>
+        <source>Show desktop</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>

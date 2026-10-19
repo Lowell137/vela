@@ -18,6 +18,12 @@ Window {
     title: current ? current.title + qsTr(" - File Explorer") : qsTr("File Explorer")
 
     onActiveChanged: Theme.windowActive = active
+    onClosing: close => {
+        if (Ops.activeJobCount > 0) {
+            close.accepted = false
+            activeTransfersDialog.open()
+        }
+    }
 
     // --- preferences, remembered across launches ---
     Settings {
@@ -60,6 +66,10 @@ Window {
         currentIndex = tabs.length - 1
     }
     function closeTab(index) {
+        if (tabs.length === 1 && Ops.activeJobCount > 0) {
+            activeTransfersDialog.open()
+            return
+        }
         const tab = tabs[index]
         const rest = tabs.slice()
         rest.splice(index, 1)
@@ -129,16 +139,17 @@ Window {
 
             Repeater {
                 model: root.tabs
-                delegate: Rectangle {
+                delegate: Fill {
                     id: tabButton
                     required property var modelData
                     required property int index
                     readonly property bool active: root.currentIndex === index
                     width: tabRow.tabWidth
                     height: 34
+                    radius: 0
                     topLeftRadius: Theme.radiusOverlay
                     topRightRadius: Theme.radiusOverlay
-                    color: active ? Theme.layer : tabMouse.containsMouse ? Theme.subtleHover : "transparent"
+                    color: active ? Theme.layer : tabMouse.containsMouse ? Theme.subtleHover : Theme.subtleRest
                     Image {
                         x: 12
                         anchors.verticalCenter: parent.verticalCenter
@@ -185,9 +196,8 @@ Window {
                         anchors { right: parent.right; rightMargin: 6; verticalCenter: parent.verticalCenter }
                         width: 24
                         height: 24
-                        icon: "window-close"
+                        icon.name: "window-close"
                         visible: tabMouse.containsMouse || tabButton.active || hovered
-                        property bool hovered: false
                         onClicked: root.closeTab(tabButton.index)
                     }
                     // Dragging files onto a tab opens it.
@@ -201,7 +211,7 @@ Window {
                 anchors.verticalCenter: parent.verticalCenter
                 width: 32
                 height: 28
-                icon: "list-add"
+                icon.name: "list-add"
                 onClicked: root.newTab("home:", "")
             }
         }
@@ -218,6 +228,13 @@ Window {
     }
 
     // --- dialogs ---
+    Dialog {
+        id: activeTransfersDialog
+        title: qsTr("File transfer in progress")
+        text: qsTr("Files are still being copied or moved. Keep File Explorer open until they finish, or cancel the transfer first.")
+        buttons: [{ text: qsTr("Keep copying"), accent: true, value: "ok" }]
+    }
+
     function showError(message) {
         errorDialog.text = message
         errorDialog.open()

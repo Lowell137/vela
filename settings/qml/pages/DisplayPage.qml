@@ -22,6 +22,7 @@ Page {
     Component.onCompleted: {
         Displays.refresh()
         if (Displays.confirming) confirm.open()
+        if (probed !== "") Brightness.probe(probed)
     }
     Component.onDestruction: Displays.revert()
 
@@ -106,7 +107,7 @@ Page {
 
         Repeater {
             model: page.outputs
-            delegate: Rectangle {
+            delegate: Fill {
                 id: monitor
                 required property var modelData
                 required property int index
@@ -220,18 +221,24 @@ Page {
         description: Displays.error
     }
 
+    Binding {
+        target: Brightness
+        property: "live"
+        value: page.visible
+    }
+
+    // Showing a display probes it again (docs/brightness.md §8): turning
+    // DDC/CI on in the monitor's menu and coming back to Settings is enough.
+    readonly property string probed: page.visible && Brightness.connected && page.output
+        && Qt.application.state === Qt.ApplicationActive ? page.output.name : ""
+    onProbedChanged: if (probed !== "") Brightness.probe(probed)
+
     CardGroup {
         title: qsTr("Brightness & color")
-        Card {
-            visible: Status.brightnessAvailable
-            icon: "brightness-high"
-            title: qsTr("Brightness")
-            description: qsTr("Adjust the brightness of the built-in display")
-            trailing: Slider {
-                width: 200
-                value: Status.brightness
-                onMoved: value => Status.setBrightness(value)
-            }
+        // The selected display's, read live while the page is visible.
+        BrightnessCard {
+            brightness: page.output ? Brightness.outputs.find(o => o.name === page.output.name) : undefined
+            onMoved: value => Brightness.setValue(page.output.name, value)
         }
         Card {
             icon: "redshift-status-on"
@@ -240,9 +247,26 @@ Page {
             clickable: true
             chevron: true
             onClicked: root.navigate("night-light")
-            trailing: Toggle {
+            trailing: Switch {
                 checked: Prefs.nightLight
-                onToggled: on => Prefs.nightLight = on
+                onToggled: Prefs.nightLight = checked
+            }
+        }
+    }
+
+    CardGroup {
+        visible: page.outputs.length > 1 && page.output !== null && page.output.enabled
+        enabled: Displays.available && !Displays.pending
+        Card {
+            icon: "video-display"
+            title: qsTr("Make this my main display")
+            description: qsTr("Show notifications and the main taskbar on this display")
+            trailing: Button {
+                // An implicit fallback can already be main without being saved.
+                text: page.output && page.output.name === Displays.preferredPrimaryOutput
+                    ? qsTr("Main display") : qsTr("Make main")
+                usable: page.output && page.output.name !== Displays.preferredPrimaryOutput
+                onClicked: Displays.setPrimaryOutput(page.output.name)
             }
         }
     }
@@ -352,9 +376,9 @@ Page {
             icon: "input-gaming"
             title: qsTr("Show every frame right away in full-screen games")
             description: qsTr("Games that ask for it reach the screen without waiting for the monitor: less latency, with some tearing in the picture")
-            trailing: Toggle {
+            trailing: Switch {
                 checked: Prefs.tearing
-                onToggled: on => Prefs.tearing = on
+                onToggled: Prefs.tearing = checked
             }
         }
     }
@@ -374,10 +398,8 @@ Page {
         id: confirm
         parent: root.contentItem
         title: qsTr("Keep these display settings?")
-        primaryText: qsTr("Keep changes")
-        secondaryText: qsTr("Revert")
-        onAccepted: Displays.confirm()
-        onRejected: Displays.revert()
+        buttons: [{ text: qsTr("Keep changes"), accent: true, value: "keep" }, { text: qsTr("Revert"), value: "cancel" }]
+        onChosen: value => value === "keep" ? Displays.confirm() : Displays.revert()
         Text {
             width: parent.width
             text: qsTr("Reverting to the previous display settings in ") + Displays.secondsRemaining + qsTr(" seconds.")

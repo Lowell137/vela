@@ -94,7 +94,8 @@ struct vela_quad_push {
     float dst[4]; // x, y, width, height in target pixels
     float target[2]; // target size
     float alpha;
-    // bit 0: bicubic magnification; bit 1: rounded clip; bit 2: color filter
+    // bit 0: bicubic magnification; bit 1: rounded clip; bit 2: color filter;
+    // bit 3: the blur gets Vela's acrylic recipe (blur_mix.frag)
     uint32_t flags;
     float uv_origin[2]; // texture coordinates of the top left corner
     float uv_x[2]; // step along the top edge
@@ -259,8 +260,9 @@ struct vela_renderer {
 
     // The arrays of a submission, reused (they only grow).
     VkSemaphoreSubmitInfo *wait_infos;
+    int wait_infos_capacity;
     VkSemaphore *wait_semaphores;
-    int wait_capacity;
+    int wait_semaphores_capacity;
 
     struct wlr_drm_syncobj_timeline *sync_timeline;
     uint64_t sync_point;

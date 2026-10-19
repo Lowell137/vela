@@ -17,7 +17,8 @@
 //   keyboard-repeat-rate=30  repeats per second
 //   night-light=no           night light on (quick settings and the schedule
 //                            change it too)
-//   night-light-strength=48  0-100
+//   night-light-temperature=4200  kelvin, 1700-6500 (night-light-strength=0-100
+//                            before it, still read without it)
 //   night-light-nvidia-fix=no  experiment: render Night light in Vulkan instead of DRM gamma
 //   night-light-schedule=no|sunset|hours
 //   night-light-from=21:00, night-light-to=07:00
@@ -26,6 +27,9 @@
 //   color-filters-shortcut=no  Win+Ctrl+C turns it on and off
 //   magnifier-step=100       how much Win+plus zooms in (percent)
 //   sticky-keys=no           Shift, Ctrl, Alt and Win stay pressed
+//   animation-effects=yes    windows move as they open, close, minimize...
+//                            (no: they only fade, briefly)
+//   animation-duration=100   50-300: percent of Vela's animation durations
 //   tearing=yes              for fullscreen games that ask for it
 //   direct-scanout=auto      auto, yes (the same) or no: never put a fullscreen
 //                            app's buffer straight on screen (black screen or
@@ -41,6 +45,7 @@
 //   touchpad-four-fingers=desktop
 //   language=                it, en, or empty (like the system)
 //   polkit-agent=yes         start Vela's polkit agent (docs/polkit-agent.md)
+//   brightness=yes           drive the monitors' brightness (docs/brightness.md)
 //
 // The old Italian names are still read (legacy_names.h).
 

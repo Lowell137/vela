@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "requested.h"
+
 #include <QDBusObjectPath>
 #include <QObject>
 #include <QString>
@@ -10,10 +12,11 @@
 
 // System status for the taskbar icons and quick settings (Win+A), like Windows
 // 11: network (NetworkManager), Bluetooth
-// (BlueZ), battery (UPower), power saving profile (power-profiles-daemon),
-// laptop screen brightness (logind). Everything updates itself when it
-// changes; what the system lacks is "unavailable" and the panel doesn't show
-// it. The volume is vela-audio's (common/audio, docs/audio.md).
+// (BlueZ), battery (UPower), power saving profile (power-profiles-daemon).
+// Everything updates itself when it changes; what the system lacks is
+// "unavailable" and the panel doesn't show it. The volume is vela-audio's
+// (common/audio, docs/audio.md), the brightness the compositor's
+// (brightness.h, docs/brightness.md).
 class SystemStatus : public QObject {
     Q_OBJECT
     // Network
@@ -39,9 +42,6 @@ class SystemStatus : public QObject {
     // The theme icon for the network, and airplane mode.
     Q_PROPERTY(QString networkIconName READ networkIcon NOTIFY networkChanged)
     Q_PROPERTY(bool airplane READ airplaneMode NOTIFY airplaneChanged)
-    // Brightness (only backlit screens: laptops)
-    Q_PROPERTY(bool brightnessAvailable READ brightnessAvailable CONSTANT)
-    Q_PROPERTY(double brightness READ brightness NOTIFY brightnessChanged)
 
 public:
     explicit SystemStatus(QObject* parent = nullptr);
@@ -52,11 +52,12 @@ public:
     QString networkName() const { return m_networkName; }
     int wifiStrength() const { return m_wifiStrength; }
     bool wifiAvailable() const { return m_wifiAvailable; }
-    bool wifiEnabled() const { return m_wifiEnabled; }
+    // What the user asked for until NetworkManager or BlueZ has done it (requested.h).
+    bool wifiEnabled() const { return m_wifiRequest.value(m_wifiEnabled); }
     Q_INVOKABLE void setWifiEnabled(bool on);
 
     bool bluetoothAvailable() const { return !m_adapter.isEmpty(); }
-    bool bluetoothEnabled() const { return m_bluetoothEnabled; }
+    bool bluetoothEnabled() const { return m_bluetoothRequest.value(m_bluetoothEnabled); }
     Q_INVOKABLE void setBluetoothEnabled(bool on);
 
     // Airplane mode: no Wi-Fi or Bluetooth.
@@ -74,10 +75,6 @@ public:
     void setPowerProfile(const QString& profile);
     QStringList powerProfiles() const { return m_powerProfiles; }
 
-    bool brightnessAvailable() const { return !m_backlight.isEmpty(); }
-    double brightness() const { return m_brightness; }
-    Q_INVOKABLE void setBrightness(double value);
-
     // The theme icon name for the network, like Windows' system icons.
     Q_INVOKABLE QString networkIcon() const;
 
@@ -86,7 +83,6 @@ signals:
     void bluetoothChanged();
     void batteryChanged();
     void powerProfileChanged();
-    void brightnessChanged();
     void airplaneChanged();
 
 private Q_SLOTS:
@@ -97,17 +93,17 @@ private Q_SLOTS:
     void onPropertiesChanged(const QString& interface, const QVariantMap& changed, const QStringList& invalidated);
 
 private:
-    void readBacklight();
-
     bool m_networkConnected = false;
     bool m_networkWireless = false;
     QString m_networkName;
     int m_wifiStrength = 0;
     bool m_wifiAvailable = false;
     bool m_wifiEnabled = false;
+    Requested m_wifiRequest { [this] { emit networkChanged(); } };
 
     QString m_adapter; // BlueZ adapter path
     bool m_bluetoothEnabled = false;
+    Requested m_bluetoothRequest { [this] { emit bluetoothChanged(); } };
 
     bool m_batteryPresent = false;
     int m_batteryPercent = 0;
@@ -116,8 +112,4 @@ private:
     bool m_powerProfilesAvailable = false;
     QString m_powerProfile;
     QStringList m_powerProfiles;
-
-    QString m_backlight; // name in /sys/class/backlight
-    double m_brightness = 0.0;
-    int m_maxBrightness = 0;
 };

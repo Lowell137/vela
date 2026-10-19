@@ -5,6 +5,7 @@
 #include "../../common/privatefile.h"
 
 extern "C" {
+#include "color.h"
 #include "legacy_names.h"
 }
 
@@ -116,6 +117,7 @@ void Preferences::reload()
     m_endTask = settings.value(QStringLiteral("taskbar/endTask"), true).toBool();
     m_taskView = settings.value(QStringLiteral("taskbar/taskView"), true).toBool();
     m_taskbarAllScreens = settings.value(QStringLiteral("taskbar/allScreens"), true).toBool();
+    m_showDesktopCorner = settings.value(QStringLiteral("taskbar/showDesktopCorner"), true).toBool();
     emit taskbarChanged();
     m_doNotDisturb = settings.value(QStringLiteral("notifications/doNotDisturb"), false).toBool();
     emit doNotDisturbChanged();
@@ -207,7 +209,11 @@ void Preferences::reloadCompositor()
     emit keyboardChanged();
 
     m_nightLight = flag(QStringLiteral("night-light"), false);
-    m_nightStrength = std::clamp(value(QStringLiteral("night-light-strength"), QStringLiteral("48")).toInt(), 0, 100);
+    {
+        const QByteArray temperature = value(QStringLiteral("night-light-temperature"), {}).toUtf8();
+        const QByteArray strength = value(QStringLiteral("night-light-strength"), {}).toUtf8();
+        m_nightTemperature = vela_night_temperature(temperature.constData(), strength.constData());
+    }
     m_nightNvidiaFix = flag(QStringLiteral("night-light-nvidia-fix"), false);
     m_nightSchedule = value(QStringLiteral("night-light-schedule"), QStringLiteral("no"));
     m_nightFrom = value(QStringLiteral("night-light-from"), QStringLiteral("21:00"));
@@ -220,6 +226,8 @@ void Preferences::reloadCompositor()
     m_colorFilterShortcut = flag(QStringLiteral("color-filters-shortcut"), false);
     m_magnifierStep = value(QStringLiteral("magnifier-step"), QStringLiteral("100")).toInt();
     m_stickyKeys = flag(QStringLiteral("sticky-keys"), false);
+    m_animationEffects = flag(QStringLiteral("animation-effects"), true);
+    m_animationDuration = qBound(50, value(QStringLiteral("animation-duration"), QStringLiteral("100")).toInt(), 300);
     m_mouseSpeed = std::clamp(value(QStringLiteral("mouse-speed"), QStringLiteral("10")).toInt(), 1, 20);
     m_mousePrecision = flag(QStringLiteral("mouse-precision"), true);
     m_mouseLeftHanded = value(QStringLiteral("mouse-primary-button"), QStringLiteral("left")) == QLatin1String("right");
@@ -430,6 +438,15 @@ void Preferences::setTaskbarAllScreens(bool on)
     }
 }
 
+void Preferences::setShowDesktopCorner(bool on)
+{
+    if (on != m_showDesktopCorner) {
+        m_showDesktopCorner = on;
+        setShell(QStringLiteral("taskbar/showDesktopCorner"), on);
+        emit taskbarChanged();
+    }
+}
+
 void Preferences::setTaskView(bool on)
 {
     if (on != m_taskView) {
@@ -626,12 +643,12 @@ void Preferences::setNightLight(bool on)
     }
 }
 
-void Preferences::setNightStrength(int strength)
+void Preferences::setNightTemperature(int kelvin)
 {
-    strength = std::clamp(strength, 0, 100);
-    if (strength != m_nightStrength) {
-        m_nightStrength = strength;
-        saveCompositor({ { QStringLiteral("night-light-strength"), QString::number(strength) } });
+    kelvin = std::clamp((kelvin + 50) / 100 * 100, VELA_NIGHT_KELVIN_MIN, VELA_NIGHT_KELVIN_MAX);
+    if (kelvin != m_nightTemperature) {
+        m_nightTemperature = kelvin;
+        saveCompositor({ { QStringLiteral("night-light-temperature"), QString::number(kelvin) } });
         emit nightLightChanged();
     }
 }
@@ -750,6 +767,25 @@ void Preferences::setStickyKeys(bool on)
     if (on != m_stickyKeys) {
         m_stickyKeys = on;
         saveCompositor({ { QStringLiteral("sticky-keys"), yesNo(on) } });
+        emit accessibilityChanged();
+    }
+}
+
+void Preferences::setAnimationEffects(bool on)
+{
+    if (on != m_animationEffects) {
+        m_animationEffects = on;
+        saveCompositor({ { QStringLiteral("animation-effects"), yesNo(on) } });
+        emit accessibilityChanged();
+    }
+}
+
+void Preferences::setAnimationDuration(int percent)
+{
+    percent = qBound(50, percent, 300);
+    if (percent != m_animationDuration) {
+        m_animationDuration = percent;
+        saveCompositor({ { QStringLiteral("animation-duration"), QString::number(percent) } });
         emit accessibilityChanged();
     }
 }

@@ -34,9 +34,12 @@ if(VELA_BUILD_TOOLS)
     add_test(NAME script-tests COMMAND ${Python3_EXECUTABLE} -m unittest discover
         -s ${PROJECT_SOURCE_DIR}/scripts/tests -v)
     add_test(NAME documentation COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/check-docs.py)
+    add_test(NAME shared-values COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/check-shared-values.py)
+    # Reports only until the private controls are replaced (docs/visual-coherence.md §8).
+    add_test(NAME qml-motion COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/check-qml-motion.py)
     add_test(NAME functional-harness COMMAND ${Python3_EXECUTABLE} -m unittest discover
         -s ${PROJECT_SOURCE_DIR}/tests/harness -v)
-    set_tests_properties(script-tests documentation functional-harness PROPERTIES TIMEOUT 30)
+    set_tests_properties(script-tests documentation shared-values qml-motion functional-harness PROPERTIES TIMEOUT 30)
     set_tests_properties(functional-harness PROPERTIES
         ENVIRONMENT "PYTHONPATH=${PROJECT_SOURCE_DIR}/tests/functional")
 endif()
@@ -48,6 +51,7 @@ endif()
 
 if(VELA_BUILD_COMPOSITOR)
     add_subdirectory(compositor)
+    add_subdirectory(brightness)
     add_subdirectory(session)
 endif()
 option(VELA_BUILD_POLKIT "Build the polkit agent (needs polkit-agent-1; the prompt also needs the shell's Qt)" ON)
@@ -73,15 +77,27 @@ if(VELA_BUILD_TOOLS)
     # they are reported as skipped (code 77).
     if(VELA_BUILD_COMPOSITOR)
         if(Python3_FOUND)
-            add_test(NAME functional COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tests/functional/run.py)
+            # One entry per module (test_shell.py becomes functional-shell),
+            # so each stays well within its timeout however the suite grows.
+            file(GLOB VELA_FUNCTIONAL_MODULES CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/tests/functional/test_*.py)
+            set(VELA_FUNCTIONAL_TESTS)
+            foreach(module_path IN LISTS VELA_FUNCTIONAL_MODULES)
+                get_filename_component(module ${module_path} NAME_WE)
+                string(REGEX REPLACE "^test_" "" name ${module})
+                string(REPLACE "_" "-" name ${name})
+                add_test(NAME functional-${name}
+                    COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tests/functional/run.py ${module})
+                list(APPEND VELA_FUNCTIONAL_TESTS functional-${name})
+            endforeach()
             add_test(NAME sharpness COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tests/functional/run.py --sharpness)
             add_test(NAME sharpness-cpu COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tests/functional/run.py --sharpness)
-            set_tests_properties(functional sharpness sharpness-cpu PROPERTIES
+            set_tests_properties(${VELA_FUNCTIONAL_TESTS} sharpness sharpness-cpu PROPERTIES
                 ENVIRONMENT "VELA_BUILD=${CMAKE_BINARY_DIR}"
                 SKIP_RETURN_CODE 77
                 TIMEOUT 600
                 LABELS gpu
                 RUN_SERIAL TRUE)
+            set_property(TEST ${VELA_FUNCTIONAL_TESTS} APPEND PROPERTY LABELS functional)
             set_property(TEST sharpness-cpu APPEND PROPERTY ENVIRONMENT "VELA_SYNC_FILE=0")
         endif()
     endif()

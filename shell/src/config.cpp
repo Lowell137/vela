@@ -62,13 +62,21 @@ void Config::reload()
     const bool endTask = settings.value(QStringLiteral("taskbar/endTask"), true).toBool();
     const bool taskView = settings.value(QStringLiteral("taskbar/taskView"), true).toBool();
     const bool allScreens = settings.value(QStringLiteral("taskbar/allScreens"), true).toBool();
+    const bool showDesktopCorner = settings.value(QStringLiteral("taskbar/showDesktopCorner"), true).toBool();
     if (alignment != m_taskbarAlignment || endTask != m_endTask || taskView != m_taskView
-        || allScreens != m_taskbarAllScreens) {
+        || allScreens != m_taskbarAllScreens || showDesktopCorner != m_showDesktopCorner) {
         m_taskbarAlignment = alignment;
         m_endTask = endTask;
         m_taskView = taskView;
         m_taskbarAllScreens = allScreens;
+        m_showDesktopCorner = showDesktopCorner;
         emit taskbarChanged();
+    }
+
+    const QString primaryOutput = settings.value(QStringLiteral("display/primaryOutput")).toString();
+    if (primaryOutput != m_primaryOutput) {
+        m_primaryOutput = primaryOutput;
+        emit primaryOutputChanged();
     }
 
     auto mode = [&](const char* key) {

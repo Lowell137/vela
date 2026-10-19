@@ -6,6 +6,7 @@
 // times and the wlr_renderer wlroots sees.
 
 #include "render/render.h"
+#include "render/wait_arrays.h"
 #include "sync.h"
 
 #include "util.h"
@@ -461,6 +462,9 @@ struct vela_target *vela_renderer_target(struct vela_renderer *r, struct wlr_buf
     }
 
     struct vela_target *target = calloc(1, sizeof(*target));
+    if (!target) {
+        return NULL;
+    }
     target->renderer = r;
     target->format = format->srgb;
     target->dmabuf_fd = dmabuf.fd[0];
@@ -485,11 +489,25 @@ struct vela_target *vela_renderer_target(struct vela_renderer *r, struct wlr_buf
         .format = format->srgb,
         .subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 },
     };
-    vkCreateImageView(r->vk->device, &view_info, NULL, &target->view);
+    VkResult view_result = vkCreateImageView(r->vk->device, &view_info, NULL, &target->view);
+    if (view_result != VK_SUCCESS) {
+        wlr_log(WLR_ERROR, "Renderer: vkCreateImageView for target failed: VkResult=%d", (int)view_result);
+        vkDestroyImage(r->vk->device, target->image, NULL);
+        vkFreeMemory(r->vk->device, target->memory, NULL);
+        free(target);
+        return NULL;
+    }
 
     wlr_addon_init(&target->addon, &buffer->addons, r, &target_addon_impl);
     wl_list_insert(&r->targets, &target->link);
     return target;
+}
+
+// A successful GBM allocation alone is not proof that Vela can render into
+// the BO. This runs the same import path used by the first Vulkan render pass.
+bool vela_renderer_validate_target(struct vela_renderer *renderer, struct wlr_buffer *buffer)
+{
+    return renderer && buffer && vela_renderer_target(renderer, buffer) != NULL;
 }
 
 // ----------------------------------------------------- command buffers --
@@ -674,11 +692,9 @@ uint64_t vela_renderer_submit(struct vela_renderer *r, VkCommandBuffer cmd, cons
     };
 
     // Kernel fences (sync_files) become semaphores the GPU waits for.
-    if (wait_count > r->wait_capacity) {
-        r->wait_infos = realloc(r->wait_infos, (size_t)wait_count * sizeof(*r->wait_infos));
-        r->wait_semaphores = realloc(r->wait_semaphores, (size_t)wait_count * sizeof(*r->wait_semaphores));
-        r->wait_capacity = wait_count;
-    }
+    // Both buffers grow independently; on OOM vela_grow fails fast.
+    vela_wait_arrays_reserve(&r->wait_infos, &r->wait_infos_capacity,
+        &r->wait_semaphores, &r->wait_semaphores_capacity, wait_count);
     uint32_t waits = 0;
     bool inputs_ready = true;
     for (int i = 0; i < wait_count; ++i) {

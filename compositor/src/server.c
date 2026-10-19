@@ -4,6 +4,7 @@
 #include "server.h"
 
 #include "a11y.h"
+#include "brightness.h"
 #include "command.h"
 #include "config.h"
 #include "error_screen.h"
@@ -12,6 +13,7 @@
 #include "layer.h"
 #include "listen.h"
 #include "lock.h"
+#include "motion.h"
 #include "output.h"
 #include "output_manager.h"
 #include "path_security.h"
@@ -33,7 +35,6 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
-#include <math.h>
 #include <sched.h>
 #include <signal.h>
 #include <stdio.h>
@@ -120,6 +121,12 @@ static void handle_layout_change(struct wl_listener *listener, void *data)
 // build, a game): realtime scheduling, at low priority, for the main thread,
 // like KWin. What Vela launches (shell, apps) doesn't inherit it. Needs
 // RLIMIT_RTPRIO or CAP_SYS_NICE; VELA_REALTIME=0 turns it off.
+// VELA_DEBUG_ANIMATION=1 (motion.h).
+static void log_animation(const char *line)
+{
+    wlr_log(WLR_INFO, "animation: %s", line);
+}
+
 static void make_realtime(void)
 {
     if (vela_env_off("VELA_REALTIME")) {
@@ -150,6 +157,8 @@ static bool init(struct vela_server *server)
     server->interaction = vela_interaction_create();
     server->switcher = vela_switcher_create();
     server->snapping = vela_snapping_create();
+    // Vela's accent until the shell sends the user's (Theme.qml's default).
+    server->accent = (struct wlr_render_color) { 0x5b / 255.0f, 0x8c / 255.0f, 1.0f, 1.0f };
     server->vrr_mode = 1;
     server->display = wl_display_create();
     server->loop = wl_display_get_event_loop(server->display);
@@ -183,6 +192,11 @@ static bool init(struct vela_server *server)
         wlr_log(WLR_ERROR, "Can't create the buffer allocator (GBM)");
         return false;
     }
+    // Optional optimization: keep the normal allocator even if cursor-only
+    // GBM allocations are unavailable. One allocator for all DRM outputs;
+    // swapchains themselves are per-output and hotplug-safe.
+    server->cursor_allocator = vela_gbm_cursor_allocator_create(vela_vulkan_render_fd(server->vulkan),
+        server->renderer);
     wlr_renderer_init_wl_shm(server->wlr_renderer, display);
     // GPU buffers shared with apps, without copies: the formats are those our
     // device can read.
@@ -266,6 +280,9 @@ static bool init(struct vela_server *server)
     vela_output_load_settings(server);
     vela_a11y_load(server->a11y);
     server->workspaces = vela_workspaces_create(server); // virtual desktops (workspace.c)
+    if (vela_env_one("VELA_DEBUG_ANIMATION")) {
+        vela_motion_logger = log_animation;
+    }
 
     if (!wl_event_loop_add_signal(server->loop, SIGINT, handle_terminate, display)) {
         wlr_log_errno(WLR_ERROR, "Cannot register SIGINT handler");
@@ -391,6 +408,7 @@ bool vela_server_start(struct vela_server *server, const char *startup_command)
         vela_shell_start(server, startup_command);
     }
     vela_polkit_agent_start(server);
+    vela_brightness_start(server);
     return true;
 }
 
@@ -405,6 +423,7 @@ void vela_server_destroy(struct vela_server *server)
     // relaunched.
     vela_shell_stop(server);
     vela_child_stop(&server->polkit_agent);
+    vela_brightness_destroy(server);
     vela_commands_stop(server);
     if (server->session) {
         vela_session_run_hook("stop");
@@ -467,6 +486,7 @@ void vela_server_destroy(struct vela_server *server)
     if (vela_env_flag("VELA_VULKAN_VALIDATION")) {
         // The renderer tells its users (wlr_compositor) and destroys itself.
         wlr_renderer_destroy(server->wlr_renderer);
+        wlr_allocator_destroy(server->cursor_allocator);
         wlr_allocator_destroy(server->allocator);
         vela_vulkan_destroy(server->vulkan); // last: everything else uses its device
     }
@@ -482,6 +502,7 @@ void vela_server_destroy(struct vela_server *server)
 
 void vela_server_output_destroyed(struct vela_server *server, struct vela_output *output)
 {
+    vela_brightness_output_removed(output); // its helper goes too
     // The shell surfaces tied to this output must be closed.
     vela_layers_close_output(server, output);
     // At shutdown the backend destroys the outputs after snapping and
@@ -512,18 +533,19 @@ void vela_server_animate(struct vela_server *server, int64_t present_ns)
     wl_list_for_each (view, &server->views, link) {
         vela_view_update_shape(view); // corners and shadow for the current state
     }
-    server->animation_now_ms = fmax(server->animation_now_ms, present_ns / 1e6);
-    if (!vela_views_animating(server) && !vela_snapshots_running(server) && !vela_snap_preview_shown(server)
-        && server->workspaces->direction == 0 && !vela_a11y_animating(server->a11y)) {
-        return;
-    }
-    double now_ms = server->animation_now_ms;
-    bool accessibility = vela_a11y_tick(server->a11y, now_ms);
-    bool opening = vela_views_tick(server, now_ms);
-    vela_snapshots_tick(server, now_ms);
-    bool previewing = vela_snap_tick_preview(server, now_ms);
-    bool switching = vela_workspaces_tick(server, now_ms);
-    if (opening || vela_snapshots_running(server) || switching || accessibility || previewing) {
+    // What this frame shows (docs/renderer.md §4.2), and what can be retired:
+    // no frame still to come, on any output, is presented before the wall
+    // clock (docs/visual-coherence.md §6.2).
+    double now_ms = present_ns / 1e6;
+    double wall_ms = vela_now_ns() / 1e6;
+    server->ticking = true;
+    bool running = vela_a11y_tick(server->a11y, now_ms, wall_ms);
+    running |= vela_views_tick(server, now_ms, wall_ms);
+    running |= vela_snapshots_tick(server, now_ms, wall_ms);
+    running |= vela_snap_tick_preview(server, now_ms);
+    running |= vela_workspaces_tick(server, now_ms, wall_ms);
+    if (running) {
         vela_server_schedule_frames(server);
     }
+    server->ticking = false;
 }

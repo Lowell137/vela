@@ -17,7 +17,7 @@ Those nested alternatives are active only in nested mode; in a normal Vela sessi
 | Previous / next desktop | <kbd>Super</kbd>+<kbd>Ctrl</kbd>+<kbd>←</kbd> / <kbd>→</kbd> | <kbd>Alt</kbd>+<kbd>Ctrl</kbd>+<kbd>←</kbd> / <kbd>→</kbd> |
 | New desktop | <kbd>Super</kbd>+<kbd>Ctrl</kbd>+<kbd>D</kbd> | <kbd>Alt</kbd>+<kbd>Ctrl</kbd>+<kbd>D</kbd> |
 | Close desktop | <kbd>Super</kbd>+<kbd>Ctrl</kbd>+<kbd>F4</kbd> | — |
-| Show desktop | <kbd>Super</kbd>+<kbd>D</kbd> | <kbd>Alt</kbd>+<kbd>D</kbd> |
+| Show desktop (also: the far-right taskbar corner, if enabled in Settings → Personalization → Taskbar) | <kbd>Super</kbd>+<kbd>D</kbd> | <kbd>Alt</kbd>+<kbd>D</kbd> |
 | Move any window | <kbd>Super</kbd>+drag | — |
 | Resize any window | <kbd>Super</kbd>+right-drag | — |
 | Window menu | <kbd>Alt</kbd>+<kbd>Space</kbd> | <kbd>Alt</kbd>+<kbd>Space</kbd> |
@@ -38,6 +38,20 @@ Those nested alternatives are active only in nested mode; in a normal Vela sessi
 | Power-user menu | <kbd>Super</kbd>+<kbd>X</kbd> | <kbd>Alt</kbd>+<kbd>X</kbd> |
 | Terminal | <kbd>Super</kbd>+<kbd>Enter</kbd> | <kbd>Alt</kbd>+<kbd>Enter</kbd> |
 | Lock | <kbd>Super</kbd>+<kbd>L</kbd> | <kbd>Alt</kbd>+<kbd>L</kbd> |
+
+## Files
+
+| Action | Shortcut |
+|---|---|
+| Quick preview of the chosen item (images, text, PDF, videos, sounds, folders, properties) | <kbd>Space</kbd> |
+| Close the quick preview | <kbd>Space</kbd> or <kbd>Esc</kbd> |
+| Another item while previewing | <kbd>Up</kbd> / <kbd>Down</kbd> / <kbd>Left</kbd> / <kbd>Right</kbd> |
+| Zoom an image or PDF in the preview (1x to 8x, around the pointer) | Mouse wheel, or pinch on a touchpad or touch screen |
+| Move around a zoomed preview | Drag |
+| Fit the preview again | Double click |
+| Next or previous page of a PDF | <kbd>Page Down</kbd> / <kbd>Page Up</kbd> |
+
+Space types normally in the rename field and the search box.
 
 ## Input and accessibility
 

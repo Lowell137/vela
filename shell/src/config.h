@@ -24,6 +24,9 @@ class Config : public QObject {
     Q_PROPERTY(bool taskView READ taskView NOTIFY taskbarChanged)
     // The taskbar on all outputs (like Windows) or only on the main one.
     Q_PROPERTY(bool taskbarAllScreens READ taskbarAllScreens NOTIFY taskbarChanged)
+    Q_PROPERTY(QString primaryOutput READ primaryOutput NOTIFY primaryOutputChanged)
+    // Clickable right-hand taskbar corner that toggles the desktop.
+    Q_PROPERTY(bool showDesktopCorner READ showDesktopCorner NOTIFY taskbarChanged)
     // Clipboard history (Win+V).
     Q_PROPERTY(bool clipboardHistory READ clipboardHistory NOTIFY clipboardChanged)
     // "Choose your mode": "dark" or "light", for the shell (taskbar, menus,
@@ -39,6 +42,8 @@ public:
     bool endTask() const { return m_endTask; }
     bool taskView() const { return m_taskView; }
     bool taskbarAllScreens() const { return m_taskbarAllScreens; }
+    QString primaryOutput() const { return m_primaryOutput; }
+    bool showDesktopCorner() const { return m_showDesktopCorner; }
     bool clipboardHistory() const { return m_clipboardHistory; }
     bool doNotDisturb() const { return m_doNotDisturb; }
     QString shellTheme() const { return m_shellTheme; }
@@ -47,6 +52,7 @@ public:
 signals:
     void wallpaperChanged();
     void taskbarChanged();
+    void primaryOutputChanged();
     void doNotDisturbChanged(bool on);
     void themeChanged();
     void clipboardChanged();
@@ -60,9 +66,11 @@ private:
     QString m_path;
     QString m_wallpaper;
     QString m_taskbarAlignment;
+    QString m_primaryOutput;
     bool m_endTask = true;
     bool m_taskView = true;
     bool m_taskbarAllScreens = true;
+    bool m_showDesktopCorner = true;
     bool m_clipboardHistory = false;
     bool m_doNotDisturb = false;
     QString m_shellTheme = QStringLiteral("dark");
