@@ -933,6 +933,10 @@ Specifiche sistema
         <translation>I giochi che lo chiedono vanno sullo schermo senza aspettare il monitor: meno latenza, con qualche strappo nell&apos;immagine (tearing)</translation>
     </message>
     <message>
+        <source>Unavailable while direct scanout is off. Full-screen games are composited and cannot use asynchronous tearing</source>
+        <translation>Non disponibile quando lo scanout diretto è disattivato. I giochi a schermo intero vengono composti e non possono usare il tearing asincrono</translation>
+    </message>
+    <message>
         <source>Direct scanout</source>
         <translation>Scanout diretto</translation>
     </message>
