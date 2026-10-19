@@ -8,6 +8,7 @@ vela-slowgpu --fullscreen on a 512x320 output is an opaque dmabuf covering the
 output 1:1: a scanout candidate. "state" tells whether the last frame was one."""
 
 import os
+import signal
 import unittest
 
 from harness import Session, tool
