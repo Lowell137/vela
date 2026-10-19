@@ -1607,6 +1607,7 @@ const FixedShortcut kFixedShortcuts[] = {
     { QT_TRANSLATE_NOOP("Preferences", "Previous / next desktop"), "Super+Ctrl+Left / Super+Ctrl+Right" },
     { QT_TRANSLATE_NOOP("Preferences", "Move the window to the previous / next desktop"), "Super+Ctrl+Shift+Left / Super+Ctrl+Shift+Right" },
     { QT_TRANSLATE_NOOP("Preferences", "Go to desktop 1 to 10"), "Super+1 ... Super+9, Super+0" },
+    { QT_TRANSLATE_NOOP("Preferences", "Move the window to desktop 1 to 10"), "Super+Shift+1 ... Super+Shift+9, Super+Shift+0" },
     { QT_TRANSLATE_NOOP("Preferences", "New desktop"), "Super+Ctrl+D" },
     { QT_TRANSLATE_NOOP("Preferences", "Close desktop"), "Super+Ctrl+F4" },
     { QT_TRANSLATE_NOOP("Preferences", "Window menu"), "Alt+Space" },

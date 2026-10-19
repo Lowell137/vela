@@ -407,6 +407,16 @@ void vela_workspaces_switch(struct vela_server *server, int index, bool refocus_
     vela_workspaces_announce(server);
 }
 
+void vela_workspaces_move_focused(struct vela_server *server, int index)
+{
+    struct vela_view *active = vela_views_focused(server);
+    if (!active || index < 0 || index >= server->workspaces->count) {
+        return;
+    }
+    vela_workspaces_move_view(server, active, index);
+    vela_workspaces_switch(server, index, true);
+}
+
 bool vela_workspaces_tick(struct vela_server *server, double now_ms)
 {
     struct vela_workspaces *ws = server->workspaces;

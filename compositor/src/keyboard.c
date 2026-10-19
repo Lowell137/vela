@@ -15,6 +15,7 @@
 #include "focus.h"
 #include "input.h"
 #include "shortcuts.h"
+#include "workspace.h"
 #include "server.h"
 #include "shell.h"
 #include "util.h"
@@ -258,6 +259,23 @@ static void handle_modifiers(struct wl_listener *listener, void *data)
     wlr_seat_keyboard_notify_modifiers(server->seat, &wlr->modifiers);
 }
 
+// The desktop number (0-9) of a digit key, from what it types with no modifier:
+// with Shift held the keys give "!", "'" or "&" depending on the layout. -1 for
+// any other key.
+static int desktop_digit(struct vela_keyboard *keyboard, uint32_t keycode)
+{
+    struct xkb_state *state = keyboard->wlr->xkb_state;
+    const xkb_keysym_t *syms = NULL;
+    xkb_layout_index_t layout = xkb_state_key_get_layout(state, keycode);
+    if (xkb_keymap_key_get_syms_by_level(keyboard->wlr->keymap, keycode, layout, 0, &syms) < 1) {
+        return -1;
+    }
+    if (syms[0] >= XKB_KEY_1 && syms[0] <= XKB_KEY_9) {
+        return (int)(syms[0] - XKB_KEY_1);
+    }
+    return syms[0] == XKB_KEY_0 ? 9 : -1;
+}
+
 static void stop_repeat(struct vela_keyboard *keyboard)
 {
     if (keyboard->repeat) {
@@ -337,6 +355,16 @@ static void handle_key(struct wl_listener *listener, void *data)
     // that key is released.
     if (vela_a11y_sticky_key(server->a11y, keyboard->wlr, syms, count, pressed)) {
         input->super_tap = false;
+    }
+    // Win+Shift+1..9 and Win+Shift+0: the focused window goes to that desktop (the
+    // tenth with 0), and we follow it. Inside KDE with Alt.
+    if (pressed && !inhibited && (mods & WLR_MODIFIER_SHIFT) && !(mods & WLR_MODIFIER_CTRL)
+        && ((mods & WLR_MODIFIER_LOGO) || (server->nested && (mods & WLR_MODIFIER_ALT)))) {
+        int desktop = desktop_digit(keyboard, keycode);
+        if (desktop >= 0) {
+            vela_workspaces_move_focused(server, desktop);
+            handled = true;
+        }
     }
     for (int i = 0; i < count; ++i) {
         if (pressed) {
