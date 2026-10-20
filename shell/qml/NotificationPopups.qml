@@ -9,7 +9,7 @@ import Vela.Controls
 // window is as tall as the tiles: the rest of the output stays clickable.
 Window {
     id: root
-    width: 380
+    width: Theme.notificationsWidth - 4
     height: Math.max(1, stack.implicitHeight + 24)
     visible: Notifications.count > 0
     color: "transparent"

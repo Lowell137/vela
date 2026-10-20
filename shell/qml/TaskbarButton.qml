@@ -36,12 +36,12 @@ Item {
     readonly property real zoom: Config.dock ? (hovered ? 1.35 : 1.2) : 1
     transform: Translate { x: !root.vertical && mouse.dragging ? mouse.dragX : 0; y: root.vertical && mouse.dragging ? mouse.dragX : 0 }
 
-    width: 44
-    height: Config.dock ? 48 : 40
+    width: Theme.taskbarButtonWidth
+    height: Config.dock ? 48 : Theme.taskbarButtonHeight
 
     Rectangle {
         anchors.fill: parent
-        radius: Theme.radius
+        radius: Theme.taskbarButtonRadius
         color: mouse.pressed ? Theme.subtlePressed : Theme.subtleHover
         opacity: mouse.containsMouse || root.active ? 1 : 0
 
@@ -53,8 +53,8 @@ Item {
     Item {
         id: holder
         anchors.centerIn: parent
-        width: 26
-        height: 26
+        width: Theme.taskbarIconSize
+        height: Theme.taskbarIconSize
         scale: (mouse.pressed ? 0.84 : 1) * root.zoom
 
         Behavior on scale {

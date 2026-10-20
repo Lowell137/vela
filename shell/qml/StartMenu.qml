@@ -12,10 +12,10 @@ Window {
     id: root
 
     visible: false
-    width: Config.taskbarVertical ? 672 : 660
+    width: Theme.startMenuWidth + (Config.taskbarVertical ? 12 : 0)
     // On short outputs it gets shorter: the search at the top must stay
     // visible.
-    height: Math.min(732, Screen.height - (Config.taskbarVertical ? 0 : Theme.taskbarHeight) - 12)
+    height: Math.min(Theme.startMenuHeight, Screen.height - (Config.taskbarVertical ? 0 : Theme.taskbarHeight) - 12)
     color: "transparent"
 
     property bool closing: false
@@ -93,7 +93,7 @@ Window {
             return true
         }
         // Down from the last row of apps goes to the extras below.
-        if (delta > 0 && extras.length > 0 && Math.floor(grid.currentIndex / 6) >= Math.floor((grid.count - 1) / 6)) {
+        if (delta > 0 && extras.length > 0 && Math.floor(grid.currentIndex / Theme.startMenuColumns) >= Math.floor((grid.count - 1) / Theme.startMenuColumns)) {
             extraIndex = 0
             grid.positionViewAtEnd()
             return true
@@ -295,7 +295,7 @@ Window {
     function selectPinned(index) {
         selectedPinnedIndex = index
         // A long pinned section may itself be taller than the visible grid.
-        const top = Math.floor(index / 6) * grid.cellHeight
+        const top = Math.floor(index / Theme.startMenuColumns) * grid.cellHeight
         if (grid.contentY > top) grid.contentY = top
         else if (grid.contentY + grid.height < top + grid.cellHeight)
             grid.contentY = top + grid.cellHeight - grid.height
@@ -332,7 +332,7 @@ Window {
         }
 
         grid.keyNav = true
-        const columns = 6
+        const columns = Theme.startMenuColumns
         if (selectedPinnedIndex >= 0 && pinCount > 0) {
             const index = selectedPinnedIndex
             if (direction === "left") selectPinned((index + pinCount - 1) % pinCount)
@@ -484,7 +484,7 @@ Window {
         y: restY + (side ? 0 : offset)
         width: root.width - (side ? 32 : 20)
         height: root.height - (side ? 20 : 32) // 10 above, 22 below: 12 of gap from the taskbar
-        radius: Theme.radiusOverlay
+        radius: Theme.startMenuRadius
         color: Theme.surface
         border.width: 1
         border.color: Theme.stroke
@@ -566,8 +566,8 @@ Window {
             }
             clip: true
             model: Apps
-            cellWidth: Math.floor(width / 6)
-            cellHeight: 96
+            cellWidth: Math.floor(width / Theme.startMenuColumns)
+            cellHeight: Theme.startMenuCellHeight
             keyNavigationWraps: true
             boundsBehavior: Flickable.StopAtBounds
             highlightFollowsCurrentItem: false
@@ -599,7 +599,7 @@ Window {
                 Grid {
                     id: pinnedGrid
                     visible: root.showPinned
-                    columns: 6
+                    columns: Theme.startMenuColumns
 
                     Repeater {
                         model: root.pinned
@@ -743,7 +743,8 @@ Window {
         Rectangle {
             id: footer
             anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
-            height: 60
+            visible: Theme.startMenuFooter
+            height: visible ? 60 : 0
             color: "transparent"
 
             Rectangle {

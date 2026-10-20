@@ -26,7 +26,9 @@ Window {
     // The dock style (Config.dock) is taller: a floating pill with big icons;
     // the tray and clock live in the top panel (TopBar.qml).
     readonly property bool dock: Config.dock
-    readonly property int barHeight: dock ? 68 : 48
+    readonly property int barHeight: dock ? 68 : Theme.taskbarBarHeight
+    // A theme's taskbar-margin / taskbar-radius: the bar floats inside its window.
+    readonly property bool floating: !islands && !dock && (Theme.taskbarMargin > 0 || Theme.taskbarRadius > 0)
     width: vertical ? Theme.taskbarHeight : 1280
     height: vertical ? 720 : barHeight
     color: "transparent"
@@ -322,7 +324,17 @@ Window {
 
     Rectangle {
         anchors.fill: parent
-        color: root.islands || root.dock ? "transparent" : Theme.taskbar
+        color: root.islands || root.dock || root.floating ? "transparent" : Theme.taskbar
+
+        Rectangle {
+            visible: root.floating
+            anchors.fill: parent
+            anchors.margins: Theme.taskbarMargin
+            radius: Theme.taskbarRadius
+            color: Theme.taskbar
+            border.width: 1
+            border.color: Theme.stroke
+        }
 
         // Empty space: Task Manager and taskbar settings.
         MouseArea {
@@ -340,7 +352,7 @@ Window {
 
         // A thin line of light on the edge towards the screen, like glass.
         Rectangle {
-            visible: !root.islands && !root.dock
+            visible: !root.islands && !root.dock && !root.floating
             // x/y, not anchors: anchors switched to undefined at run time
             // keep their old edge when the position changes live.
             x: root.vertical && Config.taskbarLeft ? parent.width - width : 0
@@ -428,7 +440,7 @@ Window {
         y: root.vertical ? (Config.taskbarAlignment === "left" ? 12 : Math.max(12, Math.round((parent.height - height) / 2)))
             : root.dock ? dockPill.y + Math.round((dockPill.height - height) / 2)
             : Math.round((parent.height - height) / 2)
-        spacing: 4
+        spacing: Theme.taskbarSpacing
 
         Behavior on x {
             NumberAnimation { duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }

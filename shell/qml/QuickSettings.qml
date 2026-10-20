@@ -16,7 +16,7 @@ import Vela.Controls
 Window {
     id: root
     visible: false
-    width: 384
+    width: Theme.quickSettingsWidth
     height: panel.height + 24
     color: "transparent"
 
@@ -182,15 +182,16 @@ Window {
         signal toggled()
         signal details()
         signal contextMenu()
-        width: 104
-        height: 82
+        // 104 x 82 by default: the panel's inner width shared by the columns.
+        width: Math.floor((Theme.quickSettingsWidth - 56 - 8 * (Theme.quickSettingsColumns - 1)) / Theme.quickSettingsColumns)
+        height: Theme.quickSettingsTileHeight
         opacity: usable ? 1 : 0.45
 
         Rectangle {
             id: button
             width: parent.width
-            height: 48
-            radius: Theme.radius
+            height: Theme.quickSettingsTileHeight - 34
+            radius: Theme.quickSettingsTileRadius
             color: tile.checked ? Theme.accent : Theme.control
             border.width: tile.checked ? 0 : 1
             border.color: Theme.stroke
@@ -656,7 +657,7 @@ Window {
         height: root.page === "" ? content.height + 24 + footer.height
             : (root.page === "wifi" ? wifiPage.height : root.page === "sound" ? soundPage.height
                 : root.page === "caffeine" ? caffeinePage.height : accessPage.height) + 32
-        radius: Theme.radiusOverlay
+        radius: Theme.quickSettingsRadius
         color: Theme.surface
         border.width: 1
         border.color: Theme.stroke
@@ -822,7 +823,7 @@ Window {
                 }
 
                 Grid {
-                    columns: 3
+                    columns: Theme.quickSettingsColumns
                     columnSpacing: 8
                     rowSpacing: 4
 

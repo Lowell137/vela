@@ -11,7 +11,7 @@ import Vela.Controls
 Window {
     id: root
     visible: false
-    width: 384
+    width: Theme.notificationsWidth
     height: column.height + 24
     color: "transparent"
 
@@ -118,7 +118,7 @@ Window {
             id: notifications
             width: parent.width
             height: Math.min(Screen.height - Theme.taskbarHeight - calendar.height - 60, header.height + Math.max(list.contentHeight, 64) + 24)
-            radius: Theme.radiusOverlay
+            radius: Theme.notificationsRadius
             color: Theme.surface
             border.width: 1
             border.color: Theme.stroke
@@ -225,7 +225,7 @@ Window {
                     visible: root.collapsed[appName] !== true
                     width: list.width
                     height: visible ? itemContent.height + 20 : 0
-                    radius: Theme.radius
+                    radius: Theme.notificationsCardRadius
                     color: itemHover.hovered ? Theme.subtleHover : Theme.control
 
                     HoverHandler { id: itemHover }
@@ -327,7 +327,7 @@ Window {
             id: calendar
             width: parent.width
             height: calendarContent.height + 32
-            radius: Theme.radiusOverlay
+            radius: Theme.notificationsRadius
             color: Theme.surface
             border.width: 1
             border.color: Theme.stroke

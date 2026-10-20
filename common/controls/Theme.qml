@@ -116,6 +116,31 @@ QtObject {
     readonly property int radius: themed("radius", 4) // controls
     readonly property int radiusCard: themed("radiusCard", 6)
     readonly property int radiusOverlay: themed("radiusOverlay", 8) // menus, flyouts, dialogs, panels
+
+    // --- layout of the shell's surfaces (themes/<name>.conf: taskbar-*,
+    // startmenu-*, quicksettings-*, notifications-*); defaults are Vela's ---
+    readonly property int taskbarBarHeight: themed("taskbar-height", 48)
+    readonly property int taskbarMargin: themed("taskbar-margin", 0) // floating: gap to the window's edges
+    readonly property int taskbarRadius: themed("taskbar-radius", 0)
+    readonly property int taskbarButtonWidth: themed("taskbar-button-width", 44)
+    readonly property int taskbarButtonHeight: themed("taskbar-button-height", 40)
+    readonly property int taskbarButtonRadius: themed("taskbar-button-radius", radius)
+    readonly property int taskbarIconSize: themed("taskbar-icon-size", 26)
+    readonly property int taskbarSpacing: themed("taskbar-spacing", 4)
+    readonly property int startMenuWidth: themed("startmenu-width", 660)
+    readonly property int startMenuHeight: themed("startmenu-height", 732) // at most
+    readonly property int startMenuRadius: themed("startmenu-radius", radiusOverlay)
+    readonly property int startMenuColumns: themed("startmenu-columns", 6)
+    readonly property int startMenuCellHeight: themed("startmenu-cell-height", 96)
+    readonly property bool startMenuFooter: themed("startmenu-footer", 1) !== 0
+    readonly property int quickSettingsWidth: themed("quicksettings-width", 384)
+    readonly property int quickSettingsRadius: themed("quicksettings-radius", radiusOverlay)
+    readonly property int quickSettingsColumns: themed("quicksettings-columns", 3)
+    readonly property int quickSettingsTileHeight: themed("quicksettings-tile-height", 82)
+    readonly property int quickSettingsTileRadius: themed("quicksettings-tile-radius", radius)
+    readonly property int notificationsWidth: themed("notifications-width", 384)
+    readonly property int notificationsRadius: themed("notifications-radius", radiusOverlay)
+    readonly property int notificationsCardRadius: themed("notifications-card-radius", radius)
     readonly property int fontCaption: 12
     readonly property int fontBody: 14
     readonly property int fontBodyLarge: 18
