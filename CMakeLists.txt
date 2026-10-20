@@ -107,3 +107,6 @@ if(VELA_BUILD_TOOLS)
     # A private PipeWire and WirePlumber for the audio tests (docs/audio.md).
     add_subdirectory(tests/audio)
 endif()
+
+# Themes (themes/*.conf): theme= of vela.conf picks one (Settings > Personalization > Themes).
+install(DIRECTORY themes/ DESTINATION ${CMAKE_INSTALL_DATADIR}/vela/themes FILES_MATCHING PATTERN "*.conf")

@@ -54,6 +54,8 @@ class Preferences : public QObject {
     // icon-theme= in vela.conf: an icon theme's directory name, "" for the
     // automatic one (Breeze). The apps apply it themselves (applyIconTheme).
     Q_PROPERTY(QString iconTheme READ iconTheme WRITE setIconTheme NOTIFY iconThemeChanged)
+    // theme= in vela.conf: a theme's file name without .conf (themes/), "" for Vela's own.
+    Q_PROPERTY(QString visualTheme READ visualTheme WRITE setVisualTheme NOTIFY visualThemeChanged)
     // cursor-theme= and cursor-size= in vela.conf: a cursor theme's directory
     // name ("": $XCURSOR_THEME) and its size in pixels. The compositor applies
     // them and passes them on to the apps it starts.
@@ -196,6 +198,10 @@ public:
     Q_INVOKABLE void setWeatherPlace(const QString& city, const QString& lat, const QString& lon);
 
     QString iconTheme() const { return m_iconTheme; }
+    QString visualTheme() const { return m_visualTheme; }
+    void setVisualTheme(const QString& theme);
+    // The installed themes: { name, text }.
+    Q_INVOKABLE QVariantList visualThemes() const;
     void setIconTheme(const QString& theme);
     // The installed icon themes: [{name, text}], by text; "X-dark"/"X-Dark"
     // are inside "X" (chosen by the mode).
@@ -388,6 +394,7 @@ signals:
     void appThemeChanged();
     void taskbarChanged();
     void iconThemeChanged();
+    void visualThemeChanged();
     void cursorChanged();
     void windowBlurChanged();
     void windowRulesChanged();
@@ -432,6 +439,7 @@ private:
     QString m_weatherCity;
     QString m_weatherUnit = QStringLiteral("c");
     QString m_iconTheme;
+    QString m_visualTheme;
     QString m_cursorTheme;
     int m_cursorSize = 24;
     bool m_windowBlur = false;

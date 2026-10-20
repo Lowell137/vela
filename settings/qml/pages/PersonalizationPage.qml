@@ -23,6 +23,12 @@ Page {
             onClicked: root.navigate("colors")
         }
         LinkCard {
+            icon: "preferences-desktop-theme"
+            title: qsTr("Themes")
+            description: qsTr("Glass looks and other themes for the shell and apps")
+            onClicked: root.navigate("themes")
+        }
+        LinkCard {
             icon: "preferences-desktop-icons"
             title: qsTr("Icons")
             description: qsTr("Icon theme")

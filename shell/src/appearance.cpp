@@ -13,6 +13,8 @@
 #include <QSettings>
 #include <QStandardPaths>
 
+static QString themeFilePath();
+
 Appearance::Appearance(QObject* parent, Mode mode)
     : QObject(parent)
     , m_mode(mode)
@@ -32,7 +34,10 @@ void Appearance::watch()
     const QString shellConfig = QSettings(QStringLiteral("Vela"), QStringLiteral("vela-shell")).fileName();
     // vela.conf: the icon theme (icon-theme=).
     const QString velaConfig = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + QStringLiteral("/vela/vela.conf");
-    for (const QString& path : { shellConfig, wallpaperTintCachePath(), velaConfig }) {
+    for (const QString& path : { shellConfig, wallpaperTintCachePath(), velaConfig, themeFilePath() }) {
+        if (path.isEmpty()) {
+            continue;
+        }
         const QFileInfo info(path);
         if (info.exists() && !m_watcher.files().contains(path)) {
             m_watcher.addPath(path);
@@ -46,6 +51,57 @@ void Appearance::watch()
         connect(&m_watcher, &QFileSystemWatcher::fileChanged, &m_debounce, qOverload<>(&QTimer::start));
         connect(&m_watcher, &QFileSystemWatcher::directoryChanged, &m_debounce, qOverload<>(&QTimer::start));
     }
+}
+
+// theme=<name> of vela.conf, and where its file is: the user's themes first,
+// then the data directories' (a package or a nested run's XDG_DATA_DIRS).
+static QString themeFilePath()
+{
+    QString name;
+    QFile conf(QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + QStringLiteral("/vela/vela.conf"));
+    if (conf.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        while (!conf.atEnd()) {
+            const QByteArray line = conf.readLine().trimmed();
+            if (line.startsWith("theme=")) {
+                name = QString::fromUtf8(line.mid(6)).trimmed();
+            }
+        }
+    }
+    // A name is a file name: nothing that leads elsewhere.
+    if (name.isEmpty() || name.contains(u'/') || name.startsWith(u'.')) {
+        return {};
+    }
+    const QString relative = QStringLiteral("vela/themes/") + name + QStringLiteral(".conf");
+    const QString user = QStandardPaths::locate(QStandardPaths::GenericConfigLocation, relative);
+    return user.isEmpty() ? QStandardPaths::locate(QStandardPaths::GenericDataLocation, relative) : user;
+}
+
+// key=value lines, # comments. A value that is a color becomes a QColor
+// (#RRGGBB or #AARRGGBB), a number a double; anything else is ignored.
+static QVariantMap loadThemeFile(const QString& path)
+{
+    QVariantMap map;
+    QFile file(path);
+    if (path.isEmpty() || !file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        return map;
+    }
+    while (!file.atEnd()) {
+        const QString line = QString::fromUtf8(file.readLine()).trimmed();
+        const qsizetype equals = line.indexOf(u'=');
+        if (line.startsWith(u'#') || equals <= 0) {
+            continue;
+        }
+        const QString key = line.left(equals).trimmed();
+        const QString value = line.mid(equals + 1).trimmed();
+        bool number = false;
+        const double d = value.toDouble(&number);
+        if (number) {
+            map.insert(key, d);
+        } else if (QColor color(value); color.isValid()) {
+            map.insert(key, color);
+        }
+    }
+    return map;
 }
 
 // cursor-theme= and cursor-size= of vela.conf to the apps the shell starts,
@@ -83,8 +139,13 @@ void Appearance::reload()
     const QColor mica = micaFromTint(tint, true, light);
     const QColor micaInactive = micaFromTint(tint, false, light);
     const QString iconTheme = configuredIconTheme();
+    const QString themeFile = themeFilePath();
+    const QVariantMap theme = loadThemeFile(themeFile);
+    if (m_watching && !themeFile.isEmpty() && !m_watcher.files().contains(themeFile)) {
+        m_watcher.addPath(themeFile);
+    }
     if (light == m_light && accent == m_accent && mica == m_mica && micaInactive == m_micaInactive
-        && iconTheme == m_iconTheme) {
+        && iconTheme == m_iconTheme && theme == m_theme) {
         return;
     }
     const bool first = !m_accent.isValid();
@@ -92,6 +153,7 @@ void Appearance::reload()
         ++m_iconGeneration;
     }
     m_iconTheme = iconTheme;
+    m_theme = theme;
     m_light = light;
     m_accent = accent;
     m_mica = mica;

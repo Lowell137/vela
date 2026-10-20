@@ -7,6 +7,7 @@
 #include <QFileSystemWatcher>
 #include <QObject>
 #include <QTimer>
+#include <QVariantMap>
 
 // The look of Vela's interfaces (Vela.Controls' Style): the apps' light or
 // dark mode ("Choose your mode"), accent color and Mica (see mica.h). System
@@ -20,6 +21,9 @@ class Appearance : public QObject {
     Q_PROPERTY(QColor accent READ accent NOTIFY changed)
     Q_PROPERTY(QColor mica READ mica NOTIFY changed)
     Q_PROPERTY(QColor micaInactive READ micaInactive NOTIFY changed)
+    // The chosen theme's values (theme= of vela.conf, themes/<name>.conf):
+    // colors as QColor, numbers as double; Theme.qml falls back to its own.
+    Q_PROPERTY(QVariantMap theme READ theme NOTIFY changed)
     // "l/" or "d/" for image://icon (then "~N/" after an icon theme change):
     // changes a moment after the mode or the theme, once the icon caches are
     // emptied (applyIconTheme).
@@ -34,6 +38,7 @@ public:
     QColor mica() const { return m_mica; }
     QColor micaInactive() const { return m_micaInactive; }
     QString iconMode() const { return m_iconMode; }
+    QVariantMap theme() const { return m_theme; }
 
     // Starts watching the files (after the first frame: startup stays fast).
     void watch();
@@ -55,5 +60,6 @@ private:
     QColor m_micaInactive;
     QString m_iconMode = QStringLiteral("d/");
     QString m_iconTheme; // icon-theme= of vela.conf
+    QVariantMap m_theme;
     int m_iconGeneration = 0;
 };

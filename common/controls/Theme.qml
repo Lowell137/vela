@@ -14,34 +14,43 @@ import QtQuick
 QtObject {
     readonly property bool light: Style.light
 
+    // The chosen theme's values (Style.theme, from themes/<name>.conf):
+    // "dark.taskbar" or "light.taskbar" for one mode, "taskbar" for both. Not
+    // in the theme: Vela's own value.
+    function themed(key, fallback) {
+        const t = Style.theme
+        const modeKey = (light ? "light." : "dark.") + key
+        return modeKey in t ? t[modeKey] : (key in t ? t[key] : fallback)
+    }
+
     // --- the window: Mica, the same as Vela's title bar ---
     property bool windowActive: true // the app's Main.qml updates it
-    readonly property color background: windowActive ? Style.mica : Style.micaInactive
+    readonly property color background: themed("background", windowActive ? Style.mica : Style.micaInactive)
 
     // --- controls and surfaces ---
-    readonly property color control: light ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(1, 1, 1, 0.061)
-    readonly property color controlHover: light ? Qt.rgba(0.976, 0.976, 0.976, 0.5) : Qt.rgba(1, 1, 1, 0.084)
-    readonly property color controlPressed: light ? Qt.rgba(0.976, 0.976, 0.976, 0.3) : Qt.rgba(1, 1, 1, 0.033)
-    readonly property color controlStroke: light ? Qt.rgba(0, 0, 0, 0.07) : Qt.rgba(1, 1, 1, 0.07)
+    readonly property color control: themed("control", light ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(1, 1, 1, 0.061))
+    readonly property color controlHover: themed("controlHover", light ? Qt.rgba(0.976, 0.976, 0.976, 0.5) : Qt.rgba(1, 1, 1, 0.084))
+    readonly property color controlPressed: themed("controlPressed", light ? Qt.rgba(0.976, 0.976, 0.976, 0.3) : Qt.rgba(1, 1, 1, 0.033))
+    readonly property color controlStroke: themed("controlStroke", light ? Qt.rgba(0, 0, 0, 0.07) : Qt.rgba(1, 1, 1, 0.07))
     readonly property color controlStrokeStrong: light ? Qt.rgba(0, 0, 0, 0.45) : Qt.rgba(1, 1, 1, 0.55)
     readonly property color subtleHover: light ? Qt.rgba(0, 0, 0, 0.037) : Qt.rgba(1, 1, 1, 0.061)
     readonly property color subtlePressed: light ? Qt.rgba(0, 0, 0, 0.024) : Qt.rgba(1, 1, 1, 0.042)
-    readonly property color stroke: light ? Qt.rgba(0, 0, 0, 0.09) : Qt.rgba(1, 1, 1, 0.09) // panels and menus
+    readonly property color stroke: themed("stroke", light ? Qt.rgba(0, 0, 0, 0.09) : Qt.rgba(1, 1, 1, 0.09)) // panels and menus
     readonly property color divider: light ? Qt.rgba(0, 0, 0, 0.08) : Qt.rgba(1, 1, 1, 0.084)
-    readonly property color card: light ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(1, 1, 1, 0.051)
-    readonly property color cardHover: light ? Qt.rgba(0.976, 0.976, 0.976, 0.5) : Qt.rgba(1, 1, 1, 0.083)
-    readonly property color cardPressed: light ? Qt.rgba(0.976, 0.976, 0.976, 0.3) : Qt.rgba(1, 1, 1, 0.035)
-    readonly property color cardStroke: light ? Qt.rgba(0, 0, 0, 0.06) : Qt.rgba(0, 0, 0, 0.18)
+    readonly property color card: themed("card", light ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(1, 1, 1, 0.051))
+    readonly property color cardHover: themed("cardHover", light ? Qt.rgba(0.976, 0.976, 0.976, 0.5) : Qt.rgba(1, 1, 1, 0.083))
+    readonly property color cardPressed: themed("cardPressed", light ? Qt.rgba(0.976, 0.976, 0.976, 0.3) : Qt.rgba(1, 1, 1, 0.035))
+    readonly property color cardStroke: themed("cardStroke", light ? Qt.rgba(0, 0, 0, 0.06) : Qt.rgba(0, 0, 0, 0.18))
     // Menus and flyouts inside a window (no blur of their own).
-    readonly property color flyout: light ? "#f9f9f9" : "#2c2c2c"
-    readonly property color dialog: light ? "#fbfbfb" : "#2b2b2b"
-    readonly property color dialogFooter: light ? "#f3f3f3" : "#202020"
+    readonly property color flyout: themed("flyout", light ? "#f9f9f9" : "#2c2c2c")
+    readonly property color dialog: themed("dialog", light ? "#fbfbfb" : "#2b2b2b")
+    readonly property color dialogFooter: themed("dialogFooter", light ? "#f3f3f3" : "#202020")
     readonly property color dialogStroke: light ? Qt.rgba(0, 0, 0, 0.12) : Qt.rgba(0, 0, 0, 0.45)
     readonly property color smoke: Qt.rgba(0, 0, 0, 0.3) // behind a window's dialogs
     // The veil over the screen behind a system dialog (UAC): dark in light
     // mode too, like Windows.
     readonly property color veil: Effects.blurAvailable ? Qt.rgba(0, 0, 0, light ? 0.35 : 0.45) : Qt.rgba(0, 0, 0, 0.6)
-    readonly property color field: light ? "#ffffff" : "#1e1e1e" // a text field while typing
+    readonly property color field: themed("field", light ? "#ffffff" : "#1e1e1e") // a text field while typing
     readonly property color focusRing: light ? Qt.rgba(0, 0, 0, 0.45) : Qt.rgba(1, 1, 1, 0.35)
     // Files: the files and navigation area, the selection, the scroll bars.
     readonly property color layer: light ? Qt.rgba(1, 1, 1, 0.5) : Qt.rgba(0.227, 0.227, 0.227, 0.30)
@@ -58,23 +67,23 @@ QtObject {
     // Without it, opaque.
     readonly property bool acrylic: Effects.blurAvailable
     readonly property color desktop: "#06182d" // below the wallpaper, its darkest blue
-    readonly property color taskbar: light
+    readonly property color taskbar: themed("taskbar", light
         ? (acrylic ? Qt.rgba(0.95, 0.95, 0.96, 0.66) : Qt.rgba(0.94, 0.94, 0.95, 0.96))
-        : (acrylic ? Qt.rgba(0.11, 0.11, 0.13, 0.62) : Qt.rgba(0.10, 0.10, 0.12, 0.94))
-    readonly property color surface: light
+        : (acrylic ? Qt.rgba(0.11, 0.11, 0.13, 0.62) : Qt.rgba(0.10, 0.10, 0.12, 0.94)))
+    readonly property color surface: themed("surface", light
         ? (acrylic ? Qt.rgba(0.96, 0.96, 0.97, 0.74) : Qt.rgba(0.95, 0.95, 0.96, 0.98))
-        : (acrylic ? Qt.rgba(0.14, 0.14, 0.16, 0.72) : Qt.rgba(0.14, 0.14, 0.16, 0.97))
+        : (acrylic ? Qt.rgba(0.14, 0.14, 0.16, 0.72) : Qt.rgba(0.14, 0.14, 0.16, 0.97)))
     // The shell's menus, surfaces of their own that the compositor blurs.
-    readonly property color popup: light
+    readonly property color popup: themed("popup", light
         ? (acrylic ? Qt.rgba(0.98, 0.98, 0.98, 0.82) : "#f9f9f9")
-        : (acrylic ? Qt.rgba(0.17, 0.17, 0.19, 0.78) : "#2a2a2f")
+        : (acrylic ? Qt.rgba(0.17, 0.17, 0.19, 0.78) : "#2a2a2f"))
     // Panels over the output (Task View, Snap Assist), and the window cards
     // on them.
-    readonly property color backdrop: light
+    readonly property color backdrop: themed("backdrop", light
         ? (acrylic ? Qt.rgba(0.93, 0.93, 0.95, 0.55) : Qt.rgba(0.92, 0.92, 0.94, 0.96))
-        : (acrylic ? Qt.rgba(0.05, 0.05, 0.07, 0.55) : Qt.rgba(0.07, 0.07, 0.09, 0.96))
-    readonly property color taskCard: light ? Qt.rgba(0.98, 0.98, 0.99, 0.92) : Qt.rgba(0.15, 0.15, 0.17, 0.92)
-    readonly property color taskCardHover: light ? Qt.rgba(1, 1, 1, 0.97) : Qt.rgba(0.20, 0.20, 0.23, 0.95)
+        : (acrylic ? Qt.rgba(0.05, 0.05, 0.07, 0.55) : Qt.rgba(0.07, 0.07, 0.09, 0.96)))
+    readonly property color taskCard: themed("taskCard", light ? Qt.rgba(0.98, 0.98, 0.99, 0.92) : Qt.rgba(0.15, 0.15, 0.17, 0.92))
+    readonly property color taskCardHover: themed("taskCardHover", light ? Qt.rgba(1, 1, 1, 0.97) : Qt.rgba(0.20, 0.20, 0.23, 0.95))
     // To lighten (or darken, in light mode) what's below: hover on colored
     // tiles, zone backgrounds in a panel.
     readonly property color overlay: light ? "black" : "white"
@@ -82,9 +91,9 @@ QtObject {
     readonly property int taskbarHeight: 48
 
     // --- text ---
-    readonly property color text: light ? Qt.rgba(0, 0, 0, 0.894) : "#ffffff"
-    readonly property color textSecondary: light ? Qt.rgba(0, 0, 0, 0.62) : Qt.rgba(1, 1, 1, 0.786)
-    readonly property color textTertiary: light ? Qt.rgba(0, 0, 0, 0.447) : Qt.rgba(1, 1, 1, 0.545)
+    readonly property color text: themed("text", light ? Qt.rgba(0, 0, 0, 0.894) : "#ffffff")
+    readonly property color textSecondary: themed("textSecondary", light ? Qt.rgba(0, 0, 0, 0.62) : Qt.rgba(1, 1, 1, 0.786))
+    readonly property color textTertiary: themed("textTertiary", light ? Qt.rgba(0, 0, 0, 0.447) : Qt.rgba(1, 1, 1, 0.545))
     readonly property color critical: light ? "#c42b1c" : "#ff99a4"
     readonly property color caution: light ? "#9d5d00" : "#fce100"
 
@@ -101,9 +110,9 @@ QtObject {
     readonly property string iconsOnAccent: Style.iconMode.startsWith("l/") ? "image://icon/w/" + Style.iconMode.slice(2) : icons
 
     // --- shapes and type ---
-    readonly property int radius: 4 // controls
-    readonly property int radiusCard: 6
-    readonly property int radiusOverlay: 8 // menus, flyouts, dialogs, panels
+    readonly property int radius: themed("radius", 4) // controls
+    readonly property int radiusCard: themed("radiusCard", 6)
+    readonly property int radiusOverlay: themed("radiusOverlay", 8) // menus, flyouts, dialogs, panels
     readonly property int fontCaption: 12
     readonly property int fontBody: 14
     readonly property int fontBodyLarge: 18

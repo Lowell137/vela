@@ -93,6 +93,7 @@ set(SETTINGS_QML_FILES
     qml/pages/TaskbarPage.qml
     qml/pages/ShortcutsPage.qml
     qml/pages/IconsPage.qml
+    qml/pages/ThemesPage.qml
     qml/pages/PointerPage.qml
     qml/pages/WindowBlurPage.qml
     qml/pages/WindowRulesPage.qml

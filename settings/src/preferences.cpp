@@ -322,6 +322,8 @@ void Preferences::reloadCompositor()
     emit languageChanged();
     m_iconTheme = value(QStringLiteral("icon-theme"), {});
     emit iconThemeChanged();
+    m_visualTheme = value(QStringLiteral("theme"), {});
+    emit visualThemeChanged();
     m_cursorTheme = value(QStringLiteral("cursor-theme"), {});
     m_cursorSize = value(QStringLiteral("cursor-size"), qEnvironmentVariable("XCURSOR_SIZE", QStringLiteral("24"))).toInt();
     emit cursorChanged();
@@ -548,6 +550,45 @@ void Preferences::setIconTheme(const QString& theme)
     // Shell, Settings (Appearance watches vela.conf) and compositor.
     saveCompositor({ { QStringLiteral("icon-theme"), theme.isEmpty() ? QString() : theme } });
     emit iconThemeChanged();
+}
+
+void Preferences::setVisualTheme(const QString& theme)
+{
+    if (theme == m_visualTheme) {
+        return;
+    }
+    m_visualTheme = theme;
+    // Shell and apps (Appearance watches vela.conf).
+    saveCompositor({ { QStringLiteral("theme"), theme.isEmpty() ? QString() : theme } });
+    emit visualThemeChanged();
+}
+
+QVariantList Preferences::visualThemes() const
+{
+    // The user's themes win over the installed ones of the same name.
+    QMap<QString, QString> files;
+    QStringList roots = QStandardPaths::locateAll(QStandardPaths::GenericDataLocation, QStringLiteral("vela/themes"), QStandardPaths::LocateDirectory);
+    roots.prepend(QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + QStringLiteral("/vela/themes"));
+    for (const QString& root : roots) {
+        for (const QString& file : QDir(root).entryList({ QStringLiteral("*.conf") }, QDir::Files)) {
+            files.insert(file.chopped(5), root + u'/' + file);
+        }
+    }
+    QVariantList list;
+    for (auto it = files.cbegin(); it != files.cend(); ++it) {
+        // "# Window Glass: ..." names it; else the file name.
+        QString text = it.key();
+        QFile file(it.value());
+        if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            const QString first = QString::fromUtf8(file.readLine()).trimmed();
+            const qsizetype colon = first.indexOf(u':');
+            if (first.startsWith(u'#') && colon > 1) {
+                text = first.mid(1, colon - 1).trimmed();
+            }
+        }
+        list.append(QVariantMap { { QStringLiteral("name"), it.key() }, { QStringLiteral("text"), text } });
+    }
+    return list;
 }
 
 void Preferences::setCursorTheme(const QString& theme)
