@@ -33,8 +33,8 @@ QtObject {
     readonly property color controlPressed: themed("controlPressed", light ? Qt.rgba(0.976, 0.976, 0.976, 0.3) : Qt.rgba(1, 1, 1, 0.033))
     readonly property color controlStroke: themed("controlStroke", light ? Qt.rgba(0, 0, 0, 0.07) : Qt.rgba(1, 1, 1, 0.07))
     readonly property color controlStrokeStrong: light ? Qt.rgba(0, 0, 0, 0.45) : Qt.rgba(1, 1, 1, 0.55)
-    readonly property color subtleHover: light ? Qt.rgba(0, 0, 0, 0.037) : Qt.rgba(1, 1, 1, 0.061)
-    readonly property color subtlePressed: light ? Qt.rgba(0, 0, 0, 0.024) : Qt.rgba(1, 1, 1, 0.042)
+    readonly property color subtleHover: themed("subtleHover", light ? Qt.rgba(0, 0, 0, 0.037) : Qt.rgba(1, 1, 1, 0.061))
+    readonly property color subtlePressed: themed("subtlePressed", light ? Qt.rgba(0, 0, 0, 0.024) : Qt.rgba(1, 1, 1, 0.042))
     readonly property color stroke: themed("stroke", light ? Qt.rgba(0, 0, 0, 0.09) : Qt.rgba(1, 1, 1, 0.09)) // panels and menus
     readonly property color divider: light ? Qt.rgba(0, 0, 0, 0.08) : Qt.rgba(1, 1, 1, 0.084)
     readonly property color card: themed("card", light ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(1, 1, 1, 0.051))
@@ -99,11 +99,11 @@ QtObject {
 
     // --- accent: in dark mode the light tint with black text, in light mode
     // the dark one with white text ---
-    readonly property color accent: Style.accent
-    readonly property color accentFill: light ? Qt.darker(Style.accent, 1.15) : Qt.lighter(Style.accent, 1.35)
-    readonly property color accentFillHover: light ? Qt.darker(Style.accent, 1.05) : Qt.lighter(Style.accent, 1.25)
+    readonly property color accent: themed("accent", Style.accent)
+    readonly property color accentFill: light ? Qt.darker(accent, 1.15) : Qt.lighter(accent, 1.35)
+    readonly property color accentFillHover: light ? Qt.darker(accent, 1.05) : Qt.lighter(accent, 1.25)
     readonly property color accentText: light ? "#ffffff" : "#000000"
-    readonly property color link: light ? Qt.darker(Style.accent, 1.3) : Qt.lighter(Style.accent, 1.5)
+    readonly property color link: light ? Qt.darker(accent, 1.3) : Qt.lighter(accent, 1.5)
     // Icons of the theme matching the mode ("image://icon/l/<name>"; the
     // prefix reloads them when the mode changes). Always white on the accent.
     readonly property string icons: "image://icon/" + Style.iconMode
