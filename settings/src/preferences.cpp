@@ -327,6 +327,9 @@ void Preferences::reloadCompositor()
     m_iconTheme = value(QStringLiteral("icon-theme"), {});
     emit iconThemeChanged();
     m_visualTheme = value(QStringLiteral("theme"), {});
+    for (const char* surface : { "taskbar", "startmenu", "notifications" }) {
+        m_surfaceStyles.insert(QLatin1String(surface), value(QLatin1String(surface) + QStringLiteral("-style"), {}));
+    }
     emit visualThemeChanged();
     m_cursorTheme = value(QStringLiteral("cursor-theme"), {});
     m_cursorSize = value(QStringLiteral("cursor-size"), qEnvironmentVariable("XCURSOR_SIZE", QStringLiteral("24"))).toInt();
@@ -567,12 +570,23 @@ void Preferences::setVisualTheme(const QString& theme)
     emit visualThemeChanged();
 }
 
-QVariantList Preferences::visualThemes() const
+void Preferences::setSurfaceStyle(const QString& surface, const QString& style)
+{
+    if (!m_surfaceStyles.contains(surface) || m_surfaceStyles.value(surface).toString() == style) {
+        return;
+    }
+    m_surfaceStyles.insert(surface, style);
+    saveCompositor({ { surface + QStringLiteral("-style"), style.isEmpty() ? QString() : style } });
+    emit visualThemeChanged();
+}
+
+QVariantList Preferences::visualThemes(const QString& surface) const
 {
     // The user's themes win over the installed ones of the same name.
     QMap<QString, QString> files;
-    QStringList roots = QStandardPaths::locateAll(QStandardPaths::GenericDataLocation, QStringLiteral("vela/themes"), QStandardPaths::LocateDirectory);
-    roots.prepend(QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + QStringLiteral("/vela/themes"));
+    const QString dir = surface.isEmpty() ? QStringLiteral("vela/themes") : QStringLiteral("vela/themes/") + surface;
+    QStringList roots = QStandardPaths::locateAll(QStandardPaths::GenericDataLocation, dir, QStandardPaths::LocateDirectory);
+    roots.prepend(QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + u'/' + dir);
     for (const QString& root : roots) {
         for (const QString& file : QDir(root).entryList({ QStringLiteral("*.conf") }, QDir::Files)) {
             files.insert(file.chopped(5), root + u'/' + file);

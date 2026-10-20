@@ -108,5 +108,6 @@ if(VELA_BUILD_TOOLS)
     add_subdirectory(tests/audio)
 endif()
 
-# Themes (themes/*.conf): theme= of vela.conf picks one (Settings > Personalization > Themes).
+# Themes (themes/*.conf) and the surfaces' styles (themes/taskbar/, startmenu/,
+# notifications/): theme= and <surface>-style= of vela.conf (Settings > Personalization > Themes).
 install(DIRECTORY themes/ DESTINATION ${CMAKE_INSTALL_DATADIR}/vela/themes FILES_MATCHING PATTERN "*.conf")

@@ -57,6 +57,9 @@ class Preferences : public QObject {
     Q_PROPERTY(QString iconTheme READ iconTheme WRITE setIconTheme NOTIFY iconThemeChanged)
     // theme= in vela.conf: a theme's file name without .conf (themes/), "" for Vela's own.
     Q_PROPERTY(QString visualTheme READ visualTheme WRITE setVisualTheme NOTIFY visualThemeChanged)
+    // taskbar-style=, startmenu-style=, notifications-style= in vela.conf: a
+    // surface's own style (themes/<surface>/), by surface; "" for the theme's.
+    Q_PROPERTY(QVariantMap surfaceStyles READ surfaceStyles NOTIFY visualThemeChanged)
     // cursor-theme= and cursor-size= in vela.conf: a cursor theme's directory
     // name ("": $XCURSOR_THEME) and its size in pixels. The compositor applies
     // them and passes them on to the apps it starts.
@@ -203,8 +206,10 @@ public:
     QString iconTheme() const { return m_iconTheme; }
     QString visualTheme() const { return m_visualTheme; }
     void setVisualTheme(const QString& theme);
-    // The installed themes: { name, text }.
-    Q_INVOKABLE QVariantList visualThemes() const;
+    QVariantMap surfaceStyles() const { return m_surfaceStyles; }
+    Q_INVOKABLE void setSurfaceStyle(const QString& surface, const QString& style);
+    // The installed themes, or a surface's styles ("taskbar"...): { name, text }.
+    Q_INVOKABLE QVariantList visualThemes(const QString& surface = QString()) const;
     void setIconTheme(const QString& theme);
     // The installed icon themes: [{name, text}], by text; "X-dark"/"X-Dark"
     // are inside "X" (chosen by the mode).
@@ -444,6 +449,7 @@ private:
     QString m_weatherUnit = QStringLiteral("c");
     QString m_iconTheme;
     QString m_visualTheme;
+    QVariantMap m_surfaceStyles;
     QString m_cursorTheme;
     int m_cursorSize = 24;
     bool m_windowBlur = false;

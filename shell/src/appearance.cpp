@@ -13,7 +13,7 @@
 #include <QSettings>
 #include <QStandardPaths>
 
-static QString themeFilePath();
+static QStringList themeFilePaths();
 
 Appearance::Appearance(QObject* parent, Mode mode)
     : QObject(parent)
@@ -34,7 +34,7 @@ void Appearance::watch()
     const QString shellConfig = QSettings(QStringLiteral("Vela"), QStringLiteral("vela-shell")).fileName();
     // vela.conf: the icon theme (icon-theme=).
     const QString velaConfig = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + QStringLiteral("/vela/vela.conf");
-    for (const QString& path : { shellConfig, wallpaperTintCachePath(), velaConfig, themeFilePath() }) {
+    for (const QString& path : QStringList { shellConfig, wallpaperTintCachePath(), velaConfig } + themeFilePaths()) {
         if (path.isEmpty()) {
             continue;
         }
@@ -53,37 +53,54 @@ void Appearance::watch()
     }
 }
 
-// theme=<name> of vela.conf, and where its file is: the user's themes first,
-// then the data directories' (a package or a nested run's XDG_DATA_DIRS).
-static QString themeFilePath()
+// theme=<name> of vela.conf, and the surfaces' own styles (taskbar-style=,
+// startmenu-style=, notifications-style=, like Windhawk's three stylers) in
+// themes/taskbar/, themes/startmenu/, themes/notifications/: where their
+// files are, the user's first, then the data directories' (a package or a
+// nested run's XDG_DATA_DIRS). A style's values win over the theme's.
+static QStringList themeFilePaths()
 {
-    QString name;
+    static const std::pair<QByteArray, QString> keys[] = {
+        { "theme=", QString() },
+        { "taskbar-style=", QStringLiteral("taskbar/") },
+        { "startmenu-style=", QStringLiteral("startmenu/") },
+        { "notifications-style=", QStringLiteral("notifications/") },
+    };
+    QString names[std::size(keys)];
     QFile conf(QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + QStringLiteral("/vela/vela.conf"));
     if (conf.open(QIODevice::ReadOnly | QIODevice::Text)) {
         while (!conf.atEnd()) {
             const QByteArray line = conf.readLine().trimmed();
-            if (line.startsWith("theme=")) {
-                name = QString::fromUtf8(line.mid(6)).trimmed();
+            for (size_t i = 0; i < std::size(keys); ++i) {
+                if (line.startsWith(keys[i].first)) {
+                    names[i] = QString::fromUtf8(line.mid(keys[i].first.size())).trimmed();
+                }
             }
         }
     }
-    // A name is a file name: nothing that leads elsewhere.
-    if (name.isEmpty() || name.contains(u'/') || name.startsWith(u'.')) {
-        return {};
+    QStringList paths;
+    for (size_t i = 0; i < std::size(keys); ++i) {
+        // A name is a file name: nothing that leads elsewhere.
+        if (names[i].isEmpty() || names[i].contains(u'/') || names[i].startsWith(u'.')) {
+            continue;
+        }
+        const QString relative = QStringLiteral("vela/themes/") + keys[i].second + names[i] + QStringLiteral(".conf");
+        const QString user = QStandardPaths::locate(QStandardPaths::GenericConfigLocation, relative);
+        const QString path = user.isEmpty() ? QStandardPaths::locate(QStandardPaths::GenericDataLocation, relative) : user;
+        if (!path.isEmpty()) {
+            paths.append(path);
+        }
     }
-    const QString relative = QStringLiteral("vela/themes/") + name + QStringLiteral(".conf");
-    const QString user = QStandardPaths::locate(QStandardPaths::GenericConfigLocation, relative);
-    return user.isEmpty() ? QStandardPaths::locate(QStandardPaths::GenericDataLocation, relative) : user;
+    return paths;
 }
 
 // key=value lines, # comments. A value that is a color becomes a QColor
 // (#RRGGBB or #AARRGGBB), a number a double; anything else is ignored.
-static QVariantMap loadThemeFile(const QString& path)
+static void loadThemeFile(const QString& path, QVariantMap& map)
 {
-    QVariantMap map;
     QFile file(path);
-    if (path.isEmpty() || !file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        return map;
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        return;
     }
     while (!file.atEnd()) {
         const QString line = QString::fromUtf8(file.readLine()).trimmed();
@@ -101,7 +118,6 @@ static QVariantMap loadThemeFile(const QString& path)
             map.insert(key, color);
         }
     }
-    return map;
 }
 
 // cursor-theme= and cursor-size= of vela.conf to the apps the shell starts,
@@ -139,10 +155,12 @@ void Appearance::reload()
     const QColor mica = micaFromTint(tint, true, light);
     const QColor micaInactive = micaFromTint(tint, false, light);
     const QString iconTheme = configuredIconTheme();
-    const QString themeFile = themeFilePath();
-    const QVariantMap theme = loadThemeFile(themeFile);
-    if (m_watching && !themeFile.isEmpty() && !m_watcher.files().contains(themeFile)) {
-        m_watcher.addPath(themeFile);
+    QVariantMap theme;
+    for (const QString& themeFile : themeFilePaths()) {
+        loadThemeFile(themeFile, theme);
+        if (m_watching && !m_watcher.files().contains(themeFile)) {
+            m_watcher.addPath(themeFile);
+        }
     }
     if (light == m_light && accent == m_accent && mica == m_mica && micaInactive == m_micaInactive
         && iconTheme == m_iconTheme && theme == m_theme) {
