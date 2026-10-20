@@ -58,11 +58,13 @@ Item {
         border.color: Theme.light ? Qt.rgba(0, 0, 0, 0.1) : Qt.rgba(1, 1, 1, 0.09)
         Rectangle {
             anchors.centerIn: parent
-            width: mouse.pressed ? 10 : mouse.containsMouse ? 14 : 12
+            // Fluent-Qt Slider.cpp: 9 at rest, 14 under the pointer (and
+            // while dragged), 250 ms OutCubic.
+            width: mouse.containsMouse || mouse.pressed ? 14 : 9
             height: width
             radius: width / 2
-            color: Theme.accentFill
-            Behavior on width { NumberAnimation { duration: Theme.fast } }
+            color: mouse.pressed ? Theme.accentFillPressed : mouse.containsMouse ? Theme.accentFillHover : Theme.accentFill
+            Behavior on width { NumberAnimation { duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate } }
         }
     }
     MouseArea {

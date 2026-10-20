@@ -33,8 +33,8 @@ Item {
         width: 40
         height: 20
         radius: 10
-        color: toggle.checked ? (mouse.containsMouse ? Theme.accentFillHover : Theme.accentFill)
-                              : (mouse.containsMouse ? Theme.controlHover : Qt.rgba(0, 0, 0, 0.1))
+        color: toggle.checked ? (mouse.pressed ? Theme.accentFillPressed : mouse.containsMouse ? Theme.accentFillHover : Theme.accentFill)
+                              : (mouse.pressed ? Theme.controlPressed : mouse.containsMouse ? Theme.controlHover : Qt.rgba(0, 0, 0, 0.1))
         border.width: toggle.checked ? 0 : 1
         border.color: Theme.controlStrokeStrong
         Rectangle {
@@ -44,10 +44,11 @@ Item {
             height: size
             radius: size / 2
             anchors.verticalCenter: parent.verticalCenter
-            x: toggle.checked ? parent.width - width - 4 : 4
+            // Fluent-Qt ToggleSwitch.cpp: centered in a 20 px square at
+            // either end, so the bigger knob sits closer to the edge.
+            x: toggle.checked ? parent.width - (20 - width) / 2 - width : (20 - width) / 2
             color: toggle.checked ? Theme.accentText : Theme.textSecondary
             Behavior on x { NumberAnimation { duration: Theme.fast; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate } }
-            Behavior on width { NumberAnimation { duration: Theme.fast } }
         }
     }
     MouseArea {

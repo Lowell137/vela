@@ -158,13 +158,16 @@ QtObject {
     readonly property int fontSubtitle: 20
     readonly property int fontTitle: 28
 
-    // --- motion: the same curves and durations as the compositor's
-    // (compositor/src/motion.h), so windows and shell move the same way ---
-    readonly property int fast: 120
-    readonly property int normal: 200
-    readonly property int slow: 250 // panels and windows entering the scene
-    // cubic-bezier(0, 0, 0.2, 1): a decisive start, a soft landing
-    readonly property var decelerate: [0.0, 0.0, 0.2, 1.0, 1.0, 1.0]
-    // for exits: starts slowly and leaves fast
-    readonly property var accelerate: [0.7, 0.0, 0.84, 0.0, 1.0, 1.0]
+    // --- motion: Fluent-Qt's tokens (src/design/Animation.h, MIT): durations
+    // and curves, the cubic ones as their CSS bezier equivalents ---
+    readonly property int fast: 150 // instant feedback: clicks, small toggles
+    readonly property int normal: 250 // expand/collapse, simple enter/exit
+    readonly property int slow: 400 // page, popup, layout changes
+    readonly property int verySlow: 700
+    readonly property var decelerate: [0.33, 1.0, 0.68, 1.0, 1.0, 1.0] // OutCubic
+    readonly property var accelerate: [0.32, 0.0, 0.67, 0.0, 1.0, 1.0] // InCubic
+    readonly property var standard: [0.37, 0.0, 0.63, 1.0, 1.0, 1.0] // InOutSine
+    readonly property var exit: [0.64, 0.0, 0.78, 0.0, 1.0, 1.0] // InQuint
+    // entrance: Easing.OutBack (Fluent-Qt sets an amplitude, which OutBack ignores)
+    readonly property color accentFillPressed: Qt.rgba(accentFill.r, accentFill.g, accentFill.b, 0.8)
 }

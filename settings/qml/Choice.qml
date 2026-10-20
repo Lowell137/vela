@@ -45,27 +45,47 @@ C.ComboBox {
         verticalAlignment: Text.AlignVCenter
         elide: Text.ElideRight
     }
+    // Fluent-Qt ComboBox.cpp: on a press the chevron dips 3 px and fades to
+    // half, then comes back (400 ms OutCubic).
     indicator: Text {
+        id: chevron
+        property real press: 0
         x: combo.width - width - 12
-        anchors.verticalCenter: parent.verticalCenter
+        y: (combo.height - height) / 2 + 3 * Math.sin(Math.PI * press)
+        opacity: 1 - 0.5 * Math.sin(Math.PI * press)
         text: "⌄"
         color: Theme.textSecondary
         font.pixelSize: 14
         topPadding: -6
+        NumberAnimation on press {
+            id: chevronDip
+            running: false
+            from: 0
+            to: 1
+            duration: Theme.slow
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: Theme.decelerate
+        }
     }
+    onPressedChanged: if (pressed) chevronDip.restart()
     delegate: C.ItemDelegate {
         id: entry
         required property int index
         required property var modelData
-        width: combo.popup.width - 8
-        x: 4
-        height: 36
+        // Fluent-Qt: 40 px rows, the background inset 5 / 3, the pill 4 px in.
+        width: combo.popup.width - 4
+        x: 2
+        height: 40
         highlighted: combo.highlightedIndex === index
-        background: Rectangle {
-            radius: Theme.radius
-            color: entry.highlighted || entry.hovered ? Theme.subtleHover : "transparent"
+        background: Item {
+            Rectangle {
+                anchors { fill: parent; leftMargin: 5; rightMargin: 5; topMargin: 3; bottomMargin: 3 }
+                radius: Theme.radius
+                color: entry.pressed ? Theme.subtlePressed : entry.highlighted || entry.hovered ? Theme.subtleHover : "transparent"
+            }
             Rectangle {
                 visible: combo.currentIndex === entry.index
+                x: 9
                 anchors.verticalCenter: parent.verticalCenter
                 width: 3
                 height: 16
@@ -74,7 +94,7 @@ C.ComboBox {
             }
         }
         contentItem: Text {
-            leftPadding: 8
+            leftPadding: 14
             text: typeof entry.modelData === "object" ? entry.modelData.text : entry.modelData
             color: Theme.text
             font.pixelSize: Theme.fontBody
@@ -83,10 +103,10 @@ C.ComboBox {
         }
     }
     popup: C.Popup {
-        y: combo.height + 2
+        y: combo.height + 8
         width: Math.max(combo.width, 160)
-        implicitHeight: Math.min(contentItem.implicitHeight + 8, 360)
-        padding: 4
+        implicitHeight: Math.min(contentItem.implicitHeight + 4, 6 * 40 + 4) // at most 6 rows
+        padding: 2
         contentItem: ListView {
             clip: true
             implicitHeight: contentHeight
@@ -101,6 +121,6 @@ C.ComboBox {
             border.width: 1
             border.color: Qt.rgba(0, 0, 0, 0.4)
         }
-        enter: Transition { NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Theme.fast } }
+        // no enter animation: Fluent-Qt's ComboBox popup opens at once
     }
 }

@@ -16,23 +16,24 @@ C.TextField {
     selectionColor: Theme.accent
     selectedTextColor: "white"
     font.pixelSize: Theme.fontBody
-    leftPadding: 11
-    rightPadding: 11
+    leftPadding: 8
+    rightPadding: 8
     verticalAlignment: TextInput.AlignVCenter
     echoMode: password ? TextInput.Password : TextInput.Normal
     passwordCharacter: "●"
     inputMethodHints: password ? (Qt.ImhHiddenText | Qt.ImhSensitiveData | Qt.ImhNoPredictiveText) : Qt.ImhNone
+    // Fluent-Qt LineEdit.cpp: the bottom line runs between the corners with
+    // round caps, 1 px (brighter under the pointer), 2 px of accent focused.
     background: Rectangle {
         radius: Theme.radius
         color: field.activeFocus ? (Theme.light ? "#ffffff" : Qt.rgba(0.12, 0.12, 0.12, 0.7)) : field.hovered ? Theme.controlHover : Theme.control
         border.width: 1
-        border.color: Theme.controlStroke
+        border.color: field.activeFocus || field.hovered ? Theme.stroke : Theme.controlStroke
         Rectangle {
-            anchors { left: parent.left; right: parent.right; bottom: parent.bottom; leftMargin: 1; rightMargin: 1 }
+            anchors { left: parent.left; right: parent.right; bottom: parent.bottom; leftMargin: Theme.radius; rightMargin: Theme.radius }
             height: field.activeFocus ? 2 : 1
-            radius: 1
-            color: field.activeFocus ? Theme.accentFill : Theme.controlStrokeStrong
-            opacity: field.activeFocus ? 1 : 0.6
+            radius: height / 2
+            color: field.activeFocus ? Theme.accentFill : field.hovered ? Theme.controlStrokeStrong : Theme.divider
         }
     }
 }

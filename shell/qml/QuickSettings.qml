@@ -409,7 +409,9 @@ Window {
                 Rectangle {
                     visible: !track.thick
                     anchors.centerIn: parent
-                    width: trackMouse.pressed ? 8 : 10
+                    // Fluent-Qt Slider.cpp: 9, 14 under the pointer, 250 ms OutCubic.
+                    width: trackMouse.containsMouse || trackMouse.pressed ? 14 : 9
+                    Behavior on width { NumberAnimation { duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate } }
                     height: width
                     radius: width / 2
                     color: slider.muted ? Theme.textSecondary : Theme.accent
@@ -435,6 +437,7 @@ Window {
             MouseArea {
                 id: trackMouse
                 anchors { fill: parent; margins: -8 }
+                hoverEnabled: true
                 function update(x) { slider.moved(Math.max(0, Math.min(1, (x - 8) / track.width))) }
                 onPressed: mouse => update(mouse.x)
                 onPositionChanged: mouse => { if (pressed) update(mouse.x) }

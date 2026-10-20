@@ -313,6 +313,48 @@ Window {
             boundsBehavior: Flickable.StopAtBounds
             model: root.sections
             spacing: 2
+
+            // The selected page's pill, one for the list: it slides to the new
+            // page stretching, its leading edge ahead of the trailing one
+            // (Fluent-Qt ListView.cpp: 250 ms OutCubic, lead 1.35x, trail
+            // delayed 0.18).
+            Rectangle {
+                id: navIndicator
+                parent: sectionList.contentItem
+                readonly property int index: root.sections.indexOf(root.section)
+                readonly property real target: index * (36 + sectionList.spacing) + 10
+                property real from: target
+                property real to: target
+                property real p: 1
+                readonly property real lead: Math.min(1, 1.35 * p)
+                readonly property real trail: Math.max(0, Math.min(1, (p - 0.18) / 0.82))
+                readonly property bool down: to >= from
+                readonly property real top: from + (to - from) * (down ? trail : lead)
+                readonly property real bottom: from + 16 + (to - from) * (down ? lead : trail)
+                onTargetChanged: {
+                    from = top
+                    to = target
+                    navSlide.restart()
+                }
+                visible: index >= 0
+                z: 1
+                x: 0
+                y: top
+                width: 3
+                height: bottom - top
+                radius: 1.5
+                color: Theme.accentFill
+                NumberAnimation on p {
+                    id: navSlide
+                    running: false
+                    from: 0
+                    to: 1
+                    duration: Theme.normal
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: Theme.decelerate
+                }
+            }
+
             delegate: Rectangle {
                 id: entry
                 required property string modelData
@@ -322,14 +364,6 @@ Window {
                 radius: Theme.radius
                 color: entryMouse.pressed ? Theme.subtlePressed : selected || entryMouse.containsMouse ? Theme.subtleHover : "transparent"
 
-                Rectangle {
-                    visible: entry.selected
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 3
-                    height: entryMouse.pressed ? 10 : 16
-                    radius: 1.5
-                    color: Theme.accentFill
-                }
                 Image {
                     x: 16
                     anchors.verticalCenter: parent.verticalCenter
@@ -426,16 +460,26 @@ Window {
             id: pageLoader
             anchors { top: header.bottom; topMargin: 20; left: parent.left; right: parent.right; bottom: parent.bottom }
             source: Qt.resolvedUrl(root.pages[root.current].file)
+            clip: true
+            // Fluent-Qt's page transition (StackContentHost.cpp): the new page
+            // slides in by 0.28 of the width, from the left, from the right
+            // going back up; position only, 250 ms OutCubic.
+            property int depth: 0
             onLoaded: {
-                item.opacity = 0
-                slide.y = 24
+                const back = root.crumbs.length < depth
+                depth = root.crumbs.length
+                slide.x = (back ? 0.28 : -0.28) * width
                 enter.restart()
             }
             transform: Translate { id: slide }
-            ParallelAnimation {
+            NumberAnimation {
                 id: enter
-                NumberAnimation { target: pageLoader.item; property: "opacity"; to: 1; duration: Theme.normal }
-                NumberAnimation { target: slide; property: "y"; to: 0; duration: 300; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+                target: slide
+                property: "x"
+                to: 0
+                duration: Theme.normal
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Theme.decelerate
             }
         }
     }

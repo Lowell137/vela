@@ -20,10 +20,11 @@ Rectangle {
     radius: Theme.radius
     opacity: usable ? 1 : 0.45
     color: subtle ? (mouse.pressed ? Theme.subtlePressed : mouse.containsMouse ? Theme.subtleHover : "transparent")
-         : accent ? (mouse.containsMouse && usable ? Theme.accentFillHover : Theme.accentFill)
+         : accent ? (mouse.pressed && usable ? Theme.accentFillPressed : mouse.containsMouse && usable ? Theme.accentFillHover : Theme.accentFill)
          : (mouse.pressed ? Theme.controlPressed : mouse.containsMouse ? Theme.controlHover : Theme.control)
     border.width: subtle ? 0 : 1
-    border.color: accent ? Qt.rgba(0, 0, 0, 0.1) : Theme.controlStroke
+    // Fluent-Qt Button.cpp: pressed, the border dims and the text turns secondary.
+    border.color: accent ? (mouse.pressed ? "transparent" : Qt.rgba(0, 0, 0, 0.1)) : mouse.pressed ? Theme.divider : Theme.controlStroke
     activeFocusOnTab: usable
 
     Accessible.role: Accessible.Button
@@ -49,7 +50,7 @@ Rectangle {
             visible: button.text !== ""
             anchors.verticalCenter: parent.verticalCenter
             text: button.text
-            color: button.accent ? Theme.accentText : Theme.text
+            color: button.accent ? Theme.accentText : mouse.pressed && !button.subtle ? Theme.textSecondary : Theme.text
             font.pixelSize: Theme.fontBody
         }
     }

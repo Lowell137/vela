@@ -21,23 +21,36 @@ Item {
     visible: false
     z: 1000
 
+    // Fluent-Qt Dialog.cpp: opacity only; in 250 ms OutBack with the smoke,
+    // out 250 ms InQuint, the smoke gone at once.
     function open() {
+        disappear.stop()
         visible = true
-        panel.scale = 1.05
         panel.opacity = 0
+        smokeLayer.opacity = 0
         appear.restart()
     }
-    function close() { visible = false }
+    function close() {
+        appear.stop()
+        smokeLayer.opacity = 0
+        disappear.restart()
+    }
 
     ParallelAnimation {
         id: appear
-        NumberAnimation { target: panel; property: "scale"; to: 1; duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
-        NumberAnimation { target: panel; property: "opacity"; to: 1; duration: Theme.fast }
+        NumberAnimation { target: panel; property: "opacity"; to: 1; duration: Theme.normal; easing.type: Easing.OutBack }
+        NumberAnimation { target: smokeLayer; property: "opacity"; to: 1; duration: Theme.normal; easing.type: Easing.OutBack }
+    }
+    SequentialAnimation {
+        id: disappear
+        NumberAnimation { target: panel; property: "opacity"; to: 0; duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.exit }
+        ScriptAction { script: dialog.visible = false }
     }
 
     Rectangle {
+        id: smokeLayer
         anchors.fill: parent
-        color: Theme.smoke
+        color: Theme.light ? Qt.rgba(0, 0, 0, 0.4) : Qt.rgba(0, 0, 0, 0.6)
         MouseArea { anchors.fill: parent; hoverEnabled: true; onWheel: {} } // the page below can't be touched
     }
 
