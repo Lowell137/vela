@@ -375,8 +375,11 @@ Page {
         Card {
             icon: "input-gaming"
             title: qsTr("Show every frame right away in full-screen games")
-            description: qsTr("Games that ask for it reach the screen without waiting for the monitor: less latency, with some tearing in the picture")
+            description: Prefs.directScanout === "no"
+                ? qsTr("Unavailable while direct scanout is off. Full-screen games are composited and cannot use asynchronous tearing")
+                : qsTr("Games that ask for it reach the screen without waiting for the monitor: less latency, with some tearing in the picture")
             trailing: Switch {
+                enabled: Prefs.directScanout !== "no"
                 checked: Prefs.tearing
                 onToggled: Prefs.tearing = checked
             }

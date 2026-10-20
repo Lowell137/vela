@@ -8,6 +8,7 @@ vela-slowgpu --fullscreen on a 512x320 output is an opaque dmabuf covering the
 output 1:1: a scanout candidate. "state" tells whether the last frame was one."""
 
 import os
+import signal
 import unittest
 
 from harness import Session, tool
@@ -23,6 +24,12 @@ class DirectScanout(unittest.TestCase):
     def open_app(self, vela):
         vela.open_window(command=[tool("vela-slowgpu"), "5", "--implicit", "--fullscreen"], timeout=15)
 
+    def configure(self, vela, mode):
+        os.makedirs(os.path.dirname(vela.config_path()), exist_ok=True)
+        with open(vela.config_path(), "w") as conf:
+            conf.write(f"direct-scanout={mode}\n")
+        vela.command("reload-config")
+
     def test_auto_goes_to_scanout(self):
         with Session(size=SIZE) as vela:
             self.open_app(vela)
@@ -30,10 +37,7 @@ class DirectScanout(unittest.TestCase):
 
     def test_no_keeps_compositing(self):
         with Session(size=SIZE) as vela:
-            os.makedirs(os.path.dirname(vela.config_path()), exist_ok=True)
-            with open(vela.config_path(), "w") as conf:
-                conf.write("direct-scanout=no\n")
-            vela.command("reload-config")
+            self.configure(vela, "no")
             self.open_app(vela)
             before = vela.wait_for(lambda s: s.output["frames"] > 20, timeout=8, what="frames")
             self.assertFalse(scanning(vela.state()))
@@ -43,12 +47,40 @@ class DirectScanout(unittest.TestCase):
     def test_reload_applies_live(self):
         with Session(size=SIZE) as vela:
             self.open_app(vela)
+            before = vela.wait_for(scanning, timeout=8, what="direct scanout")
+            self.configure(vela, "no")
+            # The state flag must not flip until a *new* composed buffer has
+            # been committed. Otherwise a failed commit gives a false pass.
+            composed = vela.wait_for(
+                lambda s: s.output["frames"] > before.output["frames"] and not scanning(s),
+                timeout=8, what="a successfully committed composited frame")
+            self.configure(vela, "auto")
+            vela.wait_for(
+                lambda s: s.output["frames"] > composed.output["frames"] and scanning(s),
+                timeout=8, what="direct scanout restored by reload-config")
+
+    def test_reload_from_scanout_with_idle_client(self):
+        with Session(size=SIZE) as vela:
+            self.open_app(vela)
             vela.wait_for(scanning, timeout=8, what="direct scanout")
-            os.makedirs(os.path.dirname(vela.config_path()), exist_ok=True)
-            with open(vela.config_path(), "w") as conf:
-                conf.write("direct-scanout=no\n")
-            vela.command("reload-config")
-            vela.wait_for(lambda s: not s.output["scanout"], timeout=8, what="back to compositing")
+            # Stop the client without unmapping it. A settings reload must
+            # still force a replacement frame even without any new commits.
+            client = vela.clients[-1]
+            client.send_signal(signal.SIGSTOP)
+            try:
+                before = vela.state().output["frames"]
+                self.configure(vela, "no")
+                vela.wait_for(
+                    lambda s: s.output["frames"] > before and not scanning(s),
+                    timeout=8, what="composited frame with idle fullscreen client")
+            finally:
+                client.send_signal(signal.SIGCONT)
+
+    def test_yes_alias_keeps_scanout_enabled(self):
+        with Session(size=SIZE) as vela:
+            self.configure(vela, "yes")
+            self.open_app(vela)
+            vela.wait_for(scanning, timeout=8, what="legacy yes scanout")
 
     def test_env_wins(self):
         with Session(size=SIZE, env={"VELA_SCANOUT": "0"}) as vela:
