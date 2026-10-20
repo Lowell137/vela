@@ -381,7 +381,8 @@ Window {
             }
             Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
-                width: parent.width * slider.shown
+                // Thick: up to the knob's middle, the knob kept inside the track.
+                width: track.thick ? knob.x + knob.width / 2 : parent.width * slider.shown
                 height: track.thick ? 10 : 4
                 radius: height / 2
                 color: slider.muted ? Theme.textSecondary : Theme.accent
@@ -398,7 +399,7 @@ Window {
             }
             Rectangle {
                 id: knob
-                x: parent.width * slider.shown - width / 2
+                x: track.thick ? (parent.width - width) * slider.shown : parent.width * slider.shown - width / 2
                 anchors.verticalCenter: parent.verticalCenter
                 // Thick (WindowGlass README): Thumb 40 x 25, CornerRadius 12,
                 // the inner dot collapsed.
@@ -441,7 +442,11 @@ Window {
                 id: trackMouse
                 anchors { fill: parent; margins: -8 }
                 hoverEnabled: true
-                function update(x) { slider.moved(Math.max(0, Math.min(1, (x - 8) / track.width))) }
+                function update(x) {
+                    // Thick: the knob's middle travels the track minus the knob.
+                    const v = track.thick ? (x - 8 - knob.width / 2) / (track.width - knob.width) : (x - 8) / track.width
+                    slider.moved(Math.max(0, Math.min(1, v)))
+                }
                 onPressed: mouse => update(mouse.x)
                 onPositionChanged: mouse => { if (pressed) update(mouse.x) }
                 // A step every notch (120), touchpads add up their small ones.
