@@ -57,7 +57,7 @@ Window {
         corner = atPointer ? Shell.placeAtPoint(root, x - 12, y - 12) : Shell.placeAtPoint(root, -1, -1)
         visible = true
         panel.opacity = 0
-        slide.y = Config.taskbarVertical ? 0 : (Config.taskbarTop ? -12 : 12)
+        slide.y = Config.taskbarVertical ? 0 : (Config.taskbarTop || Config.dock ? -12 : 12)
         slide.x = Config.taskbarLeft ? -12 : (Config.taskbarRight ? 12 : 0)
         appear.restart()
         focusTab()

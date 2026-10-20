@@ -223,6 +223,10 @@ void Preferences::reload()
         && m_taskbarPosition != QLatin1String("right")) {
         m_taskbarPosition = QStringLiteral("bottom");
     }
+    m_taskbarStyle = settings.value(QStringLiteral("taskbar/style")).toString();
+    if (m_taskbarStyle != QLatin1String("islands") && m_taskbarStyle != QLatin1String("dock")) {
+        m_taskbarStyle = QStringLiteral("classic");
+    }
     m_endTask = settings.value(QStringLiteral("taskbar/endTask"), true).toBool();
     m_taskView = settings.value(QStringLiteral("taskbar/taskView"), true).toBool();
     m_trayOverflow = settings.value(QStringLiteral("taskbar/trayOverflow"), true).toBool();
@@ -845,6 +849,16 @@ void Preferences::setTaskbarAlignment(const QString& alignment)
     if (alignment != m_taskbarAlignment) {
         m_taskbarAlignment = alignment;
         setShell(QStringLiteral("taskbar/alignment"), alignment);
+        emit taskbarChanged();
+    }
+}
+
+void Preferences::setTaskbarStyle(const QString& style)
+{
+    const QString value = style == QLatin1String("islands") || style == QLatin1String("dock") ? style : QStringLiteral("classic");
+    if (value != m_taskbarStyle) {
+        m_taskbarStyle = value;
+        setShell(QStringLiteral("taskbar/style"), value);
         emit taskbarChanged();
     }
 }
@@ -1625,6 +1639,7 @@ const ShortcutAction kShortcutActions[] = {
     { "files", QT_TRANSLATE_NOOP("Preferences", "File Explorer"), "Super+E" },
     { "settings", QT_TRANSLATE_NOOP("Preferences", "Settings"), "Super+I" },
     { "run", QT_TRANSLATE_NOOP("Preferences", "Run"), "Super+R" },
+    { "spotlight", QT_TRANSLATE_NOOP("Preferences", "Spotlight"), "Super+Space" },
     { "winx", QT_TRANSLATE_NOOP("Preferences", "Power-user menu"), "Super+X" },
     { "quick-settings", QT_TRANSLATE_NOOP("Preferences", "Quick settings"), "Super+A" },
     { "notification-center", QT_TRANSLATE_NOOP("Preferences", "Notification center"), "Super+N" },

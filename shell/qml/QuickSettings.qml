@@ -33,7 +33,7 @@ Window {
         visible = true
         Menus.quickSettingsOpen = true
         panel.opacity = 0
-        slide.y = Config.taskbarVertical ? 0 : (Config.taskbarTop ? -12 : 12)
+        slide.y = Config.taskbarVertical ? 0 : (Config.taskbarTop || Config.dock ? -12 : 12)
         slide.x = Config.taskbarLeft ? -12 : (Config.taskbarRight ? 12 : 0)
         appear.restart()
         panel.forceActiveFocus()

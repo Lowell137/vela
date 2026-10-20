@@ -88,7 +88,10 @@ QtObject {
     // tiles, zone backgrounds in a panel.
     readonly property color overlay: light ? "black" : "white"
     readonly property color footer: light ? Qt.rgba(0, 0, 0, 0.035) : Qt.rgba(0, 0, 0, 0.18)
-    readonly property int taskbarHeight: 48
+    readonly property int radiusIsland: 12 // the taskbar islands
+    // The taskbar window's height; the shell sets it for the dock style.
+    property int taskbarHeight: 48
+    readonly property int topBarHeight: 28 // the dock style's top panel
 
     // --- text ---
     readonly property color text: themed("text", light ? Qt.rgba(0, 0, 0, 0.894) : "#ffffff")

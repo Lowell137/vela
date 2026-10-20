@@ -35,6 +35,9 @@ public:
     bool blurAvailable() const { return m_blurAvailable; }
     // Rectangles in window coordinates; empty list: no blur.
     Q_INVOKABLE void setBlur(QWindow* window, const QVariantList& rects);
+    // Where the window takes input (QtWayland sends it as the surface's input
+    // region); the rest passes clicks through. Empty list: the whole window.
+    Q_INVOKABLE void setInputRegion(QWindow* window, const QVariantList& rects);
 
 signals:
     void blurAvailableChanged();

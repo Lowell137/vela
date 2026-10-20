@@ -20,8 +20,15 @@ Window {
     visible: false
     // The compositor decides the length (anchored to the sides).
     readonly property bool vertical: Config.taskbarVertical
+    // taskbar/style=islands: three floating surfaces instead of one bar. Along
+    // a vertical taskbar it falls back to the classic one.
+    readonly property bool islands: Config.taskbarStyle === "islands" && !vertical
+    // The dock style (Config.dock) is taller: a floating pill with big icons;
+    // the tray and clock live in the top panel (TopBar.qml).
+    readonly property bool dock: Config.dock
+    readonly property int barHeight: dock ? 68 : 48
     width: vertical ? Theme.taskbarHeight : 1280
-    height: vertical ? 720 : Theme.taskbarHeight
+    height: vertical ? 720 : barHeight
     color: "transparent"
 
     // The apps pinned at first start (.desktop ids; those not installed are
@@ -69,19 +76,42 @@ Window {
     }
     property real slide: concealed ? 1 : 0
     Behavior on slide { NumberAnimation { duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate } }
-    readonly property int bottomMargin: Math.round(slide * (Theme.taskbarHeight - 2))
+    readonly property int bottomMargin: Math.round(slide * (barHeight - 2))
     onBottomMarginChanged: Shell.setBottomMargin(root, bottomMargin)
     Item {
         anchors.fill: parent
         HoverHandler { id: barHover }
     }
 
-    // The whole taskbar above the blurred background (acrylic).
+    // The shell's offsets (Start menu, flyouts) follow the real height.
+    Binding { target: Theme; property: "taskbarHeight"; value: root.barHeight; when: root.primary && !root.vertical }
+
+    // The whole taskbar above the blurred background (acrylic); with islands,
+    // each island has its own blur and the gaps between them let clicks
+    // through to the desktop.
     function updateBlur() {
-        Effects.setBlur(root, [Qt.rect(0, 0, width, height)])
+        if (dock) {
+            const r = Qt.rect(dockPill.x, dockPill.y, dockPill.width, dockPill.height)
+            Effects.setBlur(root, [r])
+            Effects.setInputRegion(root, [r])
+            return
+        }
+        if (!islands) {
+            Effects.setBlur(root, [Qt.rect(0, 0, width, height)])
+            Effects.setInputRegion(root, [])
+            return
+        }
+        const rects = [leftIsland, rightIsland]
+        if (middleIsland.visible) rects.splice(1, 0, middleIsland)
+        const blur = rects.map(i => Qt.rect(i.x, i.y, i.width, i.height))
+        Effects.setBlur(root, blur)
+        // The show desktop strip beyond the right island stays clickable.
+        Effects.setInputRegion(root, Config.showDesktopCorner ? blur.concat([Qt.rect(width - 8, 0, 8, height)]) : blur)
     }
     onWidthChanged: updateBlur()
     onHeightChanged: updateBlur()
+    onIslandsChanged: updateBlur()
+    onDockChanged: updateBlur()
 
     // A button's window previews (TaskbarPreview.qml).
     Timer {
@@ -237,7 +267,7 @@ Window {
         }
     }
     function openWinX(keyboard) {
-        const p = screenPoint(startButton, 0, 0)
+        const p = screenPoint(islands ? startButtonIsland : startButton, 0, 0)
         root.edgeMenu(winXEntries(), p, { keyboard: keyboard })
     }
 
@@ -245,15 +275,54 @@ Window {
     // flyout open their own (TrayOverflow.qml).
     Connections {
         target: Tray
-        enabled: root.primary && !Menus.trayOverflow
+        enabled: root.primary && !Menus.trayOverflow && !root.dock
         function onMenuReady(row, anchorX, entries) {
             root.edgeMenu(Menus.trayEntries(row, entries), Qt.point(anchorX, Menus.trayAnchorY), { centered: true })
         }
     }
 
+    // The Start and Task View buttons exist twice: in the centered row of the
+    // classic taskbar, and in the left island.
+    component StartBtn: TaskbarButton {
+        active: Shell.startMenuOpen
+        onClicked: { root.fromHere(); Shell.toggleStartMenu() }
+        onRightClicked: root.openWinX(false)
+        StartGlyph { anchors.centerIn: parent }
+    }
+    // Task View: two overlapping windows, like the Windows 11 icon.
+    component TaskViewBtn: TaskbarButton {
+        visible: Config.taskView
+        tooltip: qsTr("Task view")
+        onClicked: { root.fromHere(); Shell.taskViewRequested() }
+        Item {
+            anchors.centerIn: parent
+            width: 20
+            height: 18
+            Rectangle {
+                x: 0
+                y: 4
+                width: 13
+                height: 13
+                radius: 2.5
+                color: "transparent"
+                border.width: 1.5
+                border.color: Theme.text
+            }
+            Rectangle {
+                x: 6
+                y: 0
+                width: 13
+                height: 13
+                radius: 2.5
+                color: Theme.accentFill
+                opacity: 0.9
+            }
+        }
+    }
+
     Rectangle {
         anchors.fill: parent
-        color: Theme.taskbar
+        color: root.islands || root.dock ? "transparent" : Theme.taskbar
 
         // Empty space: Task Manager and taskbar settings.
         MouseArea {
@@ -271,6 +340,7 @@ Window {
 
         // A thin line of light on the edge towards the screen, like glass.
         Rectangle {
+            visible: !root.islands && !root.dock
             // x/y, not anchors: anchors switched to undefined at run time
             // keep their old edge when the position changes live.
             x: root.vertical && Config.taskbarLeft ? parent.width - width : 0
@@ -285,6 +355,63 @@ Window {
         }
     }
 
+    // The three surfaces of the islands style: Start at the left, the apps in
+    // the middle, tray and clock at the right. 8 px from the sides, 12 px
+    // corners, a hairline.
+    component Island: Rectangle {
+        visible: root.islands
+        y: 4
+        height: parent.height - 8
+        radius: Theme.radiusIsland
+        color: Theme.taskbar
+        border.width: 1
+        border.color: Theme.stroke
+        onXChanged: root.updateBlur()
+        onWidthChanged: root.updateBlur()
+        onVisibleChanged: root.updateBlur()
+    }
+    Island {
+        id: leftIsland
+        x: 8
+        width: leftRow.x + leftRow.width + 6 - x
+    }
+    Island {
+        id: middleIsland
+        visible: root.islands && buttons.width > 0
+        x: buttons.x - 6
+        width: buttons.width + 12
+    }
+    Island {
+        id: rightIsland
+        x: overflowButton.x - 6
+        width: root.width - 8 - x
+    }
+    Row {
+        id: leftRow
+        visible: root.islands
+        x: 8 + 6 + weather.width + (weather.width > 0 ? 4 : 0)
+        y: Math.round((parent.height - height) / 2)
+        StartBtn { id: startButtonIsland }
+        TaskViewBtn { }
+    }
+
+    // The dock: one rounded pill under the buttons.
+    Rectangle {
+        id: dockPill
+        visible: root.dock
+        x: buttons.x - 12
+        y: 4
+        width: buttons.width + 24
+        height: 56
+        radius: 18
+        color: Theme.taskbar
+        border.width: 1
+        border.color: Theme.stroke
+        onXChanged: root.updateBlur()
+        onWidthChanged: root.updateBlur()
+        onVisibleChanged: root.updateBlur()
+    }
+
     Grid {
         id: buttons
         // A row (a column along a vertical taskbar), centered by hand instead
@@ -293,9 +420,13 @@ Window {
         // vertical), like earlier versions of Windows.
         columns: root.vertical ? 1 : 1000
         x: root.vertical ? Math.round((parent.width - width) / 2)
+            : root.dock ? Math.round((parent.width - width) / 2)
+            : root.islands ? (Config.taskbarAlignment === "left" ? leftIsland.x + leftIsland.width + 14
+                : Math.max(leftIsland.x + leftIsland.width + 14, Math.round((parent.width - width) / 2)))
             : Config.taskbarAlignment === "left" ? 12 + weather.width + (weather.width > 0 ? 8 : 0)
               : Math.round((parent.width - width) / 2)
         y: root.vertical ? (Config.taskbarAlignment === "left" ? 12 : Math.max(12, Math.round((parent.height - height) / 2)))
+            : root.dock ? dockPill.y + Math.round((dockPill.height - height) / 2)
             : Math.round((parent.height - height) / 2)
         spacing: 4
 
@@ -320,43 +451,12 @@ Window {
             }
         }
 
-        TaskbarButton {
+        StartBtn {
             id: startButton
-            active: Shell.startMenuOpen
-            onClicked: { root.fromHere(); Shell.toggleStartMenu() }
-            onRightClicked: root.openWinX(false)
-            StartGlyph { anchors.centerIn: parent }
+            visible: !root.islands
         }
-
-        // Task View: two overlapping windows, like the Windows 11 icon.
-        TaskbarButton {
-            visible: Config.taskView
-            tooltip: qsTr("Task view")
-            onClicked: { root.fromHere(); Shell.taskViewRequested() }
-            Item {
-                anchors.centerIn: parent
-                width: 20
-                height: 18
-                Rectangle {
-                    x: 0
-                    y: 4
-                    width: 13
-                    height: 13
-                    radius: 2.5
-                    color: "transparent"
-                    border.width: 1.5
-                    border.color: Theme.text
-                }
-                Rectangle {
-                    x: 6
-                    y: 0
-                    width: 13
-                    height: 13
-                    radius: 2.5
-                    color: Theme.accentFill
-                    opacity: 0.9
-                }
-            }
+        TaskViewBtn {
+            visible: Config.taskView && !root.islands
         }
 
         Repeater {
@@ -501,7 +601,7 @@ Window {
     // those asking for attention stay here, the others are behind the "^".
     Grid {
         id: tray
-        visible: root.primary
+        visible: root.primary && !root.dock
         columns: root.vertical ? 1 : 1000
         width: root.vertical ? parent.width : implicitWidth
         height: root.vertical ? implicitHeight : parent.height
@@ -532,7 +632,7 @@ Window {
     // the flyout opens).
     Item {
         id: overflowButton
-        visible: root.primary && Config.trayOverflow && tray.hiddenCount > 0
+        visible: root.primary && !root.dock && Config.trayOverflow && tray.hiddenCount > 0
         x: root.vertical ? 0 : tray.x - width - 0
         y: root.vertical ? tray.y - height - 0 : 0
         width: root.vertical ? parent.width : (visible ? 32 : 0)
@@ -585,10 +685,10 @@ Window {
     // taskbar, like Windows 11; at the tray end of a vertical one.
     WeatherWidget {
         id: weather
-        visible: root.primary && Weather.shown
+        visible: root.primary && !root.dock && Weather.shown
         vertical: root.vertical
         screenName: root.screenName
-        x: root.vertical ? 0 : 8
+        x: root.vertical ? 0 : root.islands ? 14 : 8
         y: root.vertical ? overflowButton.y - height : 0
     }
 
@@ -597,7 +697,7 @@ Window {
     // says when, capture_watch.c).
     Item {
         id: screenShare
-        visible: root.primary && Shell.screenCaptured
+        visible: root.primary && !root.dock && Shell.screenCaptured
         x: root.vertical ? 0 : microphone.x - width - 0
         y: root.vertical ? microphone.y - height - 0 : 0
         width: root.vertical ? parent.width : (visible ? 32 : 0)
@@ -660,7 +760,7 @@ Window {
     // in the tooltip, a click opens Settings > Sound.
     Item {
         id: microphone
-        visible: root.primary && Audio.microphoneUsers.length > 0
+        visible: root.primary && !root.dock && Audio.microphoneUsers.length > 0
         x: root.vertical ? 0 : systemIcons.x - width - 0
         y: root.vertical ? systemIcons.y - height - 0 : 0
         width: root.vertical ? parent.width : (visible ? 32 : 0)
@@ -723,7 +823,7 @@ Window {
     // it; the right button opens their menus (§14.5).
     Item {
         id: systemIcons
-        visible: root.primary
+        visible: root.primary && !root.dock
         x: root.vertical ? 0 : clock.x - width - 2
         y: root.vertical ? clock.y - height - 2 : 0
         width: root.vertical ? parent.width : (visible ? iconsRow.width + 16 : 0)
@@ -807,6 +907,7 @@ Window {
     // taskbar, which is narrow).
     Item {
         id: clock
+        visible: !root.dock
         x: root.vertical ? 0 : parent.width - width - 12
         y: root.vertical ? showDesktop.y - height - 4 : 0
         readonly property bool badge: Notifications.history.count > 0 || Notifications.silenced
@@ -903,7 +1004,7 @@ Window {
     // the thin line lights up on hover.
     Item {
         id: showDesktop
-        visible: Config.showDesktopCorner // on every taskbar, like upstream
+        visible: Config.showDesktopCorner && !root.dock // on every taskbar, like upstream
         x: root.vertical ? 0 : parent.width - width
         y: root.vertical ? parent.height - height : 0
         // Invisible at rest and over the clock's margin: it takes no room. Only

@@ -123,6 +123,8 @@ target_include_directories(vela-shell PRIVATE ${SHELL_GENERATED_DIR})
 
 set(VELA_QML_FILES
     qml/Taskbar.qml
+    qml/TopBar.qml
+    qml/Spotlight.qml
     qml/TaskbarButton.qml
     qml/TrayIcon.qml
     qml/TrayOverflow.qml

@@ -18,6 +18,10 @@ class Config : public QObject {
     Q_PROPERTY(QString wallpaper READ wallpaper NOTIFY wallpaperChanged)
     // "center" or "left", like "Taskbar alignment".
     Q_PROPERTY(QString taskbarAlignment READ taskbarAlignment NOTIFY taskbarChanged)
+    // "classic" (one bar), "islands" (three floating surfaces) or "dock" (a
+    // macOS-like dock with a top panel; only with the taskbar at the bottom).
+    Q_PROPERTY(QString taskbarStyle READ taskbarStyle NOTIFY taskbarChanged)
+    Q_PROPERTY(bool dock READ dock NOTIFY taskbarChanged)
     Q_PROPERTY(QString taskbarPosition READ taskbarPosition NOTIFY taskbarChanged)
     Q_PROPERTY(bool taskbarTop READ taskbarTop NOTIFY taskbarChanged)
     Q_PROPERTY(bool taskbarLeft READ taskbarLeft NOTIFY taskbarChanged)
@@ -49,6 +53,8 @@ public:
 
     QString wallpaper() const { return m_wallpaper; }
     QString taskbarAlignment() const { return m_taskbarAlignment; }
+    bool dock() const { return m_taskbarStyle == QLatin1String("dock") && m_taskbarPosition == QLatin1String("bottom"); }
+    QString taskbarStyle() const { return m_taskbarStyle; }
     QString taskbarPosition() const { return m_taskbarPosition; }
     bool taskbarTop() const { return m_taskbarPosition == QLatin1String("top"); }
     bool taskbarLeft() const { return m_taskbarPosition == QLatin1String("left"); }
@@ -89,6 +95,7 @@ private:
     QString m_path;
     QString m_wallpaper;
     QString m_taskbarAlignment;
+    QString m_taskbarStyle = QStringLiteral("classic");
     QString m_taskbarPosition = QStringLiteral("bottom");
     bool m_endTask = true;
     bool m_taskView = true;

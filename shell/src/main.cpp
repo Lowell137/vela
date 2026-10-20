@@ -101,6 +101,22 @@ void setupTaskbar(QQuickWindow* window, QScreen* screen)
     layer->setExclusiveZone(std::min(window->width(), window->height())); // its thickness; maximized windows don't cover it
     layer->setKeyboardInteractivity(LayerWindow::KeyboardInteractivityNone);
     taskbarShell->followTaskbar(window, ShellController::FollowKind::Taskbar);
+    // The dock style is taller than the classic bar: the reserved space follows.
+    QObject::connect(window, &QWindow::heightChanged, window, [window, layer] {
+        layer->setExclusiveZone(std::min(window->width(), window->height()));
+    });
+}
+
+// The dock style's top panel: it reserves its own strip at the top.
+void setupTopBar(QQuickWindow* window, QScreen* screen)
+{
+    LayerWindow* layer = LayerWindow::get(window);
+    layer->setScreen(screen);
+    layer->setScope(QStringLiteral("vela-topbar"));
+    layer->setLayer(LayerWindow::LayerTop);
+    layer->setAnchors(LayerWindow::Anchors(LayerWindow::AnchorTop) | LayerWindow::AnchorLeft | LayerWindow::AnchorRight);
+    layer->setExclusiveZone(window->height());
+    layer->setKeyboardInteractivity(LayerWindow::KeyboardInteractivityNone);
 }
 
 void setupWallpaper(QQuickWindow* window, QScreen* screen)
@@ -343,6 +359,8 @@ int main(int argc, char* argv[])
     };
     sendPosition();
     QObject::connect(&config, &Config::taskbarChanged, &shell, sendPosition);
+    shell.setPanelsAtTop(config.dock());
+    QObject::connect(&config, &Config::taskbarChanged, &shell, [&config, &shell] { shell.setPanelsAtTop(config.dock()); });
     shell.watchSleep();
 
     ForeignToplevelManager windows;
@@ -486,6 +504,22 @@ int main(int argc, char* argv[])
     if (!wallpapers.start() || !taskbars.start()) {
         return 1;
     }
+    // The top panel exists only with the dock style.
+    std::unique_ptr<ScreenWindows> topbars;
+    auto syncTopBar = [&] {
+        if (config.dock() && !topbars) {
+            topbars = std::make_unique<ScreenWindows>(&engine, "TopBar", setupTopBar);
+            topbars->setPrimaryOnly(!config.taskbarAllScreens());
+            topbars->start();
+        } else if (!config.dock() && topbars) {
+            topbars.reset();
+        }
+        if (topbars) {
+            topbars->setPrimaryOnly(!config.taskbarAllScreens());
+        }
+    };
+    QObject::connect(&config, &Config::taskbarChanged, &app, syncTopBar);
+    syncTopBar();
 
     return app.exec();
 }

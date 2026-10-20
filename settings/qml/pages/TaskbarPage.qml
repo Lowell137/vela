@@ -111,6 +111,17 @@ Page {
             }
         }
         Card {
+            icon: "view-grid"
+            title: qsTr("Taskbar style")
+            description: qsTr("Islands floats three separate surfaces, Dock is a macOS-like dock with a top panel; on the left and right they fall back to Classic")
+            trailing: Choice {
+                readonly property var styles: ["classic", "islands", "dock"]
+                model: [qsTr("Classic"), qsTr("Islands"), qsTr("Dock and top panel")]
+                currentIndex: Math.max(0, styles.indexOf(Prefs.taskbarStyle))
+                onChosen: index => Prefs.taskbarStyle = styles[index]
+            }
+        }
+        Card {
             icon: "go-up"
             title: qsTr("Taskbar position")
             trailing: Choice {

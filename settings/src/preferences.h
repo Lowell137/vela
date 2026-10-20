@@ -35,6 +35,7 @@ class Preferences : public QObject {
     // Settings itself is light (it follows the apps' mode).
     Q_PROPERTY(bool light READ light NOTIFY appThemeChanged)
     Q_PROPERTY(QString taskbarAlignment READ taskbarAlignment WRITE setTaskbarAlignment NOTIFY taskbarChanged)
+    Q_PROPERTY(QString taskbarStyle READ taskbarStyle WRITE setTaskbarStyle NOTIFY taskbarChanged)
     Q_PROPERTY(QString taskbarPosition READ taskbarPosition WRITE setTaskbarPosition NOTIFY taskbarChanged)
     Q_PROPERTY(bool endTask READ endTask WRITE setEndTask NOTIFY taskbarChanged)
     Q_PROPERTY(bool taskView READ taskView WRITE setTaskView NOTIFY taskbarChanged)
@@ -173,6 +174,8 @@ public:
 
     QString taskbarAlignment() const { return m_taskbarAlignment; }
     void setTaskbarAlignment(const QString& alignment);
+    QString taskbarStyle() const { return m_taskbarStyle; }
+    void setTaskbarStyle(const QString& style);
     QString taskbarPosition() const { return m_taskbarPosition; }
     void setTaskbarPosition(const QString& position);
     bool endTask() const { return m_endTask; }
@@ -427,6 +430,7 @@ private:
     QString m_appTheme;
     QString m_shellTheme;
     QString m_taskbarAlignment;
+    QString m_taskbarStyle = QStringLiteral("classic");
     QString m_taskbarPosition = QStringLiteral("bottom");
     bool m_endTask = true;
     bool m_taskView = true;

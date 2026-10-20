@@ -32,10 +32,12 @@ Item {
     z: mouse.dragging ? 10 : 0
     // Along a vertical taskbar it is dragged up and down (dropped: by how far).
     readonly property bool vertical: Config.taskbarVertical
+    // The dock style: bigger icons, bigger still under the pointer.
+    readonly property real zoom: Config.dock ? (hovered ? 1.35 : 1.2) : 1
     transform: Translate { x: !root.vertical && mouse.dragging ? mouse.dragX : 0; y: root.vertical && mouse.dragging ? mouse.dragX : 0 }
 
     width: 44
-    height: 40
+    height: Config.dock ? 48 : 40
 
     Rectangle {
         anchors.fill: parent
@@ -53,7 +55,7 @@ Item {
         anchors.centerIn: parent
         width: 26
         height: 26
-        scale: mouse.pressed ? 0.84 : 1
+        scale: (mouse.pressed ? 0.84 : 1) * root.zoom
 
         Behavior on scale {
             NumberAnimation { duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
