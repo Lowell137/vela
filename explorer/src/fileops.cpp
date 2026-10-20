@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "fileops.h"
+#include "../../common/executablefile.h"
 
 #include "appmodel.h"
 #include "foldermodel.h"
@@ -30,7 +31,9 @@
 #include <QRegularExpression>
 #include <QProcess>
 #include <QSettings>
+#include <QScreen>
 #include <QStandardPaths>
+#include <QWindow>
 #include <QThreadPool>
 #include <QTimer>
 #include <QUrl>
@@ -580,22 +583,6 @@ void FileOps::startTransfer(const Transfer& transfer, const QString& policy)
 
 // ------------------------------------------------------------ opening --
 
-namespace {
-
-// A Linux program (ELF, AppImages included), not a library: it starts with a
-// double click, like an .exe on Windows. Scripts stay documents: they open
-// with the app for their type.
-bool isProgram(const QFileInfo& info)
-{
-    if (!info.isFile() || info.fileName().contains(QLatin1String(".so"))) {
-        return false;
-    }
-    QFile file(info.absoluteFilePath());
-    return file.open(QIODevice::ReadOnly) && file.read(4) == QByteArray("\x7f" "ELF", 4);
-}
-
-} // namespace
-
 void FileOps::open(const QStringList& paths)
 {
     static const QMimeDatabase mimes;
@@ -604,7 +591,7 @@ void FileOps::open(const QStringList& paths)
         if (path.endsWith(QLatin1String(".desktop")) && m_apps->launchDesktopFile(path)) {
             continue;
         }
-        if (isProgram(info)) {
+        if (vela::files::isProgram(info)) {
             if (!info.isExecutable()) {
                 emit failed(QCoreApplication::translate("Files", "“%1” is a program, but it can't be run. In Properties, turn on “Allow executing as a program”.")
                                 .arg(info.fileName()));
@@ -1345,24 +1332,58 @@ void FileOps::undo()
     }
 }
 
+static void sendShellFileDialog(const QByteArray& action, const QStringList& paths)
+{
+    // Capture before the IPC round trip: another Explorer window might gain
+    // focus while an older shell is being probed.
+    QString sourceScreen;
+    if (QWindow* window = QGuiApplication::focusWindow()) {
+        if (QScreen* screen = window->screen()) sourceScreen = screen->name();
+    }
+    const QString runtimeDir = QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation);
+    const QString display = qEnvironmentVariable("WAYLAND_DISPLAY", QStringLiteral("wayland-0"));
+    QLocalSocket socket;
+    socket.connectToServer(runtimeDir + QStringLiteral("/vela-shell-") + display + QStringLiteral(".sock"));
+    if (!socket.waitForConnected(300)) return;
+
+    // A running shell may predate the screen-aware JSON format. Old shells
+    // silently accept ping but give no reply; new shells answer "2".
+    socket.write("ping\n");
+    if (!socket.waitForBytesWritten(300)) return;
+    if (!socket.canReadLine()) socket.waitForReadyRead(300);
+    const bool screenAware = socket.canReadLine() && socket.readLine().trimmed() == "2";
+
+    QByteArray payload;
+    if (screenAware) {
+        QJsonObject request;
+        request.insert(QStringLiteral("paths"), QJsonArray::fromStringList(paths));
+        if (!sourceScreen.isEmpty()) request.insert(QStringLiteral("screen"), sourceScreen);
+        payload = QJsonDocument(request).toJson(QJsonDocument::Compact);
+    } else {
+        payload = QJsonDocument(QJsonArray::fromStringList(paths)).toJson(QJsonDocument::Compact);
+    }
+    socket.write(action + ' ' + payload + '\n');
+    socket.waitForBytesWritten(300);
+}
+
 void FileOps::showProperties(const QStringList& paths)
 {
-    sendToShell("properties " + QJsonDocument(QJsonArray::fromStringList(paths)).toJson(QJsonDocument::Compact));
+    sendShellFileDialog("properties", paths);
 }
 
 void FileOps::share(const QStringList& paths)
 {
-    sendToShell("share " + QJsonDocument(QJsonArray::fromStringList(paths)).toJson(QJsonDocument::Compact));
+    sendShellFileDialog("share", paths);
 }
 
 void FileOps::chooseApp(const QString& path)
 {
-    sendToShell("open-with " + QJsonDocument(QJsonArray::fromStringList({ path })).toJson(QJsonDocument::Compact));
+    sendShellFileDialog("open-with", { path });
 }
 
 void FileOps::newShortcut(const QString& directory)
 {
-    sendToShell("new-shortcut " + QJsonDocument(QJsonArray::fromStringList({ directory })).toJson(QJsonDocument::Compact));
+    sendShellFileDialog("new-shortcut", { directory });
 }
 
 // ---------------------------------------------------------- shortcuts --

@@ -33,6 +33,11 @@
 // --pointer-log FILE: writes every wl_pointer event to FILE, one per line,
 // with the monotonic time it arrived in microseconds (autoscroll tests):
 //   <us> enter|leave|motion X Y|button B S|axis A V|source S|stop A|discrete A N|value120 A N|frame
+// --transient-delay MS: after the parent maps, opens another xdg_toplevel
+// with xdg_toplevel.set_parent; used by multi-output functional tests.
+// --transient-maximized: initially maximizes that child.
+// --transient-siblings: create two overlapping siblings to test Z-order.
+// --fullscreen-parent: request fullscreen for the parent before mapping.
 
 #define _GNU_SOURCE
 #include <math.h>
@@ -89,6 +94,22 @@ static struct wl_surface* childSurface;
 static const char* appId = "vela.pattern";
 static struct wl_seat* seat;
 static FILE* pointerLog;
+
+static struct wl_display* connection;
+struct transient_window {
+    struct wl_surface* surface;
+    int width, height;
+    uint32_t color;
+};
+
+static struct transient_window transientWindows[2] = {
+    { .width = 320, .height = 240, .color = 0xffaa33ccu },
+    { .width = 320, .height = 240, .color = 0xff33cc66u },
+};
+static int transientDelayMs = -1;
+static int transientMaximized;
+static int transientSiblings;
+static int fullscreenParent;
 
 static void onGlobal(void* data, struct wl_registry* registry, uint32_t name, const char* interface, uint32_t version)
 {
@@ -326,6 +347,76 @@ static void onSeatCapabilities(void* data, struct wl_seat* s, uint32_t capabilit
 static void onSeatName(void* data, struct wl_seat* s, const char* name) { }
 static const struct wl_seat_listener seatListener = { onSeatCapabilities, onSeatName };
 
+// A second xdg_toplevel, not an xdg_popup: exercises initial placement
+// against the mapped parent's monitor, and the XDG configure handshake.
+static void drawTransient(struct transient_window* window)
+{
+    const int width = window->width, height = window->height;
+    const int stride = width * 4;
+    const size_t size = (size_t)stride * height;
+    const int fd = memfd_create("vela-pattern-transient", MFD_CLOEXEC);
+    if (fd < 0 || ftruncate(fd, (off_t)size) < 0) {
+        perror("vela-pattern: transient memfd");
+        exit(1);
+    }
+    uint32_t* pixels = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if (pixels == MAP_FAILED) {
+        perror("vela-pattern: transient mmap");
+        exit(1);
+    }
+    for (int i = 0; i < width * height; ++i) {
+        pixels[i] = window->color;
+    }
+    munmap(pixels, size);
+    struct wl_shm_pool* pool = wl_shm_create_pool(shm, fd, (int32_t)size);
+    struct wl_buffer* buffer = wl_shm_pool_create_buffer(pool, 0, width, height, stride, WL_SHM_FORMAT_XRGB8888);
+    wl_buffer_add_listener(buffer, &bufferListener, NULL);
+    wl_shm_pool_destroy(pool);
+    close(fd);
+    wl_surface_attach(window->surface, buffer, 0, 0);
+    wl_surface_damage_buffer(window->surface, 0, 0, width, height);
+    wl_surface_commit(window->surface);
+}
+
+static void onTransientSurfaceConfigure(void* data, struct xdg_surface* xdg, uint32_t serial)
+{
+    xdg_surface_ack_configure(xdg, serial);
+    drawTransient(data);
+}
+static const struct xdg_surface_listener transientSurfaceListener = { onTransientSurfaceConfigure };
+
+static void onTransientConfigure(void* data, struct xdg_toplevel* t, int32_t width, int32_t height,
+    struct wl_array* states)
+{
+    struct transient_window* window = data;
+    if (width > 0 && height > 0) {
+        window->width = width;
+        window->height = height;
+    }
+}
+static void onTransientClose(void* data, struct xdg_toplevel* t) { running = 0; }
+static const struct xdg_toplevel_listener transientToplevelListener = {
+    .configure = onTransientConfigure,
+    .close = onTransientClose,
+};
+
+static void openTransient(int index)
+{
+    struct transient_window* window = &transientWindows[index];
+    window->surface = wl_compositor_create_surface(compositor);
+    struct xdg_surface* xdg = xdg_wm_base_get_xdg_surface(wmBase, window->surface);
+    xdg_surface_add_listener(xdg, &transientSurfaceListener, window);
+    struct xdg_toplevel* child = xdg_surface_get_toplevel(xdg);
+    xdg_toplevel_add_listener(child, &transientToplevelListener, window);
+    xdg_toplevel_set_parent(child, toplevel);
+    xdg_toplevel_set_title(child, index ? "vela-pattern-transient-2" : "vela-pattern-transient");
+    xdg_toplevel_set_app_id(child, index ? "vela.pattern.transient.2" : "vela.pattern.transient");
+    if (transientMaximized) {
+        xdg_toplevel_set_maximized(child);
+    }
+    wl_surface_commit(window->surface);
+}
+
 static void onPreferredScale(void* data, struct wp_fractional_scale_v1* fractional, uint32_t scale)
 {
     if (legacy || scale == scale120) {
@@ -372,6 +463,17 @@ static void onSurfaceConfigure(void* data, struct xdg_surface* xdg, uint32_t ser
         snprintf(childId, sizeof(childId), "%s.child", appId);
         xdg_toplevel_set_app_id(child, childId);
         wl_surface_commit(childSurface);
+    }
+    if (transientDelayMs >= 0 && !transientWindows[0].surface) {
+        // Let the parent map so the harness can move it to another output.
+        wl_display_flush(connection);
+        if (transientDelayMs > 0) {
+            usleep((useconds_t)transientDelayMs * 1000);
+        }
+        openTransient(0);
+        if (transientSiblings) {
+            openTransient(1);
+        }
     }
 }
 
@@ -425,6 +527,18 @@ int main(int argc, char** argv)
                 perror("vela-pattern: --pointer-log");
                 return 1;
             }
+        } else if (!strcmp(argv[arg], "--transient-delay") && arg + 1 < argc) {
+            transientDelayMs = atoi(argv[++arg]);
+            if (transientDelayMs < 0 || transientDelayMs > 15000) {
+                fprintf(stderr, "vela-pattern: transient delay must be 0..15000 ms\n");
+                return 1;
+            }
+        } else if (!strcmp(argv[arg], "--transient-maximized")) {
+            transientMaximized = 1;
+        } else if (!strcmp(argv[arg], "--transient-siblings")) {
+            transientSiblings = 1;
+        } else if (!strcmp(argv[arg], "--fullscreen-parent")) {
+            fullscreenParent = 1;
         } else if (!strcmp(argv[arg], "--app-id") && arg + 1 < argc) {
             // For tests that depend on the app (system dialogs).
             appId = argv[++arg];
@@ -435,6 +549,7 @@ int main(int argc, char** argv)
         logicalHeight = atoi(argv[arg + 1]);
     }
     struct wl_display* display = wl_display_connect(NULL);
+    connection = display;
     if (!display) {
         fprintf(stderr, "vela-pattern: no Wayland session (WAYLAND_DISPLAY)\n");
         return 1;
@@ -461,7 +576,7 @@ int main(int argc, char** argv)
     xdg_toplevel_add_listener(toplevel, &toplevelListener, NULL);
     xdg_toplevel_set_title(toplevel, "vela-pattern");
     xdg_toplevel_set_app_id(toplevel, appId);
-    if (fullscreen) {
+    if (fullscreen || fullscreenParent) {
         xdg_toplevel_set_fullscreen(toplevel, NULL);
     }
     if (decorated) {

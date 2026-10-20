@@ -297,6 +297,11 @@ bool SystemActions::isLaptop() const
 
 bool SystemActions::run(const QString& input)
 {
+    return runOnScreen(input, {});
+}
+
+bool SystemActions::runOnScreen(const QString& input, const QString& screen)
+{
     const QString text = input.trimmed();
     if (text.isEmpty()) {
         return false;
@@ -314,7 +319,8 @@ bool SystemActions::run(const QString& input)
         if (m_apps && !id.isEmpty() && m_apps->launchWithFile(id, QUrl::fromLocalFile(info.absoluteFilePath()).toString())) {
             ok = true;
         } else {
-            emit chooseAppRequested(info.absoluteFilePath());
+            if (screen.isEmpty()) emit chooseAppRequested(info.absoluteFilePath());
+            else emit chooseAppOnScreenRequested(info.absoluteFilePath(), screen);
             ok = true;
         }
     } else if (text.contains(QLatin1String("://"))) {

@@ -126,30 +126,31 @@ QtObject {
     signal openRequested(var entries, real x, real y, var options)
     signal closeRequested()
     // A Yes/No question (such as "Empty Recycle Bin"): ConfirmDialog.qml.
-    signal confirmRequested(string title, string text, string yesText, var action, var noAction)
+    signal confirmRequested(string title, string text, string yesText, var action, var noAction, string screen)
 
     // noAction (optional): when the answer is No, or the dialog is dismissed.
-    function confirm(title, text, yesText, action, noAction) {
-        confirmRequested(title, text, yesText, action, noAction || null)
+    function confirm(title, text, yesText, action, noAction, screen) {
+        confirmRequested(title, text, yesText, action, noAction || null, screen || Shell.primaryScreen)
     }
 
     // The Properties window (PropertiesDialog.qml) for these files.
-    signal propertiesRequested(var paths)
-    function showProperties(paths) {
-        propertiesRequested(paths)
+    signal propertiesRequested(var paths, string screen)
+    function showProperties(paths, screen) {
+        propertiesRequested(paths, screen || Shell.primaryScreen)
     }
 
     // Share, "Choose another app", New > Shortcut (FileDialogs.qml).
-    signal shareRequested(var paths)
-    signal openWithRequested(string path)
-    signal newShortcutRequested(string folder)
-    function share(paths) { shareRequested(paths) }
-    function chooseApp(path) { openWithRequested(path) }
-    function newShortcut(folder) { newShortcutRequested(folder) }
+    signal shareRequested(var paths, string screen)
+    signal openWithRequested(string path, string screen)
+    signal newShortcutRequested(string folder, string screen)
+    function share(paths, screen) { shareRequested(paths, screen || Shell.primaryScreen) }
+    function chooseApp(path, screen) { openWithRequested(path, screen || Shell.primaryScreen) }
+    function newShortcut(folder, screen) { newShortcutRequested(folder, screen || Shell.primaryScreen) }
 
     function open(entries, x, y, options) {
+        const request = options || {}
         isOpen = true
-        openRequested(entries, x, y, options || {})
+        openRequested(entries, x, y, request)
     }
 
     function close() {

@@ -48,6 +48,7 @@ void vela_focus_view(struct vela_server *server, struct vela_view *view)
         vela_node_reparent(&view->tree->node, layers->fullscreen);
     }
     vela_node_raise_to_top(&view->tree->node);
+    vela_views_raise_transients(view);
     wl_list_remove(&view->link);
     wl_list_insert(&server->views, &view->link);
     vela_views_raise_always_on_top(server);

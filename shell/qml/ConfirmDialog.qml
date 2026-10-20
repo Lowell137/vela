@@ -25,7 +25,8 @@ Window {
 
     Connections {
         target: Menus
-        function onConfirmRequested(title, text, yesText, action, noAction) {
+        function onConfirmRequested(title, text, yesText, action, noAction, screen) {
+            Shell.placeOnScreen(root, screen || Shell.primaryScreen)
             root.noAction = noAction
             root.keepOnBlur = false
             root.title = title
