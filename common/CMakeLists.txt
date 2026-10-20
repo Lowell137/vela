@@ -46,7 +46,11 @@ qt_add_library(vela-controls STATIC)
 set(CONTROLS_QML_FILES
     controls/Theme.qml
     controls/Button.qml
-    controls/TextBox.qml)
+    controls/TextBox.qml
+    controls/NavIndicator.qml
+    controls/CheckBox.qml
+    controls/RadioButton.qml
+    controls/Expander.qml)
 foreach(file IN LISTS CONTROLS_QML_FILES)
     get_filename_component(name ${file} NAME)
     set_source_files_properties(${file} PROPERTIES QT_RESOURCE_ALIAS ${name})

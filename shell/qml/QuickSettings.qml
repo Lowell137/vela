@@ -400,12 +400,15 @@ Window {
                 id: knob
                 x: parent.width * slider.shown - width / 2
                 anchors.verticalCenter: parent.verticalCenter
-                width: track.thick ? 36 : 18
-                height: track.thick ? 24 : 18
-                radius: height / 2
+                // Thick (WindowGlass README): Thumb 40 x 25, CornerRadius 12,
+                // the inner dot collapsed.
+                width: track.thick ? 40 : 18
+                height: track.thick ? 25 : 18
+                radius: track.thick ? 12 : height / 2
                 color: Theme.popup
                 border.width: 1
-                border.color: Theme.stroke
+                // Ours, not in the README: held, the edge lights up.
+                border.color: track.thick && trackMouse.pressed ? Theme.controlStrokeStrong : Theme.stroke
                 Rectangle {
                     visible: !track.thick
                     anchors.centerIn: parent
@@ -422,7 +425,7 @@ Window {
                 anchors { bottom: knob.top; bottomMargin: 6; horizontalCenter: knob.horizontalCenter }
                 width: valueText.implicitWidth + 16
                 height: 26
-                radius: Theme.radius
+                radius: track.thick ? 10 : Theme.radius // WindowGlass: ToolTip CornerRadius 10
                 color: Theme.popup
                 border.width: 1
                 border.color: Theme.stroke

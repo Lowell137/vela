@@ -242,6 +242,11 @@ Window {
         }
         ListView {
             id: list
+            // The current entry's pill: it slides between entries.
+            NavIndicator {
+                id: navIndicator
+                parent: list.contentItem
+            }
             anchors { left: parent.left; right: parent.right; top: sideTitle.bottom; bottom: parent.bottom; margins: 6; topMargin: 10 }
             clip: true
             model: Lib.recordings
@@ -257,15 +262,8 @@ Window {
                 height: 56
                 radius: Theme.radius
                 color: chosen ? Theme.selection : rowMouse.containsMouse ? Theme.subtleHover : "transparent"
-                Rectangle {
-                    visible: row.chosen
-                    x: 0
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 3
-                    height: 16
-                    radius: 1.5
-                    color: Theme.accentFill
-                }
+                onChosenChanged: navIndicator.track(row, chosen)
+                Component.onCompleted: navIndicator.track(row, chosen)
                 Column {
                     anchors { fill: parent; leftMargin: 14; rightMargin: 10 }
                     anchors.verticalCenter: parent.verticalCenter

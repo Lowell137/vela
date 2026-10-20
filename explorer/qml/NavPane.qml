@@ -40,14 +40,8 @@ Flickable {
         radius: Theme.radius
         color: drop.containsDrag && pinDrop === 0 ? Theme.selectionHover : selected ? Theme.selection : mouse.containsMouse ? Theme.subtleHover : "transparent"
 
-        Rectangle {
-            visible: entry.selected
-            anchors.verticalCenter: parent.verticalCenter
-            width: 3
-            height: 16
-            radius: 1.5
-            color: Theme.accentFill
-        }
+        onSelectedChanged: navIndicator.track(entry, selected)
+        Component.onCompleted: navIndicator.track(entry, selected)
         Image {
             x: 12 + entry.indent
             anchors.verticalCenter: parent.verticalCenter
@@ -209,4 +203,7 @@ Flickable {
         Rectangle { width: parent.width; height: 1; color: Theme.divider }
         Entry { icon: "user-trash"; label: qsTr("Recycle Bin"); location: Places.trash }
     }
+
+    // The open location's pill: it slides between entries.
+    NavIndicator { id: navIndicator }
 }

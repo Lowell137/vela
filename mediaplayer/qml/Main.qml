@@ -374,6 +374,11 @@ Window {
         }
         ListView {
             id: list
+            // The current entry's pill: it slides between entries.
+            NavIndicator {
+                id: navIndicator
+                parent: list.contentItem
+            }
             anchors { left: parent.left; right: parent.right; top: sideTitle.bottom; bottom: parent.bottom; margins: 4 }
             clip: true
             model: Playlist.files
@@ -387,14 +392,8 @@ Window {
                 height: 36
                 radius: Theme.radius
                 color: rowMouse.pressed ? Theme.subtlePressed : rowMouse.containsMouse || current ? Theme.subtleHover : "transparent"
-                Rectangle {
-                    visible: row.current
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 3
-                    height: 16
-                    radius: 1.5
-                    color: Theme.accentFill
-                }
+                onCurrentChanged: navIndicator.track(row, current)
+                Component.onCompleted: navIndicator.track(row, current)
                 Text {
                     anchors { left: parent.left; right: parent.right; leftMargin: 12; rightMargin: 8; verticalCenter: parent.verticalCenter }
                     text: root.fileName(row.modelData)

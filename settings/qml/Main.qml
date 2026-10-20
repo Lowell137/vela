@@ -314,51 +314,18 @@ Window {
             model: root.sections
             spacing: 2
 
-            // The selected page's pill, one for the list: it slides to the new
-            // page stretching, its leading edge ahead of the trailing one
-            // (Fluent-Qt ListView.cpp: 250 ms OutCubic, lead 1.35x, trail
-            // delayed 0.18).
-            Rectangle {
+            // The selected page's pill, one for the list: it slides between pages.
+            NavIndicator {
                 id: navIndicator
                 parent: sectionList.contentItem
-                readonly property int index: root.sections.indexOf(root.section)
-                readonly property real target: index * (36 + sectionList.spacing) + 10
-                property real from: target
-                property real to: target
-                property real p: 1
-                readonly property real lead: Math.min(1, 1.35 * p)
-                readonly property real trail: Math.max(0, Math.min(1, (p - 0.18) / 0.82))
-                readonly property bool down: to >= from
-                readonly property real top: from + (to - from) * (down ? trail : lead)
-                readonly property real bottom: from + 16 + (to - from) * (down ? lead : trail)
-                onTargetChanged: {
-                    from = top
-                    to = target
-                    navSlide.restart()
-                }
-                visible: index >= 0
-                z: 1
-                x: 0
-                y: top
-                width: 3
-                height: bottom - top
-                radius: 1.5
-                color: Theme.accentFill
-                NumberAnimation on p {
-                    id: navSlide
-                    running: false
-                    from: 0
-                    to: 1
-                    duration: Theme.normal
-                    easing.type: Easing.BezierSpline
-                    easing.bezierCurve: Theme.decelerate
-                }
             }
 
             delegate: Rectangle {
                 id: entry
                 required property string modelData
                 readonly property bool selected: root.section === modelData
+                onSelectedChanged: navIndicator.track(entry, selected)
+                Component.onCompleted: navIndicator.track(entry, selected)
                 width: sectionList.width - 16
                 height: 36
                 radius: Theme.radius

@@ -167,15 +167,8 @@ Window {
                 height: 36
                 radius: Theme.radius
                 color: current ? Theme.selection : entryMouse.containsMouse ? Theme.subtleHover : "transparent"
-                Rectangle {
-                    visible: entry.current
-                    x: 0
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 3
-                    height: 16
-                    radius: 1.5
-                    color: Theme.accentFill
-                }
+                onCurrentChanged: navIndicator.track(entry, current)
+                Component.onCompleted: navIndicator.track(entry, current)
                 Image {
                     x: 14
                     anchors.verticalCenter: parent.verticalCenter
@@ -202,6 +195,9 @@ Window {
             }
         }
     }
+
+    // The current entry's pill: it slides between entries.
+    NavIndicator { id: navIndicator }
 
     // --- the filter bar ---
     Item {

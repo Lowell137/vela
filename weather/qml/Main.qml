@@ -103,14 +103,8 @@ Window {
                 height: 36
                 radius: Theme.radius
                 color: entryMouse.pressed ? Theme.subtlePressed : current || entryMouse.containsMouse ? Theme.subtleHover : "transparent"
-                Rectangle {
-                    visible: entry.current
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 3
-                    height: 16
-                    radius: 1.5
-                    color: Theme.accentFill
-                }
+                onCurrentChanged: navIndicator.track(entry, current)
+                Component.onCompleted: navIndicator.track(entry, current)
                 Image {
                     x: 12
                     anchors.verticalCenter: parent.verticalCenter
@@ -136,6 +130,9 @@ Window {
             }
         }
     }
+
+    // The current entry's pill: it slides between entries.
+    NavIndicator { id: navIndicator }
 
     // --- the page ---
     Rectangle {
