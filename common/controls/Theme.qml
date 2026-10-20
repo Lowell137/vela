@@ -127,6 +127,7 @@ QtObject {
     readonly property int taskbarButtonRadius: themed("taskbar-button-radius", radius)
     readonly property int taskbarIconSize: themed("taskbar-icon-size", 26)
     readonly property int taskbarSpacing: themed("taskbar-spacing", 4)
+    readonly property bool taskbarFit: themed("taskbar-fit", 0) !== 0 // apps and tray in one centered pill
     readonly property int startMenuWidth: themed("startmenu-width", 660)
     readonly property int startMenuHeight: themed("startmenu-height", 732) // at most
     readonly property int startMenuRadius: themed("startmenu-radius", radiusOverlay)

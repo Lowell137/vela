@@ -29,6 +29,12 @@ Window {
     readonly property int barHeight: dock ? 68 : Theme.taskbarBarHeight
     // A theme's taskbar-margin / taskbar-radius: the bar floats inside its window.
     readonly property bool floating: !islands && !dock && (Theme.taskbarMargin > 0 || Theme.taskbarRadius > 0)
+    // taskbar-fit: the bar shrinks to its content, apps and tray side by side
+    // in the middle (Windhawk's WindowGlass). Widths only, no x: no binding loop.
+    readonly property bool fit: floating && Theme.taskbarFit && !vertical
+    readonly property real trayGroupWidth: overflowButton.width + (tray.visible ? tray.width + 4 : 0)
+        + screenShare.width + microphone.width + systemIcons.width + 2 + clock.width
+    readonly property real fitGap: 8
     width: vertical ? Theme.taskbarHeight : 1280
     height: vertical ? 720 : barHeight
     color: "transparent"
@@ -328,8 +334,10 @@ Window {
 
         Rectangle {
             visible: root.floating
-            anchors.fill: parent
-            anchors.margins: Theme.taskbarMargin
+            x: root.fit ? buttons.x - 10 : Theme.taskbarMargin
+            y: Theme.taskbarMargin
+            width: root.fit ? buttons.width + root.fitGap + root.trayGroupWidth + 10 : parent.width - 2 * Theme.taskbarMargin
+            height: parent.height - 2 * Theme.taskbarMargin
             radius: Theme.taskbarRadius
             color: Theme.taskbar
             border.width: 1
@@ -433,6 +441,7 @@ Window {
         columns: root.vertical ? 1 : 1000
         x: root.vertical ? Math.round((parent.width - width) / 2)
             : root.dock ? Math.round((parent.width - width) / 2)
+            : root.fit ? Math.round((parent.width - width - root.fitGap - root.trayGroupWidth) / 2)
             : root.islands ? (Config.taskbarAlignment === "left" ? leftIsland.x + leftIsland.width + 14
                 : Math.max(leftIsland.x + leftIsland.width + 14, Math.round((parent.width - width) / 2)))
             : Config.taskbarAlignment === "left" ? 12 + weather.width + (weather.width > 0 ? 8 : 0)
@@ -697,7 +706,7 @@ Window {
     // taskbar, like Windows 11; at the tray end of a vertical one.
     WeatherWidget {
         id: weather
-        visible: root.primary && !root.dock && Weather.shown
+        visible: root.primary && !root.dock && !root.fit && Weather.shown
         vertical: root.vertical
         screenName: root.screenName
         x: root.vertical ? 0 : root.islands ? 14 : 8
@@ -920,7 +929,7 @@ Window {
     Item {
         id: clock
         visible: !root.dock
-        x: root.vertical ? 0 : parent.width - width - 12
+        x: root.vertical ? 0 : root.fit ? buttons.x + buttons.width + root.fitGap + root.trayGroupWidth - width : parent.width - width - 12
         y: root.vertical ? showDesktop.y - height - 4 : 0
         readonly property bool badge: Notifications.history.count > 0 || Notifications.silenced
         width: root.vertical ? parent.width : clockColumn.implicitWidth + 16 + (badge ? 22 : 0)
