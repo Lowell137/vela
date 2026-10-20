@@ -818,13 +818,13 @@ Window {
 
 
     // quicksettings-media-card: what plays now on a card of its own, below the
-    // panel (WindowGlass).
+    // panel (WindowGlass), or above it with quicksettings-media-top.
     readonly property bool mediaApart: Theme.quickSettingsMediaCard && Media.current.service !== undefined && page === ""
     Rectangle {
         id: mediaCard
         visible: root.mediaApart
         x: panel.x
-        y: panel.y + panel.height + 8
+        y: Theme.quickSettingsMediaTop ? 12 : panel.y + panel.height + 8
         width: panel.width
         height: mediaInCard.height + 24
         radius: Theme.quickSettingsRadius
@@ -848,7 +848,8 @@ Window {
     Rectangle {
         id: panel
         x: 12
-        y: 12
+        y: root.mediaApart && Theme.quickSettingsMediaTop ? 12 + mediaCard.height + 8 : 12
+        onYChanged: root.updateBlur()
         width: root.width - 24
         height: root.page === "" ? content.height + 24 + footer.height
             : (root.page === "wifi" ? wifiPage.height : root.page === "sound" ? soundPage.height

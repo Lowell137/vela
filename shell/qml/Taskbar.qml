@@ -34,7 +34,7 @@ Window {
     readonly property bool fit: floating && Theme.taskbarFit && !vertical
     readonly property real trayGroupWidth: overflowButton.width + (tray.visible ? tray.width + 4 : 0)
         + screenShare.width + microphone.width + systemIcons.width + 2 + clock.width
-    readonly property real fitGap: 8
+    readonly property real fitGap: 8 + Theme.taskbarSplitGap
     width: vertical ? Theme.taskbarHeight : 1280
     height: vertical ? 720 : barHeight
     color: "transparent"
@@ -333,12 +333,31 @@ Window {
         color: root.islands || root.dock || root.floating ? "transparent" : Theme.taskbar
 
         Rectangle {
+            id: floatingSurface
+            readonly property bool split: root.fit && Theme.taskbarSplitGap > 0
             visible: root.floating
             x: root.fit ? buttons.x - 10 : Theme.taskbarMargin
             y: Theme.taskbarMargin
-            width: root.fit ? buttons.width + root.fitGap + root.trayGroupWidth + 10 : parent.width - 2 * Theme.taskbarMargin
+            width: split ? buttons.width + 14
+                : root.fit ? buttons.width + root.fitGap + root.trayGroupWidth + 10 : parent.width - 2 * Theme.taskbarMargin
             height: parent.height - 2 * Theme.taskbarMargin
             radius: Theme.taskbarRadius
+            topRightRadius: split ? Theme.taskbarSplitRadius : radius
+            bottomRightRadius: topRightRadius
+            color: Theme.taskbar
+            border.width: 1
+            border.color: Theme.stroke
+        }
+        // taskbar-split-gap: the tray a pill of its own, like WindowGlass's Split.
+        Rectangle {
+            visible: floatingSurface.visible && floatingSurface.split
+            x: floatingSurface.x + floatingSurface.width + Theme.taskbarSplitGap
+            y: floatingSurface.y
+            width: buttons.x + buttons.width + root.fitGap + root.trayGroupWidth - x
+            height: floatingSurface.height
+            radius: Theme.taskbarRadius
+            topLeftRadius: Theme.taskbarSplitRadius
+            bottomLeftRadius: Theme.taskbarSplitRadius
             color: Theme.taskbar
             border.width: 1
             border.color: Theme.stroke

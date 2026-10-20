@@ -128,6 +128,8 @@ QtObject {
     readonly property int taskbarIconSize: themed("taskbar-icon-size", 26)
     readonly property int taskbarSpacing: themed("taskbar-spacing", 4)
     readonly property bool taskbarFit: themed("taskbar-fit", 0) !== 0 // apps and tray in one centered pill
+    readonly property int taskbarSplitGap: themed("taskbar-split-gap", 0) // fit: the tray a pill of its own
+    readonly property int taskbarSplitRadius: themed("taskbar-split-radius", 5) // the corners where they part
     readonly property int startMenuWidth: themed("startmenu-width", 660)
     readonly property int startMenuHeight: themed("startmenu-height", 732) // at most
     readonly property int startMenuRadius: themed("startmenu-radius", radiusOverlay)
@@ -143,6 +145,7 @@ QtObject {
     readonly property int quickSettingsSplitGap: themed("quicksettings-split-gap", 0)
     readonly property bool quickSettingsThickSlider: themed("quicksettings-thick-slider", 0) !== 0
     readonly property bool quickSettingsMediaCard: themed("quicksettings-media-card", 0) !== 0 // media below, a card of its own
+    readonly property bool quickSettingsMediaTop: themed("quicksettings-media-top", 0) !== 0 // the media card above the panel
     readonly property int notificationsWidth: themed("notifications-width", 384)
     readonly property int notificationsRadius: themed("notifications-radius", radiusOverlay)
     readonly property int notificationsCardRadius: themed("notifications-card-radius", radius)
