@@ -433,7 +433,7 @@ using LayerAnchor = LayerShellQt::Window::Anchor;
 
 // The anchors and margins a window with the base ones (what it has at the
 // bottom taskbar) takes for each edge of the taskbar.
-static void followEdge(QWindow* window, const ShellController::Follower& f, ShellController::Position position)
+static void followEdge(QWindow* window, const ShellController::Follower& f, ShellController::Position position, bool panelsTop)
 {
     using P = ShellController::Position;
     using K = ShellController::FollowKind;
@@ -475,7 +475,7 @@ static void followEdge(QWindow* window, const ShellController::Follower& f, Shel
         }
         break;
     case K::Panel:
-        if (position == P::Top) {
+        if (position == P::Top || panelsTop) {
             vertical(true);
         } else if (vertTaskbar && !sideless) {
             horizontal(position == P::Left);
@@ -538,7 +538,7 @@ void ShellController::followTaskbar(QWindow* window, FollowKind kind)
     if (!known) {
         m_followers.append(fresh);
     }
-    followEdge(window, fresh, m_position);
+    followEdge(window, fresh, m_position, m_panelsTop);
 }
 
 void ShellController::setTaskbarPosition(const QString& position)
@@ -553,7 +553,19 @@ void ShellController::setTaskbarPosition(const QString& position)
     m_position = next;
     m_followers.removeIf([](const Follower& f) { return f.window.isNull(); });
     for (const Follower& f : std::as_const(m_followers)) {
-        followEdge(f.window, f, m_position);
+        followEdge(f.window, f, m_position, m_panelsTop);
+    }
+}
+
+void ShellController::setPanelsAtTop(bool top)
+{
+    if (top == m_panelsTop) {
+        return;
+    }
+    m_panelsTop = top;
+    m_followers.removeIf([](const Follower& f) { return f.window.isNull(); });
+    for (const Follower& f : std::as_const(m_followers)) {
+        followEdge(f.window, f, m_position, m_panelsTop);
     }
 }
 

@@ -273,7 +273,7 @@ Window {
         id: icons
         anchors {
             fill: parent
-            topMargin: Config.taskbarTop ? Theme.taskbarHeight : 0
+            topMargin: Config.taskbarTop ? Theme.taskbarHeight : Config.dock ? Theme.topBarHeight : 0
             bottomMargin: Config.taskbarTop || Config.taskbarVertical ? 0 : Theme.taskbarHeight
             leftMargin: Config.taskbarLeft ? Theme.taskbarHeight : 0
             rightMargin: Config.taskbarRight ? Theme.taskbarHeight : 0

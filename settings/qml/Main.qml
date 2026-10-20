@@ -3,6 +3,7 @@
 
 import QtQuick
 import QtQuick.Window
+import QtQuick.Shapes
 import Vela.Controls
 
 // The Settings window, like Windows 11: account, search and sections on the
@@ -320,13 +321,22 @@ Window {
                 radius: Theme.radius
                 color: entryMouse.pressed ? Theme.subtlePressed : selected || entryMouse.containsMouse ? Theme.subtleHover : "transparent"
 
-                Rectangle {
+                // The selected page: a small arc, like the logo's trace.
+                Shape {
                     visible: entry.selected
+                    x: 2
                     anchors.verticalCenter: parent.verticalCenter
-                    width: 3
+                    width: 6
                     height: entryMouse.pressed ? 10 : 16
-                    radius: 1.5
-                    color: Theme.accentFill
+                    preferredRendererType: Shape.CurveRenderer
+                    ShapePath {
+                        strokeColor: Theme.accentFill
+                        strokeWidth: 2
+                        fillColor: "transparent"
+                        capStyle: ShapePath.RoundCap
+                        startX: 1; startY: 1
+                        PathQuad { x: 1; y: entryMouse.pressed ? 9 : 15; controlX: 5; controlY: entryMouse.pressed ? 5 : 8 }
+                    }
                 }
                 Image {
                     x: 16

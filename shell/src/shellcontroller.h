@@ -83,6 +83,8 @@ public:
         QMargins margins;
     };
     void setTaskbarPosition(const QString& position);
+    // The dock style: the panels (quick settings...) open from the top panel.
+    void setPanelsAtTop(bool top);
     // Call it with the window's anchors and margins as they are at the bottom
     // taskbar, and again after changing them by hand.
     void followTaskbar(QWindow* window, FollowKind kind = FollowKind::Panel);
@@ -217,6 +219,7 @@ private:
     QLocalServer m_server;
     bool m_startMenuOpen = false;
     Position m_position = Position::Bottom;
+    bool m_panelsTop = false;
     QList<Follower> m_followers;
     bool m_screenCaptured = false;
     bool m_captureDnd = false;

@@ -105,6 +105,18 @@ void BackgroundEffects::setBlur(QWindow* window, const QVariantList& rects)
     apply(entry);
 }
 
+void BackgroundEffects::setInputRegion(QWindow* window, const QVariantList& rects)
+{
+    if (!window) {
+        return;
+    }
+    QRegion region;
+    for (const QVariant& value : rects) {
+        region += value.toRectF().toAlignedRect();
+    }
+    window->setMask(region);
+}
+
 bool BackgroundEffects::eventFilter(QObject* watched, QEvent* event)
 {
     if (event->type() == QEvent::PlatformSurface

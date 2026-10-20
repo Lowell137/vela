@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import QtQuick
+import QtQuick.Shapes
 import Vela.Controls
 
 // A taskbar button: the background fades on hover and a slight "bounce" when
@@ -32,10 +33,12 @@ Item {
     z: mouse.dragging ? 10 : 0
     // Along a vertical taskbar it is dragged up and down (dropped: by how far).
     readonly property bool vertical: Config.taskbarVertical
+    // The dock style: bigger icons, bigger still under the pointer.
+    readonly property real zoom: Config.dock ? (hovered ? 1.35 : 1.2) : 1
     transform: Translate { x: !root.vertical && mouse.dragging ? mouse.dragX : 0; y: root.vertical && mouse.dragging ? mouse.dragX : 0 }
 
     width: 44
-    height: 40
+    height: Config.dock ? 48 : 40
 
     Rectangle {
         anchors.fill: parent
@@ -53,7 +56,7 @@ Item {
         anchors.centerIn: parent
         width: 26
         height: 26
-        scale: mouse.pressed ? 0.84 : 1
+        scale: (mouse.pressed ? 0.84 : 1) * root.zoom
 
         Behavior on scale {
             NumberAnimation { duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
@@ -63,16 +66,18 @@ Item {
     // Indicator under the icon (at the screen's edge side along a vertical
     // taskbar): app open / active (or Start menu open)
     Rectangle {
-        property real length: root.progress >= 0 ? 24 : root.active ? 16 : root.running ? 6 : 0
+        // Along a horizontal taskbar the active app has a short arc (below),
+        // the others running in the background a 4 px dot.
+        property real length: root.progress >= 0 ? 24 : root.vertical ? (root.active ? 16 : root.running ? 6 : 0) : root.running ? 4 : 0
         // x/y, not anchors: anchors switched to undefined at run time keep
         // their old edge when the taskbar's position changes live.
         x: root.vertical ? (Config.taskbarLeft ? 2 : parent.width - width - 2) : (parent.width - width) / 2
         y: root.vertical ? (parent.height - height) / 2 : parent.height - height - 2
         width: root.vertical ? 3 : length
-        height: root.vertical ? length : 3
-        radius: 1.5
+        height: root.vertical ? length : root.progress >= 0 ? 3 : 4
+        radius: Math.min(width, height) / 2
         color: root.progress >= 0 ? Theme.textSecondary : root.active ? Theme.accent : Theme.textSecondary
-        opacity: root.progress >= 0 ? 0.4 : root.active || root.running ? 1 : 0
+        opacity: root.progress >= 0 ? 0.4 : (root.vertical ? root.active || root.running : root.running && !root.active) ? 1 : 0
 
         Behavior on length {
             NumberAnimation { duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
@@ -82,6 +87,32 @@ Item {
         }
         Behavior on opacity {
             NumberAnimation { duration: Theme.fast }
+        }
+    }
+
+    // The open (active) app: a short curve, like the logo's trace.
+    Shape {
+        x: (parent.width - 16) / 2
+        y: parent.height - 6
+        width: 16
+        height: 5
+        visible: opacity > 0
+        opacity: !root.vertical && root.active && root.progress < 0 ? 1 : 0
+        // It draws itself from the middle outwards when the app becomes active.
+        scale: root.active ? 1 : 0.1
+        transformOrigin: Item.Center
+        preferredRendererType: Shape.CurveRenderer
+        Behavior on opacity { NumberAnimation { duration: Theme.normal } }
+        Behavior on scale {
+            NumberAnimation { duration: Theme.slow; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+        }
+        ShapePath {
+            strokeColor: Theme.accent
+            strokeWidth: 2
+            fillColor: "transparent"
+            capStyle: ShapePath.RoundCap
+            startX: 1; startY: 1
+            PathQuad { x: 15; y: 1; controlX: 8; controlY: 5 }
         }
     }
 

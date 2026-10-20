@@ -63,6 +63,10 @@ void Config::reload()
     if (position != QLatin1String("top") && position != QLatin1String("left") && position != QLatin1String("right")) {
         position = QStringLiteral("bottom");
     }
+    QString style = settings.value(QStringLiteral("taskbar/style")).toString();
+    if (style != QLatin1String("islands") && style != QLatin1String("dock")) {
+        style = QStringLiteral("classic");
+    }
     const bool endTask = settings.value(QStringLiteral("taskbar/endTask"), true).toBool();
     const bool taskView = settings.value(QStringLiteral("taskbar/taskView"), true).toBool();
     const bool trayOverflow = settings.value(QStringLiteral("taskbar/trayOverflow"), true).toBool();
@@ -88,12 +92,13 @@ void Config::reload()
     m_weatherLon = weatherLon;
     m_weatherUnit = weatherUnit;
     const bool showDesktopCorner = settings.value(QStringLiteral("taskbar/showDesktopCorner"), true).toBool();
-    if (weatherChanged || autoHide != m_taskbarAutoHide || combine != m_taskbarCombine || alignment != m_taskbarAlignment || position != m_taskbarPosition || endTask != m_endTask || taskView != m_taskView
+    if (weatherChanged || autoHide != m_taskbarAutoHide || combine != m_taskbarCombine || alignment != m_taskbarAlignment || position != m_taskbarPosition || style != m_taskbarStyle || endTask != m_endTask || taskView != m_taskView
         || trayOverflow != m_trayOverflow || allScreens != m_taskbarAllScreens || showDesktopCorner != m_showDesktopCorner) {
         m_taskbarAutoHide = autoHide;
         m_taskbarCombine = combine;
         m_taskbarAlignment = alignment;
         m_taskbarPosition = position;
+        m_taskbarStyle = style;
         m_endTask = endTask;
         m_taskView = taskView;
         m_trayOverflow = trayOverflow;
