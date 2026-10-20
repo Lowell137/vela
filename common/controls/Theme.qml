@@ -130,6 +130,10 @@ QtObject {
     readonly property bool taskbarFit: themed("taskbar-fit", 0) !== 0 // apps and tray in one centered pill
     readonly property int taskbarSplitGap: themed("taskbar-split-gap", 0) // fit: the tray a pill of its own
     readonly property int taskbarSplitRadius: themed("taskbar-split-radius", 5) // the corners where they part
+    // A style's own panel tint (startmenu/, notifications/): else the surface's.
+    readonly property color startMenuSurface: themed("startmenu-surface", surface)
+    readonly property color quickSettingsSurface: themed("quicksettings-surface", surface)
+    readonly property color notificationsSurface: themed("notifications-surface", surface)
     readonly property int startMenuWidth: themed("startmenu-width", 660)
     readonly property int startMenuHeight: themed("startmenu-height", 732) // at most
     readonly property int startMenuRadius: themed("startmenu-radius", radiusOverlay)

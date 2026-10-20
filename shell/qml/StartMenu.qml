@@ -485,7 +485,7 @@ Window {
         width: root.width - (side ? 32 : 20)
         height: root.height - (side ? 20 : 32) // 10 above, 22 below: 12 of gap from the taskbar
         radius: Theme.startMenuRadius
-        color: Theme.surface
+        color: Theme.startMenuSurface
         border.width: 1
         border.color: Theme.stroke
 

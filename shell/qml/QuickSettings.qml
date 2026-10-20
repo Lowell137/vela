@@ -828,7 +828,7 @@ Window {
         width: panel.width
         height: mediaInCard.height + 24
         radius: Theme.quickSettingsRadius
-        color: Theme.surface
+        color: Theme.quickSettingsSurface
         border.width: 1
         border.color: Theme.stroke
         opacity: panel.opacity
@@ -855,7 +855,7 @@ Window {
             : (root.page === "wifi" ? wifiPage.height : root.page === "sound" ? soundPage.height
                 : root.page === "caffeine" ? caffeinePage.height : accessPage.height) + 32
         radius: Theme.quickSettingsRadius
-        color: Theme.surface
+        color: Theme.quickSettingsSurface
         border.width: 1
         border.color: Theme.stroke
         transform: Translate { id: slide }

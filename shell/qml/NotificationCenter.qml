@@ -145,7 +145,7 @@ Window {
             width: parent.width
             height: Math.min(Screen.height - Theme.taskbarHeight - calendar.height - 60, header.height + Math.max(list.contentHeight, 64) + 24)
             radius: Theme.notificationsRadius
-            color: Theme.surface
+            color: Theme.notificationsSurface
             border.width: 1
             border.color: Theme.stroke
             onHeightChanged: root.updateBlur()
@@ -354,7 +354,7 @@ Window {
             width: parent.width
             height: calendarContent.height + 32
             radius: Theme.notificationsRadius
-            color: Theme.surface
+            color: Theme.notificationsSurface
             border.width: 1
             border.color: Theme.stroke
 
