@@ -139,9 +139,19 @@ QtObject {
     readonly property int quickSettingsColumns: themed("quicksettings-columns", 3)
     readonly property int quickSettingsTileHeight: themed("quicksettings-tile-height", 82)
     readonly property int quickSettingsTileRadius: themed("quicksettings-tile-radius", radius)
+    // A split tile's two parts as separate buttons this far apart (0: one button).
+    readonly property int quickSettingsSplitGap: themed("quicksettings-split-gap", 0)
+    readonly property bool quickSettingsThickSlider: themed("quicksettings-thick-slider", 0) !== 0
+    readonly property bool quickSettingsMediaCard: themed("quicksettings-media-card", 0) !== 0 // media below, a card of its own
     readonly property int notificationsWidth: themed("notifications-width", 384)
     readonly property int notificationsRadius: themed("notifications-radius", radiusOverlay)
     readonly property int notificationsCardRadius: themed("notifications-card-radius", radius)
+    // The calendar card: a big clock with seconds on top, weekdays on a strip,
+    // today's shape, a focus timer at the bottom (WindowGlass).
+    readonly property bool notificationsClock: themed("notifications-clock", 0) !== 0
+    readonly property bool notificationsWeekStrip: themed("notifications-week-strip", 0) !== 0
+    readonly property int notificationsTodayRadius: themed("notifications-today-radius", 16)
+    readonly property bool notificationsFocus: themed("notifications-focus", 0) !== 0
     readonly property int fontCaption: 12
     readonly property int fontBody: 14
     readonly property int fontBodyLarge: 18

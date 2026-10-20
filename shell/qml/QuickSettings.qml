@@ -17,7 +17,7 @@ Window {
     id: root
     visible: false
     width: Theme.quickSettingsWidth
-    height: panel.height + 24
+    height: panel.height + 24 + (mediaApart ? mediaCard.height + 8 : 0)
     color: "transparent"
 
     // "" the quick settings; "wifi", "sound" and "accessibility" their pages.
@@ -152,7 +152,11 @@ Window {
     }
 
     function updateBlur() {
-        Effects.setBlur(root, [Qt.rect(panel.x, panel.y, panel.width, panel.height)])
+        const rects = [Qt.rect(panel.x, panel.y, panel.width, panel.height)]
+        if (mediaApart) {
+            rects.push(Qt.rect(mediaCard.x, mediaCard.y, mediaCard.width, mediaCard.height))
+        }
+        Effects.setBlur(root, rects)
     }
 
     ParallelAnimation {
@@ -179,6 +183,9 @@ Window {
         property bool usable: true
         property bool split: false
         property bool menu: false
+        // quicksettings-split-gap: the two parts as separate buttons.
+        readonly property int gap: split ? Theme.quickSettingsSplitGap : 0
+        readonly property real mainWidth: split ? button.width - 36 - gap : button.width
         signal toggled()
         signal details()
         signal contextMenu()
@@ -192,15 +199,29 @@ Window {
             width: parent.width
             height: Theme.quickSettingsTileHeight - 34
             radius: Theme.quickSettingsTileRadius
-            color: tile.checked ? Theme.accent : Theme.control
-            border.width: tile.checked ? 0 : 1
+            color: tile.gap > 0 ? "transparent" : tile.checked ? Theme.accent : Theme.control
+            border.width: tile.checked || tile.gap > 0 ? 0 : 1
             border.color: Theme.stroke
             clip: true
+
+            Repeater {
+                model: tile.gap > 0 ? [[0, tile.mainWidth], [button.width - 36, 36]] : []
+                delegate: Rectangle {
+                    required property var modelData
+                    x: modelData[0]
+                    width: modelData[1]
+                    height: button.height
+                    radius: button.radius
+                    color: tile.checked ? Theme.accent : Theme.control
+                    border.width: tile.checked ? 0 : 1
+                    border.color: Theme.stroke
+                }
+            }
 
             // The two halves (or the whole tile), each with its hover.
             Rectangle {
                 x: 0
-                width: tile.split ? parent.width - 36 : parent.width
+                width: tile.mainWidth
                 height: parent.height
                 radius: parent.radius
                 color: tile.checked ? "white" : Theme.overlay
@@ -216,7 +237,7 @@ Window {
                 opacity: detailsMouse.pressed ? 0.06 : detailsMouse.containsMouse && tile.usable ? 0.08 : 0
             }
             Rectangle {
-                visible: tile.split
+                visible: tile.split && tile.gap === 0
                 x: parent.width - 36
                 y: 10
                 width: 1
@@ -224,7 +245,7 @@ Window {
                 color: tile.checked ? Qt.rgba(1, 1, 1, 0.35) : Theme.stroke
             }
             Image {
-                x: (tile.split ? parent.width - 36 : parent.width) / 2 - width / 2
+                x: tile.mainWidth / 2 - width / 2
                 anchors.verticalCenter: parent.verticalCenter
                 width: 18
                 height: 18
@@ -252,7 +273,7 @@ Window {
             }
             MouseArea {
                 id: mainMouse
-                width: tile.split ? parent.width - 36 : parent.width
+                width: tile.mainWidth
                 height: parent.height
                 hoverEnabled: true
                 enabled: tile.usable
@@ -349,18 +370,20 @@ Window {
             id: track
             anchors { left: iconButton.right; leftMargin: 12; right: detailsButton.left; rightMargin: 8; verticalCenter: parent.verticalCenter }
             height: 20
+            // quicksettings-thick-slider: a thick track and a wide knob.
+            readonly property bool thick: Theme.quickSettingsThickSlider
             Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
                 width: parent.width
-                height: 4
-                radius: 2
+                height: track.thick ? 10 : 4
+                radius: height / 2
                 color: Theme.stroke
             }
             Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
                 width: parent.width * slider.shown
-                height: 4
-                radius: 2
+                height: track.thick ? 10 : 4
+                radius: height / 2
                 color: slider.muted ? Theme.textSecondary : Theme.accent
             }
             // The level: a thin bar under the track.
@@ -377,13 +400,14 @@ Window {
                 id: knob
                 x: parent.width * slider.shown - width / 2
                 anchors.verticalCenter: parent.verticalCenter
-                width: 18
-                height: 18
-                radius: 9
+                width: track.thick ? 36 : 18
+                height: track.thick ? 24 : 18
+                radius: height / 2
                 color: Theme.popup
                 border.width: 1
                 border.color: Theme.stroke
                 Rectangle {
+                    visible: !track.thick
                     anchors.centerIn: parent
                     width: trackMouse.pressed ? 8 : 10
                     height: width
@@ -649,6 +673,167 @@ Window {
         }
     }
 
+    component MediaPanel: Rectangle {
+        id: media
+        readonly property var player: Media.current
+        visible: player.service !== undefined
+        width: parent.width
+        height: 128
+        radius: Theme.radius
+        color: Theme.control
+        border.width: 1
+        border.color: Theme.stroke
+
+        Image {
+            id: mediaApp
+            x: 12
+            y: 12
+            width: 16
+            height: 16
+            source: Theme.icons + encodeURIComponent(Apps.iconForAppId(media.player.desktopEntry || "audio-x-generic"))
+            sourceSize: Qt.size(width, height)
+        }
+        Text {
+            anchors { left: mediaApp.right; leftMargin: 8; right: mediaSwitch.visible ? mediaSwitch.left : cover.left; rightMargin: 12; verticalCenter: mediaApp.verticalCenter }
+            text: media.player.identity || ""
+            color: Theme.text
+            font.pixelSize: Theme.fontCaption
+            elide: Text.ElideRight
+        }
+        // Several players: the previous / next one, and which.
+        Row {
+            id: mediaSwitch
+            visible: media.player.count > 1
+            anchors { right: cover.left; rightMargin: 12; verticalCenter: mediaApp.verticalCenter }
+            spacing: 4
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: media.player.index + "/" + media.player.count
+                color: Theme.textSecondary
+                font.pixelSize: Theme.fontCaption
+            }
+            Repeater {
+                model: [{ t: "\u2039", d: -1, n: qsTr("Previous player") }, { t: "\u203a", d: 1, n: qsTr("Next player") }]
+                Rectangle {
+                    width: 20
+                    height: 20
+                    radius: Theme.radius
+                    color: switchMouse.containsMouse ? Theme.subtleHover : "transparent"
+                    Accessible.role: Accessible.Button
+                    Accessible.name: modelData.n
+                    Accessible.onPressAction: Media.cycle(modelData.d)
+                    Text {
+                        anchors.centerIn: parent
+                        text: modelData.t
+                        color: Theme.text
+                        font.pixelSize: Theme.fontBody
+                    }
+                    MouseArea {
+                        id: switchMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        onClicked: Media.cycle(modelData.d)
+                    }
+                }
+            }
+        }
+        Text {
+            id: mediaTitle
+            anchors { left: mediaApp.left; right: cover.left; rightMargin: 12; top: mediaApp.bottom; topMargin: 8 }
+            text: media.player.title || media.player.identity || ""
+            color: Theme.text
+            font.pixelSize: Theme.fontBody
+            font.weight: Font.DemiBold
+            elide: Text.ElideRight
+        }
+        Text {
+            anchors { left: mediaTitle.left; right: mediaTitle.right; top: mediaTitle.bottom; topMargin: 2 }
+            text: media.player.artist || ""
+            color: Theme.textSecondary
+            font.pixelSize: Theme.fontCaption
+            elide: Text.ElideRight
+        }
+        // The cover (file:// or http(s)://, loaded in the
+        // background); until it's there, or without one, a note.
+        Rectangle {
+            id: cover
+            anchors { right: parent.right; rightMargin: 12; top: parent.top; topMargin: 12 }
+            width: 64
+            height: 64
+            radius: Theme.radius
+            color: Theme.subtleHover
+            clip: true
+            Image {
+                anchors.centerIn: parent
+                width: 32
+                height: 32
+                visible: art.status !== Image.Ready
+                source: Theme.icons + "audio-x-generic"
+                sourceSize: Qt.size(width, height)
+            }
+            Image {
+                id: art
+                anchors.fill: parent
+                visible: status === Image.Ready
+                source: media.player.artUrl || ""
+                sourceSize: Qt.size(128, 128)
+                fillMode: Image.PreserveAspectCrop
+                asynchronous: true
+                cache: false // players reuse one file for every track
+            }
+        }
+        Row {
+            anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom; bottomMargin: 8 }
+            spacing: 12
+            MediaButton {
+                icon: "previous"
+                label: qsTr("Previous")
+                usable: media.player.canGoPrevious === true
+                onClicked: Media.command("previous")
+            }
+            MediaButton {
+                icon: media.player.playing ? "pause" : "play"
+                label: media.player.playing ? qsTr("Pause") : qsTr("Play")
+                onClicked: Media.command("play-pause")
+            }
+            MediaButton {
+                icon: "next"
+                label: qsTr("Next")
+                usable: media.player.canGoNext === true
+                onClicked: Media.command("next")
+            }
+        }
+    }
+
+
+    // quicksettings-media-card: what plays now on a card of its own, below the
+    // panel (WindowGlass).
+    readonly property bool mediaApart: Theme.quickSettingsMediaCard && Media.current.service !== undefined && page === ""
+    Rectangle {
+        id: mediaCard
+        visible: root.mediaApart
+        x: panel.x
+        y: panel.y + panel.height + 8
+        width: panel.width
+        height: mediaInCard.height + 24
+        radius: Theme.quickSettingsRadius
+        color: Theme.surface
+        border.width: 1
+        border.color: Theme.stroke
+        opacity: panel.opacity
+        transform: Translate { x: slide.x; y: slide.y }
+        onVisibleChanged: root.updateBlur()
+        onYChanged: root.updateBlur()
+        MediaPanel {
+            id: mediaInCard
+            x: 12
+            y: 12
+            width: parent.width - 24
+            color: "transparent"
+            border.width: 0
+        }
+    }
+
     Rectangle {
         id: panel
         x: 12
@@ -690,136 +875,9 @@ Window {
                 // What plays now (MPRIS, see mediakeys.h), like Windows 11:
                 // the app, the track and the artist, the cover on the right,
                 // the controls below. Only while there is a player.
-                Rectangle {
-                    id: media
-                    readonly property var player: Media.current
-                    visible: player.service !== undefined
+                MediaPanel {
+                    visible: player.service !== undefined && !root.mediaApart
                     width: parent.width
-                    height: 128
-                    radius: Theme.radius
-                    color: Theme.control
-                    border.width: 1
-                    border.color: Theme.stroke
-
-                    Image {
-                        id: mediaApp
-                        x: 12
-                        y: 12
-                        width: 16
-                        height: 16
-                        source: Theme.icons + encodeURIComponent(Apps.iconForAppId(media.player.desktopEntry || "audio-x-generic"))
-                        sourceSize: Qt.size(width, height)
-                    }
-                    Text {
-                        anchors { left: mediaApp.right; leftMargin: 8; right: mediaSwitch.visible ? mediaSwitch.left : cover.left; rightMargin: 12; verticalCenter: mediaApp.verticalCenter }
-                        text: media.player.identity || ""
-                        color: Theme.text
-                        font.pixelSize: Theme.fontCaption
-                        elide: Text.ElideRight
-                    }
-                    // Several players: the previous / next one, and which.
-                    Row {
-                        id: mediaSwitch
-                        visible: media.player.count > 1
-                        anchors { right: cover.left; rightMargin: 12; verticalCenter: mediaApp.verticalCenter }
-                        spacing: 4
-                        Text {
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: media.player.index + "/" + media.player.count
-                            color: Theme.textSecondary
-                            font.pixelSize: Theme.fontCaption
-                        }
-                        Repeater {
-                            model: [{ t: "\u2039", d: -1, n: qsTr("Previous player") }, { t: "\u203a", d: 1, n: qsTr("Next player") }]
-                            Rectangle {
-                                width: 20
-                                height: 20
-                                radius: Theme.radius
-                                color: switchMouse.containsMouse ? Theme.subtleHover : "transparent"
-                                Accessible.role: Accessible.Button
-                                Accessible.name: modelData.n
-                                Accessible.onPressAction: Media.cycle(modelData.d)
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: modelData.t
-                                    color: Theme.text
-                                    font.pixelSize: Theme.fontBody
-                                }
-                                MouseArea {
-                                    id: switchMouse
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    onClicked: Media.cycle(modelData.d)
-                                }
-                            }
-                        }
-                    }
-                    Text {
-                        id: mediaTitle
-                        anchors { left: mediaApp.left; right: cover.left; rightMargin: 12; top: mediaApp.bottom; topMargin: 8 }
-                        text: media.player.title || media.player.identity || ""
-                        color: Theme.text
-                        font.pixelSize: Theme.fontBody
-                        font.weight: Font.DemiBold
-                        elide: Text.ElideRight
-                    }
-                    Text {
-                        anchors { left: mediaTitle.left; right: mediaTitle.right; top: mediaTitle.bottom; topMargin: 2 }
-                        text: media.player.artist || ""
-                        color: Theme.textSecondary
-                        font.pixelSize: Theme.fontCaption
-                        elide: Text.ElideRight
-                    }
-                    // The cover (file:// or http(s)://, loaded in the
-                    // background); until it's there, or without one, a note.
-                    Rectangle {
-                        id: cover
-                        anchors { right: parent.right; rightMargin: 12; top: parent.top; topMargin: 12 }
-                        width: 64
-                        height: 64
-                        radius: Theme.radius
-                        color: Theme.subtleHover
-                        clip: true
-                        Image {
-                            anchors.centerIn: parent
-                            width: 32
-                            height: 32
-                            visible: art.status !== Image.Ready
-                            source: Theme.icons + "audio-x-generic"
-                            sourceSize: Qt.size(width, height)
-                        }
-                        Image {
-                            id: art
-                            anchors.fill: parent
-                            visible: status === Image.Ready
-                            source: media.player.artUrl || ""
-                            sourceSize: Qt.size(128, 128)
-                            fillMode: Image.PreserveAspectCrop
-                            asynchronous: true
-                            cache: false // players reuse one file for every track
-                        }
-                    }
-                    Row {
-                        anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom; bottomMargin: 8 }
-                        spacing: 12
-                        MediaButton {
-                            icon: "previous"
-                            label: qsTr("Previous")
-                            usable: media.player.canGoPrevious === true
-                            onClicked: Media.command("previous")
-                        }
-                        MediaButton {
-                            icon: media.player.playing ? "pause" : "play"
-                            label: media.player.playing ? qsTr("Pause") : qsTr("Play")
-                            onClicked: Media.command("play-pause")
-                        }
-                        MediaButton {
-                            icon: "next"
-                            label: qsTr("Next")
-                            usable: media.player.canGoNext === true
-                            onClicked: Media.command("next")
-                        }
-                    }
                 }
 
                 Grid {

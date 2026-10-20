@@ -18,6 +18,32 @@ Window {
     readonly property var history: Notifications.history
     property date month: new Date() // the month the calendar shows
     property var collapsed: ({}) // app name -> its group is folded
+    property bool monthFolded: false // notifications-clock: only the clock
+    property date now: new Date()
+    Timer {
+        interval: 1000
+        repeat: true
+        running: root.visible && Theme.notificationsClock
+        triggeredOnStart: true
+        onTriggered: root.now = new Date()
+    }
+    // notifications-focus: do not disturb for a while, like Windows' focus
+    // session; it ends by itself (or when do not disturb is turned off).
+    property int focusMinutes: 30
+    property double focusEnd: 0
+    readonly property bool focusing: focusEnd > 0 && Notifications.doNotDisturb
+    Timer {
+        running: root.focusEnd > 0
+        interval: Math.max(1, root.focusEnd - Date.now())
+        onTriggered: {
+            root.focusEnd = 0
+            Notifications.doNotDisturb = false
+        }
+    }
+    Connections {
+        target: Notifications
+        function onDoNotDisturbChanged() { if (!Notifications.doNotDisturb) root.focusEnd = 0 }
+    }
     readonly property var counts: { history.count; return history.appCounts() }
 
     function open() {
@@ -332,6 +358,17 @@ Window {
             border.width: 1
             border.color: Theme.stroke
 
+            // notifications-week-strip: the weekdays on a rounded band.
+            Rectangle {
+                visible: Theme.notificationsWeekStrip && days.visible
+                x: calendarContent.x
+                y: calendarContent.y + days.y
+                width: calendarContent.width
+                height: 28
+                radius: 8
+                color: Theme.control
+            }
+
             Column {
                 id: calendarContent
                 x: 16
@@ -339,8 +376,45 @@ Window {
                 width: parent.width - 32
                 spacing: 12
 
+                // A theme's notifications-clock: the time with seconds, the
+                // date below, and a button folding the month away.
+                Item {
+                    visible: Theme.notificationsClock
+                    width: parent.width
+                    height: visible ? clockText.height + dateText.height + 2 : 0
+                    Text {
+                        id: clockText
+                        text: Qt.locale().toString(root.now, "HH:mm:ss")
+                        color: Theme.text
+                        font.pixelSize: 28
+                        font.weight: Font.Bold
+                    }
+                    Text {
+                        id: dateText
+                        anchors { top: clockText.bottom; topMargin: 2 }
+                        text: {
+                            const s = Qt.locale().toString(root.now, "dddd, d MMMM")
+                            return s.charAt(0).toUpperCase() + s.slice(1)
+                        }
+                        color: Theme.text
+                        font.pixelSize: Theme.fontBody
+                    }
+                    SmallButton {
+                        anchors { right: parent.right; verticalCenter: parent.verticalCenter }
+                        icon: root.monthFolded ? "go-up" : "go-down"
+                        onClicked: root.monthFolded = !root.monthFolded
+                    }
+                }
+                Rectangle {
+                    visible: Theme.notificationsClock && !root.monthFolded
+                    width: parent.width
+                    height: 1
+                    color: Theme.stroke
+                }
+
                 // Today, in full ("Saturday, October 4"), like Windows.
                 Text {
+                    visible: !Theme.notificationsClock
                     text: {
                         const s = Qt.locale().toString(new Date(), "dddd d MMMM")
                         return s.charAt(0).toUpperCase() + s.slice(1)
@@ -351,10 +425,12 @@ Window {
                 }
 
                 Item {
+                    visible: !root.monthFolded
                     width: parent.width
                     height: 28
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
+                        font.weight: Theme.notificationsClock ? Font.DemiBold : Font.Normal
                         text: {
                             const s = Qt.locale().toString(root.month, "MMMM yyyy")
                             return s.charAt(0).toUpperCase() + s.slice(1)
@@ -379,6 +455,7 @@ Window {
                 // The grid: the week starts on Monday.
                 Grid {
                     id: days
+                    visible: !root.monthFolded
                     columns: 7
                     readonly property real cell: (parent.width) / 7
                     readonly property int offset: (new Date(root.month.getFullYear(), root.month.getMonth(), 1).getDay() + 6) % 7
@@ -388,10 +465,14 @@ Window {
                         model: ["lu", "ma", "me", "gi", "ve", "sa", "do"]
                         delegate: Text {
                             required property string modelData
+                            required property int index
                             width: days.cell
                             height: 28
-                            text: modelData
-                            color: Theme.textSecondary
+                            // On the strip: the locale's names, upper case, bold.
+                            text: Theme.notificationsWeekStrip
+                                ? Qt.locale().dayName((index + 1) % 7, Locale.ShortFormat).slice(0, 2).toUpperCase() : modelData
+                            color: Theme.notificationsWeekStrip ? Theme.text : Theme.textSecondary
+                            font.weight: Theme.notificationsWeekStrip ? Font.DemiBold : Font.Normal
                             font.pixelSize: Theme.fontCaption
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
@@ -414,7 +495,7 @@ Window {
                                 anchors.centerIn: parent
                                 width: 32
                                 height: 32
-                                radius: 16
+                                radius: Theme.notificationsTodayRadius
                                 color: parent.today ? Theme.accent : Theme.subtleHover
                                 opacity: parent.today || dayMouse.containsMouse ? 1 : 0
                             }
@@ -429,6 +510,46 @@ Window {
                                 id: dayMouse
                                 anchors.fill: parent
                                 hoverEnabled: true
+                            }
+                        }
+                    }
+                }
+
+                // notifications-focus: minutes, then start (or stop).
+                Item {
+                    visible: Theme.notificationsFocus
+                    width: parent.width
+                    height: visible ? 40 : 0
+                    Rectangle { width: parent.width; height: 1; color: Theme.stroke }
+                    Row {
+                        anchors { left: parent.left; verticalCenter: parent.verticalCenter; verticalCenterOffset: 4 }
+                        spacing: 4
+                        SmallButton {
+                            label: "\u2212"
+                            onClicked: root.focusMinutes = Math.max(5, root.focusMinutes - (root.focusMinutes > 30 ? 15 : 5))
+                        }
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 64
+                            horizontalAlignment: Text.AlignHCenter
+                            text: qsTr("%1 mins").arg(root.focusMinutes)
+                            color: Theme.text
+                            font.pixelSize: Theme.fontBody
+                        }
+                        SmallButton {
+                            label: "+"
+                            onClicked: root.focusMinutes = Math.min(240, root.focusMinutes + (root.focusMinutes >= 30 ? 15 : 5))
+                        }
+                    }
+                    SmallButton {
+                        anchors { right: parent.right; verticalCenter: parent.verticalCenter; verticalCenterOffset: 4 }
+                        label: root.focusing ? qsTr("\u25A0 Stop focus") : qsTr("\u25B6 Focus")
+                        onClicked: {
+                            if (root.focusing) {
+                                Notifications.doNotDisturb = false
+                            } else {
+                                root.focusEnd = Date.now() + root.focusMinutes * 60000
+                                Notifications.doNotDisturb = true
                             }
                         }
                     }
