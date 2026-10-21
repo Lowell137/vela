@@ -287,6 +287,12 @@ git clone https://github.com/vela-desktop/vela.git
 sh vela/packaging/vela-update
 ```
 
+This fork (with the taskbar, Start menu and notification styles), in one command:
+
+```sh
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/Lowell137/vela/topic/themes/scripts/install-fork.sh)"
+```
+
 ### Fedora 44
 
 Only Fedora 44 x86_64 is currently supported by the native RPM updater; other Fedora versions and immutable variants are not supported by this installer.
