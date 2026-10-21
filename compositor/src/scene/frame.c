@@ -17,6 +17,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <wlr/backend/drm.h>
 #include <wlr/backend/headless.h>
 #include <wlr/render/color.h>
@@ -948,6 +949,35 @@ static void update_surfaces(struct vela_output_frame *frame, const struct vela_e
     }
 }
 
+// A successful commit outside vela_output_frame_render() replaces the buffer
+// (or disables the output). The last scanout/tearing delivery is no longer
+// current, even when the regular Vulkan render path could not run.
+void vela_output_frame_external_commit(struct vela_output_frame *frame)
+{
+    if (frame->scanout) {
+        wlr_log(WLR_INFO, "%s: direct scanout off (external output commit)", frame->output->name);
+    }
+    if (frame->tearing) {
+        wlr_log(WLR_INFO, "%s: tearing off (external output commit)", frame->output->name);
+    }
+    frame->scanout = false;
+    frame->tearing = false;
+    frame->delivered = (struct vela_frame_delivered) { 0, -1, false, false };
+    vela_output_frame_reset_damage(frame);
+}
+
+// A policy change must not leave a fullscreen app using DRM-plane format
+// feedback once the user has requested compositing. This bypasses the normal
+// 30-frame feedback debounce intentionally: an idle app may never reach it.
+void vela_output_frame_scanout_policy_changed(struct vela_output_frame *frame)
+{
+    if (!frame->scene->allow_scanout && frame->feedback_surface) {
+        send_feedback(frame, frame->feedback_surface, false);
+        frame->feedback_surface = NULL;
+        frame->feedback_debounce = 0;
+    }
+}
+
 void vela_output_frame_reset_damage(struct vela_output_frame *frame)
 {
     // All buffers start over: the next frame redraws them whole.
@@ -1197,6 +1227,9 @@ bool vela_output_frame_render(struct vela_output_frame *frame, double lx, double
     if (!damaged && !output->needs_frame && !pending) {
         return false;
     }
+    // A failed replacement commit must leave the last delivered state intact.
+    // In particular, scanout and tearing are still active on the output.
+    const struct vela_frame_delivered previous_delivery = frame->delivered;
     frame->delivered = (struct vela_frame_delivered) { 0, -1, false, false };
 
     // The commit's state: the caller's (mode change, drawn at once at the new
@@ -1233,23 +1266,20 @@ bool vela_output_frame_render(struct vela_output_frame *frame, double lx, double
         return true;
     }
     if (frame->scanout) {
-        // Back to compositing: our buffers haven't seen the scanout frames,
-        // they're redrawn whole.
-        wlr_log(WLR_INFO, "%s: direct scanout off", output->name);
-        frame->scanout = false;
-        if (frame->tearing) {
-            wlr_log(WLR_INFO, "%s: tearing off", output->name);
-            frame->tearing = false;
-        }
+        // Our swapchain is stale after scanout. Render a full replacement
+        // but only report leaving scanout after a successful output commit.
+        // On failure the damage remains pending for the next attempt.
         union_box(&frame->scene_damage, &whole);
     }
 
     if (!wlr_output_configure_primary_swapchain(output, state, &output->swapchain)) {
+        frame->delivered = previous_delivery;
         wlr_output_state_finish(&own);
         return false;
     }
     struct wlr_buffer *buffer = wlr_swapchain_acquire(output->swapchain);
     if (!buffer) {
+        frame->delivered = previous_delivery;
         wlr_output_state_finish(&own);
         return false;
     }
@@ -1315,7 +1345,16 @@ bool vela_output_frame_render(struct vela_output_frame *frame, double lx, double
         // VELA_STATS=1: how long a commit with a new gamma LUT holds the
         // compositor (on amdgpu it waits for every output's flips).
         int64_t commit_start = frame->night_commit_pending ? vela_now_ns() : 0;
-        ok = wlr_output_commit_state(output, state);
+        // Deterministic fault injection for the GPU functional suite. The
+        // opt-in marker is only honored on a headless test compositor.
+        const char *fail_commit = getenv("VELA_TEST_FAIL_COMPOSE_COMMIT_FILE");
+        if (wlr_output_is_headless(output) && vela_env_one("VELA_TEST_FAULTS")
+            && fail_commit && *fail_commit && access(fail_commit, F_OK) == 0) {
+            wlr_log(WLR_INFO, "%s: injected composed commit failure", output->name);
+            ok = false;
+        } else {
+            ok = wlr_output_commit_state(output, state);
+        }
         if (commit_start && vela_env_flag("VELA_STATS")) {
             wlr_log(WLR_INFO, "%s: commit with a gamma LUT: %.2f ms", output->name,
                 (double)(vela_now_ns() - commit_start) / 1e6);
@@ -1361,8 +1400,19 @@ bool vela_output_frame_render(struct vela_output_frame *frame, double lx, double
     }
     wlr_buffer_unlock(buffer);
     wlr_output_state_finish(&own);
+    if (ok && frame->scanout) {
+        // The output only leaves direct scanout after a composed commit
+        // succeeds (including a successful gamma-fallback retry).
+        wlr_log(WLR_INFO, "%s: direct scanout off", output->name);
+        frame->scanout = false;
+        if (frame->tearing) {
+            wlr_log(WLR_INFO, "%s: tearing off", output->name);
+            frame->tearing = false;
+        }
+    }
     if (!ok) {
         // The frame didn't reach the output: its damage must be redrawn.
+        frame->delivered = previous_delivery;
         wlr_damage_ring_add(&frame->ring, &frame_damage);
     }
     if (color_commit_failed) {
@@ -1393,6 +1443,10 @@ static const struct vela_element *scanout_candidate(struct vela_output_frame *fr
 {
     // VELA_SCANOUT=0: always composite (diagnostics, comparisons).
     if (vela_env_off("VELA_SCANOUT")) {
+        return NULL;
+    }
+    if (!frame->scene->allow_scanout) {
+        note_scanout_reason(frame, "turned off in vela.conf (direct-scanout=no)");
         return NULL;
     }
     const char *reason = NULL;

@@ -775,6 +775,15 @@ Specifiche sistema
 <context>
     <name>DisplayPage</name>
     <message>
+        <source>Automatic</source>
+        <translation>Automatico</translation>
+    </message>
+    <message>
+        <source>Off</source>
+        <comment>direct scanout</comment>
+        <translation>Disattivato</translation>
+    </message>
+    <message>
         <source>Make this my main display</source>
         <translation>Imposta come schermo principale</translation>
     </message>
@@ -931,6 +940,30 @@ Specifiche sistema
     <message>
         <source>Games that ask for it reach the screen without waiting for the monitor: less latency, with some tearing in the picture</source>
         <translation>I giochi che lo chiedono vanno sullo schermo senza aspettare il monitor: meno latenza, con qualche strappo nell&apos;immagine (tearing)</translation>
+    </message>
+    <message>
+        <source>Unavailable while direct scanout is off. Full-screen games are composited and cannot use asynchronous tearing</source>
+        <translation>Non disponibile quando lo scanout diretto è disattivato. I giochi a schermo intero vengono composti e non possono usare il tearing asincrono</translation>
+    </message>
+    <message>
+        <source>Direct scanout</source>
+        <translation>Scanout diretto</translation>
+    </message>
+    <message>
+        <source>Direct scanout is forced off by VELA_SCANOUT=0. Remove the override and restart Vela to enable it</source>
+        <translation>Lo scanout diretto è disattivato forzatamente da VELA_SCANOUT=0. Rimuovi l&apos;override e riavvia Vela per abilitarlo</translation>
+    </message>
+    <message>
+        <source>Unavailable: VELA_SCANOUT=0 forces compositing and disables asynchronous tearing</source>
+        <translation>Non disponibile: VELA_SCANOUT=0 forza il compositing e disabilita il tearing asincrono</translation>
+    </message>
+    <message>
+        <source>A full-screen game goes to the screen without being redrawn. If a game shows a black screen or garbled pictures, turn it off</source>
+        <translation>Un gioco a schermo intero va sullo schermo senza essere ridisegnato. Se un gioco mostra schermo nero o immagini corrotte, disattivalo</translation>
+    </message>
+    <message>
+        <source>direct scanout black screen glitch game full screen flicker</source>
+        <translation>scanout diretto schermo nero glitch gioco schermo intero</translation>
     </message>
     <message>
         <source>Related settings</source>
@@ -1179,6 +1212,14 @@ Specifiche sistema
 </context>
 <context>
     <name>Main</name>
+    <message>
+        <source>Direct scanout</source>
+        <translation>Scanout diretto</translation>
+    </message>
+    <message>
+        <source>direct scanout black screen glitch game full screen flicker</source>
+        <translation>scanout diretto schermo nero glitch gioco schermo intero sfarfallio</translation>
+    </message>
     <message>
         <source>Settings</source>
         <translation>Impostazioni</translation>
