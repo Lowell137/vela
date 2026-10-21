@@ -36,7 +36,7 @@ is designed around physical pixels rather than treated as an afterthought.
 > installs it with pacman, asking for sudo):
 >
 > ```sh
-> sh -c "$(curl -fsSL https://raw.githubusercontent.com/Lowell137/vela/topic/themes/scripts/install-fork.sh)"
+> sh -c "$(curl -fsSL https://raw.githubusercontent.com/Lowell137/vela/main/scripts/install-fork.sh)"
 > ```
 
 ---
