@@ -351,13 +351,13 @@ int vela_blur_reach(float strength)
 }
 
 void vela_pass_add_blur(struct vela_pass *pass, const struct vela_texture_draw *panel,
-    const pixman_region32_t *region, float strength, const struct wlr_render_color *tint, bool unmasked)
+    const pixman_region32_t *region, float strength, const struct wlr_render_color *tint, bool unmasked, bool liquid)
 {
     if (!pass->target->sampleable || !region || !pixman_region32_not_empty(region)) {
         return;
     }
     const pixman_box32_t *extents = pixman_region32_extents(region);
-    int reach = vela_blur_reach(strength);
+    int reach = vela_blur_reach(strength) + (liquid ? 32 : 0); // liquid: the lens reads further
     struct wlr_box source = {
         extents->x1 - reach,
         extents->y1 - reach,
@@ -380,6 +380,9 @@ void vela_pass_add_blur(struct vela_pass *pass, const struct vela_texture_draw *
     draw.push.flags &= ~1u; // the panel is read only for its alpha
     if (unmasked) {
         draw.push.flags |= 8u; // not even that (blur_mix.frag)
+    }
+    if (liquid) {
+        draw.push.flags |= 16u;
     }
     draw.blur_op = pass->blur_count;
     pass->blur_ops = vela_grow(pass->blur_ops, &pass->blur_capacity, pass->blur_count + 1, sizeof(*pass->blur_ops));

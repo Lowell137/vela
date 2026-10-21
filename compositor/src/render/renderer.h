@@ -134,9 +134,9 @@ void vela_pass_add_shadow(struct vela_pass *pass, const struct wlr_box *box, con
 // surface that goes on top (added afterwards, as usual), unless `unmasked`:
 // then all of `region`. `strength`: the width of the passes, in pixels; `tint`:
 // the acrylic tint (premultiplied sRGB). Nothing happens if the target can't
-// be read.
+// be read. `liquid`: liquid glass instead of acrylic (blur_mix.frag).
 void vela_pass_add_blur(struct vela_pass *pass, const struct vela_texture_draw *panel,
-    const pixman_region32_t *region, float strength, const struct wlr_render_color *tint, bool unmasked);
+    const pixman_region32_t *region, float strength, const struct wlr_render_color *tint, bool unmasked, bool liquid);
 
 // How far around a zone the blur reads, in pixels.
 int vela_blur_reach(float strength);
