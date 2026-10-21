@@ -60,9 +60,15 @@ Page {
             icon: "preferences-desktop-panel"
             title: qsTr("Blur behind the taskbar")
             description: qsTr("A floating taskbar: the strip around it blurred while a window is maximized")
-            trailing: Toggle {
-                checked: Prefs.taskbarBackdrop
-                onToggled: on => Prefs.taskbarBackdrop = on
+            trailing: Choice {
+                readonly property var styles: [
+                    { name: "", text: qsTr("Off") },
+                    { name: "acrylic", text: qsTr("Acrylic") },
+                    { name: "liquid", text: qsTr("Liquid Glass") },
+                ]
+                model: styles
+                currentIndex: Math.max(0, styles.findIndex(s => s.name === Prefs.taskbarBackdrop))
+                onChosen: index => Prefs.taskbarBackdrop = styles[index].name
             }
         }
     }

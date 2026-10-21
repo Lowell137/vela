@@ -169,7 +169,8 @@ void Appearance::reload()
             const QByteArray line = velaConf.readLine().trimmed();
             if (line.startsWith("taskbar-backdrop=")) {
                 const QByteArray value = line.mid(17).trimmed();
-                theme.insert(QStringLiteral("taskbar-backdrop"), value == "yes" || value == "1" ? 1.0 : 0.0);
+                // 1 acrylic (also "yes"), 2 liquid glass, 0 off.
+                theme.insert(QStringLiteral("taskbar-backdrop"), value == "liquid" ? 2.0 : value == "acrylic" || value == "yes" || value == "1" ? 1.0 : 0.0);
             }
         }
     }
