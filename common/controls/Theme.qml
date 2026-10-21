@@ -66,22 +66,15 @@ QtObject {
     // like on Windows 11: semi-transparent over the blurred background.
     // Without it, opaque.
     readonly property bool acrylic: Effects.blurAvailable
-    // blur-style=liquid (vela.conf, Settings): the compositor draws liquid
-    // glass; the shell's glass gets clearer to show it.
-    readonly property bool liquidGlass: acrylic && themed("blur-style", 0) === 2
-    function glass(c) { return liquidGlass ? Qt.rgba(c.r, c.g, c.b, Math.min(c.a, 0.22)) : c }
-    readonly property color taskbar: glass(taskbarTint)
-    readonly property color surface: glass(surfaceTint)
-    readonly property color popup: glass(popupTint)
     readonly property color desktop: "#06182d" // below the wallpaper, its darkest blue
-    readonly property color taskbarTint: themed("taskbar", light
+    readonly property color taskbar: themed("taskbar", light
         ? (acrylic ? Qt.rgba(0.95, 0.95, 0.96, 0.66) : Qt.rgba(0.94, 0.94, 0.95, 0.96))
         : (acrylic ? Qt.rgba(0.11, 0.11, 0.13, 0.62) : Qt.rgba(0.10, 0.10, 0.12, 0.94)))
-    readonly property color surfaceTint: themed("surface", light
+    readonly property color surface: themed("surface", light
         ? (acrylic ? Qt.rgba(0.96, 0.96, 0.97, 0.74) : Qt.rgba(0.95, 0.95, 0.96, 0.98))
         : (acrylic ? Qt.rgba(0.14, 0.14, 0.16, 0.72) : Qt.rgba(0.14, 0.14, 0.16, 0.97)))
     // The shell's menus, surfaces of their own that the compositor blurs.
-    readonly property color popupTint: themed("popup", light
+    readonly property color popup: themed("popup", light
         ? (acrylic ? Qt.rgba(0.98, 0.98, 0.98, 0.82) : "#f9f9f9")
         : (acrylic ? Qt.rgba(0.17, 0.17, 0.19, 0.78) : "#2a2a2f"))
     // Panels over the output (Task View, Snap Assist), and the window cards
@@ -137,15 +130,15 @@ QtObject {
     readonly property bool taskbarFit: themed("taskbar-fit", 0) !== 0 // apps and tray in one centered pill
     readonly property int taskbarSplitGap: themed("taskbar-split-gap", 0) // fit: the tray a pill of its own
     // A floating taskbar under a maximized window: the strip around it blurred
-    // (vela.conf taskbar-backdrop=yes, Settings > Themes), in the blur style.
-    readonly property bool taskbarBackdrop: themed("taskbar-backdrop", 0) !== 0
-    readonly property color taskbarBackdropColor: themed("taskbar-backdrop-color",
-        liquidGlass ? Qt.rgba(1, 1, 1, 0.08) : Qt.rgba(taskbarTint.r, taskbarTint.g, taskbarTint.b, 0.45))
+    // and tinted (vela.conf taskbar-backdrop=acrylic|liquid, Settings > Themes):
+    // 0 off, 1 acrylic (all blur, tinted), 2 liquid glass (clearer, a bright rim).
+    readonly property int taskbarBackdrop: themed("taskbar-backdrop", 0)
+    readonly property color taskbarBackdropColor: themed("taskbar-backdrop-color", Qt.rgba(taskbar.r, taskbar.g, taskbar.b, 0.45))
     readonly property int taskbarSplitRadius: themed("taskbar-split-radius", 5) // the corners where they part
     // A style's own panel tint (startmenu/, notifications/): else the surface's.
-    readonly property color startMenuSurface: glass(themed("startmenu-surface", surface))
-    readonly property color quickSettingsSurface: glass(themed("quicksettings-surface", surface))
-    readonly property color notificationsSurface: glass(themed("notifications-surface", surface))
+    readonly property color startMenuSurface: themed("startmenu-surface", surface)
+    readonly property color quickSettingsSurface: themed("quicksettings-surface", surface)
+    readonly property color notificationsSurface: themed("notifications-surface", surface)
     readonly property int startMenuWidth: themed("startmenu-width", 660)
     readonly property int startMenuHeight: themed("startmenu-height", 732) // at most
     readonly property int startMenuRadius: themed("startmenu-radius", radiusOverlay)

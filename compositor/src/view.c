@@ -875,7 +875,6 @@ void vela_views_load_settings(struct vela_server *server)
     vela_config_read(&settings);
     server->window_blur = vela_config_flag(&settings, "window-blur", false);
     server->window_blur_all = vela_config_flag(&settings, "window-blur-all", false);
-    server->scene->blur_liquid = strcmp(vela_config_get(&settings, "blur-style", "acrylic"), "liquid") == 0;
     free(server->window_blur_include);
     free(server->window_blur_exclude);
     const char *include = vela_config_get(&settings, "window-blur-include", "");

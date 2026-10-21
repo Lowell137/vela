@@ -24,16 +24,6 @@ Page {
             }
         }
         Card {
-            icon: "preferences-desktop-effects"
-            title: qsTr("Blur style")
-            description: qsTr("Acrylic like Windows 11, or liquid glass: clearer, bending the light at the edges")
-            trailing: Choice {
-                model: [qsTr("Acrylic"), qsTr("Liquid Glass")]
-                currentIndex: Prefs.blurStyle === "liquid" ? 1 : 0
-                onChosen: index => Prefs.blurStyle = index === 1 ? "liquid" : "acrylic"
-            }
-        }
-        Card {
             icon: "window"
             title: qsTr("Blur")
             description: Prefs.windowBlurAll

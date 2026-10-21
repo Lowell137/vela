@@ -128,8 +128,6 @@ struct vela_scene {
     // The acrylic tint of blurs (premultiplied sRGB): Windows 11's dark theme
     // one, or the light one when the shell is light.
     struct wlr_render_color acrylic_tint;
-    // blur-style=liquid in vela.conf: liquid glass instead of acrylic.
-    bool blur_liquid;
     // The color filters of all outputs: a 3x3 matrix by rows in linear space,
     // if color_filtered. Applied while drawing.
     bool color_filtered;

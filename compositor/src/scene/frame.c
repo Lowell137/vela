@@ -481,7 +481,7 @@ static void cull_occluded(struct vela_elements *elements)
 
 // Blurred zones read what lies around them: if the damage touches one (within
 // the blur radius) it's redrawn whole, radius included.
-static void expand_damage_for_blur(const struct vela_elements *elements, pixman_region32_t *damage, bool liquid)
+static void expand_damage_for_blur(const struct vela_elements *elements, pixman_region32_t *damage)
 {
     // Several rounds: an enlarged zone can touch another (Start menu over the
     // taskbar).
@@ -492,7 +492,7 @@ static void expand_damage_for_blur(const struct vela_elements *elements, pixman_
             if (!e->visible || wlr_box_empty(&e->blur_box)) {
                 continue;
             }
-            int reach = vela_blur_reach(blur_strength(e->scale_x)) + (liquid ? 32 : 0); // liquid: the lens reads further
+            int reach = vela_blur_reach(blur_strength(e->scale_x));
             const pixman_box32_t zone = { e->blur_box.x - reach, e->blur_box.y - reach,
                 e->blur_box.x + e->blur_box.width + reach, e->blur_box.y + e->blur_box.height + reach };
             pixman_region32_t inside;
@@ -610,8 +610,8 @@ void vela_draw_elements(struct vela_scene *scene, struct vela_pass *pass, const 
                 struct vela_texture_draw panel = draw;
                 panel.clip = NULL;
                 panel.alpha = e->blur_opacity; // the blur as strong as if the window were opaque
-                vela_pass_add_blur(pass, &panel, &region, blur_strength(e->scale_x),
-                    &scene->acrylic_tint, !wlr_box_empty(&e->blur_forced), scene->blur_liquid);
+                vela_pass_add_blur(pass, &panel, &region, blur_strength(e->scale_x), &scene->acrylic_tint,
+                    !wlr_box_empty(&e->blur_forced));
             }
             pixman_region32_fini(&region);
         }
@@ -1215,7 +1215,7 @@ bool vela_output_frame_render(struct vela_output_frame *frame, double lx, double
     //    frame's elements are in frame->last.
     diff_with_last(frame);
     const struct vela_elements *elements = &frame->last;
-    expand_damage_for_blur(elements, &frame->scene_damage, frame->scene->blur_liquid);
+    expand_damage_for_blur(elements, &frame->scene_damage);
     // Diagnostics: VELA_DEBUG_DAMAGE=1 redraws everything on every frame.
     if (vela_env_one("VELA_DEBUG_DAMAGE") && (pixman_region32_not_empty(&frame->scene_damage)
             || pixman_region32_not_empty(&frame->ring.current))) {
@@ -1329,7 +1329,7 @@ bool vela_output_frame_render(struct vela_output_frame *frame, double lx, double
     wlr_damage_ring_rotate_buffer(&frame->ring, buffer, &buffer_damage);
     // Blur dependencies live in upright scene coordinates.
     wlr_region_transform(&buffer_damage, &buffer_damage, transform, buffer->width, buffer->height);
-    expand_damage_for_blur(elements, &buffer_damage, frame->scene->blur_liquid);
+    expand_damage_for_blur(elements, &buffer_damage);
     wlr_region_transform(&buffer_damage, &buffer_damage, to_buffer, width, height);
 
     // The damage ring may contain rectangles outside the output (for example

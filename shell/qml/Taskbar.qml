@@ -348,8 +348,21 @@ Window {
             id: backdrop
             anchors.fill: parent
             visible: opacity > 0
-            opacity: root.floating && Theme.taskbarBackdrop && root.underMaximized ? 1 : 0
-            color: Theme.taskbarBackdropColor
+            opacity: root.floating && Theme.taskbarBackdrop > 0 && root.underMaximized ? 1 : 0
+            readonly property bool liquid: Theme.taskbarBackdrop === 2
+            // Liquid glass: alpha ~0.3 lets part of the sharp background through
+            // the blur (blur_mix.frag), a light sheen on top, a bright rim.
+            gradient: Gradient {
+                GradientStop { position: 0; color: backdrop.liquid ? Qt.rgba(1, 1, 1, Theme.light ? 0.42 : 0.16) : Theme.taskbarBackdropColor }
+                GradientStop { position: 1; color: backdrop.liquid ? Qt.rgba(Theme.taskbar.r, Theme.taskbar.g, Theme.taskbar.b, 0.3) : Theme.taskbarBackdropColor }
+            }
+            Rectangle {
+                visible: backdrop.liquid
+                width: parent.width
+                height: 1
+                y: Config.taskbarTop ? parent.height - 1 : 0
+                color: Qt.rgba(1, 1, 1, Theme.light ? 0.7 : 0.28)
+            }
             Behavior on opacity { NumberAnimation { duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.standard } }
         }
         Rectangle {

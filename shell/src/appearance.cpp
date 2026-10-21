@@ -162,16 +162,15 @@ void Appearance::reload()
             m_watcher.addPath(themeFile);
         }
     }
-    // taskbar-backdrop= and blur-style= of vela.conf (Settings): the user's, over the theme's.
+    // taskbar-backdrop= of vela.conf (Settings > Themes): the user's, over the theme's.
     QFile velaConf(QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + QStringLiteral("/vela/vela.conf"));
     if (velaConf.open(QIODevice::ReadOnly | QIODevice::Text)) {
         while (!velaConf.atEnd()) {
             const QByteArray line = velaConf.readLine().trimmed();
             if (line.startsWith("taskbar-backdrop=")) {
                 const QByteArray value = line.mid(17).trimmed();
-                theme.insert(QStringLiteral("taskbar-backdrop"), value == "no" || value == "0" || value.isEmpty() ? 0.0 : 1.0);
-            } else if (line.startsWith("blur-style=")) {
-                theme.insert(QStringLiteral("blur-style"), line.mid(11).trimmed() == "liquid" ? 2.0 : 1.0);
+                // 1 acrylic (also "yes"), 2 liquid glass, 0 off.
+                theme.insert(QStringLiteral("taskbar-backdrop"), value == "liquid" ? 2.0 : value == "acrylic" || value == "yes" || value == "1" ? 1.0 : 0.0);
             }
         }
     }
