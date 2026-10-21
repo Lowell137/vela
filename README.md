@@ -30,6 +30,16 @@ is designed around physical pixels rather than treated as an afterthought.
 
 </div>
 
+> **This fork: themes and styles.** Windhawk-style looks for the taskbar, the Start menu and
+> the notification center (Settings > Personalization > Themes), WindowGlass and 70 more.
+> They live on the [`topic/themes`](https://github.com/Lowell137/vela/tree/topic/themes) branch.
+> Install it on Arch, CachyOS or EndeavourOS with one command (it builds the package and
+> installs it with pacman, asking for sudo):
+>
+> ```sh
+> sh -c "$(curl -fsSL https://raw.githubusercontent.com/Lowell137/vela/topic/themes/scripts/install-fork.sh)"
+> ```
+
 ---
 
 ## Why Vela
