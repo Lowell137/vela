@@ -327,12 +327,7 @@ void Preferences::reloadCompositor()
     m_iconTheme = value(QStringLiteral("icon-theme"), {});
     emit iconThemeChanged();
     m_visualTheme = value(QStringLiteral("theme"), {});
-    m_taskbarBackdrop = value(QStringLiteral("taskbar-backdrop"), {});
-    if (m_taskbarBackdrop == QLatin1String("yes")) {
-        m_taskbarBackdrop = QStringLiteral("acrylic");
-    } else if (m_taskbarBackdrop != QLatin1String("acrylic") && m_taskbarBackdrop != QLatin1String("liquid")) {
-        m_taskbarBackdrop.clear();
-    }
+    m_taskbarBackdrop = flag(QStringLiteral("taskbar-backdrop"), false);
     for (const char* surface : { "taskbar", "startmenu", "notifications" }) {
         m_surfaceStyles.insert(QLatin1String(surface), value(QLatin1String(surface) + QStringLiteral("-style"), {}));
     }
@@ -576,13 +571,13 @@ void Preferences::setVisualTheme(const QString& theme)
     emit visualThemeChanged();
 }
 
-void Preferences::setTaskbarBackdrop(const QString& style)
+void Preferences::setTaskbarBackdrop(bool on)
 {
-    if (style == m_taskbarBackdrop) {
+    if (on == m_taskbarBackdrop) {
         return;
     }
-    m_taskbarBackdrop = style;
-    saveCompositor({ { QStringLiteral("taskbar-backdrop"), style.isEmpty() ? QStringLiteral("no") : style } });
+    m_taskbarBackdrop = on;
+    saveCompositor({ { QStringLiteral("taskbar-backdrop"), on ? QStringLiteral("yes") : QStringLiteral("no") } });
     emit visualThemeChanged();
 }
 

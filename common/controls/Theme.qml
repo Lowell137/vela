@@ -130,9 +130,8 @@ QtObject {
     readonly property bool taskbarFit: themed("taskbar-fit", 0) !== 0 // apps and tray in one centered pill
     readonly property int taskbarSplitGap: themed("taskbar-split-gap", 0) // fit: the tray a pill of its own
     // A floating taskbar under a maximized window: the strip around it blurred
-    // and tinted (vela.conf taskbar-backdrop=acrylic|liquid, Settings > Themes):
-    // 0 off, 1 acrylic (all blur, tinted), 2 liquid glass (clearer, a bright rim).
-    readonly property int taskbarBackdrop: themed("taskbar-backdrop", 0)
+    // and tinted (vela.conf taskbar-backdrop=yes, Settings > Themes).
+    readonly property bool taskbarBackdrop: themed("taskbar-backdrop", 0) !== 0
     readonly property color taskbarBackdropColor: themed("taskbar-backdrop-color", Qt.rgba(taskbar.r, taskbar.g, taskbar.b, 0.45))
     readonly property int taskbarSplitRadius: themed("taskbar-split-radius", 5) // the corners where they part
     // A style's own panel tint (startmenu/, notifications/): else the surface's.

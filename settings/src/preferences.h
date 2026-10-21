@@ -60,9 +60,8 @@ class Preferences : public QObject {
     // taskbar-style=, startmenu-style=, notifications-style= in vela.conf: a
     // surface's own style (themes/<surface>/), by surface; "" for the theme's.
     Q_PROPERTY(QVariantMap surfaceStyles READ surfaceStyles NOTIFY visualThemeChanged)
-    // taskbar-backdrop= in vela.conf: a floating taskbar's strip blurred under
-    // maximized windows: "" (off), "acrylic", "liquid".
-    Q_PROPERTY(QString taskbarBackdrop READ taskbarBackdrop WRITE setTaskbarBackdrop NOTIFY visualThemeChanged)
+    // taskbar-backdrop= in vela.conf: a floating taskbar's strip blurred under maximized windows.
+    Q_PROPERTY(bool taskbarBackdrop READ taskbarBackdrop WRITE setTaskbarBackdrop NOTIFY visualThemeChanged)
     // cursor-theme= and cursor-size= in vela.conf: a cursor theme's directory
     // name ("": $XCURSOR_THEME) and its size in pixels. The compositor applies
     // them and passes them on to the apps it starts.
@@ -210,8 +209,8 @@ public:
     QString visualTheme() const { return m_visualTheme; }
     void setVisualTheme(const QString& theme);
     QVariantMap surfaceStyles() const { return m_surfaceStyles; }
-    QString taskbarBackdrop() const { return m_taskbarBackdrop; }
-    void setTaskbarBackdrop(const QString& style);
+    bool taskbarBackdrop() const { return m_taskbarBackdrop; }
+    void setTaskbarBackdrop(bool on);
     Q_INVOKABLE void setSurfaceStyle(const QString& surface, const QString& style);
     // The installed themes, or a surface's styles ("taskbar"...): { name, text }.
     Q_INVOKABLE QVariantList visualThemes(const QString& surface = QString()) const;
@@ -455,7 +454,7 @@ private:
     QString m_iconTheme;
     QString m_visualTheme;
     QVariantMap m_surfaceStyles;
-    QString m_taskbarBackdrop;
+    bool m_taskbarBackdrop = false;
     QString m_cursorTheme;
     int m_cursorSize = 24;
     bool m_windowBlur = false;
