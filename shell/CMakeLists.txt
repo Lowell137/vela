@@ -55,6 +55,8 @@ qt_add_executable(vela-shell
     src/velatool.h
     src/systemstatus.cpp
     src/systemstatus.h
+    src/brightness.cpp
+    src/brightness.h
     src/transfermonitor.cpp
     src/transfermonitor.h
     src/taskbarmodel.cpp
@@ -188,6 +190,12 @@ if(VELA_BUILD_TOOLS)
         add_test(NAME shell-transfers COMMAND vela-transfer-monitor-test)
     endif()
 
+    # Run the same ELF/AppImage classification used by desktop and Vela Files.
+    qt_add_executable(vela-executable-file-test tests/executablefile.cpp ${PROJECT_SOURCE_DIR}/common/executablefile.h)
+    target_compile_options(vela-executable-file-test PRIVATE -Wall -Wextra)
+    target_link_libraries(vela-executable-file-test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME shell-executable-file COMMAND vela-executable-file-test)
+
     qt_add_executable(vela-desktopexec-test tests/desktopexec.cpp src/desktopexec.h)
     target_include_directories(vela-desktopexec-test PRIVATE src)
     target_compile_options(vela-desktopexec-test PRIVATE -Wall -Wextra)
@@ -259,6 +267,15 @@ if(VELA_BUILD_TOOLS)
     target_link_libraries(vela-requested-switches-test PRIVATE Qt6::Core Qt6::DBus Qt6::Test)
     add_test(NAME shell-requested-switches COMMAND vela-requested-switches-test)
     set_tests_properties(shell-requested-switches PROPERTIES TIMEOUT 60)
+
+    # The brightness model against a fake compositor socket (docs/brightness.md §9).
+    find_package(Qt6 6.5 REQUIRED COMPONENTS Network)
+    qt_add_executable(vela-brightness-model-test tests/brightness_model.cpp src/brightness.cpp src/brightness.h)
+    target_include_directories(vela-brightness-model-test PRIVATE src)
+    target_compile_options(vela-brightness-model-test PRIVATE -Wall -Wextra)
+    target_link_libraries(vela-brightness-model-test PRIVATE Qt6::Core Qt6::Network Qt6::Test)
+    add_test(NAME shell-brightness-model COMMAND vela-brightness-model-test)
+    set_tests_properties(shell-brightness-model PROPERTIES TIMEOUT 60)
 
     qt_add_executable(vela-primary-output-test tests/primaryoutput.cpp ${PROJECT_SOURCE_DIR}/common/primaryoutput.h)
     target_compile_options(vela-primary-output-test PRIVATE -Wall -Wextra)

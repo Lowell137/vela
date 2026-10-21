@@ -113,6 +113,8 @@ endforeach()
 # The modules without wlroots or a GPU (pure logic, covered by the tests):
 # shared by the compositor and the tests.
 add_library(vela-pure STATIC
+    src/backlight_choice.c
+    src/brightness_model.c
     src/buffer.c
     src/color.c
     src/config.c
@@ -140,6 +142,7 @@ add_executable(vela-compositor
     src/a11y.c
     src/error_screen.c
     src/bindings.c
+    src/brightness.c
     src/command.c
     src/decoration.c
     src/focus.c
@@ -225,6 +228,16 @@ install(TARGETS vela-compositor RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 # sharpness geometry, color, sun, settings. They need GoogleTest (the gtest
 # package) and the test tools enabled.
 if(VELA_BUILD_TOOLS)
+    # GPU-free policy test: verifies that the cursor-specific flags cannot
+    # leak into ordinary output/capture allocations.
+    add_executable(vela-cursor-policy-test tests/cursor_policy_test.c)
+    target_include_directories(vela-cursor-policy-test PRIVATE src)
+    target_compile_definitions(vela-cursor-policy-test PRIVATE WLR_USE_UNSTABLE)
+    target_link_libraries(vela-cursor-policy-test PRIVATE PkgConfig::GBM PkgConfig::LIBDRM PkgConfig::WLROOTS)
+    target_compile_options(vela-cursor-policy-test PRIVATE -Wall -Wextra -Werror)
+    set_target_properties(vela-cursor-policy-test PROPERTIES C_STANDARD 17 C_STANDARD_REQUIRED ON)
+    add_test(NAME compositor.cursor-policy COMMAND vela-cursor-policy-test)
+
     # Exercise the actual display protocol and watchdog without Vulkan/DRM.
     add_executable(vela-display-test-server
         ${PROJECT_SOURCE_DIR}/settings/tests/display_server.c
@@ -308,6 +321,8 @@ if(VELA_BUILD_TOOLS)
     find_package(GTest)
     if(GTest_FOUND)
         add_executable(vela-compositor-tests
+            tests/backlight_choice_test.cpp
+            tests/brightness_model_test.cpp
             tests/frame_clock_test.cpp
             tests/motion_test.cpp
             tests/geometry_test.cpp

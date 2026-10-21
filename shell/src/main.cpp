@@ -11,6 +11,7 @@
 #include "appmodel.h"
 #include "audio.h"
 #include "audioapps.h"
+#include "brightness.h"
 #include "clipboard.h"
 #include "config.h"
 #include "controls.h"
@@ -319,7 +320,9 @@ int main(int argc, char* argv[])
     tray.start();
     SystemActions system;
     system.setAppModel(&apps);
+    // Use the QML caller's output; keyboard focus can change when a menu closes.
     QObject::connect(&system, &SystemActions::chooseAppRequested, &shell, &ShellController::openWithRequested);
+    QObject::connect(&system, &SystemActions::chooseAppOnScreenRequested, &shell, &ShellController::openWithOnScreenRequested);
     QObject::connect(&shell, &ShellController::settingsRequested, &system, [&system] { system.trigger(QStringLiteral("settings")); });
     QObject::connect(&shell, &ShellController::filesRequested, &system, [&system] { system.trigger(QStringLiteral("files")); });
     JumpLists jumps(&apps);
@@ -329,6 +332,7 @@ int main(int argc, char* argv[])
     QObject::connect(&shell, &ShellController::desktopTransferReadyReceived,
         &desktop, &DesktopModel::acknowledgeTransferStart);
     QObject::connect(&desktop, &DesktopModel::chooseAppRequested, &shell, &ShellController::openWithRequested);
+    QObject::connect(&desktop, &DesktopModel::chooseAppOnScreenRequested, &shell, &ShellController::openWithOnScreenRequested);
     desktopModel = &desktop;
     ServiceMenus serviceMenus;
     FileProperties properties;
@@ -339,6 +343,7 @@ int main(int argc, char* argv[])
     QObject::connect(&config, &Config::clipboardChanged, &clipboard,
         [&config, &clipboard] { clipboard.setEnabled(config.clipboardHistory()); });
     SystemStatus status;
+    Brightness brightness; // every output's, the compositor's (docs/brightness.md §9)
     // The sound (docs/audio.md): apps named after their .desktop file.
     vela::audio::Audio audio;
     audio.setAppResolver(audioAppResolver(apps));
@@ -402,6 +407,7 @@ int main(int argc, char* argv[])
     engine.rootContext()->setContextProperty(QStringLiteral("Clip"), &clipboard);
     engine.rootContext()->setContextProperty(QStringLiteral("Snip"), &snip);
     engine.rootContext()->setContextProperty(QStringLiteral("Status"), &status);
+    engine.rootContext()->setContextProperty(QStringLiteral("Brightness"), &brightness);
     engine.rootContext()->setContextProperty(QStringLiteral("Audio"), &audio);
     engine.rootContext()->setContextProperty(QStringLiteral("Sound"), &sound);
     // The apps' level bars in the quick settings mixer (docs/audio.md §7.1).

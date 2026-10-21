@@ -2,10 +2,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "fileops.h"
+#include "../../common/executablefile.h"
 
 #include "appmodel.h"
 #include "foldermodel.h"
 #include "links.h"
+#include "peek.h"
 #include "systemactions.h"
 #include "transferlocks.h"
 
@@ -31,7 +33,9 @@
 #include <QPointer>
 #include <QProcess>
 #include <QSettings>
+#include <QScreen>
 #include <QStandardPaths>
+#include <QWindow>
 #include <QThreadPool>
 #include <QStorageInfo>
 #include <QAbstractListModel>
@@ -805,22 +809,6 @@ void FileOps::startTransfer(const Transfer& transfer, const QString& policy)
 
 // ------------------------------------------------------------ opening --
 
-namespace {
-
-// A Linux program (ELF, AppImages included), not a library: it starts with a
-// double click, like an .exe on Windows. Scripts stay documents: they open
-// with the app for their type.
-bool isProgram(const QFileInfo& info)
-{
-    if (!info.isFile() || info.fileName().contains(QLatin1String(".so"))) {
-        return false;
-    }
-    QFile file(info.absoluteFilePath());
-    return file.open(QIODevice::ReadOnly) && file.read(4) == QByteArray("\x7f" "ELF", 4);
-}
-
-} // namespace
-
 void FileOps::open(const QStringList& paths)
 {
     static const QMimeDatabase mimes;
@@ -829,7 +817,7 @@ void FileOps::open(const QStringList& paths)
         if (path.endsWith(QLatin1String(".desktop")) && m_apps->launchDesktopFile(path)) {
             continue;
         }
-        if (isProgram(info)) {
+        if (vela::files::isProgram(info)) {
             if (!info.isExecutable()) {
                 emit failed(QCoreApplication::translate("Files", "“%1” is a program, but it can't be run. In Properties, turn on “Allow executing as a program”.")
                                 .arg(info.fileName()));
@@ -1262,24 +1250,58 @@ void FileOps::undo()
     }
 }
 
+static void sendShellFileDialog(const QByteArray& action, const QStringList& paths)
+{
+    // Capture before the IPC round trip: another Explorer window might gain
+    // focus while an older shell is being probed.
+    QString sourceScreen;
+    if (QWindow* window = QGuiApplication::focusWindow()) {
+        if (QScreen* screen = window->screen()) sourceScreen = screen->name();
+    }
+    const QString runtimeDir = QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation);
+    const QString display = qEnvironmentVariable("WAYLAND_DISPLAY", QStringLiteral("wayland-0"));
+    QLocalSocket socket;
+    socket.connectToServer(runtimeDir + QStringLiteral("/vela-shell-") + display + QStringLiteral(".sock"));
+    if (!socket.waitForConnected(300)) return;
+
+    // A running shell may predate the screen-aware JSON format. Old shells
+    // silently accept ping but give no reply; new shells answer "2".
+    socket.write("ping\n");
+    if (!socket.waitForBytesWritten(300)) return;
+    if (!socket.canReadLine()) socket.waitForReadyRead(300);
+    const bool screenAware = socket.canReadLine() && socket.readLine().trimmed() == "2";
+
+    QByteArray payload;
+    if (screenAware) {
+        QJsonObject request;
+        request.insert(QStringLiteral("paths"), QJsonArray::fromStringList(paths));
+        if (!sourceScreen.isEmpty()) request.insert(QStringLiteral("screen"), sourceScreen);
+        payload = QJsonDocument(request).toJson(QJsonDocument::Compact);
+    } else {
+        payload = QJsonDocument(QJsonArray::fromStringList(paths)).toJson(QJsonDocument::Compact);
+    }
+    socket.write(action + ' ' + payload + '\n');
+    socket.waitForBytesWritten(300);
+}
+
 void FileOps::showProperties(const QStringList& paths)
 {
-    sendToShell("properties " + QJsonDocument(QJsonArray::fromStringList(paths)).toJson(QJsonDocument::Compact));
+    sendShellFileDialog("properties", paths);
 }
 
 void FileOps::share(const QStringList& paths)
 {
-    sendToShell("share " + QJsonDocument(QJsonArray::fromStringList(paths)).toJson(QJsonDocument::Compact));
+    sendShellFileDialog("share", paths);
 }
 
 void FileOps::chooseApp(const QString& path)
 {
-    sendToShell("open-with " + QJsonDocument(QJsonArray::fromStringList({ path })).toJson(QJsonDocument::Compact));
+    sendShellFileDialog("open-with", { path });
 }
 
 void FileOps::newShortcut(const QString& directory)
 {
-    sendToShell("new-shortcut " + QJsonDocument(QJsonArray::fromStringList({ directory })).toJson(QJsonDocument::Compact));
+    sendShellFileDialog("new-shortcut", { directory });
 }
 
 // ---------------------------------------------------------- shortcuts --
@@ -1371,12 +1393,15 @@ QVariantMap FileOps::details(const QString& path) const
     } else {
         out[QStringLiteral("size")] = double(info.size());
         out[QStringLiteral("sizeText")] = ::formatSize(info.size());
-        QImageReader reader(path);
-        if (reader.canRead()) {
-            const QSize size = reader.size();
-            if (size.isValid()) {
-                out[QStringLiteral("width")] = size.width();
-                out[QStringLiteral("height")] = size.height();
+        // Only regular files are read: opening a FIFO with no writer blocks.
+        if (info.isFile()) {
+            QImageReader reader(path);
+            if (reader.canRead()) {
+                const QSize size = reader.size();
+                if (size.isValid()) {
+                    out[QStringLiteral("width")] = size.width();
+                    out[QStringLiteral("height")] = size.height();
+                }
             }
         }
     }
@@ -1411,6 +1436,72 @@ QString FileOps::previewText(const QString& path) const
 bool FileOps::isImage(const QString& path) const
 {
     return QImageReader(path).canRead();
+}
+
+bool FileOps::pdfSupported() const
+{
+#ifdef VELA_FILES_PDF
+    return true;
+#else
+    return false;
+#endif
+}
+
+bool FileOps::mediaSupported() const
+{
+#ifdef VELA_FILES_MEDIA
+    return true;
+#else
+    return false;
+#endif
+}
+
+void FileOps::peek(const QString& path)
+{
+    QPointer<FileOps> self(this);
+    QThreadPool::globalInstance()->start([self, path] {
+        if (!self) {
+            return;
+        }
+        QVariantMap out = self->details(path);
+        const bool isDir = out.value(QStringLiteral("isDir")).toBool();
+        // A FIFO, socket or device is never opened: it could block this thread for good.
+        const bool regular = QFileInfo(path).isFile();
+        QString kind = peek::classify(out.value(QStringLiteral("mime")).toString(), isDir,
+            regular && QImageReader(path).canRead(), self->pdfSupported(), self->mediaSupported());
+        if (!isDir && !regular) {
+            kind = QStringLiteral("other");
+        } else if (kind == QLatin1String("other")) {
+            QFile file(path);
+            if (file.open(QIODevice::ReadOnly) && peek::looksLikeText(file.read(peek::sniffBytes))) {
+                kind = QStringLiteral("text");
+            }
+        }
+        out[QStringLiteral("kind")] = kind;
+        if (kind == QLatin1String("folder")) {
+            // A bounded walk: a huge tree must not hold the preview.
+            qint64 total = 0;
+            int seen = 0;
+            QDirIterator it(path, QDir::Files | QDir::Hidden | QDir::NoSymLinks, QDirIterator::Subdirectories);
+            while (it.hasNext() && seen < 20000) {
+                it.next();
+                total += it.fileInfo().size();
+                ++seen;
+            }
+            out[QStringLiteral("sizeText")] = (it.hasNext() ? QStringLiteral("> ") : QString()) + ::formatSize(total);
+        } else if (kind == QLatin1String("text")) {
+            QFile file(path);
+            if (file.open(QIODevice::ReadOnly)) {
+                bool cut = false;
+                const QString text = peek::truncateText(file.read(peek::maxTextBytes), file.size(), peek::maxTextBytes, &cut);
+                out[QStringLiteral("text")] = text.isEmpty() ? QStringLiteral(" ") : text;
+                out[QStringLiteral("truncated")] = cut;
+            }
+        }
+        if (self) {
+            QMetaObject::invokeMethod(self, [self, path, out] { if (self) emit self->peekReady(path, out); }, Qt::QueuedConnection);
+        }
+    });
 }
 
 // ------------------------------------------------------------- misc --
