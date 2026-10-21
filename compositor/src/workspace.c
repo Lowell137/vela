@@ -150,7 +150,7 @@ void vela_workspaces_json(struct vela_server *server, struct vela_buffer *out)
 {
     // {"current":0,"names":["Desktop 1"],"windows":{"<ext id>":0 (-1:
     // all)},"stickyApps":[...],"snapGroups":[...],"captureHidden":[...],
-    // "rects":[...]}
+    // "rects":[{id, x, y, w, h, maximized, output}]}
     const struct vela_workspaces *ws = server->workspaces;
     vela_buffer_appendf(out, "{\"current\":%d,\"names\":[", ws->current);
     for (int i = 0; i < ws->count; ++i) {
@@ -239,8 +239,12 @@ void vela_workspaces_json(struct vela_server *server, struct vela_buffer *out)
         struct wlr_box frame = vela_view_frame_box(view);
         vela_buffer_append(out, first ? "{\"id\":" : ",{\"id\":");
         vela_buffer_append_json(out, view_id(view));
-        vela_buffer_appendf(out, ",\"x\":%d,\"y\":%d,\"w\":%d,\"h\":%d}", frame.x, frame.y, frame.width,
-            frame.height);
+        // maximized and output: the taskbar's backdrop (taskbar-backdrop).
+        struct vela_output *output = vela_view_output(view);
+        vela_buffer_appendf(out, ",\"x\":%d,\"y\":%d,\"w\":%d,\"h\":%d,\"maximized\":%s,\"output\":", frame.x,
+            frame.y, frame.width, frame.height, view->maximized ? "true" : "false");
+        vela_buffer_append_json(out, output ? output->wlr->name : "");
+        vela_buffer_append(out, "}");
         first = false;
     }
     vela_buffer_append(out, "]}");

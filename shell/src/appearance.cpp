@@ -162,6 +162,17 @@ void Appearance::reload()
             m_watcher.addPath(themeFile);
         }
     }
+    // taskbar-backdrop= of vela.conf (Settings > Themes): the user's, over the theme's.
+    QFile velaConf(QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + QStringLiteral("/vela/vela.conf"));
+    if (velaConf.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        while (!velaConf.atEnd()) {
+            const QByteArray line = velaConf.readLine().trimmed();
+            if (line.startsWith("taskbar-backdrop=")) {
+                const QByteArray value = line.mid(17).trimmed();
+                theme.insert(QStringLiteral("taskbar-backdrop"), value == "yes" || value == "1" ? 1.0 : 0.0);
+            }
+        }
+    }
     if (light == m_light && accent == m_accent && mica == m_mica && micaInactive == m_micaInactive
         && iconTheme == m_iconTheme && theme == m_theme) {
         return;

@@ -976,6 +976,7 @@ void vela_view_set_maximized(struct vela_view *view, bool on, bool animate)
         view->maximized = true;
         apply_maximized(view);
         vela_view_refresh_decoration(view); // the button becomes "restore"
+        vela_workspaces_announce(view->server); // the taskbar's backdrop
         return;
     }
 
@@ -989,6 +990,7 @@ void vela_view_set_maximized(struct vela_view *view, bool on, bool animate)
     }
     restore(view);
     vela_view_refresh_decoration(view);
+    vela_workspaces_announce(view->server);
 }
 
 void vela_view_set_fullscreen(struct vela_view *view, bool on)
@@ -1074,6 +1076,7 @@ void vela_view_set_minimized(struct vela_view *view, bool on)
     if (view->handle) {
         wlr_foreign_toplevel_handle_v1_set_minimized(view->handle, on);
     }
+    vela_workspaces_announce(server); // rects leave minimized windows out
     if (!on) {
         // The real window shows again at the end of the flight
         // (finish_restore); meanwhile it already gets the keyboard.

@@ -34,6 +34,16 @@ Window {
     readonly property bool fit: floating && Theme.taskbarFit && !vertical
     readonly property real trayGroupWidth: overflowButton.width + (tray.visible ? tray.width + 4 : 0)
         + screenShare.width + microphone.width + systemIcons.width + 2 + clock.width
+    readonly property bool underMaximized: {
+        const name = root.screen ? root.screen.name : ""
+        for (const r of Desktops.rects) {
+            const desktop = Desktops.windows[r.id]
+            if (r.maximized && r.output === name && (desktop === undefined || desktop === -1 || desktop === Desktops.current)) {
+                return true
+            }
+        }
+        return false
+    }
     readonly property real fitGap: 8 + Theme.taskbarSplitGap
     width: vertical ? Theme.taskbarHeight : 1280
     height: vertical ? 720 : barHeight
@@ -332,6 +342,15 @@ Window {
         anchors.fill: parent
         color: root.islands || root.dock || root.floating ? "transparent" : Theme.taskbar
 
+        // taskbar-backdrop: under a maximized window on this screen and desktop
+        // the strip around the pill is blurred too (the blur follows its alpha).
+        Rectangle {
+            anchors.fill: parent
+            visible: opacity > 0
+            opacity: root.floating && Theme.taskbarBackdrop && root.underMaximized ? 1 : 0
+            color: Theme.taskbarBackdropColor
+            Behavior on opacity { NumberAnimation { duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.standard } }
+        }
         Rectangle {
             id: floatingSurface
             readonly property bool split: root.fit && Theme.taskbarSplitGap > 0

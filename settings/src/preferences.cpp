@@ -327,6 +327,7 @@ void Preferences::reloadCompositor()
     m_iconTheme = value(QStringLiteral("icon-theme"), {});
     emit iconThemeChanged();
     m_visualTheme = value(QStringLiteral("theme"), {});
+    m_taskbarBackdrop = flag(QStringLiteral("taskbar-backdrop"), false);
     for (const char* surface : { "taskbar", "startmenu", "notifications" }) {
         m_surfaceStyles.insert(QLatin1String(surface), value(QLatin1String(surface) + QStringLiteral("-style"), {}));
     }
@@ -567,6 +568,16 @@ void Preferences::setVisualTheme(const QString& theme)
     m_visualTheme = theme;
     // Shell and apps (Appearance watches vela.conf).
     saveCompositor({ { QStringLiteral("theme"), theme.isEmpty() ? QString() : theme } });
+    emit visualThemeChanged();
+}
+
+void Preferences::setTaskbarBackdrop(bool on)
+{
+    if (on == m_taskbarBackdrop) {
+        return;
+    }
+    m_taskbarBackdrop = on;
+    saveCompositor({ { QStringLiteral("taskbar-backdrop"), on ? QStringLiteral("yes") : QStringLiteral("no") } });
     emit visualThemeChanged();
 }
 
