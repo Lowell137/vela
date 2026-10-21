@@ -130,8 +130,9 @@ void vela_output_arrange_layers(struct vela_output *output);
 void vela_output_schedule_frame(struct vela_output *output);
 
 // The vela.conf choices that apply to all outputs: "variable-refresh" (no,
-// games, always; VELA_VRR=0/1 wins) and "tearing" (VELA_TEARING=0 turns it
-// off). Then a frame, to apply them.
+// games, always; VELA_VRR=0/1 wins), "tearing" (VELA_TEARING=0 wins), and
+// "direct-scanout" (auto/no; VELA_SCANOUT=0 wins). Then schedule a frame
+// to apply them.
 void vela_output_load_settings(struct vela_server *server);
 
 // Applies a mode or scale change, with the first frame already drawn at the

@@ -406,7 +406,9 @@ void Preferences::reloadCompositor()
     m_nightTo = value(QStringLiteral("night-light-to"), QStringLiteral("07:00"));
     m_tearing = flag(QStringLiteral("tearing"), true);
     m_vrr = value(QStringLiteral("variable-refresh"), QStringLiteral("games"));
-    m_directScanout = value(QStringLiteral("direct-scanout"), QStringLiteral("auto"));
+    // "yes" is a compatibility alias for "auto"; there is no force-on mode.
+    const QString scanoutMode = value(QStringLiteral("direct-scanout"), QStringLiteral("auto"));
+    m_directScanout = scanoutMode == QLatin1String("no") ? QStringLiteral("no") : QStringLiteral("auto");
     m_colorFilter = flag(QStringLiteral("color-filters"), false);
     m_colorFilterKind = value(QStringLiteral("color-filter"), QStringLiteral("grayscale"));
     m_colorFilterShortcut = flag(QStringLiteral("color-filters-shortcut"), false);
@@ -467,6 +469,12 @@ void Preferences::queryCompositor()
     m_hasTouchpad = state[QStringLiteral("touchpad")].toBool();
     m_sunset = state[QStringLiteral("sunset")].toString();
     m_sunrise = state[QStringLiteral("sunrise")].toString();
+    // Settings may not inherit the compositor's environment (VELA_SCANOUT=0
+    // is a session-level override).
+    const QJsonObject policy = QJsonDocument::fromJson(askCompositor("scanout-policy")).object();
+    if (!policy.isEmpty()) {
+        m_scanoutOverridden = policy[QStringLiteral("envDisabled")].toBool();
+    }
 }
 
 void Preferences::setShell(const QString& key, const QVariant& value)
@@ -1566,7 +1574,7 @@ void Preferences::setVrr(const QString& mode)
 
 void Preferences::setDirectScanout(const QString& mode)
 {
-    if (mode != m_directScanout) {
+    if ((mode == QLatin1String("auto") || mode == QLatin1String("no")) && mode != m_directScanout) {
         m_directScanout = mode;
         saveCompositor({ { QStringLiteral("direct-scanout"), mode } });
         emit accessibilityChanged();

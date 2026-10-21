@@ -53,7 +53,7 @@ Vela Settings preserves unrelated lines when it updates a key and asks the compo
 | `magnifier-step` | `100` | Magnifier step in percent. |
 | `sticky-keys` | `no` | Sticky modifier keys. |
 | `tearing` | `yes` | Allow fullscreen apps that explicitly request tearing. |
-| `direct-scanout` | `auto` | `auto` or `yes`: a fullscreen app's buffer goes straight to the screen when the output allows it. `no`: always composite; use it if a game shows a black screen or garbage with the hardware cursor active. Applied by `reload-config`; `VELA_SCANOUT=0` takes precedence. Settings > Display > Gaming. |
+| `direct-scanout` | `auto` | `auto` (`yes` is a compatibility alias): a fullscreen app's buffer goes straight to the screen when the output allows it. `no`: always composite; use it if a game shows a black screen or garbage with the hardware cursor active. Disabling scanout also disables asynchronous tearing (`tearing=yes` only takes effect on the scanout path), and may increase game latency. Applied by `reload-config`; `VELA_SCANOUT=0` takes precedence. Settings > Display > Gaming. |
 | `variable-refresh` | `games` | VRR policy: `no`, `games` or `always`. |
 | `mouse-speed` | `10` | Pointer speed, 1–20. |
 | `mouse-precision` | `yes` | Pointer acceleration / enhanced precision. |
