@@ -30,6 +30,15 @@ is designed around physical pixels rather than treated as an afterthought.
 
 </div>
 
+> **This fork: themes and styles.** Windhawk-style looks for the taskbar, the Start menu and
+> the notification center (Settings > Personalization > Themes), WindowGlass and 70 more.
+> Install it on Arch, CachyOS or EndeavourOS with one command (it builds the package and
+> installs it with pacman, asking for sudo):
+>
+> ```sh
+> sh -c "$(curl -fsSL https://raw.githubusercontent.com/Lowell137/vela/topic/themes/scripts/install-fork.sh)"
+> ```
+
 ---
 
 ## Why Vela
@@ -285,12 +294,6 @@ Vela needs a GPU with **Vulkan 1.4**: AMD or Intel with Mesa ≥ 25.0, or NVIDIA
 sudo pacman -S --needed git curl base-devel cosign
 git clone https://github.com/vela-desktop/vela.git
 sh vela/packaging/vela-update
-```
-
-This fork (with the taskbar, Start menu and notification styles), in one command:
-
-```sh
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/Lowell137/vela/topic/themes/scripts/install-fork.sh)"
 ```
 
 ### Fedora 44
