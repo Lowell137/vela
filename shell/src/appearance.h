@@ -53,6 +53,7 @@ private:
     Mode m_mode;
     QFileSystemWatcher m_watcher;
     QTimer m_debounce;
+    QTimer m_themeSchedule; // the shell's minute tick: --apply-theme-schedule
     bool m_watching = false;
     bool m_light = false;
     QColor m_accent;

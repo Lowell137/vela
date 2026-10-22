@@ -329,6 +329,10 @@ void Preferences::reloadCompositor()
     m_visualTheme = value(QStringLiteral("theme"), {});
     m_taskbarBackdrop = flag(QStringLiteral("taskbar-backdrop"), false);
     m_sliderPressZoom = flag(QStringLiteral("quicksettings-slider-press-zoom"), true);
+    m_themeSchedule = flag(QStringLiteral("theme-schedule"), false);
+    m_themeLightFrom = value(QStringLiteral("theme-light-from"), QStringLiteral("07:00"));
+    m_themeDarkFrom = value(QStringLiteral("theme-dark-from"), QStringLiteral("19:00"));
+    emit themeScheduleChanged();
     for (const char* surface : { "taskbar", "startmenu", "notifications" }) {
         m_surfaceStyles.insert(QLatin1String(surface), value(QLatin1String(surface) + QStringLiteral("-style"), {}));
     }
@@ -590,6 +594,68 @@ void Preferences::setSliderPressZoom(bool on)
     m_sliderPressZoom = on;
     saveCompositor({ { QStringLiteral("quicksettings-slider-press-zoom"), on ? QStringLiteral("yes") : QStringLiteral("no") } });
     emit visualThemeChanged();
+}
+
+void Preferences::resetAppearance()
+{
+    setVisualTheme({});
+    for (const char* surface : { "taskbar", "startmenu", "notifications" }) {
+        setSurfaceStyle(QLatin1String(surface), {});
+    }
+    setAccent(vela::defaults::accent());
+    setTaskbarBackdrop(false);
+    setSliderPressZoom(true);
+    setThemeSchedule(false);
+}
+
+void Preferences::setThemeSchedule(bool on)
+{
+    if (on == m_themeSchedule) {
+        return;
+    }
+    m_themeSchedule = on;
+    saveCompositor({ { QStringLiteral("theme-schedule"), on ? QStringLiteral("yes") : QStringLiteral("no") } });
+    emit themeScheduleChanged();
+    if (on) {
+        applyThemeSchedule(); // now, not at the shell's next tick
+    }
+}
+
+void Preferences::setThemeLightFrom(const QString& time)
+{
+    if (time == m_themeLightFrom || !QTime::fromString(time, QStringLiteral("HH:mm")).isValid()) {
+        return;
+    }
+    m_themeLightFrom = time;
+    saveCompositor({ { QStringLiteral("theme-light-from"), time } });
+    emit themeScheduleChanged();
+    applyThemeSchedule();
+}
+
+void Preferences::setThemeDarkFrom(const QString& time)
+{
+    if (time == m_themeDarkFrom || !QTime::fromString(time, QStringLiteral("HH:mm")).isValid()) {
+        return;
+    }
+    m_themeDarkFrom = time;
+    saveCompositor({ { QStringLiteral("theme-dark-from"), time } });
+    emit themeScheduleChanged();
+    applyThemeSchedule();
+}
+
+void Preferences::applyThemeSchedule()
+{
+    if (!m_themeSchedule) {
+        return;
+    }
+    const QTime light = QTime::fromString(m_themeLightFrom, QStringLiteral("HH:mm"));
+    const QTime dark = QTime::fromString(m_themeDarkFrom, QStringLiteral("HH:mm"));
+    const QTime now = QTime::currentTime();
+    // Light from `light` until `dark`, across midnight when dark is earlier.
+    const bool day = light <= dark ? (now >= light && now < dark) : (now >= light || now < dark);
+    const QString mode = day ? QStringLiteral("light") : QStringLiteral("dark");
+    setAppTheme(mode);
+    setShellTheme(mode);
 }
 
 void Preferences::setSurfaceStyle(const QString& surface, const QString& style)

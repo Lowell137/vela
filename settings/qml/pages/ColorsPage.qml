@@ -18,6 +18,8 @@ Page {
         "#107c10", "#767676", "#4c4a48", "#69797e", "#4a5459", "#647c64", "#525e54", "#847545"
     ]
 
+    readonly property var hours: Array.from({ length: 24 }, (_, hour) => (hour < 10 ? "0" : "") + hour + ":00")
+
     PersonalizationPage.DesktopPreview {}
 
     CardGroup {
@@ -58,6 +60,35 @@ Page {
                 model: [qsTr("Light"), qsTr("Dark")]
                 currentIndex: Prefs.appTheme === "light" ? 0 : 1
                 onChosen: index => Prefs.appTheme = index === 0 ? "light" : "dark"
+            }
+        }
+        Card {
+            icon: "weather-clear-night"
+            title: qsTr("Light by day, dark by night")
+            description: qsTr("Switch the mode by itself at these hours")
+            trailing: Toggle {
+                checked: Prefs.themeSchedule
+                onToggled: on => Prefs.themeSchedule = on
+            }
+        }
+        Card {
+            visible: Prefs.themeSchedule
+            icon: "weather-clear"
+            title: qsTr("Light from")
+            trailing: Choice {
+                model: page.hours
+                currentIndex: Math.max(0, page.hours.indexOf(Prefs.themeLightFrom))
+                onChosen: index => Prefs.themeLightFrom = page.hours[index]
+            }
+        }
+        Card {
+            visible: Prefs.themeSchedule
+            icon: "weather-clear-night"
+            title: qsTr("Dark from")
+            trailing: Choice {
+                model: page.hours
+                currentIndex: Math.max(0, page.hours.indexOf(Prefs.themeDarkFrom))
+                onChosen: index => Prefs.themeDarkFrom = page.hours[index]
             }
         }
         Card {

@@ -11,7 +11,10 @@ import Vela.Controls
 Page {
     id: page
 
-    Component.onCompleted: Updates.checkIfDue()
+    Component.onCompleted: {
+        Updates.checkIfDue()
+        Updates.checkFlatpak()
+    }
 
     readonly property string status: {
         if (Updates.status === "checking") {
@@ -167,6 +170,31 @@ Page {
                     const month = day.getMonth() + 1
                     Updates.pausedUntil = day.getFullYear() + "-" + (month < 10 ? "0" : "") + month + "-"
                         + (day.getDate() < 10 ? "0" : "") + day.getDate()
+                }
+            }
+        }
+    }
+
+    CardGroup {
+        visible: Updates.flatpakInstalled
+        Card {
+            icon: "flatpak-discover"
+            title: qsTr("Flatpak apps")
+            description: Updates.flatpakChecking ? qsTr("Checking...")
+                : Updates.flatpakUpdates.length === 0 ? qsTr("Your Flatpak apps are up to date")
+                : qsTr("%n update(s): %1", "", Updates.flatpakUpdates.length).arg(Updates.flatpakUpdates.slice(0, 4).join(", "))
+            trailing: Row {
+                spacing: 8
+                Button {
+                    text: qsTr("Check")
+                    usable: !Updates.flatpakChecking
+                    onClicked: Updates.checkFlatpak()
+                }
+                Button {
+                    visible: Updates.flatpakUpdates.length > 0
+                    accent: true
+                    text: qsTr("Update")
+                    onClicked: Updates.updateFlatpak()
                 }
             }
         }

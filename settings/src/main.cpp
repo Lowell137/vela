@@ -147,7 +147,15 @@ int main(int argc, char* argv[])
                        "default-apps, time-language, datetime, keyboard, night-light, accessibility."),
         QStringLiteral("name"));
     parser.addOption(pageOption);
+    const QCommandLineOption scheduleOption(QStringLiteral("apply-theme-schedule"),
+        QStringLiteral("Set the light or dark mode the schedule (Personalization > Colors) says for now, and exit."));
+    parser.addOption(scheduleOption);
     parser.process(app);
+    if (parser.isSet(scheduleOption)) {
+        Preferences preferences;
+        preferences.applyThemeSchedule();
+        return 0;
+    }
     const QString page = parser.value(pageOption);
 
     if (forwardToRunningInstance(page)) {

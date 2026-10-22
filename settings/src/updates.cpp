@@ -333,6 +333,44 @@ void Updates::install()
     setStatus(QStringLiteral("updating"), tr("The update runs in a terminal."));
 }
 
+bool Updates::flatpakInstalled() const
+{
+    return !QStandardPaths::findExecutable(QStringLiteral("flatpak")).isEmpty();
+}
+
+void Updates::checkFlatpak()
+{
+    if (m_flatpakProcess || !flatpakInstalled()) {
+        return;
+    }
+    m_flatpakProcess = new QProcess(this);
+    connect(m_flatpakProcess, &QProcess::finished, this, [this](int code, QProcess::ExitStatus) {
+        m_flatpakUpdates.clear();
+        if (code == 0) {
+            const QStringList lines = QString::fromUtf8(m_flatpakProcess->readAllStandardOutput()).split(u'\n', Qt::SkipEmptyParts);
+            for (const QString& line : lines) {
+                m_flatpakUpdates << line.trimmed();
+            }
+        }
+        m_flatpakProcess->deleteLater();
+        m_flatpakProcess = nullptr;
+        emit flatpakChanged();
+    });
+    m_flatpakProcess->start(QStringLiteral("flatpak"),
+        { QStringLiteral("remote-ls"), QStringLiteral("--updates"), QStringLiteral("--columns=name") });
+    emit flatpakChanged();
+}
+
+void Updates::updateFlatpak()
+{
+    const QString terminal = terminalPath();
+    if (terminal.isEmpty()) {
+        setStatus(QStringLiteral("error"), tr("The terminal is not installed."));
+        return;
+    }
+    QProcess::startDetached(terminal, { QStringLiteral("-e"), QStringLiteral("flatpak"), QStringLiteral("update") });
+}
+
 void Updates::rollback(const QString& version)
 {
     const QString terminal = terminalPath();
