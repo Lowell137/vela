@@ -328,6 +328,7 @@ void Preferences::reloadCompositor()
     emit iconThemeChanged();
     m_visualTheme = value(QStringLiteral("theme"), {});
     m_taskbarBackdrop = flag(QStringLiteral("taskbar-backdrop"), false);
+    m_sliderPressZoom = flag(QStringLiteral("quicksettings-slider-press-zoom"), true);
     for (const char* surface : { "taskbar", "startmenu", "notifications" }) {
         m_surfaceStyles.insert(QLatin1String(surface), value(QLatin1String(surface) + QStringLiteral("-style"), {}));
     }
@@ -578,6 +579,16 @@ void Preferences::setTaskbarBackdrop(bool on)
     }
     m_taskbarBackdrop = on;
     saveCompositor({ { QStringLiteral("taskbar-backdrop"), on ? QStringLiteral("yes") : QStringLiteral("no") } });
+    emit visualThemeChanged();
+}
+
+void Preferences::setSliderPressZoom(bool on)
+{
+    if (on == m_sliderPressZoom) {
+        return;
+    }
+    m_sliderPressZoom = on;
+    saveCompositor({ { QStringLiteral("quicksettings-slider-press-zoom"), on ? QStringLiteral("yes") : QStringLiteral("no") } });
     emit visualThemeChanged();
 }
 

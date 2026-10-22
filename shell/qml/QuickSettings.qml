@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import QtQuick
+import QtQuick.Effects
 import QtQuick.Shapes
 import Vela.Audio
 import Vela.Controls
@@ -330,6 +331,15 @@ Window {
         signal iconClicked()
         signal detailsClicked()
         readonly property real shown: Math.max(0, Math.min(1, value))
+        // The fill seen through the knob's glass (below): the knob's tint over
+        // it. Opaque on purpose, so that it can hide the fill's own edge.
+        readonly property color glassFill: {
+            const tint = Theme.popup
+            const fill = muted ? Theme.textSecondary : Theme.accent
+            return Qt.rgba(tint.r * tint.a + fill.r * (1 - tint.a),
+                           tint.g * tint.a + fill.g * (1 - tint.a),
+                           tint.b * tint.a + fill.b * (1 - tint.a), 1)
+        }
         width: parent.width
         height: 36
 
@@ -406,10 +416,44 @@ Window {
                 width: track.thick ? 40 : 18
                 height: track.thick ? 25 : 18
                 radius: track.thick ? 12 : height / 2
+                // Held, it zooms a little with a bounce and comes back
+                // (Settings > Themes, or quicksettings-slider-press-zoom=).
+                scale: Theme.quickSettingsSliderPressZoom && trackMouse.pressed ? 1.12 : 1
+                Behavior on scale {
+                    enabled: Theme.quickSettingsSliderPressZoom
+                    NumberAnimation { duration: Theme.fast; easing.type: Easing.OutBack }
+                }
                 color: Theme.popup
                 border.width: 1
-                // Ours, not in the README: held, the edge lights up.
-                border.color: track.thick && trackMouse.pressed ? Theme.controlStrokeStrong : Theme.stroke
+                // The panels' soft edge, held or not: it doesn't light up.
+                border.color: Theme.stroke
+                // Thick: the fill's end under the glass. Opaque, so the fill's
+                // own edge can't show through the knob as a spot, and blurred,
+                // the way the glass would soften it.
+                Item {
+                    visible: track.thick && slider.shown > 0
+                    x: 1
+                    y: (knob.height - height) / 2
+                    width: knob.width / 2 + 13
+                    height: 16
+                    layer.enabled: true
+                    layer.effect: MultiEffect {
+                        blurEnabled: true
+                        blur: 0.22
+                    }
+                    Rectangle {
+                        anchors.centerIn: parent
+                        width: parent.width
+                        height: 10
+                        radius: height / 2
+                        gradient: Gradient {
+                            orientation: Gradient.Horizontal
+                            GradientStop { position: 0.0; color: slider.glassFill }
+                            GradientStop { position: 0.55; color: slider.glassFill }
+                            GradientStop { position: 1.0; color: Qt.rgba(slider.glassFill.r, slider.glassFill.g, slider.glassFill.b, 0) }
+                        }
+                    }
+                }
                 Rectangle {
                     visible: !track.thick
                     anchors.centerIn: parent
