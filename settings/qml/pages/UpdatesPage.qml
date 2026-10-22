@@ -11,9 +11,35 @@ import Vela.Controls
 Page {
     id: page
 
+    // The state of a background update (Updates.jobs): running, the error (and
+    // what it said) or done, and a way to see the terminal output.
+    component JobStatus: Column {
+        id: job
+        property string name
+        readonly property var info: Updates.jobs[name] || ({ state: "idle", message: "" })
+        width: parent ? parent.width : 0
+        visible: info.state !== "idle"
+        spacing: 4
+        Text {
+            width: parent.width
+            text: job.info.state === "running" ? qsTr("Updating in the background...")
+                : job.info.state === "done" ? qsTr("Done.")
+                : qsTr("It failed: %1").arg(job.info.message)
+            color: job.info.state === "error" ? Theme.critical : Theme.textSecondary
+            font.pixelSize: Theme.fontCaption
+            wrapMode: Text.Wrap
+        }
+        Button {
+            subtle: true
+            text: qsTr("Show terminal")
+            onClicked: Updates.showJob(job.name)
+        }
+    }
+
     Component.onCompleted: {
         Updates.checkIfDue()
         Updates.checkFlatpak()
+        Updates.checkPackages()
     }
 
     readonly property string status: {
@@ -24,7 +50,7 @@ Page {
             return qsTr("You're up to date")
         }
         if (Updates.status === "available") {
-            return qsTr("Update available: %1").arg(Updates.newRevision)
+            return qsTr("Update available: %1").arg(Updates.newRevision.slice(0, 7))
         }
         if (Updates.status === "recently-installed") {
             return Updates.message
@@ -87,8 +113,8 @@ Page {
                     visible: Updates.status === "updating"
                     spacing: 8
                     Button {
-                        text: qsTr("Update in another terminal")
-                        onClicked: Updates.install()
+                        text: qsTr("Show terminal")
+                        onClicked: Updates.showJob("vela")
                     }
                     Button {
                         // The restarter: the update works from the next
@@ -102,11 +128,13 @@ Page {
                 Text {
                     width: parent.width
                     visible: Updates.status === "updating"
-                    text: qsTr("The package manager asks for your password in the terminal.")
+                    text: qsTr("The system asks for your password in its own window when it is needed.")
                     color: Theme.textSecondary
                     font.pixelSize: Theme.fontCaption
                     wrapMode: Text.Wrap
                 }
+
+                JobStatus { name: "vela" }
 
                 // What's new: the commits the update brings (or brought, when
                 // it was installed since the last look).
@@ -176,10 +204,60 @@ Page {
     }
 
     CardGroup {
+        Card {
+            visible: Updates.pacmanAvailable
+            icon: "system-software-update"
+            title: qsTr("System packages (pacman)")
+            contentItem: JobStatus { name: "pacman" }
+            description: Updates.packagesChecking ? qsTr("Checking...")
+                : Updates.pacmanUpdates.length === 0 ? qsTr("Up to date")
+                : qsTr("%n update(s): %1", "", Updates.pacmanUpdates.length).arg(Updates.pacmanUpdates.slice(0, 3).map(l => l.split(" ")[0]).join(", "))
+            trailing: Row {
+                spacing: 8
+                Button {
+                    text: qsTr("Check")
+                    usable: !Updates.packagesChecking
+                    onClicked: Updates.checkPackages()
+                }
+                Button {
+                    visible: Updates.pacmanUpdates.length > 0
+                    accent: true
+                    text: qsTr("Update")
+                    onClicked: Updates.updatePacman()
+                }
+            }
+        }
+        Card {
+            visible: Updates.aurAvailable
+            icon: "applications-other"
+            title: qsTr("AUR packages")
+            contentItem: JobStatus { name: "aur" }
+            description: Updates.packagesChecking ? qsTr("Checking...")
+                : Updates.aurUpdates.length === 0 ? qsTr("Up to date")
+                : qsTr("%n update(s): %1", "", Updates.aurUpdates.length).arg(Updates.aurUpdates.slice(0, 3).map(l => l.split(" ")[0]).join(", "))
+            trailing: Row {
+                spacing: 8
+                Button {
+                    text: qsTr("Check")
+                    usable: !Updates.packagesChecking
+                    onClicked: Updates.checkPackages()
+                }
+                Button {
+                    visible: Updates.aurUpdates.length > 0
+                    accent: true
+                    text: qsTr("Update")
+                    onClicked: Updates.updateAur()
+                }
+            }
+        }
+    }
+
+    CardGroup {
         visible: Updates.flatpakInstalled
         Card {
             icon: "flatpak-discover"
             title: qsTr("Flatpak apps")
+            contentItem: JobStatus { name: "flatpak" }
             description: Updates.flatpakChecking ? qsTr("Checking...")
                 : Updates.flatpakUpdates.length === 0 ? qsTr("Your Flatpak apps are up to date")
                 : qsTr("%n update(s): %1", "", Updates.flatpakUpdates.length).arg(Updates.flatpakUpdates.slice(0, 4).join(", "))
@@ -237,6 +315,7 @@ Page {
                     color: Theme.textSecondary
                     font.pixelSize: Theme.fontCaption
                 }
+                JobStatus { name: "rollback" }
             }
         }
     }
@@ -257,13 +336,13 @@ Page {
                         width: parent.width - saveButton.width - 8
                         text: Updates.source
                         placeholderText: "https://github.com/vela-desktop/vela.git"
-                        onEditingFinished: Updates.setSource(text)
+                        onEditingFinished: Updates.source = text
                     }
                     Button {
                         id: saveButton
                         text: qsTr("Save")
                         onClicked: {
-                            Updates.setSource(sourceField.text)
+                            Updates.source = sourceField.text
                             sourceField.focus = false
                         }
                     }

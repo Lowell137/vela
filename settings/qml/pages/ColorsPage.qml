@@ -62,6 +62,10 @@ Page {
                 onChosen: index => Prefs.appTheme = index === 0 ? "light" : "dark"
             }
         }
+    }
+
+    CardGroup {
+        title: qsTr("Schedule")
         Card {
             icon: "weather-clear-night"
             title: qsTr("Light by day, dark by night")
@@ -91,6 +95,9 @@ Page {
                 onChosen: index => Prefs.themeDarkFrom = page.hours[index]
             }
         }
+    }
+
+    CardGroup {
         Card {
             icon: "preferences-desktop-color"
             title: qsTr("Accent color")

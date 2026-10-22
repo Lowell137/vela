@@ -430,6 +430,15 @@ int main(int argc, char* argv[])
     // Vela.Controls, like the apps.
     appearance = vela::controls::install(engine, Appearance::Mode::Shell);
     appearance->watch();
+    // A theme's blur-saturation= / blur-strength= (Window Glass's vivid
+    // acrylic) to the compositor, which draws the blur.
+    auto sendBlurLook = [appearance] {
+        const QVariantMap theme = appearance->theme();
+        ShellController::sendToCompositor("blur-look " + QByteArray::number(theme.value(QStringLiteral("blur-saturation"), 1.25).toDouble())
+            + ' ' + QByteArray::number(theme.value(QStringLiteral("blur-strength"), 1.0).toDouble()));
+    };
+    sendBlurLook();
+    QObject::connect(appearance, &Appearance::changed, &shell, sendBlurLook);
     QObject::connect(appearance, &Appearance::changed, &shell, sendTheme);
     sendTheme();
     engine.addImageProvider(QStringLiteral("fileicon"), new IconProvider(32));

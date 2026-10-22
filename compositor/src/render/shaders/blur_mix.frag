@@ -31,7 +31,7 @@ void main()
 {
     vec3 c = texture(blurred, (gl_FragCoord.xy - pc.pad) * pc.shape.zw).rgb;
     const float luma = dot(c, vec3(0.2126, 0.7152, 0.0722));
-    c = mix(vec3(luma), c, 1.25); // saturation
+    c = mix(vec3(luma), c, pc.shape.y); // saturation (1.25: Windows 11's acrylic)
     // The background read already has the output's filter (if any): only the
     // tint takes it here.
     c = c * (1.0 - pc.color.a) + colorFilter(pc.color).rgb; // tint

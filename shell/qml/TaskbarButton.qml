@@ -39,6 +39,26 @@ Item {
     width: Theme.taskbarButtonWidth
     height: Config.dock ? 48 : Theme.taskbarButtonHeight
 
+    // A tile under each open app (Windows 7's glass buttons), if the theme has one.
+    Rectangle {
+        id: tile
+        anchors.fill: parent
+        visible: root.running && (Theme.taskbarButtonFill.a > 0 || Theme.taskbarButtonStroke.a > 0)
+        radius: Theme.taskbarButtonRadius
+        readonly property color low: root.active ? Theme.taskbarButtonFillActive : Theme.taskbarButtonFill
+        color: Theme.taskbarButtonGloss ? "transparent" : low
+        gradient: Theme.taskbarButtonGloss ? glossGradient : null
+        border.width: Theme.taskbarButtonStroke.a > 0 ? 1 : 0
+        border.color: Theme.taskbarButtonStroke
+        Gradient {
+            id: glossGradient
+            GradientStop { position: 0; color: Qt.lighter(tile.low, 1.6) }
+            GradientStop { position: 0.5; color: Qt.lighter(tile.low, 1.25) }
+            GradientStop { position: 0.51; color: tile.low }
+            GradientStop { position: 1; color: Qt.darker(tile.low, 1.1) }
+        }
+    }
+
     Rectangle {
         anchors.fill: parent
         radius: Theme.taskbarButtonRadius

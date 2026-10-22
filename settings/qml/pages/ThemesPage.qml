@@ -56,6 +56,10 @@ Page {
                 }
             }
         }
+    }
+
+    CardGroup {
+        title: qsTr("Effects")
         Card {
             icon: "preferences-desktop-panel"
             title: qsTr("Blur behind the taskbar")

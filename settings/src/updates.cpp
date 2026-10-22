@@ -9,6 +9,8 @@
 #include <QFileInfo>
 #include <QLocalSocket>
 #include <QProcess>
+#include <QProcessEnvironment>
+#include <QRegularExpression>
 #include <QStandardPaths>
 
 namespace {
@@ -82,6 +84,25 @@ QString packageVersionFromFile(const QString& file)
         }
     }
     return name.startsWith(QStringLiteral("vela-git-")) ? name.mid(9) : name;
+}
+
+// The last few lines of a log, without the colors of the build tools.
+QString logTail(const QString& path, int lines)
+{
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly)) {
+        return {};
+    }
+    file.seek(qMax<qint64>(0, file.size() - 4000));
+    QString text = QString::fromUtf8(file.readAll());
+    text.remove(QRegularExpression(QStringLiteral("\\x1b\\[[0-9;?]*[A-Za-z]")));
+    QStringList kept;
+    for (const QString& line : text.split(u'\n', Qt::SkipEmptyParts)) {
+        if (!line.trimmed().isEmpty()) {
+            kept << line.trimmed();
+        }
+    }
+    return kept.mid(qMax(0, kept.size() - lines)).join(u'\n');
 }
 
 } // namespace
@@ -317,20 +338,163 @@ void Updates::parseOutput(const QString& output)
     }
 }
 
-void Updates::install()
+QString Updates::jobLogPath(const QString& name)
+{
+    return cacheDirectory() + QStringLiteral("/jobs/") + name + QStringLiteral(".log");
+}
+
+void Updates::setJob(const QString& name, const QString& state, const QString& message)
+{
+    m_jobs.insert(name, QVariantMap { { QStringLiteral("state"), state }, { QStringLiteral("message"), message } });
+    emit jobsChanged();
+}
+
+void Updates::runJob(const QString& name, const QString& program, const QStringList& arguments,
+    std::function<void(bool)> done)
+{
+    if (m_jobProcesses.contains(name)) {
+        return; // already running
+    }
+    QDir().mkpath(cacheDirectory() + QStringLiteral("/jobs"));
+    auto* process = new QProcess(this);
+    auto* log = new QFile(jobLogPath(name), process);
+    if (!log->open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        process->deleteLater();
+        setJob(name, QStringLiteral("error"), tr("The log could not be written."));
+        return;
+    }
+    // No terminal: the updater asks for the password through pkexec (the polkit
+    // window) and nothing waits for a yes (vela-update reads these two).
+    QProcessEnvironment environment = QProcessEnvironment::systemEnvironment();
+    environment.insert(QStringLiteral("VELA_UPDATE_AUTH"), QStringLiteral("pkexec"));
+    environment.insert(QStringLiteral("VELA_UPDATE_NOCONFIRM"), QStringLiteral("1"));
+    environment.insert(QStringLiteral("GIT_PAGER"), QStringLiteral("cat"));
+    environment.insert(QStringLiteral("PAGER"), QStringLiteral("cat"));
+    process->setProcessEnvironment(environment);
+    process->setProcessChannelMode(QProcess::MergedChannels);
+    connect(process, &QProcess::readyRead, this, [process, log] {
+        log->write(process->readAll());
+        log->flush();
+    });
+    connect(process, &QProcess::finished, this, [this, name, process, log, done](int code, QProcess::ExitStatus status) {
+        log->write(process->readAll());
+        log->close();
+        m_jobProcesses.remove(name);
+        const bool ok = status == QProcess::NormalExit && code == 0;
+        // pkexec: 126 is "not authorized or dismissed", 127 "could not authenticate".
+        const QString message = ok ? QString()
+            : (code == 126 || code == 127) ? tr("The password window was closed or the password was refused.")
+                                           : logTail(jobLogPath(name), 3);
+        setJob(name, ok ? QStringLiteral("done") : QStringLiteral("error"), message);
+        process->deleteLater();
+        if (done) {
+            done(ok);
+        }
+    });
+    connect(process, &QProcess::errorOccurred, this, [this, name](QProcess::ProcessError error) {
+        if (error == QProcess::FailedToStart) {
+            m_jobProcesses.remove(name);
+            setJob(name, QStringLiteral("error"), tr("The command could not be started."));
+        }
+    });
+    m_jobProcesses.insert(name, process);
+    setJob(name, QStringLiteral("running"));
+    process->start(program, arguments);
+    process->closeWriteChannel(); // nothing is asked on the keyboard
+}
+
+void Updates::showJob(const QString& name)
 {
     const QString terminal = terminalPath();
     if (terminal.isEmpty()) {
         setStatus(QStringLiteral("error"), tr("The terminal is not installed."));
         return;
     }
-    // The update is installed from a terminal: the package manager asks for
-    // the password there, and the user sees the build.
-    if (!QProcess::startDetached(terminal, { QStringLiteral("-e"), QStringLiteral("vela-update") })) {
-        setStatus(QStringLiteral("error"), tr("The terminal could not be started."));
+    const QString log = jobLogPath(name);
+    const QString command = m_jobProcesses.contains(name)
+        ? QStringLiteral("tail -n +1 -f '%1'").arg(log)
+        : QStringLiteral("cat '%1'; printf '\\nEnter to close'; read _").arg(log);
+    QProcess::startDetached(terminal, { QStringLiteral("-e"), QStringLiteral("sh"), QStringLiteral("-c"), command });
+}
+
+void Updates::install()
+{
+    // The updater, in the background: it builds (or downloads) the package and
+    // installs it; the output is in the log.
+    setStatus(QStringLiteral("updating"), tr("Updating..."));
+    runJob(QStringLiteral("vela"), QStringLiteral("vela-update"), { QStringLiteral("--download") }, [this](bool ok) {
+        if (ok) {
+            setStatus(QStringLiteral("updating"), tr("Installed. Log out to start the new version."));
+        } else {
+            setStatus(QStringLiteral("error"), m_jobs.value(QStringLiteral("vela")).toMap().value(QStringLiteral("message")).toString());
+        }
+    });
+}
+
+bool Updates::pacmanAvailable() const
+{
+    return !QStandardPaths::findExecutable(QStringLiteral("checkupdates")).isEmpty();
+}
+
+QString Updates::aurHelper()
+{
+    for (const QString& helper : { QStringLiteral("paru"), QStringLiteral("yay") }) {
+        if (!QStandardPaths::findExecutable(helper).isEmpty()) {
+            return helper;
+        }
+    }
+    return {};
+}
+
+void Updates::runPackageCheck(const QString& program, const QStringList& arguments, QStringList& into)
+{
+    into.clear();
+    auto* process = new QProcess(this);
+    ++m_packagesPending;
+    // checkupdates answers 2 for "nothing new", paru/yay 1: only the lines count.
+    connect(process, &QProcess::finished, this, [this, process, &into] {
+        const QStringList lines = QString::fromUtf8(process->readAllStandardOutput()).split(u'\n', Qt::SkipEmptyParts);
+        for (const QString& line : lines) {
+            into << line.trimmed();
+        }
+        process->deleteLater();
+        --m_packagesPending;
+        emit packagesChanged();
+    });
+    process->start(program, arguments);
+}
+
+void Updates::checkPackages()
+{
+    if (m_packagesPending > 0) {
         return;
     }
-    setStatus(QStringLiteral("updating"), tr("The update runs in a terminal."));
+    if (pacmanAvailable()) {
+        runPackageCheck(QStringLiteral("checkupdates"), {}, m_pacmanUpdates);
+    }
+    if (aurAvailable()) {
+        runPackageCheck(aurHelper(), { QStringLiteral("-Qua") }, m_aurUpdates);
+    }
+    emit packagesChanged();
+}
+
+void Updates::updatePacman()
+{
+    runJob(QStringLiteral("pacman"), QStringLiteral("pkexec"),
+        { QStringLiteral("pacman"), QStringLiteral("-Syu"), QStringLiteral("--noconfirm") }, [this](bool) { checkPackages(); });
+}
+
+void Updates::updateAur()
+{
+    if (!aurAvailable()) {
+        return;
+    }
+    // The helper builds as the user and asks pkexec to install. shortcut:
+    // --noconfirm skips the PKGBUILD review too (these are installed packages);
+    // upgrade to a review in the UI if that is not enough.
+    runJob(QStringLiteral("aur"), aurHelper(),
+        { QStringLiteral("--sudo"), QStringLiteral("pkexec"), QStringLiteral("-Sua"), QStringLiteral("--noconfirm") },
+        [this](bool) { checkPackages(); });
 }
 
 bool Updates::flatpakInstalled() const
@@ -363,21 +527,12 @@ void Updates::checkFlatpak()
 
 void Updates::updateFlatpak()
 {
-    const QString terminal = terminalPath();
-    if (terminal.isEmpty()) {
-        setStatus(QStringLiteral("error"), tr("The terminal is not installed."));
-        return;
-    }
-    QProcess::startDetached(terminal, { QStringLiteral("-e"), QStringLiteral("flatpak"), QStringLiteral("update") });
+    runJob(QStringLiteral("flatpak"), QStringLiteral("flatpak"),
+        { QStringLiteral("update"), QStringLiteral("-y"), QStringLiteral("--noninteractive") }, [this](bool) { checkFlatpak(); });
 }
 
 void Updates::rollback(const QString& version)
 {
-    const QString terminal = terminalPath();
-    if (terminal.isEmpty()) {
-        setStatus(QStringLiteral("error"), tr("The terminal is not installed."));
-        return;
-    }
     QString package;
     const QFileInfoList files = QDir(cacheDirectory())
         .entryInfoList({ QStringLiteral("vela-git-*.pkg.tar.zst"), QStringLiteral("vela-git-*.rpm") }, QDir::Files,
@@ -392,15 +547,17 @@ void Updates::rollback(const QString& version)
         setStatus(QStringLiteral("error"), tr("The package of that version is not in the cache any more."));
         return;
     }
-    // Going back, like pacman -U does; dnf has "downgrade" for it.
-    const QString command = QStandardPaths::findExecutable(QStringLiteral("pacman")).isEmpty()
-        ? QStringLiteral("sudo dnf downgrade '%1'").arg(package)
-        : QStringLiteral("sudo pacman -U '%1'").arg(package);
-    if (!QProcess::startDetached(terminal, { QStringLiteral("-e"), command })) {
-        setStatus(QStringLiteral("error"), tr("The terminal could not be started."));
-        return;
-    }
-    setStatus(QStringLiteral("updating"), tr("The rollback runs in a terminal."));
+    // Going back, like pacman -U does (a background job: polkit asks for the password).
+    setStatus(QStringLiteral("updating"), tr("Going back..."));
+    const bool arch = !QStandardPaths::findExecutable(QStringLiteral("pacman")).isEmpty(); // dnf has "downgrade" for it
+    runJob(QStringLiteral("rollback"), QStringLiteral("pkexec"),
+        arch ? QStringList { QStringLiteral("pacman"), QStringLiteral("-U"), QStringLiteral("--noconfirm"), package }
+             : QStringList { QStringLiteral("dnf"), QStringLiteral("downgrade"), QStringLiteral("-y"), package },
+        [this](bool ok) {
+            setStatus(ok ? QStringLiteral("updating") : QStringLiteral("error"),
+                ok ? tr("Went back. Log out to start that version.")
+                   : m_jobs.value(QStringLiteral("rollback")).toMap().value(QStringLiteral("message")).toString());
+        });
 }
 
 void Updates::logOut()
