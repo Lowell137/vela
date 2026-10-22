@@ -165,12 +165,19 @@ void Appearance::reload()
     // taskbar-backdrop= of vela.conf (Settings > Themes): the user's, over the theme's.
     QFile velaConf(QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + QStringLiteral("/vela/vela.conf"));
     if (velaConf.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        // A yes/no of vela.conf as the theme's key of the same name.
+        const auto flagLine = [&theme](const QByteArray& line, const char* key) {
+            const QByteArray prefix = QByteArray(key) + '=';
+            if (!line.startsWith(prefix)) {
+                return;
+            }
+            const QByteArray value = line.mid(prefix.size()).trimmed();
+            theme.insert(QString::fromLatin1(key), value == "yes" || value == "1" ? 1.0 : 0.0);
+        };
         while (!velaConf.atEnd()) {
             const QByteArray line = velaConf.readLine().trimmed();
-            if (line.startsWith("taskbar-backdrop=")) {
-                const QByteArray value = line.mid(17).trimmed();
-                theme.insert(QStringLiteral("taskbar-backdrop"), value == "yes" || value == "1" ? 1.0 : 0.0);
-            }
+            flagLine(line, "taskbar-backdrop");
+            flagLine(line, "quicksettings-slider-press-zoom");
         }
     }
     if (light == m_light && accent == m_accent && mica == m_mica && micaInactive == m_micaInactive

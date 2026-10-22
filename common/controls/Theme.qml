@@ -152,6 +152,9 @@ QtObject {
     // A split tile's two parts as separate buttons this far apart (0: one button).
     readonly property int quickSettingsSplitGap: themed("quicksettings-split-gap", 0)
     readonly property bool quickSettingsThickSlider: themed("quicksettings-thick-slider", 0) !== 0
+    // Held, a slider's knob zooms a little with a bounce (Settings > Themes,
+    // quicksettings-slider-press-zoom= in vela.conf).
+    readonly property bool quickSettingsSliderPressZoom: themed("quicksettings-slider-press-zoom", 1) !== 0
     readonly property bool quickSettingsMediaCard: themed("quicksettings-media-card", 0) !== 0 // media below, a card of its own
     readonly property bool quickSettingsMediaTop: themed("quicksettings-media-top", 0) !== 0 // the media card above the panel
     readonly property int notificationsWidth: themed("notifications-width", 384)

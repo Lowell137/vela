@@ -62,6 +62,9 @@ class Preferences : public QObject {
     Q_PROPERTY(QVariantMap surfaceStyles READ surfaceStyles NOTIFY visualThemeChanged)
     // taskbar-backdrop= in vela.conf: a floating taskbar's strip blurred under maximized windows.
     Q_PROPERTY(bool taskbarBackdrop READ taskbarBackdrop WRITE setTaskbarBackdrop NOTIFY visualThemeChanged)
+    // quicksettings-slider-press-zoom= in vela.conf: a slider's knob zooms a
+    // little, with a bounce, while it's held.
+    Q_PROPERTY(bool sliderPressZoom READ sliderPressZoom WRITE setSliderPressZoom NOTIFY visualThemeChanged)
     // cursor-theme= and cursor-size= in vela.conf: a cursor theme's directory
     // name ("": $XCURSOR_THEME) and its size in pixels. The compositor applies
     // them and passes them on to the apps it starts.
@@ -211,6 +214,8 @@ public:
     QVariantMap surfaceStyles() const { return m_surfaceStyles; }
     bool taskbarBackdrop() const { return m_taskbarBackdrop; }
     void setTaskbarBackdrop(bool on);
+    bool sliderPressZoom() const { return m_sliderPressZoom; }
+    void setSliderPressZoom(bool on);
     Q_INVOKABLE void setSurfaceStyle(const QString& surface, const QString& style);
     // The installed themes, or a surface's styles ("taskbar"...): { name, text }.
     Q_INVOKABLE QVariantList visualThemes(const QString& surface = QString()) const;
@@ -455,6 +460,7 @@ private:
     QString m_visualTheme;
     QVariantMap m_surfaceStyles;
     bool m_taskbarBackdrop = false;
+    bool m_sliderPressZoom = true;
     QString m_cursorTheme;
     int m_cursorSize = 24;
     bool m_windowBlur = false;

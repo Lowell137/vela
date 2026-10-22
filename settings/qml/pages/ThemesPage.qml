@@ -65,5 +65,14 @@ Page {
                 onToggled: on => Prefs.taskbarBackdrop = on
             }
         }
+        Card {
+            icon: "preferences-desktop-theme"
+            title: qsTr("Zoom on press")
+            description: qsTr("Quick settings' sliders: the knob zooms a little, with a bounce, while it's held")
+            trailing: Toggle {
+                checked: Prefs.sliderPressZoom
+                onToggled: on => Prefs.sliderPressZoom = on
+            }
+        }
     }
 }
