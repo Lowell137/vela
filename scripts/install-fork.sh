@@ -6,7 +6,7 @@
 # CachyOS or EndeavourOS in one command: downloads the PKGBUILD, builds the
 # package from the fork's branch and installs it with pacman.
 #
-#   sh -c "$(curl -fsSL https://raw.githubusercontent.com/Lowell137/vela/topic/themes/scripts/install-fork.sh)"
+#   sh -c "$(curl -fsSL https://raw.githubusercontent.com/Lowell137/vela/main/scripts/install-fork.sh)"
 #
 # Run it as your user, not root: makepkg refuses root and asks for sudo itself
 # (build dependencies, then the install). VELA_BRANCH picks another branch.
@@ -14,7 +14,7 @@
 set -eu
 
 REPO="https://github.com/Lowell137/vela"
-BRANCH="${VELA_BRANCH:-topic/themes}"
+BRANCH="${VELA_BRANCH:-main}"
 
 if ! command -v pacman >/dev/null 2>&1; then
     echo "This script is for Arch, CachyOS and EndeavourOS (pacman)." >&2
