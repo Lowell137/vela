@@ -135,6 +135,17 @@ void sendToShell(const QByteArray& command)
     }
 }
 
+bool isTarFamily(const QString& fileName)
+{
+    for (const QString& s : { QStringLiteral(".tar"), QStringLiteral(".tar.gz"), QStringLiteral(".tgz"),
+             QStringLiteral(".tar.bz2"), QStringLiteral(".tar.xz"), QStringLiteral(".tar.zst") }) {
+        if (fileName.endsWith(s, Qt::CaseInsensitive)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 } // namespace
 
 QString uniqueNameIn(const QString& directory, const QString& name)
@@ -914,29 +925,115 @@ void FileOps::restoreFromTrash(const QStringList& paths)
 
 // -------------------------------------------------------- compressing --
 
-void FileOps::compress(const QStringList& paths, const QString& format)
+namespace {
+
+// Runs an external tool and answers without waiting on the UI: `done` runs by
+// signal, with false and the tool's last stderr line when it failed. Owned by
+// `parent` ('this' FileOps, like updates.cpp's processes): if Files is closed
+// the extraction stops, and a half-extracted folder stays (Windows behaves
+// the same).
+QProcess* runTool(QObject* parent, const QString& program, const QStringList& arguments,
+    const QString& directory, const std::function<void(bool, const QString&)>& done)
 {
-    if (paths.isEmpty()) {
+    auto* process = new QProcess(parent);
+    QObject::connect(process, &QProcess::finished, parent,
+        [process, done](int code, QProcess::ExitStatus status) {
+            QString error;
+            if (status != QProcess::NormalExit || code != 0) {
+                // The tool's stderr ends with the reason ("corrupt archive"…).
+                error = QString::fromLocal8Bit(process->readAllStandardError())
+                            .section(u'\n', -1)
+                            .trimmed();
+            }
+            done(status == QProcess::NormalExit && code == 0, error);
+            process->deleteLater();
+        });
+    process->setWorkingDirectory(directory);
+    process->start(program, arguments);
+    return process;
+}
+
+} // namespace
+
+bool FileOps::zipSupported() const
+{
+    return !QStandardPaths::findExecutable(QStringLiteral("7z")).isEmpty()
+        || !QStandardPaths::findExecutable(QStringLiteral("zip")).isEmpty();
+}
+
+void FileOps::compress(const QStringList& paths, const QString& directory,
+    const QString& name, const QString& format)
+{
+    if (paths.isEmpty() || name.isEmpty()) {
         return;
     }
-    const QFileInfo first(paths.first());
-    const QString directory = first.absolutePath();
+    // The name comes from the dialog: "/" would send the archive into
+    // subfolders (and "\\" would, when the name comes from a Windows file),
+    // so it becomes a space.
+    QString base = name;
+    base.replace(u'/', u' ').replace(u'\\', u' ');
+    base = base.simplified();
+    if (base.isEmpty()) {
+        return;
+    }
+    const bool zipFormat = format.compare(QStringLiteral("tar.gz"), Qt::CaseInsensitive) != 0;
+    const QString suffix = zipFormat ? QStringLiteral(".zip") : QStringLiteral(".tar.gz");
+    // Taken names get " (2)", like "Paste here": never overwrite.
+    const QString archive = uniqueNameIn(directory, base + suffix);
+
+    // Several selected items: their paths stay relative to the folder.
     QStringList names;
     for (const QString& path : paths) {
         names.append(QFileInfo(path).fileName());
     }
-    // The archive takes the name of the first item, like Windows.
-    const QString base = first.isDir() ? first.fileName() : first.completeBaseName();
-    const QString archive = uniqueNameIn(directory, base + u'.' + format);
-    QStringList arguments { QStringLiteral("-a"), QStringLiteral("-cf"), archive, QStringLiteral("--") };
+    // Absolute programs found through QStandardPaths, so what runs is what we
+    // chose: the ZIP goes to 7z (or zip), the tar.gz to tar.
+    QString program;
+    QStringList arguments;
+    if (zipFormat) {
+        const QString seven = QStandardPaths::findExecutable(QStringLiteral("7z"));
+        if (!seven.isEmpty()) {
+            program = seven;
+            // No "--" after the archive: p7zip parses it as a file name and
+            // ends with a warning (exit 1).
+            arguments = { QStringLiteral("a"), QStringLiteral("-tzip"), QStringLiteral("--"), archive };
+        } else {
+            program = QStandardPaths::findExecutable(QStringLiteral("zip"));
+            arguments = { QStringLiteral("-r"), archive, QStringLiteral("--") };
+        }
+    } else {
+        program = QStandardPaths::findExecutable(QStringLiteral("tar"));
+        if (!program.isEmpty()) {
+            arguments = { QStringLiteral("-czf"), archive, QStringLiteral("--") };
+        }
+    }
+    if (program.isEmpty()) {
+        if (zipFormat) {
+            emit failed(QCoreApplication::translate("Files",
+                "7-Zip or zip would be needed to compress, but it isn't installed."));
+        } else {
+            emit failed(QCoreApplication::translate("Files",
+                "tar would be needed to compress to tar.gz, but it isn't installed."));
+        }
+        return;
+    }
     arguments.append(names);
-    if (runDetached(QStringLiteral("bsdtar"), arguments, directory)) {
+
+    const QString archivePath = QDir(directory).filePath(archive);
+    runTool(this, program, arguments, directory, [this, archivePath, archive](bool ok, const QString& error) {
+        if (!ok) {
+            emit failed(error.isEmpty()
+                    ? QCoreApplication::translate("Files", "“%1” couldn't be created.").arg(archive)
+                    : QCoreApplication::translate("Files", "Couldn't create “%1”:").arg(archive) + u' ' + error);
+            return;
+        }
         UndoStep step;
         step.label = QCoreApplication::translate("Files", "Compress");
-        step.created.append(QDir(directory).filePath(archive));
+        step.created.append(archivePath);
         pushUndo(step);
-        emit created(QDir(directory).filePath(archive), false);
-    }
+        // Selected when it arrives, like pasted files.
+        emit created(archivePath, false);
+    });
 }
 
 bool FileOps::isArchive(const QString& path) const
@@ -948,13 +1045,15 @@ bool FileOps::isArchive(const QString& path) const
         [&](const QString& s) { return path.endsWith(s, Qt::CaseInsensitive); });
 }
 
-void FileOps::extractAll(const QString& path)
+QString FileOps::extractAll(const QString& path)
 {
-    // "Extract all": into a folder named after the archive, next to it.
     const QFileInfo info(path);
+    // The folder borrows the archive's name without the (double) suffix:
+    // "photos.tar.gz" -> "photos", and it can't overwrite one that exists:
+    // "photos (2)", like "Paste here".
     QString base = info.fileName();
     for (const QString& s : { QStringLiteral(".tar.gz"), QStringLiteral(".tar.xz"), QStringLiteral(".tar.zst"),
-             QStringLiteral(".tar.bz2") }) {
+             QStringLiteral(".tar.bz2"), QStringLiteral(".tgz") }) {
         if (base.endsWith(s, Qt::CaseInsensitive)) {
             base.chop(s.size());
         }
@@ -962,15 +1061,54 @@ void FileOps::extractAll(const QString& path)
     if (base == info.fileName()) {
         base = info.completeBaseName();
     }
-    const QString folder = uniqueNameIn(info.absolutePath(), base);
-    const QString target = QDir(info.absolutePath()).filePath(folder);
+    const QString target = QDir(info.absolutePath()).filePath(uniqueNameIn(info.absolutePath(), base));
+
+    // tar unpacks the tar.* archives; the rest goes to 7z, or to unzip for
+    // .zip when 7z is missing. Absolute paths (QStandardPaths), so only the
+    // chosen programs ever run.
+    const QString fileName = info.fileName();
+    const QString tar = QStandardPaths::findExecutable(QStringLiteral("tar"));
+    const QString seven = QStandardPaths::findExecutable(QStringLiteral("7z"));
+    const QString unzip = QStandardPaths::findExecutable(QStringLiteral("unzip"));
+    QString program;
+    QStringList arguments;
+    if (isTarFamily(fileName) && !tar.isEmpty()) {
+        program = tar;
+        arguments = { QStringLiteral("-xf"), info.absoluteFilePath(), QStringLiteral("-C"), target };
+    } else if (!seven.isEmpty()) {
+        // zip, 7z, rar: everything but tar.*, which GNU tar can't read.
+        program = seven;
+        arguments = { QStringLiteral("x"), QStringLiteral("-y"), QStringLiteral("-o") + target,
+            QStringLiteral("--"), info.absoluteFilePath() };
+    } else if (fileName.endsWith(QStringLiteral(".zip"), Qt::CaseInsensitive) && !unzip.isEmpty()) {
+        program = unzip;
+        arguments = { info.absoluteFilePath(), QStringLiteral("-d"), target };
+    } else {
+        emit failed(QCoreApplication::translate("Files", "No program to extract “%1”.")
+                        .arg(info.fileName()));
+        return {};
+    }
+    // The folder exists from the start: the double click navigates into it
+    // and the files appear as the tool writes them (the view watches the
+    // folder). Without a program nothing is created.
     QDir().mkpath(target);
-    runDetached(QStringLiteral("bsdtar"), { QStringLiteral("-xf"), path, QStringLiteral("-C"), target }, info.absolutePath());
     UndoStep step;
     step.label = QCoreApplication::translate("Files", "Extract");
     step.created.append(target);
     pushUndo(step);
-    emit created(target, false);
+    runTool(this, program, arguments, info.absolutePath(), [this, target, info](bool ok, const QString& error) {
+        if (!ok) {
+            emit failed(error.isEmpty()
+                    ? QCoreApplication::translate("Files", "“%1” couldn't be extracted.")
+                          .arg(info.fileName())
+                    : QCoreApplication::translate("Files", "Couldn't extract “%1”:")
+                          .arg(info.fileName()) + u' ' + error);
+            return;
+        }
+        // Selected when it arrives, like pasted files.
+        emit created(target, false);
+    });
+    return target;
 }
 
 // ---------------------------------------------------------------- undo --

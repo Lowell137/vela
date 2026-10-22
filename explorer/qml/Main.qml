@@ -230,6 +230,26 @@ Window {
         confirmAction = action
         confirmDialog.open()
     }
+
+    // Compress: the archive's name and format, like Windows' right click ›
+    // "Compress". The ZIP choice is there only when a program can make it
+    // (7z or zip); the folder never moves and taken names get " (2)".
+    readonly property bool zipOk: Ops.zipSupported()
+    property var compressPaths: []
+    property string compressLocation: ""
+    function askCompress(paths) {
+        compressPaths = paths
+        compressLocation = root.current ? root.current.location : ""
+        // The archive borrows the first item's name without the extension.
+        const first = paths[0].substring(paths[0].lastIndexOf("/") + 1)
+        const dot = first.lastIndexOf(".")
+        compressName.text = dot > 0 ? first.substring(0, dot) : first
+        zipRadio.checked = root.zipOk
+        tarRadio.checked = !root.zipOk
+        compressDialog.open()
+        compressName.forceActiveFocus()
+        compressName.selectAll()
+    }
     Connections {
         target: Ops
         function onFailed(message) { root.showError(message) }
@@ -265,6 +285,52 @@ Window {
             { text: qsTr("Cancel"), value: "cancel" }
         ]
         onChosen: value => Ops.resolveConflict(value)
+    }
+    Dialog {
+        id: compressDialog
+        readonly property string format: zipRadio.checked ? "zip" : "tar.gz"
+        title: qsTr("Compress")
+        buttons: [{ text: qsTr("Compress"), accent: true, value: "compress" }, { text: qsTr("Cancel"), value: "cancel" }]
+        onChosen: value => {
+            if (value === "compress" && root.compressPaths.length > 0)
+                Ops.compress(root.compressPaths, root.compressLocation, compressName.text, format)
+            root.compressPaths = []
+            if (root.current) root.current.focusView()
+        }
+        content: Grid {
+            columns: 2
+            spacing: 12
+            verticalItemAlignment: Grid.AlignVCenter
+            Text { text: qsTr("Name"); color: Theme.text; font.pixelSize: Theme.fontBody }
+            // Enter compresses: the text box eats Return, so the panel's
+            // accent-button handling never sees it.
+            TextBox {
+                id: compressName
+                width: 240
+                Keys.onReturnPressed: compressDialog.close("compress")
+            }
+            Text { text: qsTr("Format"); color: Theme.text; font.pixelSize: Theme.fontBody }
+            Row {
+                spacing: 12
+                RadioButton {
+                    id: zipRadio
+                    visible: root.zipOk
+                    text: qsTr("ZIP file")
+                    onClicked: {
+                        checked = true
+                        tarRadio.checked = false
+                    }
+                }
+                RadioButton {
+                    id: tarRadio
+                    text: qsTr("tar.gz file")
+                    onClicked: {
+                        checked = true
+                        zipRadio.checked = false
+                    }
+                }
+            }
+        }
     }
 
     MenuLayer {

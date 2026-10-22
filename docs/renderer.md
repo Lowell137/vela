@@ -1116,7 +1116,11 @@ never received the release).
   actions apps declare for file types); in the modern menu only those that ask
   for it appear, like registered apps in Windows 11.
 
-Files uses the same file menu (milestone 3).
+Files uses the same file menu (milestone 3). It doesn't have the desktop's
+"Compress to" list, though: "Compress..." opens its own dialog (the archive's
+name and the format, ZIP or tar.gz), and the archives' entry is "Extract here",
+one step (extracting next to the archive without moving); the double click
+extracts and Files goes in.
 
 ### 14.10 Task View and notifications
 
