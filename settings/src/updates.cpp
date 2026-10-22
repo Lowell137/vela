@@ -7,6 +7,7 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QLocalSocket>
 #include <QProcess>
 #include <QStandardPaths>
 
@@ -23,11 +24,18 @@ QString terminalPath()
     return QStandardPaths::findExecutable(QStringLiteral("vela-terminal"));
 }
 
-// Where the updater remembers where the updates come from.
+// Where the updater remembers where the updates come from, when to check
+// again and what arrived since the last look.
 QString configPath()
 {
     return QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)
         + QStringLiteral("/vela/updates.conf");
+}
+
+// The updater's cache: the packages it leaves behind for rollbacks.
+QString cacheDirectory()
+{
+    return QDir::homePath() + QStringLiteral("/.cache/vela-update");
 }
 
 // The installed version, like the updater's packageVersion(): the package
@@ -52,20 +60,39 @@ QString packageVersion()
     return QString();
 }
 
+// The version in a cached package's name, "vela-git-<version>-<arch>.rpm".
+QString packageVersionFromFile(const QString& file)
+{
+    QString name = file;
+    name.chop(QFileInfo(file).suffix().length() + 1);
+    if (name.endsWith(QStringLiteral(".pkg.tar"))) {
+        name.chop(8);
+    }
+    // The architecture is the last "-<word>" of an Arch package.
+    if (name.endsWith(QStringLiteral(".pkg.tar.zst"))) {
+        name = name.left(name.length() - 12);
+        const int dash = name.lastIndexOf(QLatin1Char('-'));
+        if (dash > 0) {
+            name = name.left(dash);
+        }
+    } else {
+        const int dot = name.lastIndexOf(QLatin1Char('.'));
+        if (dot > 0) {
+            name = name.left(dot); // the RPM's ".x86_64" and ".fc44"
+        }
+    }
+    return name.startsWith(QStringLiteral("vela-git-")) ? name.mid(9) : name;
+}
+
 } // namespace
 
 Updates::Updates(QObject* parent) : QObject(parent)
 {
     m_status = QStringLiteral("unknown");
     m_installedVersion = packageVersion();
-    // The source of the updates, if the updater has one.
-    QFile file(configPath());
-    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        const QString line = QString::fromUtf8(file.readAll()).trimmed();
-        if (line.startsWith(QStringLiteral("source="))) {
-            m_source = line.mid(7).trimmed();
-        }
-    }
+    loadConfig();
+    refreshRollbackTargets();
+    refreshRecent();
 }
 
 Updates::~Updates()
@@ -76,11 +103,96 @@ Updates::~Updates()
     }
 }
 
+void Updates::loadConfig()
+{
+    m_config.clear();
+    QFile file(configPath());
+    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        while (!file.atEnd()) {
+            const QByteArray line = file.readLine().trimmed();
+            if (line.isEmpty()) {
+                continue;
+            }
+            const int equals = line.indexOf('=');
+            if (equals > 0) {
+                m_config.insert(QString::fromUtf8(line.left(equals)), QString::fromUtf8(line.mid(equals + 1)));
+            }
+        }
+    }
+    m_source = m_config.value(QStringLiteral("source"));
+    m_autoCheck = m_config.value(QStringLiteral("autocheck"), QStringLiteral("daily"));
+    if (m_autoCheck != QStringLiteral("daily") && m_autoCheck != QStringLiteral("weekly")
+        && m_autoCheck != QStringLiteral("never")) {
+        m_autoCheck = QStringLiteral("daily");
+    }
+    m_pausedUntil = m_config.value(QStringLiteral("paused-until"));
+    const QString checked = m_config.value(QStringLiteral("last-check"));
+    m_lastCheckBy = QDateTime::fromString(checked, Qt::ISODate);
+    m_lastCheckText = m_lastCheckBy.isValid() ? m_lastCheckBy.toString(QStringLiteral("yyyy-MM-dd HH:mm")) : QString();
+}
+
+void Updates::saveConfig()
+{
+    const QString path = configPath();
+    if (!QDir().mkpath(QFileInfo(path).absolutePath())) {
+        return;
+    }
+    QFile file(path);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        return;
+    }
+    // The updater keeps the file for itself alone.
+    file.setPermissions(QFile::ReadOwner | QFile::WriteOwner);
+    for (auto it = m_config.constBegin(); it != m_config.constEnd(); ++it) {
+        if (!it.key().isEmpty()) {
+            file.write(QStringLiteral("%1=%2\n").arg(it.key(), it.value()).toUtf8());
+        }
+    }
+    file.close();
+}
+
+bool Updates::paused() const
+{
+    const QDate until = QDate::fromString(m_pausedUntil, QStringLiteral("yyyy-MM-dd"));
+    return until.isValid() && QDate::currentDate() <= until;
+}
+
 void Updates::setStatus(const QString& status, const QString& message)
 {
     m_status = status;
     m_message = message;
     emit changed();
+}
+
+void Updates::refreshRollbackTargets()
+{
+    m_rollbackTargets.clear();
+    const QFileInfoList files = QDir(cacheDirectory())
+        .entryInfoList({ QStringLiteral("vela-git-*.pkg.tar.zst"), QStringLiteral("vela-git-*.rpm") }, QDir::Files,
+            QDir::Time);
+    for (const QFileInfo& file : files) {
+        const QString version = packageVersionFromFile(file.fileName());
+        if (!version.isEmpty() && version != m_installedVersion && !m_rollbackTargets.contains(version)) {
+            m_rollbackTargets.append(version);
+        }
+    }
+    emit changed();
+}
+
+void Updates::refreshRecent()
+{
+    // The version changed since the last news were collected: the update the
+    // page offered was installed, so show what it contained.
+    const QString seen = m_config.value(QStringLiteral("seen-version"));
+    if (!seen.isEmpty() && !m_installedVersion.isEmpty() && seen != m_installedVersion) {
+        const QString news = m_config.value(QStringLiteral("news"));
+        if (!news.isEmpty()) {
+            m_changes = news.split(QChar(0x001F));
+        }
+        setStatus(QStringLiteral("recently-installed"), tr("Vela was updated since you last looked."));
+        m_config.insert(QStringLiteral("seen-version"), m_installedVersion);
+        saveConfig();
+    }
 }
 
 void Updates::check()
@@ -93,6 +205,10 @@ void Updates::check()
         setStatus(QStringLiteral("error"), tr("The vela-update script is not installed."));
         return;
     }
+    loadConfig(); // the updater may have changed the file since
+    refreshRollbackTargets();
+    refreshRecent();
+    m_newRevision.clear();
     m_changes.clear();
     setStatus(QStringLiteral("checking"));
     m_process = new QProcess(this);
@@ -115,10 +231,27 @@ void Updates::check()
                 setStatus(QStringLiteral("error"), last.isEmpty() ? tr("The update could not be checked.") : last);
             }
         }
-        m_lastChecked = QDateTime::currentDateTime().toString(QStringLiteral("yyyy-MM-dd HH:mm"));
+        m_lastCheckBy = QDateTime::currentDateTime();
+        m_lastCheckText = m_lastCheckBy.toString(QStringLiteral("yyyy-MM-dd HH:mm"));
+        m_config.insert(QStringLiteral("last-check"), m_lastCheckBy.toString(Qt::ISODate));
+        saveConfig();
+        refreshRollbackTargets();
+        refreshRecent();
         emit changed();
     });
     m_process->start(updater, { QStringLiteral("--check") });
+}
+
+void Updates::checkIfDue()
+{
+    if (m_process || paused() || m_autoCheck == QLatin1String("never")) {
+        return;
+    }
+    const qint64 days = m_autoCheck == QLatin1String("weekly") ? 8 : 1;
+    if (m_lastCheckBy.isValid() && m_lastCheckBy.msecsTo(QDateTime::currentDateTime()) < days * 20ll * 3600 * 1000) {
+        return;
+    }
+    check();
 }
 
 void Updates::parseOutput(const QString& output)
@@ -137,13 +270,15 @@ void Updates::parseOutput(const QString& output)
                 continue;
             }
         }
-        if (line.startsWith(QStringLiteral(":: Checking for updates in "))) {
-            m_source = line.mid(28).trimmed();
-        } else if (line.startsWith(QStringLiteral(":: Selected revision: "))) {
+        if (line.startsWith(QStringLiteral(":: Selected revision: "))) {
             // "default branch (the commit)"
             const int open = line.lastIndexOf(QLatin1Char('('));
             if (open > 0) {
-                m_newRevision = line.mid(open + 1).trimmed();
+                QString revision = line.mid(open + 1).trimmed();
+                if (revision.endsWith(QLatin1Char(')'))) {
+                    revision.chop(1);
+                }
+                m_newRevision = revision;
             }
         } else if (line.startsWith(QStringLiteral(":: Vela is up to date"))) {
             // ":: Vela is up to date (0.1.0.r400.g56d5634-1)."
@@ -158,13 +293,12 @@ void Updates::parseOutput(const QString& output)
             return;
         } else if (line.startsWith(QStringLiteral(":: Installed version: "))) {
             // ":: Installed version: 0.1.0.r400.g56d5634-1; new: f6c82a5"
-            const QString rest = line.mid(21).trimmed();
+            const QString rest = line.mid(QStringLiteral(":: Installed version: ").length()).trimmed();
             const int separator = rest.indexOf(QStringLiteral("; new:"));
             if (separator > 0) {
                 m_installedVersion = rest.left(separator).trimmed();
                 m_newRevision = rest.mid(separator + 6).trimmed();
             }
-            setStatus(QStringLiteral("available"));
         } else if (line.startsWith(QStringLiteral(":: What's new"))) {
             collecting = true;
         } else if (line.startsWith(QStringLiteral(":: Vela isn't installed as a package"))) {
@@ -176,6 +310,10 @@ void Updates::parseOutput(const QString& output)
         if (m_status != QStringLiteral("available")) {
             setStatus(QStringLiteral("available"));
         }
+        // Remembered for the page after the update (and the next starts).
+        m_config.insert(QStringLiteral("news"), changes.join(QChar(0x001F)));
+        m_config.insert(QStringLiteral("seen-version"), m_installedVersion);
+        saveConfig();
     }
 }
 
@@ -195,25 +333,82 @@ void Updates::install()
     setStatus(QStringLiteral("updating"), tr("The update runs in a terminal."));
 }
 
+void Updates::rollback(const QString& version)
+{
+    const QString terminal = terminalPath();
+    if (terminal.isEmpty()) {
+        setStatus(QStringLiteral("error"), tr("The terminal is not installed."));
+        return;
+    }
+    QString package;
+    const QFileInfoList files = QDir(cacheDirectory())
+        .entryInfoList({ QStringLiteral("vela-git-*.pkg.tar.zst"), QStringLiteral("vela-git-*.rpm") }, QDir::Files,
+            QDir::Time);
+    for (const QFileInfo& file : files) {
+        if (packageVersionFromFile(file.fileName()) == version) {
+            package = file.absoluteFilePath();
+            break;
+        }
+    }
+    if (package.isEmpty()) {
+        setStatus(QStringLiteral("error"), tr("The package of that version is not in the cache any more."));
+        return;
+    }
+    // Going back, like pacman -U does; dnf has "downgrade" for it.
+    const QString command = QStandardPaths::findExecutable(QStringLiteral("pacman")).isEmpty()
+        ? QStringLiteral("sudo dnf downgrade '%1'").arg(package)
+        : QStringLiteral("sudo pacman -U '%1'").arg(package);
+    if (!QProcess::startDetached(terminal, { QStringLiteral("-e"), command })) {
+        setStatus(QStringLiteral("error"), tr("The terminal could not be started."));
+        return;
+    }
+    setStatus(QStringLiteral("updating"), tr("The rollback runs in a terminal."));
+}
+
+void Updates::logOut()
+{
+    // The compositor ends the session (shell's ShellController::logout does
+    // the same).
+    const QString socket = QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation)
+        + QStringLiteral("/vela-") + qEnvironmentVariable("WAYLAND_DISPLAY", QStringLiteral("wayland-0"))
+        + QStringLiteral(".sock");
+    QLocalSocket connection;
+    connection.connectToServer(socket);
+    if (!connection.waitForConnected(500)) {
+        setStatus(QStringLiteral("error"), tr("The compositor is not answering."));
+        return;
+    }
+    connection.write("logout\n");
+    connection.waitForBytesWritten(500);
+    connection.disconnectFromServer();
+}
+
 void Updates::setSource(const QString& source)
 {
     if (source.isEmpty()) {
         return;
     }
-    const QString path = configPath();
-    if (!QDir().mkpath(QFileInfo(path).absolutePath())) {
-        setStatus(QStringLiteral("error"), tr("The update settings could not be saved."));
-        return;
-    }
-    QFile file(path);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-        setStatus(QStringLiteral("error"), tr("The update settings could not be saved."));
-        return;
-    }
-    // The updater keeps the file for itself alone.
-    file.setPermissions(QFile::ReadOwner | QFile::WriteOwner);
-    file.write(QStringLiteral("source=%1\n").arg(source).toUtf8());
-    file.close();
+    m_config.insert(QStringLiteral("source"), source);
+    saveConfig();
     m_source = source;
+    emit changed();
+}
+
+void Updates::setAutoCheck(const QString& howOften)
+{
+    if (howOften != QStringLiteral("daily") && howOften != QStringLiteral("weekly") && howOften != QStringLiteral("never")) {
+        return;
+    }
+    m_config.insert(QStringLiteral("autocheck"), howOften);
+    saveConfig();
+    m_autoCheck = howOften;
+    emit changed();
+}
+
+void Updates::setPausedUntil(const QString& day)
+{
+    m_config.insert(QStringLiteral("paused-until"), day);
+    saveConfig();
+    m_pausedUntil = day;
     emit changed();
 }
