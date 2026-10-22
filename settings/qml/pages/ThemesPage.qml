@@ -75,4 +75,16 @@ Page {
             }
         }
     }
+
+    CardGroup {
+        Card {
+            icon: "edit-undo"
+            title: qsTr("Reset")
+            description: qsTr("Vela's own theme and styles, the default accent and the switches above. Light or dark stays")
+            trailing: Button {
+                text: qsTr("Reset")
+                onClicked: Prefs.resetAppearance()
+            }
+        }
+    }
 }

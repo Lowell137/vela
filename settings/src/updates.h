@@ -39,6 +39,11 @@ class Updates : public QObject {
     // The versions the updater keeps in its cache, ready to go back to.
     Q_PROPERTY(QStringList rollbackTargets READ rollbackTargets NOTIFY changed)
 
+    // The Flatpak apps with a newer version (flatpak remote-ls --updates).
+    Q_PROPERTY(bool flatpakInstalled READ flatpakInstalled CONSTANT)
+    Q_PROPERTY(QStringList flatpakUpdates READ flatpakUpdates NOTIFY flatpakChanged)
+    Q_PROPERTY(bool flatpakChecking READ flatpakChecking NOTIFY flatpakChanged)
+
 public:
     explicit Updates(QObject* parent = nullptr);
     ~Updates() override;
@@ -53,6 +58,9 @@ public:
     Q_INVOKABLE void install();
     // Goes back to one of the packages the updater keeps (a terminal opens).
     Q_INVOKABLE void rollback(const QString& version);
+    Q_INVOKABLE void checkFlatpak();
+    // Updates them in a terminal (flatpak update asks before it does).
+    Q_INVOKABLE void updateFlatpak();
     // Ends the session, so the installed update starts (the compositor does
     // it, like the shell's own "Log out").
     Q_INVOKABLE void logOut();
@@ -76,9 +84,13 @@ public:
     QString pausedUntil() const { return m_pausedUntil; }
     bool paused() const;
     QStringList rollbackTargets() const { return m_rollbackTargets; }
+    bool flatpakInstalled() const;
+    QStringList flatpakUpdates() const { return m_flatpakUpdates; }
+    bool flatpakChecking() const { return m_flatpakProcess != nullptr; }
 
 signals:
     void changed();
+    void flatpakChanged();
 
 private:
     void loadConfig();
@@ -89,6 +101,8 @@ private:
     void refreshRecent();
 
     QProcess* m_process = nullptr;
+    QProcess* m_flatpakProcess = nullptr;
+    QStringList m_flatpakUpdates;
     QString m_status;
     QString m_message;
     QString m_installedVersion;

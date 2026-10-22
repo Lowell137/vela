@@ -65,6 +65,11 @@ class Preferences : public QObject {
     // quicksettings-slider-press-zoom= in vela.conf: a slider's knob zooms a
     // little, with a bounce, while it's held.
     Q_PROPERTY(bool sliderPressZoom READ sliderPressZoom WRITE setSliderPressZoom NOTIFY visualThemeChanged)
+    // Light by day, dark by night: the hours ("07:00", "19:00") the shell's
+    // timer applies by running `vela-settings --apply-theme-schedule`.
+    Q_PROPERTY(bool themeSchedule READ themeSchedule WRITE setThemeSchedule NOTIFY themeScheduleChanged)
+    Q_PROPERTY(QString themeLightFrom READ themeLightFrom WRITE setThemeLightFrom NOTIFY themeScheduleChanged)
+    Q_PROPERTY(QString themeDarkFrom READ themeDarkFrom WRITE setThemeDarkFrom NOTIFY themeScheduleChanged)
     // cursor-theme= and cursor-size= in vela.conf: a cursor theme's directory
     // name ("": $XCURSOR_THEME) and its size in pixels. The compositor applies
     // them and passes them on to the apps it starts.
@@ -216,6 +221,18 @@ public:
     void setTaskbarBackdrop(bool on);
     bool sliderPressZoom() const { return m_sliderPressZoom; }
     void setSliderPressZoom(bool on);
+    bool themeSchedule() const { return m_themeSchedule; }
+    void setThemeSchedule(bool on);
+    QString themeLightFrom() const { return m_themeLightFrom; }
+    void setThemeLightFrom(const QString& time);
+    QString themeDarkFrom() const { return m_themeDarkFrom; }
+    void setThemeDarkFrom(const QString& time);
+    // Sets the light or dark mode the schedule says for the time of day (the
+    // shell's timer calls it through --apply-theme-schedule).
+    void applyThemeSchedule();
+    // Themes page's "Reset": Vela's own theme, styles, accent and the
+    // switches; the light/dark mode stays as chosen.
+    Q_INVOKABLE void resetAppearance();
     Q_INVOKABLE void setSurfaceStyle(const QString& surface, const QString& style);
     // The installed themes, or a surface's styles ("taskbar"...): { name, text }.
     Q_INVOKABLE QVariantList visualThemes(const QString& surface = QString()) const;
@@ -412,6 +429,7 @@ signals:
     void taskbarChanged();
     void iconThemeChanged();
     void visualThemeChanged();
+    void themeScheduleChanged();
     void cursorChanged();
     void windowBlurChanged();
     void windowRulesChanged();
@@ -461,6 +479,9 @@ private:
     QVariantMap m_surfaceStyles;
     bool m_taskbarBackdrop = false;
     bool m_sliderPressZoom = true;
+    bool m_themeSchedule = false;
+    QString m_themeLightFrom = QStringLiteral("07:00");
+    QString m_themeDarkFrom = QStringLiteral("19:00");
     QString m_cursorTheme;
     int m_cursorSize = 24;
     bool m_windowBlur = false;

@@ -10,6 +10,7 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QProcess>
 #include <QSettings>
 #include <QStandardPaths>
 
@@ -25,6 +26,20 @@ Appearance::Appearance(QObject* parent, Mode mode)
         watch();
         reload();
     });
+    if (mode == Mode::Shell) {
+        // Light by day, dark by night (Settings > Colors): Settings does the
+        // switch, so the GTK/KDE/icons follow like a click would. shortcut:
+        // it starts a process a minute while the schedule is on, move it into
+        // the shell if it ever shows in a profile.
+        m_themeSchedule.setInterval(60 * 1000);
+        connect(&m_themeSchedule, &QTimer::timeout, this, [] {
+            QFile conf(QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + QStringLiteral("/vela/vela.conf"));
+            if (conf.open(QIODevice::ReadOnly | QIODevice::Text) && (QByteArray("\n") + conf.readAll()).contains("\ntheme-schedule=yes")) {
+                QProcess::startDetached(QStringLiteral("vela-settings"), { QStringLiteral("--apply-theme-schedule") });
+            }
+        });
+        m_themeSchedule.start();
+    }
     reload();
 }
 
