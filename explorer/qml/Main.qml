@@ -5,10 +5,12 @@ import QtQuick
 import QtCore
 import Vela.Controls
 
-// Explorer's window: tabs at the top (Ctrl+T, Ctrl+W, middle click on a
-// folder), the open tab below. Menus, dialogs and copy progress live here too.
+// Explorer's window: tabs in the title bar, like Windows 11 (Ctrl+T, Ctrl+W,
+// middle click on a folder), the open tab below. Menus, dialogs and copy
+// progress live here too.
 Window {
     id: root
+    flags: Qt.Window | Qt.FramelessWindowHint // no title bar from Vela: the tabs are it
     width: 1180
     height: 720
     minimumWidth: 640
@@ -18,6 +20,9 @@ Window {
     title: current ? current.title + qsTr(" - File Explorer") : qsTr("File Explorer")
 
     onActiveChanged: Theme.windowActive = active
+
+    readonly property bool maximized: visibility === Window.Maximized
+    function toggleMaximized() { maximized ? showNormal() : showMaximized() }
 
     // --- preferences, remembered across launches ---
     Settings {
@@ -114,18 +119,29 @@ Window {
         }
     }
 
-    // --- the tabs, at the top ---
+    // --- the title bar, with the tabs ---
     Item {
         id: strip
         anchors { left: parent.left; right: parent.right; top: parent.top }
-        height: 40
+        height: root.visibility === Window.FullScreen ? 0 : 40
+        visible: height > 0
+
+        // The bar's free part moves the window; a double click maximizes it.
+        DragHandler {
+            target: null
+            onActiveChanged: if (active) root.startSystemMove()
+        }
+        TapHandler {
+            onDoubleTapped: root.toggleMaximized()
+        }
 
         Row {
             id: tabRow
             x: 8
             anchors.bottom: parent.bottom
             spacing: 2
-            readonly property real tabWidth: Math.max(100, Math.min(240, (strip.width - 64) / Math.max(1, root.tabs.length)))
+            // Room is left for "+", the window buttons and a piece of bar to drag.
+            readonly property real tabWidth: Math.max(100, Math.min(240, (strip.width - x - 40 - 3 * 46 - 48) / Math.max(1, root.tabs.length)))
 
             Repeater {
                 model: root.tabs
@@ -204,6 +220,15 @@ Window {
                 icon: "list-add"
                 onClicked: root.newTab("home:", "")
             }
+        }
+        Row {
+            anchors { right: parent.right; top: parent.top }
+            WindowButton { glyph: "M 0 5.5 H 10"; onClicked: root.showMinimized() }
+            WindowButton {
+                glyph: root.maximized ? "M 0.5 2.5 H 7.5 V 9.5 H 0.5 Z M 2.5 2.5 V 0.5 H 9.5 V 7.5 H 7.5" : "M 0.5 0.5 H 9.5 V 9.5 H 0.5 Z"
+                onClicked: root.toggleMaximized()
+            }
+            WindowButton { glyph: "M 0 0 L 10 10 M 10 0 L 0 10"; closes: true; onClicked: root.close() }
         }
     }
 
@@ -332,6 +357,8 @@ Window {
             }
         }
     }
+
+    ResizeEdges {}
 
     MenuLayer {
         id: menuLayer
