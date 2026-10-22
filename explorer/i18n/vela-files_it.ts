@@ -320,8 +320,36 @@
         <translation>Impossibile svuotare il Cestino (%1 elementi non eliminati).</translation>
     </message>
     <message>
+        <source>7-Zip or zip would be needed to compress, but it isn&apos;t installed.</source>
+        <translation>Per comprimere servirebbero 7-Zip o zip, ma non sono installati.</translation>
+    </message>
+    <message>
+        <source>tar would be needed to compress to tar.gz, but it isn&apos;t installed.</source>
+        <translation>Per comprimere in tar.gz servirebbe tar, ma non è installato.</translation>
+    </message>
+    <message>
+        <source>“%1” couldn&apos;t be created.</source>
+        <translation>Impossibile creare «%1».</translation>
+    </message>
+    <message>
+        <source>Couldn&apos;t create “%1”:</source>
+        <translation>Impossibile creare «%1»:</translation>
+    </message>
+    <message>
         <source>Compress</source>
         <translation>Comprimi</translation>
+    </message>
+    <message>
+        <source>No program to extract “%1”.</source>
+        <translation>Nessun programma per estrarre «%1».</translation>
+    </message>
+    <message>
+        <source>“%1” couldn&apos;t be extracted.</source>
+        <translation>Impossibile estrarre «%1».</translation>
+    </message>
+    <message>
+        <source>Couldn&apos;t extract “%1”:</source>
+        <translation>Impossibile estrarre «%1»:</translation>
     </message>
     <message>
         <source>Extract</source>
@@ -511,6 +539,26 @@
     <message>
         <source>Keep both</source>
         <translation>Mantieni entrambi</translation>
+    </message>
+    <message>
+        <source>Compress</source>
+        <translation>Comprimi</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <translation>Nome</translation>
+    </message>
+    <message>
+        <source>Format</source>
+        <translation>Formato</translation>
+    </message>
+    <message>
+        <source>ZIP file</source>
+        <translation>File ZIP</translation>
+    </message>
+    <message>
+        <source>tar.gz file</source>
+        <translation>File tar.gz</translation>
     </message>
 </context>
 <context>
@@ -906,24 +954,12 @@
         <translation>Aggiungi ad &amp;Accesso rapido</translation>
     </message>
     <message>
-        <source>Extract &amp;all...</source>
-        <translation>Estrai &amp;tutto...</translation>
+        <source>Extract &amp;here</source>
+        <translation>Estrai &amp;qui</translation>
     </message>
     <message>
-        <source>Co&amp;mpress to</source>
-        <translation>Compri&amp;mi in</translation>
-    </message>
-    <message>
-        <source>&amp;ZIP file</source>
-        <translation>File &amp;ZIP</translation>
-    </message>
-    <message>
-        <source>&amp;7z file</source>
-        <translation>File &amp;7z</translation>
-    </message>
-    <message>
-        <source>&amp;TAR file</source>
-        <translation>File &amp;TAR</translation>
+        <source>Co&amp;mpress...</source>
+        <translation>Compri&amp;mi...</translation>
     </message>
     <message>
         <source>Copy as &amp;path</source>

@@ -62,9 +62,17 @@ public:
     Q_INVOKABLE void restoreFromTrash(const QStringList& paths); // files in …/Trash/files
     Q_INVOKABLE QString originalLocation(const QString& trashedPath) const;
 
-    Q_INVOKABLE void compress(const QStringList& paths, const QString& format);
+    // Compress: the archive takes `name` in `directory` ("name (2).zip" when
+    // it's taken, like "Paste here"), `format` "zip" or "tar.gz".
+    Q_INVOKABLE void compress(const QStringList& paths, const QString& directory,
+        const QString& name, const QString& format);
+    // 7z or zip exists, so "Compress" can offer the ZIP format.
+    Q_INVOKABLE bool zipSupported() const;
     Q_INVOKABLE bool isArchive(const QString& path) const;
-    Q_INVOKABLE void extractAll(const QString& path);
+    // "Extract here": into a folder named after the archive next to it,
+    // "name (2)" when it exists. It returns the folder: the double click goes
+    // in when the files arrive, the menu doesn't move.
+    Q_INVOKABLE QString extractAll(const QString& path);
 
     Q_INVOKABLE void undo();
     Q_INVOKABLE void cancelJob(int id);

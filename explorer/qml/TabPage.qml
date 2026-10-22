@@ -140,12 +140,26 @@ Item {
         if (folder.isDirAt(row)) {
             navigate(path)
         } else if (!isTrash) {
-            Ops.open([path])
+            // An archive opens like the folder it becomes: Windows double
+            // click. It extracts next to the archive, without overwriting,
+            // and Files goes in (the menu's "Extract here" instead stays).
+            if (Ops.isArchive(path)) {
+                const target = Ops.extractAll(path)
+                if (target !== "") navigate(target)
+            } else {
+                Ops.open([path])
+            }
         }
     }
     function openSelection() {
         const paths = folder.selectedPaths()
         if (paths.length === 0) return
+        // Enter on one file and "Open" behave like the double click.
+        if (paths.length === 1 && !isTrash && Ops.isArchive(paths[0])) {
+            const target = Ops.extractAll(paths[0])
+            if (target !== "") navigate(target)
+            return
+        }
         const first = folder.indexOf(paths[0])
         if (paths.length === 1 && folder.isDirAt(first)) {
             navigate(paths[0])
@@ -330,14 +344,15 @@ Item {
             entries.push({ text: qsTr("Open in &Terminal"), icon: "utilities-terminal", action: () => System.openTerminal(single) })
         }
         if (single !== "" && Ops.isArchive(single)) {
-            entries.push({ text: qsTr("Extract &all..."), icon: "archive-extract", action: () => Ops.extractAll(single) })
+            // One step, like tar xf: it extracts next to the archive and
+            // Files doesn't move (the double click is the one that goes in).
+            entries.push({ text: qsTr("Extract &here"), icon: "archive-extract", action: () => Ops.extractAll(single) })
         }
         entries.push(
-            { text: qsTr("Co&mpress to"), icon: "archive-insert", children: [
-                { text: qsTr("&ZIP file"), icon: "application-zip", action: () => Ops.compress(paths, "zip") },
-                { text: qsTr("&7z file"), icon: "application-x-7z-compressed", action: () => Ops.compress(paths, "7z") },
-                { text: qsTr("&TAR file"), icon: "application-x-tar", action: () => Ops.compress(paths, "tar") }
-            ] },
+            // Windows' "Compress": the dialog takes the archive's name and
+            // the format (ZIP or tar.gz); the desktop's menu keeps its list
+            // instead, it has no dialogs.
+            { text: qsTr("Co&mpress..."), icon: "archive-insert", action: () => win.askCompress(paths) },
             { text: qsTr("Copy as &path"), icon: "edit-copy-path", shortcut: qsTr("Ctrl+Shift+C"), action: () => Ops.copyAsPath(paths) },
             { text: qsTr("P&roperties"), icon: "document-properties", shortcut: qsTr("Alt+Enter"), action: () => Ops.showProperties(paths) },
             { separator: true },

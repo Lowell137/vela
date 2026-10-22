@@ -126,6 +126,13 @@ if(VELA_BUILD_TOOLS)
     target_link_libraries(vela-files-peek-test PRIVATE vela-files-core Qt6::Test)
     add_test(NAME files-peek COMMAND vela-files-peek-test)
     set_tests_properties(files-peek PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+    # Archives: "Extract here" and "Compress" with the real tar, 7z, zip and
+    # unzip as the app runs them.
+    qt_add_executable(vela-files-archives-test tests/archives.cpp)
+    target_compile_options(vela-files-archives-test PRIVATE -Wall -Wextra)
+    target_link_libraries(vela-files-archives-test PRIVATE vela-files-core Qt6::Test)
+    add_test(NAME files-archives COMMAND vela-files-archives-test)
+    set_tests_properties(files-archives PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
     add_test(NAME files-copies COMMAND vela-files-test)
     set_tests_properties(files-copies PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()
