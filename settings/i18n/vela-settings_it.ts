@@ -1280,6 +1280,10 @@ Specifiche sistema
         <translation>Alimentazione</translation>
     </message>
     <message>
+        <source>Storage</source>
+        <translation>Archiviazione</translation>
+    </message>
+    <message>
         <source>About</source>
         <translation>Informazioni</translation>
     </message>
@@ -1478,6 +1482,10 @@ Specifiche sistema
     <message>
         <source>profile performance balanced</source>
         <translation>profilo prestazioni bilanciato</translation>
+    </message>
+    <message>
+        <source>disk space free used cache trash cleanup drive</source>
+        <translation>spazio disco libero usato cache cestino pulizia unità</translation>
     </message>
     <message>
         <source>specifications processor ram memory pc name rename version kernel graphics card</source>
@@ -2991,6 +2999,84 @@ Specifiche sistema
     </message>
 </context>
 <context>
+    <name>Storage</name>
+    <message>
+        <source>The trash is already empty.</source>
+        <translation>Il cestino è già vuoto.</translation>
+    </message>
+    <message>
+        <source>Some of the trash could not be deleted.</source>
+        <translation>Alcuni elementi del cestino non sono stati eliminati.</translation>
+    </message>
+    <message>
+        <source>The trash is emptied.</source>
+        <translation>Il cestino è stato svuotato.</translation>
+    </message>
+    <message>
+        <source>The cache is already empty.</source>
+        <translation>La cache è già vuota.</translation>
+    </message>
+    <message>
+        <source>Some of the cache could not be deleted.</source>
+        <translation>Alcuni elementi della cache non sono stati eliminati.</translation>
+    </message>
+    <message>
+        <source>The cache is cleared. The apps build it again.</source>
+        <translation>La cache è stata svuotata. Le app la ricostruiscono da sole.</translation>
+    </message>
+</context>
+<context>
+    <name>StoragePage</name>
+    <message>
+        <source>%1 of %2 used</source>
+        <translation>%1 di %2 usati</translation>
+    </message>
+    <message>
+        <source>Temporary files</source>
+        <translation>File temporanei</translation>
+    </message>
+    <message>
+        <source>Trash</source>
+        <translation>Cestino</translation>
+    </message>
+    <message>
+        <source>Empty</source>
+        <translation>Svuota</translation>
+    </message>
+    <message>
+        <source>Cache</source>
+        <translation>Cache</translation>
+    </message>
+    <message>
+        <source>Clear</source>
+        <translation>Cancella</translation>
+    </message>
+    <message>
+        <source>Biggest folders</source>
+        <translation>Cartelle più grandi</translation>
+    </message>
+    <message>
+        <source>Measuring...</source>
+        <translation>Misurazione in corso...</translation>
+    </message>
+    <message>
+        <source>The biggest things right in the home folder</source>
+        <translation>Le voci più grandi nella cartella home</translation>
+    </message>
+    <message>
+        <source>Nothing could be measured.</source>
+        <translation>Non è stato possibile misurare nulla.</translation>
+    </message>
+    <message>
+        <source>Clear the cache?</source>
+        <translation>Cancellare la cache?</translation>
+    </message>
+    <message>
+        <source>Everything in the cache (%1) is deleted right now. Apps build their cache again as they need it.</source>
+        <translation>Tutto il contenuto della cache (%1) verrà eliminato subito. Le app ricostruiscono la cache quando ne hanno bisogno.</translation>
+    </message>
+</context>
+<context>
     <name>System</name>
     <message>
         <source>; echo; read -r -p &apos;Press Enter to close&apos; _</source>
@@ -3034,6 +3120,14 @@ Specifiche sistema
     <message>
         <source>Screen and sleep, power mode</source>
         <translation>Schermo e sospensione, modalità di risparmio energia</translation>
+    </message>
+    <message>
+        <source>Storage</source>
+        <translation>Archiviazione</translation>
+    </message>
+    <message>
+        <source>Disk space, temporary files, cleanup</source>
+        <translation>Spazio su disco, file temporanei, pulizia</translation>
     </message>
     <message>
         <source>Multitasking</source>

@@ -25,6 +25,7 @@
 #include "levelmeter.h"
 #include "network.h"
 #include "preferences.h"
+#include "storage.h"
 #include "systemactions.h"
 #include "systemstatus.h"
 #include "updates.h"
@@ -176,6 +177,7 @@ int main(int argc, char* argv[])
     KeyboardLayouts layouts;
     SystemStatus status;
     Updates updates;
+    Storage storage;
 
     QQmlApplicationEngine engine;
     qmlEngine = &engine;
@@ -200,6 +202,7 @@ int main(int argc, char* argv[])
     context->setContextProperty(QStringLiteral("Layouts"), &layouts);
     context->setContextProperty(QStringLiteral("Status"), &status);
     context->setContextProperty(QStringLiteral("Updates"), &updates);
+    context->setContextProperty(QStringLiteral("Storage"), &storage);
     engine.loadFromModule("Vela.Settings", "Main");
     if (engine.rootObjects().isEmpty()) {
         return 1;
