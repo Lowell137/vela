@@ -5,10 +5,13 @@ import QtQuick
 import Vela.Controls
 
 // System > Updates, like Windows 11's Windows Update: whether there's a
-// newer Vela, what it brings, and where the updates come from. The updater
-// is the vela-update script, the same one the command line uses.
+// newer Vela, what it brings, where the updates come from, whether the page
+// checks by itself, and the packages to go back to. The updater is the
+// vela-update script, the same one the command line uses.
 Page {
     id: page
+
+    Component.onCompleted: Updates.checkIfDue()
 
     readonly property string status: {
         if (Updates.status === "checking") {
@@ -20,8 +23,11 @@ Page {
         if (Updates.status === "available") {
             return qsTr("Update available: %1").arg(Updates.newRevision)
         }
+        if (Updates.status === "recently-installed") {
+            return Updates.message
+        }
         if (Updates.status === "updating") {
-            return qsTr("The update is running in a terminal")
+            return Updates.message
         }
         if (Updates.status === "error") {
             return Updates.message
@@ -35,7 +41,7 @@ Page {
             title: qsTr("Vela Update")
             description: page.status
             trailing: Button {
-                text: qsTr("Check for updates")
+                text: Updates.busy ? qsTr("Checking...") : qsTr("Check for updates")
                 usable: !Updates.busy
                 onClicked: Updates.check()
             }
@@ -43,6 +49,15 @@ Page {
                 width: parent.width
                 spacing: 8
 
+                Text {
+                    width: parent.width
+                    visible: Updates.paused
+                    // Like Windows' "You've paused updates on {date}".
+                    text: qsTr("Updates are paused until %1.").arg(Updates.pausedUntil)
+                    color: Theme.textSecondary
+                    font.pixelSize: Theme.fontCaption
+                    wrapMode: Text.Wrap
+                }
                 Text {
                     width: parent.width
                     visible: Updates.installedVersion !== ""
@@ -53,8 +68,8 @@ Page {
                 }
                 Text {
                     width: parent.width
-                    visible: Updates.lastChecked !== ""
-                    text: qsTr("Last checked: %1").arg(Updates.lastChecked)
+                    visible: Updates.lastCheck !== ""
+                    text: qsTr("Last checked: %1").arg(Updates.lastCheck)
                     color: Theme.textSecondary
                     font.pixelSize: Theme.fontCaption
                     elide: Text.ElideRight
@@ -65,16 +80,33 @@ Page {
                     accent: true
                     onClicked: Updates.install()
                 }
+                Row {
+                    visible: Updates.status === "updating"
+                    spacing: 8
+                    Button {
+                        text: qsTr("Update in another terminal")
+                        onClicked: Updates.install()
+                    }
+                    Button {
+                        // The restarter: the update works from the next
+                        // session, so end this one (like Windows Update's
+                        // "Restart now").
+                        accent: true
+                        text: qsTr("Log out to finish")
+                        onClicked: Updates.logOut()
+                    }
+                }
                 Text {
                     width: parent.width
-                    visible: Updates.available
+                    visible: Updates.status === "updating"
                     text: qsTr("The package manager asks for your password in the terminal.")
                     color: Theme.textSecondary
                     font.pixelSize: Theme.fontCaption
                     wrapMode: Text.Wrap
                 }
 
-                // What's new: the commits the update brings.
+                // What's new: the commits the update brings (or brought, when
+                // it was installed since the last look).
                 Column {
                     width: parent.width
                     spacing: 4
@@ -103,6 +135,79 @@ Page {
                         color: Theme.textSecondary
                         font.pixelSize: Theme.fontCaption
                     }
+                }
+            }
+        }
+    }
+
+    CardGroup {
+        Card {
+            icon: "calendar" // "plate"? The schedule of the automatic checks.
+            title: qsTr("Update options")
+            description: qsTr("How often the page checks by itself, and the pause")
+            trailing: Choice {
+                model: [qsTr("Daily"), qsTr("Weekly"), qsTr("Never")]
+                currentIndex: Updates.autoCheck === "weekly" ? 1 : Updates.autoCheck === "never" ? 2 : 0
+                onChosen: index => Updates.autoCheck = index === 1 ? "weekly" : index === 2 ? "never" : "daily"
+            }
+        }
+        Card {
+            icon: "media-playback-pause"
+            title: qsTr("Pause updates")
+            description: Updates.paused ? qsTr("Resumed on %1.").arg(Updates.pausedUntil) : qsTr("No checks for seven days, then they start again")
+            trailing: Button {
+                text: Updates.paused ? qsTr("Resume") : qsTr("For a week")
+                onClicked: {
+                    if (Updates.paused) {
+                        Updates.pausedUntil = ""
+                        return
+                    }
+                    const day = new Date()
+                    day.setDate(day.getDate() + 7)
+                    const month = day.getMonth() + 1
+                    Updates.pausedUntil = day.getFullYear() + "-" + (month < 10 ? "0" : "") + month + "-"
+                        + (day.getDate() < 10 ? "0" : "") + day.getDate()
+                }
+            }
+        }
+    }
+
+    CardGroup {
+        visible: Updates.rollbackTargets.length > 0
+        Card {
+            icon: "edit-undo"
+            title: qsTr("Rollback")
+            description: qsTr("Go back to a package the updater keeps in its cache")
+            contentItem: Column {
+                width: parent.width
+                spacing: 4
+                Repeater {
+                    model: Updates.rollbackTargets.slice(0, 5)
+                    delegate: Row {
+                        id: row
+                        required property var modelData
+                        width: parent.width
+                        Text {
+                            width: parent.width - goBack.width - 8
+                            text: row.modelData
+                            color: Theme.textSecondary
+                            font.pixelSize: Theme.fontCaption
+                            elide: Text.ElideRight
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                        Button {
+                            id: goBack
+                            text: qsTr("Roll back")
+                            onClicked: Updates.rollback(row.modelData)
+                        }
+                    }
+                }
+                Text {
+                    width: parent.width
+                    visible: Updates.rollbackTargets.length > 5
+                    text: qsTr("and %1 more").arg(Updates.rollbackTargets.length - 5)
+                    color: Theme.textSecondary
+                    font.pixelSize: Theme.fontCaption
                 }
             }
         }

@@ -926,6 +926,10 @@ Specifiche sistema
         <translation>Sempre</translation>
     </message>
     <message>
+        <source>Automatic</source>
+        <translation type="unfinished">Automatica</translation>
+    </message>
+    <message>
         <source>Show every frame right away in full-screen games</source>
         <translation>Mostra subito ogni fotogramma nei giochi a schermo intero</translation>
     </message>
@@ -940,10 +944,6 @@ Specifiche sistema
     <message>
         <source>A full-screen game goes to the screen without being redrawn. If a game shows a black screen or garbled pictures, turn it off</source>
         <translation>Un gioco a schermo intero va sullo schermo senza essere ridisegnato. Se un gioco mostra schermo nero o immagini corrotte, disattivalo</translation>
-    </message>
-    <message>
-        <source>direct scanout black screen glitch game full screen flicker</source>
-        <translation>scanout diretto schermo nero glitch gioco schermo intero</translation>
     </message>
     <message>
         <source>Screen sharing</source>
@@ -1109,6 +1109,14 @@ Specifiche sistema
     <message>
         <source>Taskbar, Start, Settings and title bars. A theme&apos;s dark version follows the mode</source>
         <translation>Barra delle applicazioni, Start, Impostazioni e barre del titolo. La versione scura di un tema segue la modalità</translation>
+    </message>
+    <message>
+        <source>Fluent app and file icons</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Not installed. The AUR package fluent-icon-theme-git (search &quot;fluent-icon-theme&quot;) adds it; the Vela theme uses it when present</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Preview</source>
@@ -1302,6 +1310,10 @@ Specifiche sistema
     <message>
         <source>Keyboard shortcuts</source>
         <translation>Scorciatoie da tastiera</translation>
+    </message>
+    <message>
+        <source>Themes</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Icons</source>
@@ -1560,6 +1572,10 @@ Specifiche sistema
         <translation>tasti scorciatoie combinazioni super chiudi finestra comando</translation>
     </message>
     <message>
+        <source>theme glass liquid transparent blur radius rounded</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Icon theme</source>
         <translation>Tema delle icone</translation>
     </message>
@@ -1670,6 +1686,14 @@ Specifiche sistema
     <message>
         <source>games tearing latency full screen vsync</source>
         <translation>giochi tearing latenza schermo intero vsync</translation>
+    </message>
+    <message>
+        <source>Direct scanout</source>
+        <translation type="unfinished">Scanout diretto</translation>
+    </message>
+    <message>
+        <source>direct scanout black screen glitch game full screen flicker</source>
+        <translation type="unfinished">scanout diretto schermo nero glitch gioco schermo intero</translation>
     </message>
     <message>
         <source>Snap layouts</source>
@@ -2099,6 +2123,14 @@ Specifiche sistema
         <translation>Intensità</translation>
     </message>
     <message>
+        <source>Experimental NVIDIA fix</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Use Vulkan instead of the monitor&apos;s gamma LUT if Night light causes broken colors. May disable direct scanout.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Schedule night light</source>
         <translation>Pianifica luce notturna</translation>
     </message>
@@ -2203,6 +2235,14 @@ Specifiche sistema
     <message>
         <source>Appearance</source>
         <translation>Aspetto</translation>
+    </message>
+    <message>
+        <source>Themes</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Glass looks and other themes for the shell and apps</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Blur behind see-through windows</source>
@@ -2362,6 +2402,10 @@ Specifiche sistema
         <translation>Vista attività</translation>
     </message>
     <message>
+        <source>Spotlight search</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Show desktop</source>
         <translation>Mostra desktop</translation>
     </message>
@@ -2376,6 +2420,10 @@ Specifiche sistema
     <message>
         <source>Run</source>
         <translation>Esegui</translation>
+    </message>
+    <message>
+        <source>Spotlight</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Power-user menu</source>
@@ -2434,6 +2482,14 @@ Specifiche sistema
         <translation>Sposta la finestra sul desktop precedente / successivo</translation>
     </message>
     <message>
+        <source>Go to desktop 1 to 10</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Move the window to desktop 1 to 10</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>New desktop</source>
         <translation>Nuovo desktop</translation>
     </message>
@@ -2480,6 +2536,10 @@ Specifiche sistema
     <message>
         <source>Type the command to run</source>
         <translation>Scrivi il comando da eseguire</translation>
+    </message>
+    <message>
+        <source>Couldn&apos;t save the shortcut</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -2546,6 +2606,14 @@ Specifiche sistema
     <message>
         <source>Remove</source>
         <translation>Rimuovi</translation>
+    </message>
+    <message>
+        <source>Asked for by apps</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No key yet</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Also available</source>
@@ -3091,6 +3159,26 @@ Specifiche sistema
         <translation>A sinistra</translation>
     </message>
     <message>
+        <source>Taskbar style</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Islands floats three separate surfaces, Dock is a macOS-like dock with a top panel; on the left and right they fall back to Classic</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Classic</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Islands</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Dock and top panel</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Taskbar position</source>
         <translation>Posizione della barra delle applicazioni</translation>
     </message>
@@ -3113,6 +3201,14 @@ Specifiche sistema
     <message>
         <source>With more than one monitor, each gets its own taskbar</source>
         <translation>Con più di un monitor, ognuno ha la sua barra delle applicazioni</translation>
+    </message>
+    <message>
+        <source>Show windows from all desktops</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The taskbar lists the open apps of every desktop, not only the current one</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Hides until you move the pointer to the screen edge</source>
@@ -3144,15 +3240,7 @@ Specifiche sistema
     </message>
     <message>
         <source>Show desktop from taskbar corner</source>
-        <translation>Mostra il desktop dall'angolo della barra delle applicazioni</translation>
-    </message>
-    <message>
-        <source>Click the far-right edge of any taskbar to show or restore your windows (also with Super+D)</source>
-        <translation>Fai clic sul bordo destro di una barra delle applicazioni per mostrare o ripristinare le finestre (anche con Super+D)</translation>
-    </message>
-    <message>
-        <source>Show desktop from taskbar corner</source>
-        <translation>Mostra il desktop dall'angolo della barra delle applicazioni</translation>
+        <translation>Mostra il desktop dall&apos;angolo della barra delle applicazioni</translation>
     </message>
     <message>
         <source>Click the far-right edge of any taskbar to show or restore your windows (also with Super+D)</source>
@@ -3161,6 +3249,65 @@ Specifiche sistema
     <message>
         <source>End task</source>
         <translation>Termina attività</translation>
+    </message>
+</context>
+<context>
+    <name>ThemesPage</name>
+    <message>
+        <source>Vela (default)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Theme</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&quot;%1&quot; isn&apos;t installed: Vela&apos;s own look is used</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Colors and corners of the shell and the apps. Your own themes: ~/.config/vela/themes/&lt;name&gt;.conf</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Styles</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Taskbar</source>
+        <translation type="unfinished">Barra delle applicazioni</translation>
+    </message>
+    <message>
+        <source>Start menu</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Notification center and quick settings</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>From the theme</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Your own styles: ~/.config/vela/themes/%1/&lt;name&gt;.conf</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Blur behind the taskbar</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>A floating taskbar: the strip around it blurred while a window is maximized</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Zoom on press</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Quick settings&apos; sliders: the knob zooms a little, with a bounce, while it&apos;s held</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -3287,6 +3434,10 @@ Specifiche sistema
 <context>
     <name>Updates</name>
     <message>
+        <source>Vela was updated since you last looked.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>The vela-update script is not installed.</source>
         <translation>Lo script vela-update non è installato.</translation>
     </message>
@@ -3311,8 +3462,16 @@ Specifiche sistema
         <translation>L&apos;aggiornamento viene eseguito in un terminale.</translation>
     </message>
     <message>
-        <source>The update settings could not be saved.</source>
-        <translation>Non è stato possibile salvare le impostazioni degli aggiornamenti.</translation>
+        <source>The package of that version is not in the cache any more.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The rollback runs in a terminal.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The compositor is not answering.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -3330,10 +3489,6 @@ Specifiche sistema
         <translation>Aggiornamento disponibile: %1</translation>
     </message>
     <message>
-        <source>The update is running in a terminal</source>
-        <translation>L&apos;aggiornamento è in esecuzione in un terminale</translation>
-    </message>
-    <message>
         <source>Look for a newer Vela</source>
         <translation>Cerca una versione più recente di Vela</translation>
     </message>
@@ -3344,6 +3499,14 @@ Specifiche sistema
     <message>
         <source>Check for updates</source>
         <translation>Verifica la presenza di aggiornamenti</translation>
+    </message>
+    <message>
+        <source>Checking...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Updates are paused until %1.</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Installed: %1</source>
@@ -3358,6 +3521,14 @@ Specifiche sistema
         <translation>Scarica e installa</translation>
     </message>
     <message>
+        <source>Update in another terminal</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Log out to finish</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>The package manager asks for your password in the terminal.</source>
         <translation>Il gestore dei pacchetti chiede la password nel terminale.</translation>
     </message>
@@ -3368,6 +3539,58 @@ Specifiche sistema
     <message>
         <source>and %1 more</source>
         <translation>e altre %1</translation>
+    </message>
+    <message>
+        <source>Update options</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>How often the page checks by itself, and the pause</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Daily</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Weekly</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Never</source>
+        <translation type="unfinished">Mai</translation>
+    </message>
+    <message>
+        <source>Pause updates</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Resumed on %1.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No checks for seven days, then they start again</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Resume</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>For a week</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Rollback</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Go back to a package the updater keeps in its cache</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Roll back</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Update source</source>
