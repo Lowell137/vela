@@ -32,6 +32,8 @@ Window {
     // taskbar-fit: the bar shrinks to its content, apps and tray side by side
     // in the middle (Windhawk's WindowGlass). Widths only, no x: no binding loop.
     readonly property bool fit: floating && Theme.taskbarFit && !vertical
+    readonly property bool edge: fit && Theme.taskbarEdge > 0
+    readonly property int edgeGap: Math.max(Theme.taskbarMargin, 8) // the tray pill's gap to the screen's edge
     readonly property real trayGroupWidth: overflowButton.width + (tray.visible ? tray.width + 4 : 0)
         + screenShare.width + microphone.width + systemIcons.width + 2 + clock.width
     readonly property bool underMaximized: {
@@ -353,33 +355,37 @@ Window {
         }
         Rectangle {
             id: floatingSurface
-            readonly property bool split: root.fit && Theme.taskbarSplitGap > 0
+            readonly property bool split: root.fit && !root.edge && Theme.taskbarSplitGap > 0
             visible: root.floating
-            x: root.fit ? buttons.x - 10 : Theme.taskbarMargin
+            x: root.fit ? buttons.x - 10 : Theme.taskbarSideMargin
             y: Theme.taskbarMargin
             width: split ? buttons.width + 14
-                : root.fit ? buttons.width + root.fitGap + root.trayGroupWidth + 10 : parent.width - 2 * Theme.taskbarMargin
-            height: parent.height - 2 * Theme.taskbarMargin
+                : root.edge ? buttons.width + 20
+                : root.fit ? buttons.width + root.fitGap + root.trayGroupWidth + 10 : parent.width - 2 * Theme.taskbarSideMargin
+            readonly property bool flush: root.edge && Theme.taskbarFlush
+            height: parent.height - (flush ? 1 : 2) * Theme.taskbarMargin
             radius: Theme.taskbarRadius
             topRightRadius: split ? Theme.taskbarSplitRadius : radius
-            bottomRightRadius: topRightRadius
+            bottomRightRadius: flush ? 0 : topRightRadius
+            bottomLeftRadius: flush ? 0 : radius
             color: Theme.taskbar
             border.width: 1
-            border.color: Theme.stroke
+            border.color: Theme.taskbarStroke
         }
         // taskbar-split-gap: the tray a pill of its own, like WindowGlass's Split.
         Rectangle {
-            visible: floatingSurface.visible && floatingSurface.split
-            x: floatingSurface.x + floatingSurface.width + Theme.taskbarSplitGap
-            y: floatingSurface.y
-            width: buttons.x + buttons.width + root.fitGap + root.trayGroupWidth - x
-            height: floatingSurface.height
+            visible: floatingSurface.visible && (floatingSurface.split || root.edge)
+            x: root.edge ? parent.width - root.edgeGap - 12 - root.trayGroupWidth - 10
+                : floatingSurface.x + floatingSurface.width + Theme.taskbarSplitGap
+            y: floatingSurface.flush ? 3 : floatingSurface.y
+            width: root.edge ? root.trayGroupWidth + 22 : buttons.x + buttons.width + root.fitGap + root.trayGroupWidth - x
+            height: floatingSurface.flush ? parent.height - 6 : floatingSurface.height
             radius: Theme.taskbarRadius
-            topLeftRadius: Theme.taskbarSplitRadius
-            bottomLeftRadius: Theme.taskbarSplitRadius
+            topLeftRadius: root.edge ? radius : Theme.taskbarSplitRadius
+            bottomLeftRadius: topLeftRadius
             color: Theme.taskbar
             border.width: 1
-            border.color: Theme.stroke
+            border.color: Theme.taskbarStroke
         }
 
         // Empty space: Task Manager and taskbar settings.
@@ -405,7 +411,7 @@ Window {
             y: !root.vertical && Config.taskbarTop ? parent.height - height : 0
             width: root.vertical ? 1 : parent.width
             height: root.vertical ? parent.height : 1
-            color: Theme.stroke
+            color: Theme.taskbarStroke
             // Sliding changes only the layer-shell margin, which takes effect
             // at the next commit: this barely visible change makes every step
             // render (and so commit), otherwise it jumps or lags.
@@ -479,10 +485,11 @@ Window {
         columns: root.vertical ? 1 : 1000
         x: root.vertical ? Math.round((parent.width - width) / 2)
             : root.dock ? Math.round((parent.width - width) / 2)
+            : root.edge ? (Theme.taskbarEdge === 2 ? Theme.taskbarMargin + 12 : Math.round((parent.width - width) / 2))
             : root.fit ? Math.round((parent.width - width - root.fitGap - root.trayGroupWidth) / 2)
             : root.islands ? (Config.taskbarAlignment === "left" ? leftIsland.x + leftIsland.width + 14
                 : Math.max(leftIsland.x + leftIsland.width + 14, Math.round((parent.width - width) / 2)))
-            : Config.taskbarAlignment === "left" ? 12 + weather.width + (weather.width > 0 ? 8 : 0)
+            : Config.taskbarAlignment === "left" || Theme.taskbarAlignLeft ? 12 + weather.width + (weather.width > 0 ? 8 : 0)
               : Math.round((parent.width - width) / 2)
         y: root.vertical ? (Config.taskbarAlignment === "left" ? 12 : Math.max(12, Math.round((parent.height - height) / 2)))
             : root.dock ? dockPill.y + Math.round((dockPill.height - height) / 2)
@@ -744,10 +751,10 @@ Window {
     // taskbar, like Windows 11; at the tray end of a vertical one.
     WeatherWidget {
         id: weather
-        visible: root.primary && !root.dock && !root.fit && Weather.shown
+        visible: root.primary && !root.dock && !root.fit && Weather.shown && Theme.taskbarWeather
         vertical: root.vertical
         screenName: root.screenName
-        x: root.vertical ? 0 : root.islands ? 14 : 8
+        x: root.vertical ? 0 : root.islands ? 14 : 8 + (root.floating ? Theme.taskbarSideMargin : 0)
         y: root.vertical ? overflowButton.y - height : 0
     }
 
@@ -967,7 +974,9 @@ Window {
     Item {
         id: clock
         visible: !root.dock
-        x: root.vertical ? 0 : root.fit ? buttons.x + buttons.width + root.fitGap + root.trayGroupWidth - width : parent.width - width - 12
+        x: root.vertical ? 0 : root.edge ? parent.width - width - root.edgeGap - 12
+            : root.fit ? buttons.x + buttons.width + root.fitGap + root.trayGroupWidth - width
+            : parent.width - width - 12 - (root.floating ? Theme.taskbarSideMargin : 0)
         y: root.vertical ? showDesktop.y - height - 4 : 0
         readonly property bool badge: Notifications.history.count > 0 || Notifications.silenced
         width: root.vertical ? parent.width : clockColumn.implicitWidth + 16 + (badge ? 22 : 0)

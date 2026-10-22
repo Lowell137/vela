@@ -11,7 +11,46 @@ Item {
     width: 22
     height: 22
 
+    // taskbar-start-glyph=1: Windows 7's orb, drawn: a glass ball and the flag.
+    Item {
+        visible: Theme.taskbarStartGlyph === 1
+        anchors.centerIn: parent
+        width: 34
+        height: 34
+        Rectangle {
+            anchors.fill: parent
+            radius: width / 2
+            border.width: 1
+            border.color: "#B3FFFFFF"
+            gradient: Gradient {
+                GradientStop { position: 0; color: "#5DB4E8" }
+                GradientStop { position: 0.55; color: "#1A64A8" }
+                GradientStop { position: 1; color: "#0A3566" }
+            }
+        }
+        Rectangle { // the ball's gloss
+            x: 4; y: 2
+            width: 26; height: 14
+            radius: 13
+            gradient: Gradient {
+                GradientStop { position: 0; color: "#B3FFFFFF" }
+                GradientStop { position: 1; color: "#10FFFFFF" }
+            }
+        }
+        Grid {
+            anchors.centerIn: parent
+            columns: 2
+            spacing: 1
+            rotation: -8
+            Repeater {
+                model: ["#F35325", "#81BC06", "#05A6F0", "#FFBA08"]
+                Rectangle { required property string modelData; width: 8; height: 8; radius: 2; color: modelData }
+            }
+        }
+    }
+
     Shape {
+        visible: Theme.taskbarStartGlyph !== 1
         anchors.fill: parent
         // Soft antialiasing on the slanted edges too.
         layer.enabled: true

@@ -70,6 +70,9 @@ QtObject {
     readonly property color taskbar: themed("taskbar", light
         ? (acrylic ? Qt.rgba(0.95, 0.95, 0.96, 0.66) : Qt.rgba(0.94, 0.94, 0.95, 0.96))
         : (acrylic ? Qt.rgba(0.11, 0.11, 0.13, 0.62) : Qt.rgba(0.10, 0.10, 0.12, 0.94)))
+    // The hairline of the taskbar's edge and pills; a theme with a see-through
+    // taskbar sets it transparent (taskbar-stroke=#00000000).
+    readonly property color taskbarStroke: themed("taskbar-stroke", stroke)
     readonly property color surface: themed("surface", light
         ? (acrylic ? Qt.rgba(0.96, 0.96, 0.97, 0.74) : Qt.rgba(0.95, 0.95, 0.96, 0.98))
         : (acrylic ? Qt.rgba(0.14, 0.14, 0.16, 0.72) : Qt.rgba(0.14, 0.14, 0.16, 0.97)))
@@ -133,6 +136,29 @@ QtObject {
     // and tinted (vela.conf taskbar-backdrop=yes, Settings > Themes).
     readonly property bool taskbarBackdrop: themed("taskbar-backdrop", 0) !== 0
     readonly property color taskbarBackdropColor: themed("taskbar-backdrop-color", Qt.rgba(taskbar.r, taskbar.g, taskbar.b, 0.45))
+    // taskbar-edge: apps and tray are two pills, the tray at the screen's right
+    // edge (1: apps centered, like DockLike; 2: apps at the left, like
+    // LayerMicaUI). taskbar-align-left: a full-width bar with its apps at the
+    // left (Windows 7). taskbar-button-fill/-stroke: a tile under each open app.
+    // taskbar-side-margin: a floating bar that spans the screen keeps this gap
+    // at its left and right (Luminosity's DockMargin); default: taskbar-margin.
+    readonly property int taskbarSideMargin: themed("taskbar-side-margin", taskbarMargin)
+    readonly property int taskbarEdge: themed("taskbar-edge", 0)
+    // taskbar-flush: the apps' pill sits on the screen's bottom edge, its
+    // bottom corners square (DockLike); the tray's pill still floats.
+    readonly property bool taskbarFlush: themed("taskbar-flush", 0) !== 0
+    readonly property bool taskbarAlignLeft: themed("taskbar-align-left", 0) !== 0
+    // taskbar-start-glyph: 0 Vela's sail, 1 a glass orb with the four-color flag
+    // (Windows 7). taskbar-weather=0 hides the weather widget.
+    readonly property int taskbarStartGlyph: themed("taskbar-start-glyph", 0)
+    readonly property bool taskbarWeather: themed("taskbar-weather", 1) !== 0
+    // The tile under an open app: taskbar-button-fill (open) and -fill-active
+    // (the focused one) are the tile's lower color, a glossy gradient up to
+    // the lighter top if taskbar-button-gloss=1; only open apps get one.
+    readonly property color taskbarButtonFillActive: themed("taskbar-button-fill-active", taskbarButtonFill)
+    readonly property bool taskbarButtonGloss: themed("taskbar-button-gloss", 0) !== 0
+    readonly property color taskbarButtonFill: themed("taskbar-button-fill", "transparent")
+    readonly property color taskbarButtonStroke: themed("taskbar-button-stroke", "transparent")
     readonly property int taskbarSplitRadius: themed("taskbar-split-radius", 5) // the corners where they part
     // A style's own panel tint (startmenu/, notifications/): else the surface's.
     readonly property color startMenuSurface: themed("startmenu-surface", surface)
