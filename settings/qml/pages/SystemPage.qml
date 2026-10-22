@@ -31,6 +31,12 @@ Page {
             onClicked: root.navigate("power")
         }
         LinkCard {
+            icon: "system-software-update"
+            title: qsTr("Updates")
+            description: qsTr("Look for a newer Vela, what's new in it")
+            onClicked: root.navigate("updates")
+        }
+        LinkCard {
             icon: "view-split-left-right"
             title: qsTr("Multitasking")
             description: qsTr("Snap layouts, Task View hot corner, window rules")

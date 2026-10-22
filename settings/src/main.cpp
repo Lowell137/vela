@@ -27,6 +27,7 @@
 #include "preferences.h"
 #include "systemactions.h"
 #include "systemstatus.h"
+#include "updates.h"
 #include "weather.h"
 
 #include <QCommandLineParser>
@@ -174,6 +175,7 @@ int main(int argc, char* argv[])
     DefaultApps defaultApps(&apps, &preferences);
     KeyboardLayouts layouts;
     SystemStatus status;
+    Updates updates;
 
     QQmlApplicationEngine engine;
     qmlEngine = &engine;
@@ -197,6 +199,7 @@ int main(int argc, char* argv[])
     context->setContextProperty(QStringLiteral("DefaultApps"), &defaultApps);
     context->setContextProperty(QStringLiteral("Layouts"), &layouts);
     context->setContextProperty(QStringLiteral("Status"), &status);
+    context->setContextProperty(QStringLiteral("Updates"), &updates);
     engine.loadFromModule("Vela.Settings", "Main");
     if (engine.rootObjects().isEmpty()) {
         return 1;
