@@ -26,6 +26,8 @@ DEFAULT_SOURCE="https://github.com/vela-desktop/vela.git"
 KEEP=3 # old packages to keep
 # Who asks for the password: sudo in a terminal, or pkexec (a polkit window) when
 # Settings runs the update without a terminal; VELA_UPDATE_NOCONFIRM=1: no yes/no.
+# git must never open a pager (less) in the middle of an update.
+export GIT_PAGER=cat
 AUTH="${VELA_UPDATE_AUTH:-sudo}"
 NOCONFIRM="${VELA_UPDATE_NOCONFIRM:+--noconfirm}"
 
