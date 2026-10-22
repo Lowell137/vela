@@ -73,7 +73,7 @@ direction, not a promise.
 - A color picker.
 
 ### Settings
-- An Updates page, with a notification when a new version is out.
+- An Updates page (done): a notification when a new version is out is left.
 - Users and accounts: adding users, picture, password, automatic login.
 - Printers and scanners.
 - A keyboard shortcut editor.

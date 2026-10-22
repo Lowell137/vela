@@ -27,6 +27,7 @@
 #include "preferences.h"
 #include "systemactions.h"
 #include "systemstatus.h"
+#include "updates.h"
 
 #include <QCommandLineParser>
 #include <QGuiApplication>
@@ -171,6 +172,7 @@ int main(int argc, char* argv[])
     KeyboardLayouts layouts;
     SystemStatus status;
     Brightness brightness;
+    Updates updates;
 
     QQmlApplicationEngine engine;
     qmlEngine = &engine;
@@ -194,6 +196,7 @@ int main(int argc, char* argv[])
     context->setContextProperty(QStringLiteral("Layouts"), &layouts);
     context->setContextProperty(QStringLiteral("Status"), &status);
     context->setContextProperty(QStringLiteral("Brightness"), &brightness);
+    context->setContextProperty(QStringLiteral("Updates"), &updates);
     engine.loadFromModule("Vela.Settings", "Main");
     if (engine.rootObjects().isEmpty()) {
         return 1;

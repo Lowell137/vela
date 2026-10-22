@@ -31,6 +31,12 @@ Page {
             onClicked: root.navigate("power")
         }
         LinkCard {
+            icon: "system-software-update"
+            title: qsTr("Updates")
+            description: qsTr("Look for a newer Vela, what's new in it")
+            onClicked: root.navigate("updates")
+        }
+        LinkCard {
             icon: "edit-paste"
             title: qsTr("Clipboard")
             description: qsTr("Clipboard history (Win+V), clear")

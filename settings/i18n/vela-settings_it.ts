@@ -1636,6 +1636,22 @@ Specifiche sistema
         <source>Find a setting</source>
         <translation>Trova un&apos;impostazione</translation>
     </message>
+    <message>
+        <source>Updates</source>
+        <translation>Aggiornamenti</translation>
+    </message>
+    <message>
+        <source>Check for updates</source>
+        <translation>Verifica la presenza di aggiornamenti</translation>
+    </message>
+    <message>
+        <source>update upgrade new version install download package</source>
+        <translation>aggiornamento aggiornamenti nuova versione installa scarica pacchetto</translation>
+    </message>
+    <message>
+        <source>update upgrade new version check</source>
+        <translation>aggiornamento aggiornamenti nuova versione verifica</translation>
+    </message>
 </context>
 <context>
     <name>MousePage</name>
@@ -2475,6 +2491,14 @@ Specifiche sistema
         <source>Device specifications, rename your PC, operating system specifications</source>
         <translation>Specifiche del dispositivo, rinomina il PC, specifiche del sistema operativo</translation>
     </message>
+    <message>
+        <source>Updates</source>
+        <translation>Aggiornamenti</translation>
+    </message>
+    <message>
+        <source>Look for a newer Vela, what&apos;s new in it</source>
+        <translation>Cerca una versione più recente di Vela e le sue novità</translation>
+    </message>
 </context>
 <context>
     <name>TaskbarPage</name>
@@ -2639,6 +2663,108 @@ Specifiche sistema
     <message>
         <source>Four-finger gestures</source>
         <translation>Gesti con quattro dita</translation>
+    </message>
+</context>
+<context>
+    <name>Updates</name>
+    <message>
+        <source>The vela-update script is not installed.</source>
+        <translation>Lo script vela-update non è installato.</translation>
+    </message>
+    <message>
+        <source>The update could not be checked.</source>
+        <translation>Non è stato possibile verificare l&apos;aggiornamento.</translation>
+    </message>
+    <message>
+        <source>Vela isn&apos;t installed as a package: the update will install it.</source>
+        <translation>Vela non è installato come pacchetto: l&apos;aggiornamento lo installerà.</translation>
+    </message>
+    <message>
+        <source>The terminal is not installed.</source>
+        <translation>Il terminale non è installato.</translation>
+    </message>
+    <message>
+        <source>The terminal could not be started.</source>
+        <translation>Non è stato possibile avviare il terminale.</translation>
+    </message>
+    <message>
+        <source>The update runs in a terminal.</source>
+        <translation>L&apos;aggiornamento viene eseguito in un terminale.</translation>
+    </message>
+    <message>
+        <source>The update settings could not be saved.</source>
+        <translation>Non è stato possibile salvare le impostazioni degli aggiornamenti.</translation>
+    </message>
+</context>
+<context>
+    <name>UpdatesPage</name>
+    <message>
+        <source>Checking for updates...</source>
+        <translation>Ricerca degli aggiornamenti...</translation>
+    </message>
+    <message>
+        <source>You&apos;re up to date</source>
+        <translation>Sei aggiornato</translation>
+    </message>
+    <message>
+        <source>Update available: %1</source>
+        <translation>Aggiornamento disponibile: %1</translation>
+    </message>
+    <message>
+        <source>The update is running in a terminal</source>
+        <translation>L&apos;aggiornamento è in esecuzione in un terminale</translation>
+    </message>
+    <message>
+        <source>Look for a newer Vela</source>
+        <translation>Cerca una versione più recente di Vela</translation>
+    </message>
+    <message>
+        <source>Vela Update</source>
+        <translation>Aggiornamenti di Vela</translation>
+    </message>
+    <message>
+        <source>Check for updates</source>
+        <translation>Verifica la presenza di aggiornamenti</translation>
+    </message>
+    <message>
+        <source>Installed: %1</source>
+        <translation>Installata: %1</translation>
+    </message>
+    <message>
+        <source>Last checked: %1</source>
+        <translation>Ultima verifica: %1</translation>
+    </message>
+    <message>
+        <source>Download and install</source>
+        <translation>Scarica e installa</translation>
+    </message>
+    <message>
+        <source>The package manager asks for your password in the terminal.</source>
+        <translation>Il gestore dei pacchetti chiede la password nel terminale.</translation>
+    </message>
+    <message>
+        <source>What&apos;s new</source>
+        <translation>Novità</translation>
+    </message>
+    <message>
+        <source>and %1 more</source>
+        <translation>e altre %1</translation>
+    </message>
+    <message>
+        <source>Update source</source>
+        <translation>Origine degli aggiornamenti</translation>
+    </message>
+    <message>
+        <source>The Git repository or the folder the updates come from</source>
+        <translation>Il repository Git o la cartella da cui proviene l&apos;aggiornamento</translation>
+    </message>
+    <message>
+        <source>The upstream repository, unless it is set.</source>
+        <translation>Il repository upstream, se non impostato.</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation>Salva</translation>
     </message>
 </context>
 <context>
