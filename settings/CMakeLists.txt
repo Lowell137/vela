@@ -46,6 +46,8 @@ qt_add_executable(vela-settings
     src/keyboardlayouts.h
     src/preferences.cpp
     src/preferences.h
+    src/storage.cpp
+    src/storage.h
     src/updates.cpp
     src/updates.h
     ${PROJECT_SOURCE_DIR}/compositor/src/legacy_names.c
@@ -87,6 +89,7 @@ set(SETTINGS_QML_FILES
     qml/pages/NotificationsPage.qml
     qml/pages/PowerPage.qml
     qml/pages/UpdatesPage.qml
+    qml/pages/StoragePage.qml
     qml/pages/AboutPage.qml
     qml/pages/BluetoothPage.qml
     qml/pages/NetworkPage.qml

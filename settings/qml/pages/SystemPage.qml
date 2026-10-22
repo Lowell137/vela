@@ -37,6 +37,12 @@ Page {
             onClicked: root.navigate("updates")
         }
         LinkCard {
+            icon: "drive-harddisk"
+            title: qsTr("Storage")
+            description: qsTr("Disk space, temporary files, cleanup")
+            onClicked: root.navigate("storage")
+        }
+        LinkCard {
             icon: "view-split-left-right"
             title: qsTr("Multitasking")
             description: qsTr("Snap layouts, Task View hot corner, window rules")
