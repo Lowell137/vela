@@ -10,6 +10,9 @@
 #include <QProcess>
 #include <QString>
 #include <QStringList>
+#include <QVariantMap>
+
+#include <functional>
 
 // System > Updates, like Windows' Windows Update: it asks the vela-update
 // script (the one the command line uses) whether there is a newer commit,
@@ -44,6 +47,19 @@ class Updates : public QObject {
     Q_PROPERTY(QStringList flatpakUpdates READ flatpakUpdates NOTIFY flatpakChanged)
     Q_PROPERTY(bool flatpakChecking READ flatpakChecking NOTIFY flatpakChanged)
 
+    // Packages with a newer version: pacman's (checkupdates) and the AUR's
+    // (paru or yay), "name old -> new" each.
+    Q_PROPERTY(QStringList pacmanUpdates READ pacmanUpdates NOTIFY packagesChanged)
+    Q_PROPERTY(QStringList aurUpdates READ aurUpdates NOTIFY packagesChanged)
+    Q_PROPERTY(bool aurAvailable READ aurAvailable CONSTANT)
+    Q_PROPERTY(bool pacmanAvailable READ pacmanAvailable CONSTANT)
+    Q_PROPERTY(bool packagesChecking READ packagesChecking NOTIFY packagesChanged)
+
+    // The updates that run in the background (vela, pacman, aur, flatpak,
+    // rollback): name -> { state: running|done|error, message }. Passwords come
+    // from polkit (pkexec); Show terminal follows the log.
+    Q_PROPERTY(QVariantMap jobs READ jobs NOTIFY jobsChanged)
+
 public:
     explicit Updates(QObject* parent = nullptr);
     ~Updates() override;
@@ -61,6 +77,12 @@ public:
     Q_INVOKABLE void checkFlatpak();
     // Updates them in a terminal (flatpak update asks before it does).
     Q_INVOKABLE void updateFlatpak();
+    // Opens a terminal that follows (or shows) a job's log.
+    Q_INVOKABLE void showJob(const QString& name);
+    Q_INVOKABLE void checkPackages();
+    // Each runs in a terminal, where sudo and the helper ask what they need.
+    Q_INVOKABLE void updatePacman();
+    Q_INVOKABLE void updateAur();
     // Ends the session, so the installed update starts (the compositor does
     // it, like the shell's own "Log out").
     Q_INVOKABLE void logOut();
@@ -84,6 +106,12 @@ public:
     QString pausedUntil() const { return m_pausedUntil; }
     bool paused() const;
     QStringList rollbackTargets() const { return m_rollbackTargets; }
+    QVariantMap jobs() const { return m_jobs; }
+    QStringList pacmanUpdates() const { return m_pacmanUpdates; }
+    QStringList aurUpdates() const { return m_aurUpdates; }
+    bool pacmanAvailable() const;
+    bool aurAvailable() const { return !aurHelper().isEmpty(); }
+    bool packagesChecking() const { return m_packagesPending > 0; }
     bool flatpakInstalled() const;
     QStringList flatpakUpdates() const { return m_flatpakUpdates; }
     bool flatpakChecking() const { return m_flatpakProcess != nullptr; }
@@ -91,8 +119,17 @@ public:
 signals:
     void changed();
     void flatpakChanged();
+    void packagesChanged();
+    void jobsChanged();
 
 private:
+    // Runs program with args without a terminal; done(ok) when it ends.
+    void runJob(const QString& name, const QString& program, const QStringList& arguments,
+        std::function<void(bool)> done = {});
+    void setJob(const QString& name, const QString& state, const QString& message = QString());
+    static QString jobLogPath(const QString& name);
+    static QString aurHelper(); // "paru", "yay" or ""
+    void runPackageCheck(const QString& program, const QStringList& arguments, QStringList& into);
     void loadConfig();
     void saveConfig();
     void parseOutput(const QString& output);
@@ -102,6 +139,11 @@ private:
 
     QProcess* m_process = nullptr;
     QProcess* m_flatpakProcess = nullptr;
+    QVariantMap m_jobs;
+    QHash<QString, QProcess*> m_jobProcesses;
+    QStringList m_pacmanUpdates;
+    QStringList m_aurUpdates;
+    int m_packagesPending = 0;
     QStringList m_flatpakUpdates;
     QString m_status;
     QString m_message;

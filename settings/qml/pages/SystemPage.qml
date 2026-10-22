@@ -31,12 +31,6 @@ Page {
             onClicked: root.navigate("power")
         }
         LinkCard {
-            icon: "system-software-update"
-            title: qsTr("Updates")
-            description: qsTr("Look for a newer Vela, what's new in it")
-            onClicked: root.navigate("updates")
-        }
-        LinkCard {
             icon: "drive-harddisk"
             title: qsTr("Storage")
             description: qsTr("Disk space, temporary files, cleanup")

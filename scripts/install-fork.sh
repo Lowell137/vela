@@ -40,3 +40,10 @@ echo ":: Building (a few minutes), then installing"
 VELA_GIT_URL="$REPO.git#branch=$BRANCH" makepkg -si
 
 echo ":: Done. Log out and choose Vela on the login screen (or log in again)."
+
+# Settings > Updates (vela-update) follows this fork, not the official project.
+config="${XDG_CONFIG_HOME:-$HOME/.config}/vela/updates.conf"
+if ! grep -qs '^source=' "$config"; then
+    mkdir -p "$(dirname "$config")"
+    printf 'source=%s.git\n' "$REPO" >> "$config"
+fi

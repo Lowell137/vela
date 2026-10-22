@@ -35,7 +35,7 @@ Window {
         "notifications": { title: qsTr("Notifications"), parent: "system", file: "NotificationsPage.qml", icon: "preferences-desktop-notification" },
         "multitasking": { title: qsTr("Multitasking"), parent: "system", file: "MultitaskingPage.qml", icon: "view-split-left-right" },
         "power": { title: qsTr("Power"), parent: "system", file: "PowerPage.qml", icon: "preferences-system-power-management" },
-        "updates": { title: qsTr("Updates"), parent: "system", file: "UpdatesPage.qml", icon: "system-software-update" },
+        "updates": { title: qsTr("Updates"), parent: "", file: "UpdatesPage.qml", icon: "system-software-update" },
         "storage": { title: qsTr("Storage"), parent: "system", file: "StoragePage.qml", icon: "drive-harddisk" },
         "about": { title: qsTr("About"), parent: "system", file: "AboutPage.qml", icon: "help-about" },
         "bluetooth": { title: qsTr("Bluetooth & devices"), parent: "", file: "BluetoothPage.qml", icon: "preferences-system-bluetooth" },
@@ -63,7 +63,7 @@ Window {
         "night-light": { title: qsTr("Night light"), parent: "display", file: "NightLightPage.qml", icon: "redshift-status-on" },
         "accessibility": { title: qsTr("Accessibility"), parent: "", file: "AccessibilityPage.qml", icon: "preferences-desktop-accessibility" }
     })
-    readonly property var sections: ["home", "system", "bluetooth", "network", "personalization", "apps", "time-language", "accessibility"]
+    readonly property var sections: ["home", "system", "bluetooth", "network", "personalization", "apps", "time-language", "accessibility", "updates"]
     // The names the shell uses (systemactions.cpp) for the menu entries.
     readonly property var aliases: ({
         "settings": "home", "personalize": "personalization", "taskbar-settings": "taskbar",
