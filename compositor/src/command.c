@@ -531,6 +531,16 @@ static void run_command(struct vela_server *server, const char *line)
         wallpaper_tint(server, line + 15);
     } else if (starts_with(line, "theme ")) {
         theme(server, line + 6);
+    } else if (starts_with(line, "blur-look ")) {
+        float saturation = 1.25f;
+        float strength = 1.0f;
+        if (sscanf(line + 10, "%f %f", &saturation, &strength) == 2) {
+            vela_blur_set_look(saturation, strength);
+            struct vela_output *output;
+            wl_list_for_each (output, &server->outputs, link) {
+                vela_output_frame_damage_whole(output->frame);
+            }
+        }
     } else if (starts_with(line, "taskbar-autohide ")) {
         const bool on = strcmp(line + 17, "yes") == 0;
         if (on != server->taskbar_autohide) {
