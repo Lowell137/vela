@@ -20,7 +20,8 @@ GPU and driver: see [hardware coverage](hardware.md) for the current limits.
 
 Everything Vela means to do after the work in progress, grouped by area and in
 no particular order. There are no dates, and an item listed here is a
-direction, not a promise.
+direction, not a promise. Ideas that have not been decided yet are written
+down in [ideas](ideas.md).
 
 ### Graphics and displays
 - **Color**: 10-bit outputs, HDR and `color-management-v1` (renderer
