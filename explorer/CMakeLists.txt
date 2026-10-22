@@ -90,6 +90,8 @@ set(FILES_QML_FILES
     qml/ScrollBar.qml
     qml/PreviewPane.qml
     qml/QuickPeek.qml
+    ${PROJECT_SOURCE_DIR}/notepad/qml/WindowButton.qml
+    ${PROJECT_SOURCE_DIR}/notepad/qml/ResizeEdges.qml
     ${PEEK_PDF_QML}
     ${PEEK_MEDIA_QML}
     ${PROJECT_SOURCE_DIR}/shell/qml/MenuPanel.qml
