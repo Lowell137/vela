@@ -28,6 +28,11 @@ class Updates : public QObject {
     Q_PROPERTY(bool available READ available NOTIFY changed)
     Q_PROPERTY(bool busy READ busy NOTIFY changed)
     Q_PROPERTY(QString installedVersion READ installedVersion NOTIFY changed)
+    // When the installed package was installed ("yyyy-MM-dd HH:mm"; empty if
+    // unknown), and whether that was after this session started: then the
+    // session still runs the previous Vela until the next login.
+    Q_PROPERTY(QString installedAt READ installedAt NOTIFY changed)
+    Q_PROPERTY(bool restartNeeded READ restartNeeded NOTIFY changed)
     Q_PROPERTY(QString newRevision READ newRevision NOTIFY changed)
     Q_PROPERTY(QString source READ source WRITE setSource NOTIFY changed)
     // The commits the update brings, one per line.
@@ -97,6 +102,8 @@ public:
     bool available() const { return m_status == QStringLiteral("available"); }
     bool busy() const { return m_process != nullptr; }
     QString installedVersion() const { return m_installedVersion; }
+    QString installedAt() const { return m_installedAt.isValid() ? m_installedAt.toString(QStringLiteral("yyyy-MM-dd HH:mm")) : QString(); }
+    bool restartNeeded() const { return m_restartNeeded; }
     QString newRevision() const { return m_newRevision; }
     QString source() const { return m_source; }
     QStringList changes() const { return m_changes; }
@@ -148,6 +155,8 @@ private:
     QString m_status;
     QString m_message;
     QString m_installedVersion;
+    QDateTime m_installedAt;
+    bool m_restartNeeded = false;
     QString m_newRevision;
     QString m_source;
     QStringList m_changes;

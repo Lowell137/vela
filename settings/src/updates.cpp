@@ -40,6 +40,32 @@ QString cacheDirectory()
     return QDir::homePath() + QStringLiteral("/.cache/vela-update");
 }
 
+// When pacman installed this version of the package (its local database); not
+// known for RPM.
+QDateTime packageInstallDate(const QString& version)
+{
+    QFile desc(QStringLiteral("/var/lib/pacman/local/vela-git-%1/desc").arg(version));
+    if (version.isEmpty() || !desc.open(QIODevice::ReadOnly)) {
+        return {};
+    }
+    const QStringList lines = QString::fromUtf8(desc.readAll()).split(QLatin1Char('\n'));
+    const int at = lines.indexOf(QStringLiteral("%INSTALLDATE%"));
+    return at >= 0 && at + 1 < lines.size() ? QDateTime::fromSecsSinceEpoch(lines.at(at + 1).trimmed().toLongLong()) : QDateTime();
+}
+
+// When this session's compositor started: its Wayland socket's lock file is
+// made then.
+QDateTime sessionStart()
+{
+    const QString display = qEnvironmentVariable("WAYLAND_DISPLAY");
+    const QString runtime = qEnvironmentVariable("XDG_RUNTIME_DIR");
+    if (display.isEmpty() || runtime.isEmpty()) {
+        return {};
+    }
+    const QFileInfo lock(QDir(runtime).filePath(display + QStringLiteral(".lock")));
+    return lock.exists() ? lock.lastModified() : QDateTime();
+}
+
 // The installed version, like the updater's packageVersion(): the package
 // manager knows it.
 QString packageVersion()
@@ -111,6 +137,9 @@ Updates::Updates(QObject* parent) : QObject(parent)
 {
     m_status = QStringLiteral("unknown");
     m_installedVersion = packageVersion();
+    m_installedAt = packageInstallDate(m_installedVersion);
+    const QDateTime started = sessionStart();
+    m_restartNeeded = m_installedAt.isValid() && started.isValid() && m_installedAt > started;
     loadConfig();
     refreshRollbackTargets();
     refreshRecent();

@@ -42,15 +42,58 @@ Page {
         Updates.checkPackages()
     }
 
+    // A label and its value, one under the other at the right: the versions.
+    component VersionRow: Row {
+        property string label
+        property string value
+        property string detail
+        width: parent ? parent.width : 0
+        spacing: 12
+        Text {
+            width: 110
+            text: parent.label
+            color: Theme.textSecondary
+            font.pixelSize: Theme.fontBody
+        }
+        Column {
+            width: parent.width - 122
+            Text {
+                width: parent.width
+                text: parent.parent.value
+                color: Theme.text
+                font.pixelSize: Theme.fontBody
+                font.weight: Font.DemiBold
+                elide: Text.ElideRight
+            }
+            Text {
+                width: parent.width
+                visible: text !== ""
+                text: parent.parent.detail
+                color: Theme.textSecondary
+                font.pixelSize: Theme.fontCaption
+                elide: Text.ElideRight
+            }
+        }
+    }
+
+    // "0.1.0.r420.g618a4d7-1": Vela 0.1.0, build 420 (the commit 618a4d7).
+    function describe(version) {
+        const m = /^([0-9.]+)\.r([0-9]+)\.g([0-9a-f]+)/.exec(version || "")
+        return m ? qsTr("Vela %1, build %2 (%3)").arg(m[1]).arg(m[2]).arg(m[3]) : version
+    }
+
     readonly property string status: {
         if (Updates.status === "checking") {
             return qsTr("Checking for updates...")
         }
-        if (Updates.status === "up-to-date") {
-            return qsTr("You're up to date")
-        }
         if (Updates.status === "available") {
-            return qsTr("Update available: %1").arg(Updates.newRevision.slice(0, 7))
+            return qsTr("A new version is ready to install")
+        }
+        if (Updates.restartNeeded && Updates.status !== "updating") {
+            return qsTr("Installed: log out to start using it")
+        }
+        if (Updates.status === "up-to-date") {
+            return qsTr("You have the latest version")
         }
         if (Updates.status === "recently-installed") {
             return Updates.message
@@ -87,21 +130,53 @@ Page {
                     font.pixelSize: Theme.fontCaption
                     wrapMode: Text.Wrap
                 }
-                Text {
-                    width: parent.width
+                VersionRow {
                     visible: Updates.installedVersion !== ""
-                    text: qsTr("Installed: %1").arg(Updates.installedVersion)
-                    color: Theme.textSecondary
-                    font.pixelSize: Theme.fontCaption
-                    elide: Text.ElideRight
+                    label: qsTr("Installed")
+                    value: page.describe(Updates.installedVersion)
+                    detail: Updates.installedAt !== "" ? qsTr("Installed on %1").arg(Updates.installedAt) : ""
                 }
-                Text {
-                    width: parent.width
+                VersionRow {
+                    visible: Updates.available && Updates.newRevision !== ""
+                    label: qsTr("New version")
+                    value: qsTr("Commit %1").arg(Updates.newRevision.slice(0, 7))
+                    detail: Updates.changes.length > 0 ? qsTr("%n change(s) since yours", "", Updates.changes.length) : ""
+                }
+                VersionRow {
                     visible: Updates.lastCheck !== ""
-                    text: qsTr("Last checked: %1").arg(Updates.lastCheck)
-                    color: Theme.textSecondary
-                    font.pixelSize: Theme.fontCaption
-                    elide: Text.ElideRight
+                    label: qsTr("Last checked")
+                    value: Updates.lastCheck
+                }
+
+                // Installed after this session started: what runs is still
+                // the previous Vela (the update works from the next login).
+                Rectangle {
+                    width: parent.width
+                    visible: Updates.restartNeeded && Updates.status !== "updating"
+                    height: restartColumn.implicitHeight + 24
+                    radius: Theme.radius
+                    color: Theme.card
+                    border.width: 1
+                    border.color: Theme.cardStroke
+                    Column {
+                        id: restartColumn
+                        x: 12
+                        y: 12
+                        width: parent.width - 24
+                        spacing: 8
+                        Text {
+                            width: parent.width
+                            text: qsTr("This session started before Vela was installed, so you are still using the previous version. Log out and back in to use the new one.")
+                            color: Theme.text
+                            font.pixelSize: Theme.fontCaption
+                            wrapMode: Text.Wrap
+                        }
+                        Button {
+                            accent: true
+                            text: qsTr("Log out")
+                            onClicked: Updates.logOut()
+                        }
+                    }
                 }
                 Button {
                     visible: Updates.available
@@ -143,7 +218,7 @@ Page {
                     spacing: 4
                     visible: Updates.changes.length > 0
                     Text {
-                        text: qsTr("What's new")
+                        text: Updates.available ? qsTr("What's new in this update") : qsTr("What the last update brought")
                         color: Theme.text
                         font.pixelSize: Theme.fontBody
                         font.weight: Font.DemiBold
