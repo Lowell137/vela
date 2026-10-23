@@ -123,12 +123,12 @@ static float blur_look_scale = 1.0f;
 void vela_blur_set_look(float saturation, float strength)
 {
     blur_look_saturation = vela_clampf(saturation, 1.0f, 3.0f);
-    blur_look_scale = vela_clampf(strength, 0.5f, 3.0f);
+    blur_look_scale = vela_clampf(strength, 0.25f, 3.0f);
 }
 
 static float blur_strength(double scale)
 {
-    return vela_clampf((float)(1.25 * scale * blur_look_scale), 1.0f, 6.0f);
+    return vela_clampf((float)(1.25 * scale * blur_look_scale), 0.5f, 6.0f);
 }
 
 // A region of the surface (in its coordinates) in pixels, within the
