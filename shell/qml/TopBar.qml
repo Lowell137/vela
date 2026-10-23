@@ -69,9 +69,9 @@ Window {
     function logoEntries() {
         const item = (text, icon, name) => ({ text: text, icon: icon, enabled: System.available(name), action: () => System.trigger(name) })
         return [
-            item(qsTr("S&ettings"), "preferences-system", "settings"),
-            item(qsTr("Task manage&r"), "utilities-system-monitor", "task-manager"),
-            item(qsTr("&Terminal"), "utilities-terminal", "terminal"),
+            item(qsTr("S&ettings"), "preferences-system-symbolic", "settings"),
+            item(qsTr("Task manage&r"), "task-manager", "task-manager"),
+            item(qsTr("&Terminal"), "utilities-terminal-symbolic", "terminal"),
             { separator: true },
             { text: qsTr("S&leep"), icon: "system-suspend", enabled: Shell.canSuspend(), action: () => Shell.suspend() },
             { text: qsTr("&Restart"), icon: "system-reboot", action: () => Shell.reboot() },

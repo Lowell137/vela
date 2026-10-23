@@ -253,19 +253,19 @@ Window {
         }
         entries.push(
             item(qsTr("P&ower options"), "preferences-system-power-management", "power"),
-            item(qsTr("E&vent viewer"), "text-x-log", "events"),
+            item(qsTr("E&vent viewer"), "text-x-log-symbolic", "events"),
             item(qsTr("S&ystem"), "computer", "system"),
             item(qsTr("Device &manager"), "preferences-devices-tree", "devices"),
             item(qsTr("Net&work connections"), "preferences-system-network", "network"),
-            item(qsTr("Dis&k management"), "drive-harddisk", "disks"),
+            item(qsTr("Dis&k management"), "drive-harddisk-symbolic", "disks"),
             item(qsTr("Computer mana&gement"), "computer", "computer"),
             { separator: true },
-            item(qsTr("&Terminal"), "utilities-terminal", "terminal"),
-            item(qsTr("Terminal (&Admin)"), "utilities-terminal", "terminal-admin"),
+            item(qsTr("&Terminal"), "utilities-terminal-symbolic", "terminal"),
+            item(qsTr("Terminal (&Admin)"), "utilities-terminal-symbolic", "terminal-admin"),
             { separator: true },
-            item(qsTr("Task manage&r"), "utilities-system-monitor", "task-manager"),
-            item(qsTr("Setti&ngs"), "preferences-system", "settings"),
-            item(qsTr("File &Explorer"), "system-file-manager", "files"),
+            item(qsTr("Task manage&r"), "task-manager", "task-manager"),
+            item(qsTr("Setti&ngs"), "preferences-system-symbolic", "settings"),
+            item(qsTr("File &Explorer"), "system-file-manager-symbolic", "files"),
             { text: qsTr("&Search"), icon: "search", action: () => { root.fromHere(); if (!Shell.startMenuOpen) Shell.toggleStartMenu() } },
             { text: qsTr("&Run"), icon: "system-run", action: () => { root.fromHere(); Shell.runRequested() } },
             { separator: true },
@@ -275,7 +275,7 @@ Window {
                 { text: qsTr("Sh&ut down"), icon: "system-shutdown", action: () => Shell.powerOff() },
                 { text: qsTr("&Restart"), icon: "system-reboot", action: () => Shell.reboot() }
             ] },
-            { text: qsTr("&Desktop"), icon: "user-desktop", action: () => Tasks.toggleDesktop() }
+            { text: qsTr("&Desktop"), icon: "user-desktop-symbolic", action: () => Tasks.toggleDesktop() }
         )
         return entries
     }
