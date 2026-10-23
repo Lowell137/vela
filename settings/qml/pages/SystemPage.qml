@@ -31,7 +31,7 @@ Page {
             onClicked: root.navigate("power")
         }
         LinkCard {
-            icon: "drive-harddisk"
+            icon: "drive-harddisk-symbolic"
             title: qsTr("Storage")
             description: qsTr("Disk space, temporary files, cleanup")
             onClicked: root.navigate("storage")

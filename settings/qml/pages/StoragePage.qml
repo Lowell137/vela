@@ -33,7 +33,7 @@ Page {
             model: Storage.volumes
             delegate: Card {
                 required property var modelData
-                icon: "drive-harddisk"
+                icon: "drive-harddisk-symbolic"
                 title: modelData.name
                 description: qsTr("%1 of %2 used").arg(page.humanSize(modelData.used), page.humanSize(modelData.total))
                 contentItem: LevelBar {

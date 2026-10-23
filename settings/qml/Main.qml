@@ -36,7 +36,7 @@ Window {
         "multitasking": { title: qsTr("Multitasking"), parent: "system", file: "MultitaskingPage.qml", icon: "view-split-left-right" },
         "power": { title: qsTr("Power"), parent: "system", file: "PowerPage.qml", icon: "preferences-system-power-management" },
         "updates": { title: qsTr("Updates"), parent: "", file: "UpdatesPage.qml", icon: "system-software-update" },
-        "storage": { title: qsTr("Storage"), parent: "system", file: "StoragePage.qml", icon: "drive-harddisk" },
+        "storage": { title: qsTr("Storage"), parent: "system", file: "StoragePage.qml", icon: "drive-harddisk-symbolic" },
         "about": { title: qsTr("About"), parent: "system", file: "AboutPage.qml", icon: "help-about" },
         "bluetooth": { title: qsTr("Bluetooth & devices"), parent: "", file: "BluetoothPage.qml", icon: "preferences-system-bluetooth" },
         "network": { title: qsTr("Network & internet"), parent: "", file: "NetworkPage.qml", icon: "preferences-system-network" },
