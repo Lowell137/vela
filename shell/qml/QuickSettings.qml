@@ -157,7 +157,7 @@ Window {
         if (mediaApart) {
             rects.push(Qt.rect(mediaCard.x, mediaCard.y, mediaCard.width, mediaCard.height))
         }
-        Effects.setBlur(root, rects)
+        Effects.setBlur(root, rects, Theme.quickSettingsRadius)
     }
 
     ParallelAnimation {

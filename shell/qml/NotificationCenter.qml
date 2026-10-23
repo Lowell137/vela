@@ -81,7 +81,7 @@ Window {
 
     function updateBlur() {
         Effects.setBlur(root, [Qt.rect(column.x, column.y + notifications.y, column.width, notifications.height),
-            Qt.rect(column.x, column.y + calendar.y, column.width, calendar.height)])
+            Qt.rect(column.x, column.y + calendar.y, column.width, calendar.height)], Theme.notificationsRadius)
     }
 
     ParallelAnimation {

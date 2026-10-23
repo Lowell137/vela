@@ -18,8 +18,9 @@ struct ext_background_effect_surface_v1;
 // The blur behind the shell's panels (taskbar, Start menu, menus,
 // notifications, Alt+Tab), asked of the compositor with the standard
 // ext-background-effect-v1 protocol (docs/renderer.md §8.3). The compositor
-// blurs what's behind the region and clips it with the panel's alpha: rounded
-// corners stay rounded.
+// blurs what's behind the region and clips it with the panel's alpha. A panel
+// with a shadow gives its corner radius too: the shadow has alpha as well, so
+// the region itself is rounded (rows of pixels: the protocol takes rectangles).
 //
 // From QML: Effects.setBlur(window, [Qt.rect(...), ...]) whenever the area
 // changes; Effects.blurAvailable tells whether the compositor can do it (if
@@ -33,8 +34,9 @@ public:
     ~BackgroundEffects() override;
 
     bool blurAvailable() const { return m_blurAvailable; }
-    // Rectangles in window coordinates; empty list: no blur.
-    Q_INVOKABLE void setBlur(QWindow* window, const QVariantList& rects);
+    // Rectangles in window coordinates, their corners rounded by radius; empty
+    // list: no blur.
+    Q_INVOKABLE void setBlur(QWindow* window, const QVariantList& rects, qreal radius = 0);
     // Where the window takes input (QtWayland sends it as the surface's input
     // region); the rest passes clicks through. Empty list: the whole window.
     Q_INVOKABLE void setInputRegion(QWindow* window, const QVariantList& rects);

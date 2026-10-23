@@ -227,7 +227,7 @@ Window {
     // The blurred background under the panel (which rises while opening).
     function updateBlur() {
         const top = Math.max(0, panel.y)
-        Effects.setBlur(root, [Qt.rect(panel.x, top, panel.width, Math.max(0, Math.min(panel.y + panel.height, root.height) - top))])
+        Effects.setBlur(root, [Qt.rect(panel.x, top, panel.width, Math.max(0, Math.min(panel.y + panel.height, root.height) - top))], Theme.startMenuRadius)
     }
     Connections {
         target: panel
@@ -456,12 +456,14 @@ Window {
         }
     }
 
-    // A soft shadow around the panel (not below: it's acrylic).
+    // A soft shadow around the panel (not below: it's acrylic), small enough
+    // for the window's 10 pixels around the panel: cut by them it was square.
     PanelShadow {
         target: panel
         opacity: panel.opacity
-        blur: 40
-        offset: Qt.vector2d(0, 8)
+        radius: Theme.startMenuRadius
+        blur: 10
+        offset: Qt.vector2d(0, 3)
         color: Qt.rgba(0, 0, 0, 0.5)
     }
 
