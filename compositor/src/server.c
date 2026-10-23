@@ -160,6 +160,7 @@ static bool init(struct vela_server *server)
     wl_list_init(&server->outputs);
     wl_list_init(&server->new_output.link);
     wl_list_init(&server->layout_change.link);
+    wl_list_init(&server->minimized_by_desktop);
     vela_child_init(&server->shell, "Shell", SIGKILL, -1);
     // SIGTERM, not SIGKILL: the agent unregisters from polkitd before
     // exiting. Exit code 2: another agent already owns this session.

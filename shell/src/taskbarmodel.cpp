@@ -422,30 +422,5 @@ void TaskbarModel::windowAction(int row, const QString& action)
 
 void TaskbarModel::toggleDesktop()
 {
-    QList<ForeignToplevel*> visible;
-    for (ForeignToplevel* window : m_windows->windows()) {
-        if (!window->minimized) {
-            visible.append(window);
-        }
-    }
-    if (!visible.isEmpty()) {
-        m_hiddenByDesktop.clear();
-        for (ForeignToplevel* window : std::as_const(visible)) {
-            m_hiddenByDesktop.append(window);
-            window->requestMinimize();
-        }
-        return;
-    }
-    // Everything already minimized: the previous ones come back, the most
-    // recent last (in front).
-    std::sort(m_hiddenByDesktop.begin(), m_hiddenByDesktop.end(),
-        [](const QPointer<ForeignToplevel>& a, const QPointer<ForeignToplevel>& b) {
-            return (a ? a->lastActivated : 0) < (b ? b->lastActivated : 0);
-        });
-    for (const QPointer<ForeignToplevel>& window : std::as_const(m_hiddenByDesktop)) {
-        if (window) {
-            window->requestActivate();
-        }
-    }
-    m_hiddenByDesktop.clear();
+    ShellController::sendToCompositor("minimize-all");
 }

@@ -617,6 +617,35 @@ static void run_command(struct vela_server *server, const char *line)
         }
     } else if (strcmp(line, "lock") == 0) {
         vela_lock_screen(server->lock); // for example before suspending the computer
+    } else if (strcmp(line, "minimize-all") == 0) {
+        // Toggle: if there are non-minimized views, minimize them all and
+        // remember the list (insert at head so restore order is least recent
+        // first, active last -> on top). If all are minimized, restore them
+        // in that order.
+        bool any_visible = false;
+        struct vela_view *view;
+        wl_list_for_each (view, &server->views, link) {
+            if (view->mapped && !view->minimized) {
+                any_visible = true;
+                break;
+            }
+        }
+        if (any_visible) {
+            wl_list_for_each (view, &server->views, link) {
+                if (view->mapped && !view->minimized) {
+                    vela_view_set_minimized(view, true);
+                    wl_list_insert(&server->minimized_by_desktop, &view->minimized_link);
+                }
+            }
+        } else {
+            struct vela_view *next;
+            wl_list_for_each_safe (view, next, &server->minimized_by_desktop, minimized_link) {
+                wl_list_remove(&view->minimized_link);
+                if (view->mapped) {
+                    vela_view_set_minimized(view, false);
+                }
+            }
+        }
     } else if (starts_with(line, "window ")) {
         window(server, line);
     } else if (starts_with(line, "end-task ")) {

@@ -51,6 +51,7 @@ struct vela_owner {
 struct vela_view {
     struct vela_owner owner; // first field: the tree's vela_node.data
     struct wl_list link; // vela_server.views, while mapped
+    struct wl_list minimized_link; // vela_server.minimized_by_desktop, while hidden
     struct vela_server *server;
     struct wlr_xdg_toplevel *xdg; // one of the two
     struct wlr_xwayland_surface *x11;

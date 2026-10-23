@@ -239,6 +239,10 @@ struct vela_server {
     struct wl_listener output_manager_test;
     struct wl_listener new_output;
     struct wl_listener layout_change;
+
+    // Show desktop / minimize all: the views hidden by the first press,
+    // restored in reverse activation order by the second.
+    struct wl_list minimized_by_desktop;
 };
 
 // Creates the display, backend, renderer and protocols. NULL if something
