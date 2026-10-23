@@ -116,6 +116,7 @@ void Preferences::reload()
         : QStringLiteral("center");
     m_endTask = settings.value(QStringLiteral("taskbar/endTask"), true).toBool();
     m_taskView = settings.value(QStringLiteral("taskbar/taskView"), true).toBool();
+    m_portalAutofix = settings.value(QStringLiteral("sharing/portalAutofix"), true).toBool();
     m_taskbarAllScreens = settings.value(QStringLiteral("taskbar/allScreens"), true).toBool();
     m_showDesktopCorner = settings.value(QStringLiteral("taskbar/showDesktopCorner"), true).toBool();
     emit taskbarChanged();
@@ -455,6 +456,15 @@ void Preferences::setShowDesktopCorner(bool on)
     if (on != m_showDesktopCorner) {
         m_showDesktopCorner = on;
         setShell(QStringLiteral("taskbar/showDesktopCorner"), on);
+        emit taskbarChanged();
+    }
+}
+
+void Preferences::setPortalAutofix(bool on)
+{
+    if (on != m_portalAutofix) {
+        m_portalAutofix = on;
+        setShell(QStringLiteral("sharing/portalAutofix"), on);
         emit taskbarChanged();
     }
 }

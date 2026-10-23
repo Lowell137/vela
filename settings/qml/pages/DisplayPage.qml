@@ -392,6 +392,19 @@ Page {
     }
 
     CardGroup {
+        title: qsTr("Screen sharing")
+        Card {
+            icon: "view-refresh"
+            title: qsTr("Fix the sharing picker by itself")
+            description: qsTr("When the screen picker breaks (Discord, OBS...), restart the sharing portal so the next try works")
+            trailing: Toggle {
+                checked: Prefs.portalAutofix
+                onToggled: on => Prefs.portalAutofix = on
+            }
+        }
+    }
+
+    CardGroup {
         title: qsTr("Related settings")
         Card {
             icon: "preferences-desktop-wallpaper"

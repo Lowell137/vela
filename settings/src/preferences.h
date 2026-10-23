@@ -36,6 +36,7 @@ class Preferences : public QObject {
     Q_PROPERTY(bool light READ light NOTIFY appThemeChanged)
     Q_PROPERTY(QString taskbarAlignment READ taskbarAlignment WRITE setTaskbarAlignment NOTIFY taskbarChanged)
     Q_PROPERTY(bool endTask READ endTask WRITE setEndTask NOTIFY taskbarChanged)
+    Q_PROPERTY(bool portalAutofix READ portalAutofix WRITE setPortalAutofix NOTIFY taskbarChanged)
     Q_PROPERTY(bool taskView READ taskView WRITE setTaskView NOTIFY taskbarChanged)
     Q_PROPERTY(bool taskbarAllScreens READ taskbarAllScreens WRITE setTaskbarAllScreens NOTIFY taskbarChanged)
     Q_PROPERTY(bool showDesktopCorner READ showDesktopCorner WRITE setShowDesktopCorner NOTIFY taskbarChanged)
@@ -121,6 +122,8 @@ public:
     void setEndTask(bool on);
     bool taskView() const { return m_taskView; }
     void setTaskView(bool on);
+    bool portalAutofix() const { return m_portalAutofix; }
+    void setPortalAutofix(bool on);
     bool taskbarAllScreens() const { return m_taskbarAllScreens; }
     void setTaskbarAllScreens(bool on);
     bool showDesktopCorner() const { return m_showDesktopCorner; }
@@ -252,6 +255,7 @@ private:
     QString m_taskbarAlignment;
     bool m_endTask = true;
     bool m_taskView = true;
+    bool m_portalAutofix = true;
     bool m_taskbarAllScreens = true;
     bool m_showDesktopCorner = true;
     bool m_doNotDisturb = false;
