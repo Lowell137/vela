@@ -25,6 +25,18 @@ Item {
         backgroundOpacity: pane.win.backgroundOpacity
         onActiveFocusChanged: if (activeFocus) pane.page.active = pane
         onFinished: pane.win.closePane(pane)
+        onContextMenuRequested: position => {
+            const at = term.mapToItem(null, position.x, position.y)
+            pane.win.openMenu([
+                { text: qsTr("&Copy"), shortcut: "Ctrl+C", enabled: term.hasSelection, action: () => term.copy() },
+                { text: qsTr("&Paste"), shortcut: "Ctrl+V", action: () => term.paste() },
+                { text: qsTr("Select &all"), action: () => term.selectAll() },
+                { separator: true },
+                { text: qsTr("Split &right"), shortcut: "Alt+Shift++", action: () => pane.win.split(false) },
+                { text: qsTr("Split &down"), shortcut: "Alt+Shift+-", action: () => pane.win.split(true) },
+                { text: qsTr("&Close pane"), shortcut: "Ctrl+Shift+W", action: () => pane.win.closePane(pane) }
+            ], at.x, at.y)
+        }
     }
 
     Rectangle {

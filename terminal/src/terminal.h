@@ -71,6 +71,7 @@ signals:
     void selectionChanged();
     void finished(); // the program ended
     void bell();
+    void contextMenuRequested(QPointF position);
 
 protected:
     void geometryChange(const QRectF& now, const QRectF& before) override;
@@ -94,6 +95,7 @@ private:
     void select(QPoint from, QPoint to);
     void clearSelection();
     QString selectedText() const;
+    void setPrimary();
     bool forwardMouse(QMouseEvent* event, bool pressed, bool moved);
 
     Vt* m_vt;
@@ -102,6 +104,7 @@ private:
     QSocketNotifier* m_notifier = nullptr;
 
     QString m_title;
+    QString m_primary; // the last selection, for middle click
     QFont m_font;
     QRawFont m_raw[4]; // plain, bold, italic, both
     QHash<quint32, quint32> m_glyphs[4]; // character -> glyph, 0: not in the font

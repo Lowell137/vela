@@ -563,18 +563,14 @@ void Terminal::mousePressEvent(QMouseEvent* event)
         return;
     }
     if (event->button() == Qt::MiddleButton) {
-        m_vt->paste(QGuiApplication::clipboard()->text(QClipboard::Selection));
+        // The compositor may not offer a primary selection: use our own copy then.
+        const QString primary = QGuiApplication::clipboard()->text(QClipboard::Selection);
+        m_vt->paste(primary.isEmpty() ? m_primary : primary);
+        setScroll(0);
         return;
     }
     if (event->button() == Qt::RightButton) {
-        // Like Windows Terminal: copies what's selected, pastes otherwise.
-        if (hasSelection()) {
-            copy();
-            m_selected = false;
-            select(QPoint(), QPoint());
-        } else {
-            paste();
-        }
+        emit contextMenuRequested(event->position());
         return;
     }
     const QPoint cell = cellAt(event->position());
@@ -583,7 +579,7 @@ void Terminal::mousePressEvent(QMouseEvent* event)
         m_clicks = 0;
         m_selected = true;
         select(QPoint(0, cell.y()), QPoint(m_vt->columns() - 1, cell.y()));
-        QGuiApplication::clipboard()->setText(selectedText(), QClipboard::Selection);
+        setPrimary();
         return;
     }
     m_selecting = true;
@@ -622,7 +618,7 @@ void Terminal::mouseReleaseEvent(QMouseEvent* event)
     if (m_selecting) {
         m_selecting = false;
         if (hasSelection()) {
-            QGuiApplication::clipboard()->setText(selectedText(), QClipboard::Selection);
+            setPrimary();
         }
     }
 }
@@ -651,7 +647,7 @@ void Terminal::mouseDoubleClickEvent(QMouseEvent* event)
     m_selected = true;
     m_selecting = false;
     select(QPoint(first, cell.y()), QPoint(last, cell.y()));
-    QGuiApplication::clipboard()->setText(selectedText(), QClipboard::Selection);
+    setPrimary();
 }
 
 void Terminal::wheelEvent(QWheelEvent* event)
@@ -710,6 +706,12 @@ QString Terminal::selectedText() const
     }
     const bool backwards = before(m_selEnd, m_selStart);
     return m_vt->text(backwards ? m_selEnd : m_selStart, backwards ? m_selStart : m_selEnd);
+}
+
+void Terminal::setPrimary()
+{
+    m_primary = selectedText();
+    QGuiApplication::clipboard()->setText(m_primary, QClipboard::Selection);
 }
 
 void Terminal::copy()
