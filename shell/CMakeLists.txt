@@ -45,6 +45,8 @@ qt_add_executable(vela-shell
     src/jumplists.cpp
     src/jumplists.h
     src/links.h
+    src/filechooser.cpp
+    src/filechooser.h
     src/globalshortcuts.cpp
     src/globalshortcuts.h
     src/appshortcuts.h
@@ -241,6 +243,14 @@ if(VELA_BUILD_TOOLS)
     find_program(DBUS_RUN_SESSION dbus-run-session)
     if(DBUS_RUN_SESSION)
         add_test(NAME shell-globalshortcuts COMMAND ${DBUS_RUN_SESSION} -- $<TARGET_FILE:vela-globalshortcuts-test>)
+    endif()
+
+    qt_add_executable(vela-filechooser-test tests/filechooser.cpp src/filechooser.cpp src/filechooser.h src/globalshortcuts.cpp src/globalshortcuts.h src/appshortcuts.h)
+    target_include_directories(vela-filechooser-test PRIVATE src)
+    target_compile_options(vela-filechooser-test PRIVATE -Wall -Wextra)
+    target_link_libraries(vela-filechooser-test PRIVATE Qt6::DBus Qt6::Test)
+    if(DBUS_RUN_SESSION)
+        add_test(NAME shell-filechooser COMMAND ${DBUS_RUN_SESSION} -- $<TARGET_FILE:vela-filechooser-test>)
     endif()
 
     qt_add_executable(vela-config-test tests/config.cpp src/config.cpp src/config.h src/defaults.h)

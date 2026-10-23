@@ -35,7 +35,7 @@ optdepends=(
     'cosign: verify downloaded prebuilt package attestations without gh'
     'xdg-desktop-portal-wlr: screen sharing'
     'wf-recorder: screen recording in the snipping tool'
-    'xdg-desktop-portal-kde: KDE file chooser for Settings, the shell and apps (without it GTK or Qt fallback)'
+    'xdg-desktop-portal-kde: fallback file chooser when the Explorer's is unavailable, and open with'
     'breeze-icons: Vela icons (breeze and breeze-dark)'
     'fluent-icon-theme-git: Fluent-style app and file type icons (AUR; the vela theme inherits it)'
     'plasma-workspace: light or dark colors for KDE apps'

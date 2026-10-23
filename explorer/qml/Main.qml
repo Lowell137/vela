@@ -17,10 +17,14 @@ Window {
     minimumHeight: 420
     visible: true
     color: Theme.background
-    title: current ? current.title + qsTr(" - File Explorer") : qsTr("File Explorer")
+    title: picking ? (Pick.title !== "" ? Pick.title : qsTr("File Explorer"))
+        : current ? current.title + qsTr(" - File Explorer") : qsTr("File Explorer")
 
     onActiveChanged: Theme.windowActive = active
 
+    // As a file chooser (vela-files --pick): one tab, no tab strip, the bottom bar of PickBar.
+    readonly property bool picking: Pick.active
+    readonly property alias pickBar: pickBar
     readonly property bool maximized: visibility === Window.Maximized
     function toggleMaximized() { maximized ? showNormal() : showMaximized() }
 
@@ -100,11 +104,11 @@ Window {
     // focus.
     Shortcut { sequences: [StandardKey.Back]; onActivated: if (root.current) root.current.back() }
     Shortcut { sequences: [StandardKey.Forward]; onActivated: if (root.current) root.current.forward() }
-    Shortcut { sequence: "Ctrl+T"; onActivated: root.newTab("home:", "") }
-    Shortcut { sequence: "Ctrl+W"; onActivated: root.closeTab(root.currentIndex) }
+    Shortcut { enabled: !root.picking; sequence: "Ctrl+T"; onActivated: root.newTab("home:", "") }
+    Shortcut { enabled: !root.picking; sequence: "Ctrl+W"; onActivated: root.closeTab(root.currentIndex) }
     Shortcut { sequence: "Ctrl+Tab"; onActivated: root.currentIndex = (root.currentIndex + 1) % root.tabs.length }
     Shortcut { sequence: "Ctrl+Shift+Tab"; onActivated: root.currentIndex = (root.currentIndex + root.tabs.length - 1) % root.tabs.length }
-    Shortcut { sequence: "Ctrl+N"; onActivated: Ops.newWindow(root.current ? root.current.location : "") }
+    Shortcut { enabled: !root.picking; sequence: "Ctrl+N"; onActivated: Ops.newWindow(root.current ? root.current.location : "") }
     Shortcut { sequences: ["Ctrl+L", "Alt+D", "F4"]; onActivated: root.focusChild("address") }
     Shortcut { sequences: ["Ctrl+F", "Ctrl+E", "F3"]; onActivated: root.focusChild("search") }
     // The open tab's address bar and search.
@@ -135,8 +139,17 @@ Window {
             onDoubleTapped: root.toggleMaximized()
         }
 
+        Text {
+            visible: root.picking
+            x: 16
+            anchors.verticalCenter: parent.verticalCenter
+            text: root.title
+            color: Theme.text
+            font.pixelSize: Theme.fontBody
+        }
         Row {
             id: tabRow
+            visible: !root.picking
             x: 8
             anchors.bottom: parent.bottom
             spacing: 2
@@ -223,8 +236,9 @@ Window {
         }
         Row {
             anchors { right: parent.right; top: parent.top }
-            WindowButton { glyph: "M 0 5.5 H 10"; onClicked: root.showMinimized() }
+            WindowButton { visible: !root.picking; glyph: "M 0 5.5 H 10"; onClicked: root.showMinimized() }
             WindowButton {
+                visible: !root.picking
                 glyph: root.maximized ? "M 0.5 2.5 H 7.5 V 9.5 H 0.5 Z M 2.5 2.5 V 0.5 H 9.5 V 7.5 H 7.5" : "M 0.5 0.5 H 9.5 V 9.5 H 0.5 Z"
                 onClicked: root.toggleMaximized()
             }
@@ -234,7 +248,13 @@ Window {
 
     Item {
         id: pages
-        anchors { left: parent.left; right: parent.right; top: strip.bottom; bottom: parent.bottom }
+        anchors { left: parent.left; right: parent.right; top: strip.bottom; bottom: root.picking ? pickBar.top : parent.bottom }
+    }
+    PickBar {
+        id: pickBar
+        visible: root.picking
+        win: root
+        anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
     }
 
     ProgressPanel {

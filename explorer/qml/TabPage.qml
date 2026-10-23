@@ -74,6 +74,8 @@ Item {
     }
     function openInNewTab(loc) { win.newTab(loc, "") }
     function search(text) { if (isFolder) folder.search = text }
+    // The file chooser's type filter (globs), and "folders only".
+    function setPickFilter(globs) { folder.nameFilters = globs }
     function focusView() { keys.forceActiveFocus() }
     function showError(message) { win.showError(message) }
 
@@ -139,6 +141,9 @@ Item {
         const path = folder.pathAt(row)
         if (folder.isDirAt(row)) {
             navigate(path)
+        } else if (win.picking) {
+            folder.select(row) // a file chooser: the double click chooses it
+            win.pickBar.accept()
         } else if (!isTrash) {
             // An archive opens like the folder it becomes: Windows double
             // click. It extracts next to the archive, without overwriting,
@@ -153,6 +158,12 @@ Item {
     }
     function openSelection() {
         const paths = folder.selectedPaths()
+        if (win.picking) {
+            // Enter on a folder goes in; on files (or none, with a typed name) it chooses.
+            if (paths.length === 1 && folder.isDirAt(folder.indexOf(paths[0]))) navigate(paths[0])
+            else win.pickBar.accept()
+            return
+        }
         if (paths.length === 0) return
         // Enter on one file and "Open" behave like the double click.
         if (paths.length === 1 && !isTrash && Ops.isArchive(paths[0])) {
@@ -616,5 +627,8 @@ Item {
 
     QuickPeek { id: peek; tab: page }
 
-    Component.onCompleted: focusView()
+    Component.onCompleted: {
+        if (win.picking) folder.dirsOnly = Pick.directory
+        focusView()
+    }
 }

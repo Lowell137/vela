@@ -30,6 +30,7 @@
 #include "launcherbadges.h"
 #include "mediakeys.h"
 #include "network.h"
+#include "filechooser.h"
 #include "globalshortcuts.h"
 #include "notifications.h"
 #include "servicemenus.h"
@@ -388,6 +389,8 @@ int main(int argc, char* argv[])
         [&] { notifications.setFullscreenSilenced(shell.fullscreenActive()); });
     // Global shortcuts for apps (xdg-desktop-portal's GlobalShortcuts).
     GlobalShortcuts globalShortcuts;
+    // The same portal's file chooser: Vela's Explorer.
+    (new FileChooser(&globalShortcuts))->setProgram(velaFilesExecutable());
     globalShortcuts.registerService();
     QObject::connect(&globalShortcuts, &GlobalShortcuts::saved, &app, [] { ShellController::sendToCompositor("reload-config"); });
     QObject::connect(&shell, &ShellController::appShortcutEvent, &globalShortcuts, &GlobalShortcuts::keyEvent);

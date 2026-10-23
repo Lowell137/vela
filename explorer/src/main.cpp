@@ -4,6 +4,7 @@
 // vela-files: Vela's File Explorer, like Windows 11's.
 //
 //   vela-files [folder or file...]   (a file: its folder opens, with the file selected)
+//   vela-files --pick request.json   (a file chooser, see picker.h)
 //
 // Goal: a cold start under 150 ms (README, "Measurable goals"). That's why
 // there are no Qt Quick Controls, and what the first frame doesn't need (apps
@@ -17,6 +18,7 @@
 #include "filethumbnails.h"
 #include "foldermodel.h"
 #include "iconprovider.h"
+#include "picker.h"
 #include "places.h"
 #include "servicemenus.h"
 #include "systemactions.h"
@@ -94,7 +96,10 @@ int main(int argc, char* argv[])
     QString start = QStringLiteral("home:");
     QString select;
     const QStringList args = app.arguments().mid(1);
-    if (!args.isEmpty()) {
+    Picker picker;
+    if (args.size() == 2 && args.first() == QLatin1String("--pick") && picker.load(args.at(1))) {
+        start = picker.startFolder();
+    } else if (!args.isEmpty()) {
         const QUrl url = QUrl::fromUserInput(args.first(), QDir::currentPath(), QUrl::AssumeLocalFile);
         const QFileInfo info(url.isLocalFile() ? url.toLocalFile() : args.first());
         if (info.isDir()) {
@@ -126,6 +131,7 @@ int main(int argc, char* argv[])
     context->setContextProperty(QStringLiteral("Places"), &places);
     context->setContextProperty(QStringLiteral("System"), &system);
     context->setContextProperty(QStringLiteral("ServiceMenus"), &serviceMenus);
+    context->setContextProperty(QStringLiteral("Pick"), &picker);
     context->setContextProperty(QStringLiteral("StartLocation"), start);
     context->setContextProperty(QStringLiteral("StartSelection"), select);
     engine.loadFromModule("Vela.Files", "Main");

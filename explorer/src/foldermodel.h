@@ -4,6 +4,7 @@
 #pragma once
 
 #include <QAbstractListModel>
+#include <QRegularExpression>
 #include <QDateTime>
 #include <QCollator>
 #include <QFileSystemWatcher>
@@ -26,6 +27,9 @@ class FolderModel : public QAbstractListModel {
     Q_PROPERTY(bool exists READ exists NOTIFY pathChanged)
     Q_PROPERTY(int count READ count NOTIFY countChanged)
     Q_PROPERTY(bool showHidden READ showHidden WRITE setShowHidden NOTIFY viewChanged)
+    // The file picker's: only files matching these globs ("*.png"; folders always stay), or only folders.
+    Q_PROPERTY(QStringList nameFilters READ nameFilters WRITE setNameFilters NOTIFY viewChanged)
+    Q_PROPERTY(bool dirsOnly READ dirsOnly WRITE setDirsOnly NOTIFY viewChanged)
     // 0 name, 1 modification date, 2 type, 3 size
     Q_PROPERTY(int sortColumn READ sortColumn NOTIFY viewChanged)
     Q_PROPERTY(bool sortDescending READ sortDescending NOTIFY viewChanged)
@@ -84,6 +88,10 @@ public:
     int count() const { return int(m_items.size()); }
     bool showHidden() const { return m_showHidden; }
     void setShowHidden(bool on);
+    QStringList nameFilters() const { return m_nameFilters; }
+    void setNameFilters(const QStringList& globs);
+    bool dirsOnly() const { return m_dirsOnly; }
+    void setDirsOnly(bool on);
     int sortColumn() const { return m_sortColumn; }
     bool sortDescending() const { return m_sortDescending; }
     Q_INVOKABLE void sortBy(int column, bool descending);
@@ -138,6 +146,7 @@ private:
     void checkPending(int row);
     void readClipboard(); // cut files are shown faded
     bool lessThan(const Entry& a, const Entry& b) const;
+    bool isFiltered(const Entry& e) const; // not shown: hidden, off the picker's filter
     void emitSelection(const QSet<int>& changed);
 
     QString m_path;
@@ -145,6 +154,9 @@ private:
     bool m_loading = false;
     bool m_exists = true;
     bool m_showHidden = false;
+    QStringList m_nameFilters;
+    QList<QRegularExpression> m_filterPatterns;
+    bool m_dirsOnly = false;
     int m_sortColumn = 0;
     bool m_sortDescending = false;
 

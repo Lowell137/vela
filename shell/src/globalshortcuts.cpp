@@ -105,7 +105,8 @@ bool GlobalShortcuts::registerService()
         return false;
     }
     return bus.registerObject(QString::fromLatin1(objectPath), this,
-        QDBusConnection::ExportAllSlots | QDBusConnection::ExportAllSignals | QDBusConnection::ExportAllProperties);
+        QDBusConnection::ExportAllSlots | QDBusConnection::ExportAllSignals | QDBusConnection::ExportAllProperties
+            | QDBusConnection::ExportAdaptors); // the FileChooser's, a child (filechooser.h)
 }
 
 void GlobalShortcuts::watch()

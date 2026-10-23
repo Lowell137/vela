@@ -367,7 +367,7 @@ void FolderModel::insertBatch(QList<Entry> entries)
 {
     QList<Entry> shown;
     for (Entry& e : entries) {
-        if (e.hidden && !m_showHidden) {
+        if (isFiltered(e)) {
             m_filtered.append(std::move(e));
         } else {
             shown.append(std::move(e));
@@ -454,7 +454,7 @@ void FolderModel::merge(QList<Entry> fresh)
     for (int row = int(m_items.size()) - 1; row >= 0; --row) {
         const Entry& old = m_items.at(row);
         auto it = byPath.find(old.path);
-        if (it == byPath.end() || (it->hidden && !m_showHidden)) {
+        if (it == byPath.end() || isFiltered(*it)) {
             removeAt(row);
             continue;
         }
@@ -474,7 +474,7 @@ void FolderModel::merge(QList<Entry> fresh)
     // Arrived.
     m_filtered.clear();
     for (const Entry& e : std::as_const(byPath)) {
-        if (e.hidden && !m_showHidden) {
+        if (isFiltered(e)) {
             m_filtered.append(e);
         } else {
             insertSorted(e);
@@ -492,7 +492,7 @@ void FolderModel::resort()
     m_filtered.clear();
     QList<Entry> shown;
     for (Entry& e : all) {
-        if (e.hidden && !m_showHidden) {
+        if (isFiltered(e)) {
             m_filtered.append(std::move(e));
         } else {
             shown.append(std::move(e));
@@ -522,6 +522,44 @@ void FolderModel::setShowHidden(bool on)
 {
     if (on != m_showHidden) {
         m_showHidden = on;
+        emit viewChanged();
+        resort();
+    }
+}
+
+bool FolderModel::isFiltered(const Entry& e) const
+{
+    if (e.hidden && !m_showHidden) {
+        return true;
+    }
+    if (m_dirsOnly) {
+        return !e.isDir;
+    }
+    if (e.isDir || m_filterPatterns.isEmpty()) {
+        return false;
+    }
+    return std::none_of(m_filterPatterns.cbegin(), m_filterPatterns.cend(),
+        [&](const QRegularExpression& pattern) { return pattern.match(e.name).hasMatch(); });
+}
+
+void FolderModel::setNameFilters(const QStringList& globs)
+{
+    if (globs == m_nameFilters) {
+        return;
+    }
+    m_nameFilters = globs;
+    m_filterPatterns.clear();
+    for (const QString& glob : globs) {
+        m_filterPatterns.append(QRegularExpression(QRegularExpression::wildcardToRegularExpression(glob), QRegularExpression::CaseInsensitiveOption));
+    }
+    emit viewChanged();
+    resort();
+}
+
+void FolderModel::setDirsOnly(bool on)
+{
+    if (on != m_dirsOnly) {
+        m_dirsOnly = on;
         emit viewChanged();
         resort();
     }

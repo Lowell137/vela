@@ -83,6 +83,14 @@ public:
     // The user's answer to the question of QML's dialog.
     Q_INVOKABLE void answer(int request, bool allowed);
 
+    // For the FileChooser adaptor, on this object: the reply of the call in
+    // progress will come later; that call.
+    QDBusMessage delayReply()
+    {
+        setDelayedReply(true);
+        return message();
+    }
+
     // For the tests: the file in `path`.
     void setPath(const QString& path);
     QList<vela::AppShortcut> shortcuts() const { return m_shortcuts; }

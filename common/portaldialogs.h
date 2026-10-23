@@ -12,8 +12,8 @@
 #include <QVariant>
 
 // The file dialogs of the Qt Quick apps (FileDialog in QML) through
-// xdg-desktop-portal, that is KDE's real file chooser in Vela
-// (vela-portals.conf). KDE's platform theme opens its own dialog only in
+// xdg-desktop-portal, that is Vela's own Explorer as a file chooser in Vela
+// (shell/src/filechooser.h; KDE's after it, vela-portals.conf). KDE's platform theme opens its own dialog only in
 // QApplication (widgets) apps: a QGuiApplication got Qt Quick's bare fallback.
 // Qt's "xdgdesktopportal" theme keeps KDE's theme underneath (it picks it from
 // XDG_CURRENT_DESKTOP) for everything else. Only over KDE's theme or none: a

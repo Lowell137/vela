@@ -59,7 +59,7 @@ target_link_libraries(vela-files-core PUBLIC
     Qt6::Quick
     Qt6::Svg)
 
-qt_add_executable(vela-files src/main.cpp)
+qt_add_executable(vela-files src/main.cpp src/picker.h)
 
 set(PEEK_PDF_QML "")
 if(FILES_HAVE_PDF)
@@ -90,6 +90,7 @@ set(FILES_QML_FILES
     qml/ScrollBar.qml
     qml/PreviewPane.qml
     qml/QuickPeek.qml
+    qml/PickBar.qml
     ${PROJECT_SOURCE_DIR}/notepad/qml/WindowButton.qml
     ${PROJECT_SOURCE_DIR}/notepad/qml/ResizeEdges.qml
     ${PEEK_PDF_QML}
