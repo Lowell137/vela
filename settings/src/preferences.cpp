@@ -236,6 +236,7 @@ void Preferences::reload()
     }
     m_endTask = settings.value(QStringLiteral("taskbar/endTask"), true).toBool();
     m_taskView = settings.value(QStringLiteral("taskbar/taskView"), true).toBool();
+    m_portalAutofix = settings.value(QStringLiteral("sharing/portalAutofix"), true).toBool();
     m_trayOverflow = settings.value(QStringLiteral("taskbar/trayOverflow"), true).toBool();
     m_taskbarAllScreens = settings.value(QStringLiteral("taskbar/allScreens"), true).toBool();
     m_taskbarAutoHide = settings.value(QStringLiteral("taskbar/autoHide"), false).toBool();
@@ -1065,6 +1066,15 @@ void Preferences::setShowDesktopCorner(bool on)
     if (on != m_showDesktopCorner) {
         m_showDesktopCorner = on;
         setShell(QStringLiteral("taskbar/showDesktopCorner"), on);
+        emit taskbarChanged();
+    }
+}
+
+void Preferences::setPortalAutofix(bool on)
+{
+    if (on != m_portalAutofix) {
+        m_portalAutofix = on;
+        setShell(QStringLiteral("sharing/portalAutofix"), on);
         emit taskbarChanged();
     }
 }

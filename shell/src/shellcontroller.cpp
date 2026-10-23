@@ -19,7 +19,9 @@
 #include <QDBusInterface>
 #include <QDBusReply>
 #include <QDBusUnixFileDescriptor>
+#include <QElapsedTimer>
 #include <QLocalSocket>
+#include <QProcess>
 #include <QTimer>
 #include <QProcess>
 #include <QFile>
@@ -79,6 +81,7 @@ ShellController::ShellController(QObject* parent)
                 if (m_chooser == socket) {
                     m_chooser = nullptr;
                     emit chooseSourceCancelled(); // the portal gave up
+                    refreshScreenCastPortal();
                 }
                 // A possible command without a final newline.
                 const QByteArray rest = socket->readAll().trimmed();
@@ -125,6 +128,22 @@ void ShellController::startChooser(QLocalSocket* socket)
     }
     m_chooser = socket;
     emit chooseSourceRequested();
+}
+
+// The portal dropping the chooser without an answer is how a stuck
+// xdg-desktop-portal-wlr shows (Discord's share then fails until it is
+// restarted by hand): restart it, unless Settings > System > Display turned
+// that off. Not more than once in 20 s.
+void ShellController::refreshScreenCastPortal()
+{
+    static QElapsedTimer last;
+    if (!QSettings().value(QStringLiteral("sharing/portalAutofix"), true).toBool()
+        || (last.isValid() && !last.hasExpired(20000))) {
+        return;
+    }
+    last.start();
+    QProcess::startDetached(QStringLiteral("systemctl"),
+        { QStringLiteral("--user"), QStringLiteral("restart"), QStringLiteral("xdg-desktop-portal-wlr.service") });
 }
 
 void ShellController::chooseSource(const QString& answer)

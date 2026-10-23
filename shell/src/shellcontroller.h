@@ -218,6 +218,7 @@ private:
     void handleCommand(const QByteArray& command);
     void takeSleepDelay();
     void startChooser(QLocalSocket* socket);
+    void refreshScreenCastPortal();
     QPointer<QLocalSocket> m_chooser; // the portal waiting for the choice
     void saveStartPins();
     QDBusUnixFileDescriptor m_sleepDelay; // while it's open, logind waits before suspending

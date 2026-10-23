@@ -369,6 +369,15 @@ Page {
                 onToggled: on => Prefs.captureIndicator = on
             }
         }
+        Card {
+            icon: "view-refresh"
+            title: qsTr("Fix the sharing picker by itself")
+            description: qsTr("When the screen picker breaks (Discord, OBS...), restart the sharing portal so the next try works")
+            trailing: Toggle {
+                checked: Prefs.portalAutofix
+                onToggled: on => Prefs.portalAutofix = on
+            }
+        }
     }
 
     CardGroup {
