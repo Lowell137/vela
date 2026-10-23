@@ -84,7 +84,7 @@ Window {
     // The blurred background only under the panel (the window covers the
     // output).
     function updateBlur() {
-        Effects.setBlur(root, [Qt.rect(panel.x, panel.y, panel.width, panel.height)])
+        Effects.setBlur(root, [Qt.rect(panel.x, panel.y, panel.width, panel.height)], panel.radius)
     }
 
     Rectangle {

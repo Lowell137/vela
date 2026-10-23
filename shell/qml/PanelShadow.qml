@@ -8,9 +8,7 @@ import Vela.Controls
 // A panel's soft shadow, drawn only *outside* the panel: acrylic panels are
 // semi-transparent and must show the blurred background below, not a shadow.
 // RectangularShadow (analytic, like the compositor's) with the panel's rounded
-// shape cut out of it, so the corners get their shadow too, antialiased. The
-// cut is a pixel wider than the panel: the compositor's blur follows the
-// panel's alpha, and there the shadow's would square its corners.
+// shape cut out of it, so the corners get their shadow too, antialiased.
 Item {
     id: root
 
@@ -46,11 +44,11 @@ Item {
         visible: false
         layer.enabled: true
         Rectangle {
-            x: root.reach - 1
-            y: root.reach - 1
-            width: root.target.width + 2
-            height: root.target.height + 2
-            radius: root.radius + 1
+            x: root.reach
+            y: root.reach
+            width: root.target.width
+            height: root.target.height
+            radius: root.radius
             antialiasing: true
         }
     }

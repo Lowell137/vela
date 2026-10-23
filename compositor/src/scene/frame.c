@@ -537,6 +537,94 @@ static bool same_look(const struct vela_element *a, const struct vela_element *b
         && same_box(&a->blur_forced, &b->blur_forced);
 }
 
+// The shell's rounded blur regions (shell/src/backgroundeffects.cpp) are rows
+// of pixels inside a rounded rectangle, the protocol taking only rectangles.
+// Each piece of the region (a panel: boxes touching each other) whose top row
+// is inset by the same amount on both sides is that rounded rectangle, the
+// inset its radius: it is blurred on its own, clipped to it (antialiased, like
+// rounded windows). Other pieces, and any surface with a clip of its own, as
+// they are.
+static void add_blur_pieces(struct vela_pass *pass, const struct vela_texture_draw *panel,
+    const pixman_region32_t *region, const pixman_region32_t *clip, float strength,
+    const struct wlr_render_color *tint, bool unmasked, float saturation, float luminosity)
+{
+    int n = 0;
+    const pixman_box32_t *boxes = pixman_region32_rectangles(region, &n);
+    if (n == 0) {
+        return;
+    }
+    int *piece = malloc((size_t)n * sizeof(*piece));
+    if (!piece || panel->shape_radius > 0.0f) {
+        free(piece);
+        pixman_region32_t clipped;
+        pixman_region32_init(&clipped);
+        pixman_region32_copy(&clipped, region);
+        if (clip) {
+            pixman_region32_intersect(&clipped, &clipped, clip);
+        }
+        vela_pass_add_blur(pass, panel, &clipped, strength, tint, unmasked, saturation, luminosity);
+        pixman_region32_fini(&clipped);
+        return;
+    }
+    // Union-find over the boxes: pixman sorts them by bands, so only the
+    // boxes up to the next band can touch.
+    for (int i = 0; i < n; ++i) {
+        piece[i] = i;
+    }
+    for (int i = 0; i < n; ++i) {
+        for (int j = i + 1; j < n && boxes[j].y1 <= boxes[i].y2; ++j) {
+            if (boxes[j].x1 < boxes[i].x2 && boxes[i].x1 < boxes[j].x2) {
+                int a = i, b = j;
+                while (piece[a] != a) {
+                    a = piece[a];
+                }
+                while (piece[b] != b) {
+                    b = piece[b];
+                }
+                piece[b > a ? b : a] = b > a ? a : b; // the root is the topmost box
+            }
+        }
+    }
+    for (int root = 0; root < n; ++root) {
+        int r = root;
+        while (piece[r] != r) {
+            r = piece[r];
+        }
+        if (r != root) {
+            continue; // not a piece's first box
+        }
+        pixman_region32_t part;
+        pixman_region32_init(&part);
+        for (int i = root; i < n; ++i) {
+            int k = i;
+            while (piece[k] != k) {
+                k = piece[k];
+            }
+            if (k == root) {
+                pixman_region32_union_rect(&part, &part, boxes[i].x1, boxes[i].y1, (unsigned)(boxes[i].x2 - boxes[i].x1),
+                    (unsigned)(boxes[i].y2 - boxes[i].y1));
+            }
+        }
+        const pixman_box32_t *e = pixman_region32_extents(&part);
+        const int inset = boxes[root].x1 - e->x1;
+        struct vela_texture_draw rounded = *panel;
+        if (inset > 0 && e->x2 - boxes[root].x2 == inset && 2 * inset <= e->y2 - e->y1) {
+            pixman_region32_union_rect(&part, &part, e->x1, e->y1, (unsigned)(e->x2 - e->x1), (unsigned)(e->y2 - e->y1));
+            rounded.shape_rect = (struct wlr_box) { e->x1, e->y1, e->x2 - e->x1, e->y2 - e->y1 };
+            rounded.shape_radius = (float)inset;
+        }
+        if (clip) {
+            pixman_region32_intersect(&part, &part, clip);
+        }
+        if (pixman_region32_not_empty(&part)) {
+            vela_pass_add_blur(pass, &rounded, &part, strength, tint, unmasked, saturation, luminosity);
+        }
+        pixman_region32_fini(&part);
+    }
+    free(piece);
+}
+
+
 // ---------------------------------------------------------------- drawing --
 
 void vela_draw_elements(struct vela_scene *scene, struct vela_pass *pass, const struct vela_elements *elements,
@@ -614,14 +702,11 @@ void vela_draw_elements(struct vela_scene *scene, struct vela_pass *pass, const 
             pixman_region32_init(&region);
             blur_pixels(e, &region);
             wlr_region_transform(&region, &region, to_buffer, width, height);
-            if (clip) {
-                pixman_region32_intersect(&region, &region, clip);
-            }
             if (pixman_region32_not_empty(&region)) {
                 struct vela_texture_draw panel = draw;
                 panel.clip = NULL;
                 panel.alpha = e->blur_opacity; // the blur as strong as if the window were opaque
-                vela_pass_add_blur(pass, &panel, &region, blur_strength(e->scale_x), &scene->acrylic_tint,
+                add_blur_pieces(pass, &panel, &region, clip, blur_strength(e->scale_x), &scene->acrylic_tint,
                     !wlr_box_empty(&e->blur_forced), blur_look_saturation, scene->acrylic_luminosity);
             }
             pixman_region32_fini(&region);

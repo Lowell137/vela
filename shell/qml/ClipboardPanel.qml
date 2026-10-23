@@ -98,7 +98,7 @@ Window {
     }
 
     function updateBlur() {
-        Effects.setBlur(root, [Qt.rect(panel.x, panel.y, panel.width, panel.height)])
+        Effects.setBlur(root, [Qt.rect(panel.x, panel.y, panel.width, panel.height)], panel.radius)
     }
 
     // From panel to output coordinates (menus): next to the pointer, or at

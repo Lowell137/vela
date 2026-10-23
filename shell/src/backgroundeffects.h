@@ -18,9 +18,10 @@ struct ext_background_effect_surface_v1;
 // The blur behind the shell's panels (taskbar, Start menu, menus,
 // notifications, Alt+Tab), asked of the compositor with the standard
 // ext-background-effect-v1 protocol (docs/renderer.md §8.3). The compositor
-// blurs what's behind the region and clips it with the panel's alpha. A panel
-// with a shadow gives its corner radius too: the shadow has alpha as well, so
-// the region itself is rounded (rows of pixels: the protocol takes rectangles).
+// blurs what's behind the region and clips it with the panel's alpha. A
+// rounded panel gives its corner radius too and the region itself is rounded
+// (rows of pixels: the protocol takes rectangles): the alpha of its border and
+// shadow would make the corners square and jagged.
 //
 // From QML: Effects.setBlur(window, [Qt.rect(...), ...]) whenever the area
 // changes; Effects.blurAvailable tells whether the compositor can do it (if

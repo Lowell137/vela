@@ -115,7 +115,7 @@ Window {
     // The blurred background under the open menus (the window covers the
     // output).
     function updateBlur() {
-        Effects.setBlur(root, panels.map(p => Qt.rect(p.x, p.y, p.width, p.height)))
+        Effects.setBlur(root, panels.map(p => Qt.rect(p.x, p.y, p.width, p.height)), panels.length > 0 ? panels[0].radius : 0)
     }
 
     function openSubmenu(parentPanel, index, rowY, keyboard) {

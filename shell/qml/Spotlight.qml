@@ -51,7 +51,7 @@ Window {
         }
     }
     function updateBlur() {
-        Effects.setBlur(root, [Qt.rect(card.x, card.y, card.width, card.height)])
+        Effects.setBlur(root, [Qt.rect(card.x, card.y, card.width, card.height)], card.radius)
     }
     onActiveChanged: if (!active && visible) close()
 

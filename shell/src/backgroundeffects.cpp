@@ -73,8 +73,10 @@ BackgroundEffects::~BackgroundEffects()
     }
 }
 
-// A rounded rectangle as rows of pixels: every pixel it touches. The panel's
-// alpha then antialiases the edge (PanelShadow keeps a pixel clear of it).
+// A rounded rectangle as rows of pixels: only those entirely inside. The
+// pixels the corner's curve crosses stay unblurred, so there the panel's own
+// antialiased edge meets the background (the compositor's mask can't do it:
+// it treats any pixel with a little alpha as panel).
 static QRegion roundedRegion(const QRect& rect, int radius)
 {
     radius = std::min({ radius, rect.width() / 2, rect.height() / 2 });
@@ -83,8 +85,8 @@ static QRegion roundedRegion(const QRect& rect, int radius)
     }
     QRegion region(rect.adjusted(0, radius, 0, -radius));
     for (int i = 0; i < radius; ++i) {
-        const double dy = radius - i - 1; // the row's widest point, at its bottom edge
-        const int inset = static_cast<int>(std::floor(radius - std::sqrt(radius * radius - dy * dy)));
+        const double dy = radius - i; // the row's narrowest point, at its top edge
+        const int inset = static_cast<int>(std::ceil(radius - std::sqrt(radius * radius - dy * dy)));
         region += QRect(rect.x() + inset, rect.y() + i, rect.width() - 2 * inset, 1);
         region += QRect(rect.x() + inset, rect.bottom() - i, rect.width() - 2 * inset, 1);
     }
@@ -98,7 +100,7 @@ void BackgroundEffects::setBlur(QWindow* window, const QVariantList& rects, qrea
     }
     QRegion region;
     for (const QVariant& value : rects) {
-        region += roundedRegion(value.toRectF().toAlignedRect(), qRound(radius));
+        region += roundedRegion(value.toRectF().toAlignedRect(), radius > 0 ? qRound(radius) : 0); // NaN: no radius given
     }
     Entry& entry = m_entries[window];
     entry.window = window;

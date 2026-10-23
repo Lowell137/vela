@@ -66,7 +66,7 @@ Window {
         if (!visible) {
             Menus.placeOnTargetScreen(root)
             visible = true
-            Effects.setBlur(root, [Qt.rect(pill.x, 12, pill.width, pill.height)])
+            Effects.setBlur(root, [Qt.rect(pill.x, 12, pill.width, pill.height)], pill.radius)
             pill.opacity = 0
             slide.y = Config.taskbarTop ? -12 : 12
             fade.stop()

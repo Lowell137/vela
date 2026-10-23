@@ -85,7 +85,7 @@ Window {
     }
     function updateBlur() {
         if (visible) {
-            Effects.setBlur(root, [Qt.rect(panel.x, root.geometry.y, panel.width, panel.height)])
+            Effects.setBlur(root, [Qt.rect(panel.x, root.geometry.y, panel.width, panel.height)], panel.radius)
         }
     }
 

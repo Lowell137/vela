@@ -116,8 +116,16 @@ Window {
     function updateBlur() {
         if (dock) {
             const r = Qt.rect(dockPill.x, dockPill.y, dockPill.width, dockPill.height)
-            Effects.setBlur(root, [r])
+            Effects.setBlur(root, [r], dockPill.radius)
             Effects.setInputRegion(root, [r])
+            return
+        }
+        // A single floating pill: only it, rounded. With the backdrop strip
+        // showing or a pill per side, the whole window (the panel's alpha
+        // gives the shape).
+        if (floating && !floatingSurface.split && !edge && !(Theme.taskbarBackdrop && underMaximized)) {
+            Effects.setBlur(root, [Qt.rect(floatingSurface.x, floatingSurface.y, floatingSurface.width, floatingSurface.height)], Theme.taskbarRadius)
+            Effects.setInputRegion(root, [])
             return
         }
         if (!islands) {
@@ -128,13 +136,14 @@ Window {
         const rects = [leftIsland, rightIsland]
         if (middleIsland.visible) rects.splice(1, 0, middleIsland)
         const blur = rects.map(i => Qt.rect(i.x, i.y, i.width, i.height))
-        Effects.setBlur(root, blur)
+        Effects.setBlur(root, blur, Theme.radiusIsland)
         // The show desktop strip beyond the right island stays clickable.
         Effects.setInputRegion(root, Config.showDesktopCorner ? blur.concat([Qt.rect(width - 8, 0, 8, height)]) : blur)
     }
     onWidthChanged: updateBlur()
     onHeightChanged: updateBlur()
     onIslandsChanged: updateBlur()
+    onUnderMaximizedChanged: updateBlur()
     onDockChanged: updateBlur()
 
     // A button's window previews (TaskbarPreview.qml).
@@ -360,6 +369,10 @@ Window {
         Rectangle {
             id: floatingSurface
             readonly property bool split: root.fit && !root.edge && Theme.taskbarSplitGap > 0
+            onXChanged: root.updateBlur()
+            onYChanged: root.updateBlur()
+            onWidthChanged: root.updateBlur()
+            onHeightChanged: root.updateBlur()
             visible: root.floating
             x: root.fit ? buttons.x - 10 : root.sideMargin
             y: Theme.taskbarMargin
