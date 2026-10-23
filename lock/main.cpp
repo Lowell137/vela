@@ -24,6 +24,7 @@
 #include <QCoreApplication>
 #include <QAbstractEventDispatcher>
 #include <QDateTime>
+#include <QFileInfo>
 #include <QFont>
 #include <QFontMetricsF>
 #include <QGuiApplication>
@@ -32,6 +33,7 @@
 #include <QPainter>
 #include <QPainterPath>
 #include <QPen>
+#include <QSettings>
 #include <QSocketNotifier>
 #include <QSvgRenderer>
 #include <QTimer>
@@ -103,7 +105,16 @@ void redrawAll();
 
 QImage wallpaperFor(int width, int height)
 {
-    const QString path = qEnvironmentVariable("VELA_WALLPAPER", vela::defaults::wallpaper());
+    // The desktop's wallpaper, chosen the same way as the shell (config.cpp).
+    QString path = qEnvironmentVariable("VELA_WALLPAPER");
+    if (path.isEmpty()) {
+        path = QSettings(QStringLiteral("Vela"), QStringLiteral("vela-shell"))
+                   .value(QStringLiteral("appearance/wallpaper"))
+                   .toString();
+    }
+    if (path.isEmpty() || (!path.startsWith(u':') && !QFileInfo::exists(path))) {
+        path = vela::defaults::wallpaper();
+    }
     QImage image(width, height, QImage::Format_RGB32);
     image.fill(QColor(6, 24, 45));
     QPainter p(&image);

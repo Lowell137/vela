@@ -12,7 +12,7 @@ import tempfile
 import time
 import unittest
 
-from harness import Session
+from harness import Session, tool
 
 
 def child_compositor(supervisor_pid):
@@ -116,6 +116,18 @@ class Caffeine(unittest.TestCase):
             self.assertFalse(vela.state()["locked"])
             vela.command("caffeine off")
             vela.wait_for(lambda s: s["locked"], timeout=7, what="automatic lock after caffeine")
+
+    def test_fullscreen_window_in_use_prevents_automatic_lock(self):
+        # A game or a video: X11 games can't send an idle inhibitor.
+        with Session(env={"VELA_SCREEN_OFF": "0.05"}, lock_hold_ms=4000) as vela:
+            game = vela.open_window(command=[tool("vela-pattern"), "--fullscreen"])
+            vela.wait_for(lambda s: s.window(game)["fullscreen"] and s["focused"] == game,
+                          what="fullscreen with focus")
+            time.sleep(4.5)
+            self.assertFalse(vela.state()["locked"])
+            other = vela.open_window(300, 200)
+            vela.wait_for(lambda s: s["focused"] == other, what="a window that is not fullscreen has focus")
+            vela.wait_for(lambda s: s["locked"], timeout=7, what="automatic lock once not fullscreen")
 
     def test_caffeine_presets_and_invalid_durations(self):
         with Session() as vela:

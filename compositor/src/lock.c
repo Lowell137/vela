@@ -256,6 +256,13 @@ static int handle_idle_timer(void *data)
         const struct vela_surface_state *state = vela_surface_state_get(inhibitor->surface);
         inhibited = inhibited || (inhibitor->surface->mapped && state && state->pacing);
     }
+    // A fullscreen window in use and on screen (a game, a video): X11 apps
+    // through Xwayland can't ask with an inhibitor.
+    struct vela_view *focused = vela_views_focused(server);
+    if (focused && focused->fullscreen && !server->locked) {
+        const struct vela_surface_state *state = vela_surface_state_get(vela_view_surface(focused));
+        inhibited = inhibited || (state && state->pacing);
+    }
     if (inhibited) {
         wl_event_source_timer_update(lock->idle_timer, lock->screen_off_ms);
         return 0;
