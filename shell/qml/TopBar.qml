@@ -98,8 +98,8 @@ Window {
             onClicked: mouse => {
                 root.fromHere()
                 Menus.open([
-                    { text: qsTr("Task &manager"), icon: "utilities-system-monitor", enabled: System.available("task-manager"), action: () => System.trigger("task-manager") },
-                    { text: qsTr("Taskbar &settings"), icon: "configure", enabled: System.available("taskbar-settings"), action: () => System.trigger("taskbar-settings") }
+                    { text: qsTr("Task &manager"), icon: "task-manager", enabled: System.available("task-manager"), action: () => System.trigger("task-manager") },
+                    { text: qsTr("Taskbar &settings"), icon: "taskbar-settings", enabled: System.available("taskbar-settings"), action: () => System.trigger("taskbar-settings") }
                 ], mouse.x, root.height + 4, { screen: root.screenName, above: false })
             }
         }

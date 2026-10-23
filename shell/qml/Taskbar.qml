@@ -400,8 +400,8 @@ Window {
             onClicked: mouse => {
                 const p = root.screenPoint(emptyArea, mouse.x, mouse.y)
                 root.edgeMenu([
-                    { text: qsTr("Task &manager"), icon: "utilities-system-monitor", enabled: System.available("task-manager"), action: () => System.trigger("task-manager") },
-                    { text: qsTr("Taskbar &settings"), icon: "configure", enabled: System.available("taskbar-settings"), action: () => System.trigger("taskbar-settings") }
+                    { text: qsTr("Task &manager"), icon: "task-manager", enabled: System.available("task-manager"), action: () => System.trigger("task-manager") },
+                    { text: qsTr("Taskbar &settings"), icon: "taskbar-settings", enabled: System.available("taskbar-settings"), action: () => System.trigger("taskbar-settings") }
                 ], p)
             }
         }
