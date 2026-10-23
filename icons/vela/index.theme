@@ -1,15 +1,8 @@
 [Icon Theme]
 Name=Vela
-Comment=Vela's Fluent UI glyphs; app and file icons from Reversal (if installed), then Fluent, Breeze, hicolor
+Comment=Vela's Windows 11 style icons: Fluent glyphs, yellow folders; apps and files from Reversal (if installed), then Fluent, Breeze, hicolor
 Inherits=Reversal-orange,Reversal-blue,Reversal-green,Fluent,breeze,hicolor
-Directories=scalable/status,scalable/actions,scalable/categories,scalable/places,scalable/mimetypes
-
-[scalable/status]
-Size=24
-MinSize=8
-MaxSize=512
-Type=Scalable
-Context=Status
+Directories=scalable/actions,scalable/categories,scalable/devices,scalable/mimetypes,scalable/places,scalable/status,scalable/apps
 
 [scalable/actions]
 Size=24
@@ -25,12 +18,12 @@ MaxSize=512
 Type=Scalable
 Context=Categories
 
-[scalable/places]
+[scalable/devices]
 Size=24
 MinSize=8
 MaxSize=512
 Type=Scalable
-Context=Places
+Context=Devices
 
 [scalable/mimetypes]
 Size=24
@@ -38,3 +31,24 @@ MinSize=8
 MaxSize=512
 Type=Scalable
 Context=MimeTypes
+
+[scalable/places]
+Size=24
+MinSize=8
+MaxSize=512
+Type=Scalable
+Context=Places
+
+[scalable/status]
+Size=24
+MinSize=8
+MaxSize=512
+Type=Scalable
+Context=Status
+
+[scalable/apps]
+Size=24
+MinSize=8
+MaxSize=512
+Type=Scalable
+Context=Applications

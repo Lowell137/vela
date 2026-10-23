@@ -9,10 +9,12 @@ from .desktop files) are not listed.
 
 ## The vela theme and licenses
 
-`icons/vela` (installed as `vela` and `vela-dark`) holds the critical icons (WiFi
-levels, Bluetooth, volume, brightness, settings, search, folder, file, power,
-bell, battery) as Microsoft's Fluent System Icons, and Vela's own window buttons
-(options in `docs/icon-options/`). It inherits `Reversal-orange/blue/green`, `Fluent`, `breeze`, `hicolor`.
+`icons/vela` (installed as `vela` and `vela-dark`, and the default theme when no
+other is chosen) holds Microsoft's Fluent System Icons as the symbolic glyphs
+(status, actions, categories, devices, mimetypes), Vela's yellow Windows 11 folders,
+Reversal's network, volume and microphone drawings, and Win11 icon theme's wired
+network and Steam icons (sources in `icons/vela/README.md`), and Vela's own window
+buttons (options in `docs/icon-options/`). It inherits `Reversal-orange/blue/green`, `Fluent`, `breeze`, `hicolor`.
 Style sheet: `docs/icons-style-sheet.html`. Licenses:
 
 - Fluent System Icons (Microsoft, MIT): `icons/fluent-source`, `common/fluent` and

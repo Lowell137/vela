@@ -16,7 +16,7 @@ Page {
         const head = [], tail = []
         for (const t of page.themes) (first.indexOf(t.name) >= 0 ? head : tail).push(t)
         head.sort((a, b) => first.indexOf(a.name) - first.indexOf(b.name))
-        return [{ name: "", text: qsTr("Automatic (Breeze)") }].concat(head, tail)
+        return [{ name: "", text: qsTr("Automatic (Vela)") }].concat(head, tail)
     }
     readonly property bool fluentInstalled: page.themes.some(t => t.name === "Fluent")
     readonly property int chosenIndex: {

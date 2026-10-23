@@ -73,7 +73,12 @@ inline void applyIconTheme(bool light)
         QGuiApplication::setPalette(palette);
     }
 
+    // Without a choice: Vela's own theme, installed with it (VELA_ICON_THEME
+    // overrides), else KDE's, else breeze.
     static const QString automatic = [] {
+        if (qEnvironmentVariableIsEmpty("VELA_ICON_THEME") && iconThemeExists(QStringLiteral("vela"))) {
+            return QStringLiteral("vela");
+        }
         QString theme = QIcon::themeName();
         if (theme.isEmpty() || theme == QLatin1String("hicolor")) {
             theme = qEnvironmentVariable("VELA_ICON_THEME", QStringLiteral("breeze-dark"));

@@ -1095,8 +1095,8 @@ Specifiche sistema
 <context>
     <name>IconsPage</name>
     <message>
-        <source>Automatic (Breeze)</source>
-        <translation>Automatico (Breeze)</translation>
+        <source>Automatic (Vela)</source>
+        <translation>Automatico (Vela)</translation>
     </message>
     <message>
         <source>Icon theme</source>
