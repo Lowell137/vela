@@ -36,6 +36,10 @@ Window {
     readonly property int edgeGap: Math.max(Theme.taskbarMargin, 8) // the tray pill's gap to the screen's edge
     readonly property real trayGroupWidth: overflowButton.width + (tray.visible ? tray.width + 4 : 0)
         + screenShare.width + microphone.width + systemIcons.width + 2 + clock.width
+    // taskbar-side-margin, shrunk when the screen is too narrow for it: the
+    // weather and the tray and clock must still fit beside the centered apps.
+    readonly property int sideMargin: Math.min(Theme.taskbarSideMargin, Math.max(Theme.taskbarMargin,
+        Math.floor((width - buttons.width) / 2 - Math.max((weather.visible ? weather.width : 0) + 16, trayGroupWidth + 20))))
     readonly property bool underMaximized: {
         const name = root.screen ? root.screen.name : ""
         for (const r of Desktops.rects) {
@@ -357,11 +361,11 @@ Window {
             id: floatingSurface
             readonly property bool split: root.fit && !root.edge && Theme.taskbarSplitGap > 0
             visible: root.floating
-            x: root.fit ? buttons.x - 10 : Theme.taskbarSideMargin
+            x: root.fit ? buttons.x - 10 : root.sideMargin
             y: Theme.taskbarMargin
             width: split ? buttons.width + 14
                 : root.edge ? buttons.width + 20
-                : root.fit ? buttons.width + root.fitGap + root.trayGroupWidth + 10 : parent.width - 2 * Theme.taskbarSideMargin
+                : root.fit ? buttons.width + root.fitGap + root.trayGroupWidth + 10 : parent.width - 2 * root.sideMargin
             readonly property bool flush: root.edge && Theme.taskbarFlush
             height: parent.height - (flush ? 1 : 2) * Theme.taskbarMargin
             radius: Theme.taskbarRadius
@@ -490,7 +494,10 @@ Window {
             : root.islands ? (Config.taskbarAlignment === "left" ? leftIsland.x + leftIsland.width + 14
                 : Math.max(leftIsland.x + leftIsland.width + 14, Math.round((parent.width - width) / 2)))
             : Config.taskbarAlignment === "left" || Theme.taskbarAlignLeft ? 12 + weather.width + (weather.width > 0 ? 8 : 0)
-              : Math.round((parent.width - width) / 2)
+              // Centered, but off center rather than over the weather or the
+              // tray when the screen is narrow, like Windows 11.
+              : Math.max((root.floating ? root.sideMargin : 0) + 12 + (weather.visible ? weather.width + 8 : 0),
+                  Math.min(Math.round((parent.width - width) / 2), overflowButton.x - 8 - width))
         y: root.vertical ? (Config.taskbarAlignment === "left" ? 12 : Math.max(12, Math.round((parent.height - height) / 2)))
             : root.dock ? dockPill.y + Math.round((dockPill.height - height) / 2)
             : Math.round((parent.height - height) / 2)
@@ -754,7 +761,7 @@ Window {
         visible: root.primary && !root.dock && !root.fit && Weather.shown && Theme.taskbarWeather
         vertical: root.vertical
         screenName: root.screenName
-        x: root.vertical ? 0 : root.islands ? 14 : 8 + (root.floating ? Theme.taskbarSideMargin : 0)
+        x: root.vertical ? 0 : root.islands ? 14 : 8 + (root.floating ? root.sideMargin : 0)
         y: root.vertical ? overflowButton.y - height : 0
     }
 
@@ -976,7 +983,7 @@ Window {
         visible: !root.dock
         x: root.vertical ? 0 : root.edge ? parent.width - width - root.edgeGap - 12
             : root.fit ? buttons.x + buttons.width + root.fitGap + root.trayGroupWidth - width
-            : parent.width - width - 12 - (root.floating ? Theme.taskbarSideMargin : 0)
+            : parent.width - width - 12 - (root.floating ? root.sideMargin : 0)
         y: root.vertical ? showDesktop.y - height - 4 : 0
         readonly property bool badge: Notifications.history.count > 0 || Notifications.silenced
         width: root.vertical ? parent.width : clockColumn.implicitWidth + 16 + (badge ? 22 : 0)
