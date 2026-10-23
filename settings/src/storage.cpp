@@ -32,6 +32,7 @@ constexpr qint64 blockSize = 1024;
 Storage::Storage(QObject* parent) : QObject(parent)
 {
     const QList<QStorageInfo> mounted = QStorageInfo::mountedVolumes();
+    QStringList devices;
     for (const QStorageInfo& volume : mounted) {
         if (!volume.isValid() || volume.bytesTotal() == 0) {
             continue;
@@ -44,9 +45,12 @@ Storage::Storage(QObject* parent) : QObject(parent)
             || path == QStringLiteral("/home") || path.startsWith(QStringLiteral("/home/"))
             || path == QStringLiteral("/media") || path.startsWith(QStringLiteral("/media/"))
             || path == QStringLiteral("/mnt") || path.startsWith(QStringLiteral("/mnt/"));
-        if (!interesting) {
+        // One disk mounted twice (btrfs subvolumes for / and /home) is one
+        // row, under its first mount point.
+        if (!interesting || devices.contains(QString::fromUtf8(volume.device()))) {
             continue;
         }
+        devices.append(QString::fromUtf8(volume.device()));
         // The label when the device has one ("Data"), else the mount point.
         const QString name = volume.name().isEmpty() ? path : volume.name();
         m_volumes.append(QVariantMap {
@@ -92,7 +96,9 @@ void Storage::refillSizes()
     const QFileInfoList entries = QDir(home)
         .entryInfoList(QDir::Dirs | QDir::Files | QDir::Hidden | QDir::NoDotAndDotDot, QDir::NoSort);
     for (const QFileInfo& entry : entries) {
-        if (entry.absoluteFilePath() != trash) {
+        // A disk mounted in the home (a cloud drive) has its own row above:
+        // walking it could mean the whole remote.
+        if (entry.absoluteFilePath() != trash && QStorageInfo(entry.absoluteFilePath()).rootPath() != entry.absoluteFilePath()) {
             paths.append(entry.absoluteFilePath());
         }
     }
@@ -153,6 +159,7 @@ void Storage::refillSizes()
         emit changed();
     });
     m_du->start(du, QStringList() << QStringLiteral("-sk") << paths);
+    emit changed(); // scanning: "Measuring..." instead of "Nothing could be measured"
 }
 
 void Storage::cleanFolder(const QString& folder, bool& anything, bool& failed)

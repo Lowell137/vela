@@ -47,7 +47,7 @@ Page {
     CardGroup {
         title: qsTr("Temporary files")
         Card {
-            icon: "user-trash"
+            icon: "user-trash-symbolic"
             title: qsTr("Trash")
             description: page.humanSize(Storage.trashSize)
             trailing: Button {

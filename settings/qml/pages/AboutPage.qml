@@ -95,7 +95,7 @@ Page {
         rows: About.device
     }
     SpecGroup {
-        icon: "start-here"
+        icon: "computer-symbolic"
         header: qsTr("System specifications")
         rows: About.system
     }
