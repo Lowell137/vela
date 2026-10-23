@@ -10,6 +10,7 @@ extern "C" {
 }
 
 #include "iconprovider.h"
+#include "wallpaperaccent.h"
 
 #include <QDir>
 #include <QTime>
@@ -106,6 +107,7 @@ void Preferences::reload()
     if (!accent.isValid()) {
         accent = vela::defaults::accent();
     }
+    m_accentFromWallpaper = settings.value(QStringLiteral("appearance/accentFromWallpaper"), false).toBool();
     if (accent != m_accent) {
         m_accent = accent;
         emit accentChanged();
@@ -363,6 +365,9 @@ void Preferences::setWallpaper(const QString& pathOrUrl)
     m_wallpaper = path;
     m_recentWallpapers = recent;
     emit wallpaperChanged();
+    if (m_accentFromWallpaper) {
+        setAccent(vela::accentFromWallpaper(m_wallpaper));
+    }
 }
 
 // --------------------------------------------------- colors and theme --
@@ -374,6 +379,19 @@ void Preferences::setAccent(const QColor& color)
     }
     m_accent = color;
     setShell(QStringLiteral("appearance/accent"), color.name());
+    emit accentChanged();
+}
+
+void Preferences::setAccentFromWallpaper(bool on)
+{
+    if (on == m_accentFromWallpaper) {
+        return;
+    }
+    m_accentFromWallpaper = on;
+    setShell(QStringLiteral("appearance/accentFromWallpaper"), on);
+    if (on) {
+        setAccent(vela::accentFromWallpaper(m_wallpaper)); // not a gray one: the accent stays
+    }
     emit accentChanged();
 }
 
