@@ -169,6 +169,15 @@ if(Python3_FOUND)
     add_test(NAME settings-pages COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/check_pages.py)
 endif()
 
+if(VELA_BUILD_TOOLS)
+    find_package(Qt6 6.5 REQUIRED COMPONENTS Test)
+    qt_add_executable(vela-wallpaperaccent-test tests/wallpaperaccent_test.cpp)
+    target_include_directories(vela-wallpaperaccent-test PRIVATE src)
+    target_link_libraries(vela-wallpaperaccent-test PRIVATE Qt6::Gui Qt6::Test)
+    add_test(NAME settings-wallpaperaccent COMMAND vela-wallpaperaccent-test)
+    set_tests_properties(settings-wallpaperaccent PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen" TIMEOUT 60)
+endif()
+
 if(VELA_BUILD_TOOLS AND VELA_BUILD_COMPOSITOR)
     find_package(Qt6 6.5 REQUIRED COMPONENTS Test)
     qt_add_executable(vela-defaultapps-test

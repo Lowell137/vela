@@ -34,6 +34,8 @@ class Preferences : public QObject {
     // "name", "size" (largest first), "newest" or "oldest".
     Q_PROPERTY(QString wallpaperFolderSort READ wallpaperFolderSort WRITE setWallpaperFolderSort
             NOTIFY wallpaperFolderChanged)
+    // The accent follows the wallpaper's colors (set again on each wallpaper).
+    Q_PROPERTY(bool accentFromWallpaper READ accentFromWallpaper WRITE setAccentFromWallpaper NOTIFY accentChanged)
     Q_PROPERTY(QColor accent READ accent WRITE setAccent NOTIFY accentChanged)
     Q_PROPERTY(QString appTheme READ appTheme WRITE setAppTheme NOTIFY appThemeChanged)
     // Vela's mode (taskbar, menus, panels): "dark" or "light".
@@ -190,6 +192,8 @@ public:
 
     QColor accent() const { return m_accent; }
     void setAccent(const QColor& color);
+    bool accentFromWallpaper() const { return m_accentFromWallpaper; }
+    void setAccentFromWallpaper(bool on);
 
     QString appTheme() const { return m_appTheme; }
     void setAppTheme(const QString& theme);
@@ -476,6 +480,7 @@ private:
     QString m_wallpaperFolder;
     QString m_wallpaperFolderSort;
     QColor m_accent;
+    bool m_accentFromWallpaper = false;
     QString m_appTheme;
     QString m_shellTheme;
     QString m_taskbarAlignment;

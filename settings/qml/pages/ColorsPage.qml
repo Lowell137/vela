@@ -99,6 +99,15 @@ Page {
 
     CardGroup {
         Card {
+            icon: "preferences-desktop-wallpaper"
+            title: qsTr("Accent color from wallpaper")
+            description: qsTr("Pick the accent from your wallpaper's colors, each time you change it")
+            trailing: Toggle {
+                checked: Prefs.accentFromWallpaper
+                onToggled: on => Prefs.accentFromWallpaper = on
+            }
+        }
+        Card {
             icon: "preferences-desktop-color"
             title: qsTr("Accent color")
             description: qsTr("Buttons, selections, active items in the taskbar and menus")
