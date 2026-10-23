@@ -473,6 +473,23 @@ bool AppModel::launchId(const QString& id)
     return false;
 }
 
+QString AppModel::idAt(int row) const
+{
+    return data(index(row), IdRole).toString();
+}
+
+QString AppModel::browserIcon() const
+{
+    QString id = defaultAppFor(QStringLiteral("x-scheme-handler/https"));
+    if (id.isEmpty()) {
+        id = defaultAppFor(QStringLiteral("x-scheme-handler/http"));
+    }
+    if (id.endsWith(QLatin1String(".desktop"))) {
+        id.chop(8);
+    }
+    return id.isEmpty() ? QStringLiteral("internet-web-browser") : iconForAppId(id);
+}
+
 QVariantMap AppModel::entry(const QString& id) const
 {
     for (const Entry& e : m_all) {

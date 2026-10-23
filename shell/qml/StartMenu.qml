@@ -66,6 +66,96 @@ Window {
     // The selected extra result; -1: the selection is in the app grid.
     property int extraIndex: -1
 
+    // --- search, like Windows 11: tabs, the results in a list (the best
+    // match first) and the selected one's details and actions beside it ---
+    readonly property bool searching: search.text.trim().length > 0
+    property string searchFilter: "all" // all, apps, settings, files
+    readonly property var results: {
+        const q = search.text.trim()
+        if (q.length === 0) {
+            return []
+        }
+        void Apps.query // the model is filtered when the query is set, after the text
+        const out = []
+        const all = searchFilter === "all"
+        if (all || searchFilter === "apps") {
+            const n = all ? Math.min(Apps.count, 6) : Apps.count
+            for (let i = 0; i < n; ++i) {
+                const id = Apps.idAt(i)
+                const e = Apps.entry(id)
+                out.push({ kind: "app", id: id, name: e.name, iconName: e.iconName, detail: qsTr("App") })
+            }
+        }
+        // The web right after the apps, like Windows 11.
+        if (all) {
+            out.push({ kind: "web", name: q, iconName: Apps.browserIcon(), detail: qsTr("See web results") })
+        }
+        for (const e of extras) {
+            if (e.kind === "setting" && (all || searchFilter === "settings")) {
+                out.push({ kind: "setting", name: e.name, iconName: "preferences-system", detail: qsTr("Settings"), page: e.page })
+            } else if (e.kind === "file" && (all || searchFilter === "files")) {
+                out.push({ kind: "file", name: e.name, iconName: "text-x-generic", detail: e.detail, path: e.path })
+            }
+        }
+        return out
+    }
+    property int resultIndex: 0
+    onResultsChanged: resultIndex = 0
+    readonly property var result: results[resultIndex] ?? null
+
+    function openResult(r) {
+        if (!r) {
+            return
+        }
+        if (r.kind === "app") {
+            if (Apps.launchId(r.id)) {
+                close()
+            }
+            return
+        }
+        if (r.kind === "file") {
+            System.openUrl(r.path)
+        } else if (r.kind === "setting") {
+            System.openSettingsPage(r.page)
+        } else {
+            System.openUrl("https://www.google.com/search?q=" + encodeURIComponent(r.name))
+        }
+        close()
+    }
+    // The selected result's actions, at the right: an app's are those of its
+    // right-click menu, flattened.
+    function resultActions(r) {
+        if (!r) {
+            return []
+        }
+        const open = { text: qsTr("Open"), icon: "document-open", action: () => root.openResult(r) }
+        if (r.kind === "file") {
+            return [open, { text: qsTr("Open file location"), icon: "document-open-folder", action: () => { System.showInFolder(r.path); root.close() } }]
+        }
+        if (r.kind !== "app") {
+            return [open]
+        }
+        const out = [open]
+        const add = entries => entries.forEach(e => {
+            if (e.children) {
+                add(e.children)
+            } else if (e.text && e.enabled !== false) {
+                out.push({ text: e.text.replace(/&(?!&)/g, "").replace(/&&/g, "&"), icon: e.icon, action: e.action })
+            }
+        })
+        add(appMenu(r.id, false))
+        return out
+    }
+    function moveResult(delta) {
+        if (results.length > 0) {
+            resultIndex = Math.max(0, Math.min(results.length - 1, resultIndex + delta))
+        }
+    }
+    function cycleFilter(delta) {
+        const filters = ["all", "apps", "settings", "files"]
+        searchFilter = filters[(filters.indexOf(searchFilter) + delta + filters.length) % filters.length]
+    }
+
     function openExtra(i) {
         const e = extras[i]
         if (!e) {
@@ -166,7 +256,8 @@ Window {
                 inStart
                     ? { text: qsTr("&Unpin from Start"), icon: "window-unpin", action: () => Shell.unpinFromStart(id) }
                     : { text: qsTr("&Pin to Start"), icon: "window-pin", action: () => Shell.pinToStart(id) },
-                { text: qsTr("&More"), children: [taskbar, desktop, folder] },
+                desktop,
+                { text: qsTr("&More"), children: [taskbar, folder] },
                 uninstall)
         }
         return entries
@@ -245,6 +336,7 @@ Window {
         powerButton.menuOpen = false
         Apps.query = ""
         extraIndex = -1
+        searchFilter = "all"
         search.text = ""
         grid.currentIndex = 0
         grid.keyNav = false
@@ -281,7 +373,9 @@ Window {
     }
 
     function launchSelection() {
-        if (extraIndex >= 0) {
+        if (searching) {
+            openResult(result)
+        } else if (extraIndex >= 0) {
             openExtra(extraIndex)
         } else if (showPinned && selectedPinnedIndex >= 0 && selectedPinnedIndex < pinned.length) {
             if (Apps.launchId(pinned[selectedPinnedIndex].id)) {
@@ -528,10 +622,10 @@ Window {
                 Keys.onEscapePressed: root.close()
                 Keys.onReturnPressed: root.launchSelection()
                 Keys.onEnterPressed: root.launchSelection()
-                Keys.onDownPressed: root.navigate("down")
-                Keys.onUpPressed: root.navigate("up")
-                Keys.onTabPressed: root.navigate("right")
-                Keys.onBacktabPressed: root.navigate("left")
+                Keys.onDownPressed: root.searching ? root.moveResult(1) : root.navigate("down")
+                Keys.onUpPressed: root.searching ? root.moveResult(-1) : root.navigate("up")
+                Keys.onTabPressed: root.searching ? root.cycleFilter(1) : root.navigate("right")
+                Keys.onBacktabPressed: root.searching ? root.cycleFilter(-1) : root.navigate("left")
                 // A click in the field is editing again. The default (passive) policy: the
                 // text input grabs the mouse itself, which cancels the other policies.
                 TapHandler {
@@ -551,6 +645,7 @@ Window {
 
         Text {
             id: sectionTitle
+            visible: !root.searching
             anchors { top: searchBox.bottom; left: parent.left; topMargin: 20; leftMargin: 32 }
             text: search.text.length > 0 ? qsTr("Results") : root.showPinned ? qsTr("Pinned") : qsTr("All apps")
             color: Theme.text
@@ -561,6 +656,7 @@ Window {
         // --- app grid ---
         GridView {
             id: grid
+            visible: !root.searching
             anchors {
                 top: sectionTitle.bottom; bottom: footer.top
                 left: parent.left; right: parent.right
@@ -715,6 +811,249 @@ Window {
                 text: qsTr("No apps found")
                 color: Theme.textSecondary
                 font.pixelSize: Theme.fontBody
+            }
+        }
+
+        // --- search results (while searching, in place of the grid) ---
+        Item {
+            id: searchView
+            visible: root.searching
+            anchors { top: searchBox.bottom; bottom: footer.top; left: parent.left; right: parent.right
+                topMargin: 12; leftMargin: 24; rightMargin: 24; bottomMargin: 12 }
+
+            // The tabs: what the results are.
+            Row {
+                id: filterTabs
+                spacing: 4
+                Repeater {
+                    model: [{ id: "all", text: qsTr("All") }, { id: "apps", text: qsTr("Apps") },
+                        { id: "settings", text: qsTr("Settings") }, { id: "files", text: qsTr("Files") }]
+                    delegate: Item {
+                        id: tab
+                        required property var modelData
+                        readonly property bool selected: root.searchFilter === modelData.id
+                        width: tabText.implicitWidth + 20
+                        height: 30
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: Theme.radius
+                            color: tabMouse.pressed ? Theme.subtlePressed : Theme.subtleHover
+                            opacity: tabMouse.containsMouse ? 1 : 0
+                        }
+                        Text {
+                            id: tabText
+                            anchors.centerIn: parent
+                            text: tab.modelData.text
+                            color: tab.selected ? Theme.text : Theme.textSecondary
+                            font.pixelSize: Theme.fontBody
+                            font.weight: tab.selected ? Font.DemiBold : Font.Normal
+                        }
+                        Rectangle {
+                            visible: tab.selected
+                            anchors { bottom: parent.bottom; horizontalCenter: parent.horizontalCenter }
+                            width: 16
+                            height: 3
+                            radius: 1.5
+                            color: Theme.accent
+                        }
+                        MouseArea {
+                            id: tabMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            onClicked: root.searchFilter = tab.modelData.id
+                        }
+                    }
+                }
+            }
+
+            // At the left the results, the best match first and larger.
+            ListView {
+                id: resultList
+                anchors { top: filterTabs.bottom; bottom: parent.bottom; left: parent.left; topMargin: 12 }
+                width: Math.round(parent.width * 0.5)
+                clip: true
+                boundsBehavior: Flickable.StopAtBounds
+                model: root.results
+                currentIndex: root.resultIndex
+                onCurrentIndexChanged: positionViewAtIndex(currentIndex, ListView.Contain)
+                delegate: Column {
+                    id: row
+                    required property var modelData
+                    required property int index
+                    readonly property bool best: index === 0
+                    // A title above the best match and above each kind after it.
+                    readonly property bool titled: index <= 1 || root.results[index - 1].kind !== modelData.kind
+                    width: resultList.width
+
+                    Text {
+                        visible: row.titled
+                        leftPadding: 8
+                        topPadding: row.index === 0 ? 0 : 10
+                        bottomPadding: 4
+                        text: row.best ? qsTr("Best match")
+                            : row.modelData.kind === "app" ? qsTr("Apps")
+                            : row.modelData.kind === "setting" ? qsTr("Settings")
+                            : row.modelData.kind === "file" ? qsTr("Files") : qsTr("Search the web")
+                        color: Theme.text
+                        font.pixelSize: Theme.fontBody
+                        font.weight: Font.DemiBold
+                    }
+                    Item {
+                        width: parent.width
+                        height: row.best ? 56 : 36
+
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: Theme.radius
+                            color: rowMouse.pressed ? Theme.subtlePressed : Theme.subtleHover
+                            opacity: rowMouse.containsMouse || root.resultIndex === row.index ? 1 : 0
+                        }
+                        // The selection's accent bar, like Windows 11's lists.
+                        Rectangle {
+                            visible: root.resultIndex === row.index
+                            anchors { left: parent.left; verticalCenter: parent.verticalCenter }
+                            width: 3
+                            height: 16
+                            radius: 1.5
+                            color: Theme.accent
+                        }
+                        Image {
+                            id: rowIcon
+                            x: 12
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: row.best ? 32 : 20
+                            height: width
+                            source: Theme.icons + encodeURIComponent(row.modelData.iconName || "application-x-executable")
+                            sourceSize: Qt.size(width, height)
+                        }
+                        Column {
+                            anchors { left: rowIcon.right; leftMargin: 12; right: parent.right; rightMargin: 12; verticalCenter: parent.verticalCenter }
+                            Text {
+                                width: parent.width
+                                text: row.modelData.name
+                                color: Theme.text
+                                font.pixelSize: Theme.fontBody
+                                elide: Text.ElideRight
+                            }
+                            Text {
+                                visible: row.best || row.modelData.kind === "web"
+                                width: parent.width
+                                text: row.modelData.detail
+                                color: Theme.textSecondary
+                                font.pixelSize: Theme.fontCaption
+                                elide: Text.ElideMiddle
+                            }
+                        }
+                        MouseArea {
+                            id: rowMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            onClicked: root.resultIndex === row.index ? root.openResult(row.modelData) : root.resultIndex = row.index
+                            onDoubleClicked: root.openResult(row.modelData)
+                        }
+                    }
+                }
+            }
+
+            Text {
+                anchors.centerIn: resultList
+                visible: root.results.length === 0
+                text: qsTr("No results")
+                color: Theme.textSecondary
+                font.pixelSize: Theme.fontBody
+            }
+
+            // At the right the selected result: its icon, name, kind and actions.
+            Rectangle {
+                id: detail
+                visible: root.result !== null
+                anchors { top: resultList.top; bottom: parent.bottom; left: resultList.right; right: parent.right; leftMargin: 12 }
+                radius: Theme.radiusCard
+                color: Theme.card
+                border.width: 1
+                border.color: Theme.cardStroke
+
+                Column {
+                    id: detailHead
+                    anchors { top: parent.top; left: parent.left; right: parent.right; topMargin: 24 }
+                    spacing: 6
+                    Image {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        width: 56
+                        height: 56
+                        source: root.result ? Theme.icons + encodeURIComponent(root.result.iconName || "application-x-executable") : ""
+                        sourceSize: Qt.size(width, height)
+                    }
+                    Text {
+                        width: parent.width
+                        leftPadding: 12
+                        rightPadding: 12
+                        horizontalAlignment: Text.AlignHCenter
+                        text: root.result ? root.result.name : ""
+                        color: Theme.text
+                        font.pixelSize: Theme.fontSubtitle
+                        font.weight: Font.DemiBold
+                        wrapMode: Text.Wrap
+                        maximumLineCount: 2
+                        elide: Text.ElideRight
+                    }
+                    Text {
+                        width: parent.width
+                        leftPadding: 12
+                        rightPadding: 12
+                        horizontalAlignment: Text.AlignHCenter
+                        text: root.result ? root.result.detail : ""
+                        color: Theme.textSecondary
+                        font.pixelSize: Theme.fontCaption
+                        elide: Text.ElideMiddle
+                    }
+                }
+                Rectangle {
+                    id: detailRule
+                    anchors { top: detailHead.bottom; left: parent.left; right: parent.right; topMargin: 16; leftMargin: 12; rightMargin: 12 }
+                    height: 1
+                    color: Theme.divider
+                }
+                ListView {
+                    anchors { top: detailRule.bottom; bottom: parent.bottom; left: parent.left; right: parent.right; margins: 8 }
+                    clip: true
+                    boundsBehavior: Flickable.StopAtBounds
+                    model: root.resultActions(root.result)
+                    delegate: Item {
+                        id: act
+                        required property var modelData
+                        width: ListView.view.width
+                        height: 34
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: Theme.radius
+                            color: actMouse.pressed ? Theme.subtlePressed : Theme.subtleHover
+                            opacity: actMouse.containsMouse ? 1 : 0
+                        }
+                        Image {
+                            id: actIcon
+                            x: 10
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 16
+                            height: 16
+                            source: act.modelData.icon ? Theme.icons + encodeURIComponent(act.modelData.icon) : ""
+                            sourceSize: Qt.size(width, height)
+                        }
+                        Text {
+                            anchors { left: actIcon.right; leftMargin: 12; right: parent.right; rightMargin: 8; verticalCenter: parent.verticalCenter }
+                            text: act.modelData.text
+                            color: Theme.text
+                            font.pixelSize: Theme.fontBody
+                            elide: Text.ElideRight
+                        }
+                        MouseArea {
+                            id: actMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            onClicked: act.modelData.action()
+                        }
+                    }
+                }
             }
         }
 
