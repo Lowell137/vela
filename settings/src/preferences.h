@@ -28,6 +28,12 @@ class Preferences : public QObject {
     Q_PROPERTY(QStringList recentWallpapers READ recentWallpapers NOTIFY wallpaperChanged)
     Q_PROPERTY(QStringList systemWallpapers READ systemWallpapers CONSTANT)
     Q_PROPERTY(QString defaultWallpaper READ defaultWallpaper CONSTANT) // Vela's
+    // A folder of the user's own pictures, shown under the recent ones.
+    Q_PROPERTY(QString wallpaperFolder READ wallpaperFolder NOTIFY wallpaperFolderChanged)
+    Q_PROPERTY(QStringList folderWallpapers READ folderWallpapers NOTIFY wallpaperFolderChanged)
+    // "name", "size" (largest first), "newest" or "oldest".
+    Q_PROPERTY(QString wallpaperFolderSort READ wallpaperFolderSort WRITE setWallpaperFolderSort
+            NOTIFY wallpaperFolderChanged)
     Q_PROPERTY(QColor accent READ accent WRITE setAccent NOTIFY accentChanged)
     Q_PROPERTY(QString appTheme READ appTheme WRITE setAppTheme NOTIFY appThemeChanged)
     // Vela's mode (taskbar, menus, panels): "dark" or "light".
@@ -175,6 +181,11 @@ public:
     QStringList recentWallpapers() const { return m_recentWallpapers; }
     QStringList systemWallpapers() const;
     Q_INVOKABLE void setWallpaper(const QString& pathOrUrl);
+    QString wallpaperFolder() const { return m_wallpaperFolder; }
+    QStringList folderWallpapers() const;
+    Q_INVOKABLE void setWallpaperFolder(const QString& pathOrUrl); // "" forgets it
+    QString wallpaperFolderSort() const { return m_wallpaperFolderSort; }
+    void setWallpaperFolderSort(const QString& sort);
 
     QColor accent() const { return m_accent; }
     void setAccent(const QColor& color);
@@ -424,6 +435,7 @@ public:
 
 signals:
     void wallpaperChanged();
+    void wallpaperFolderChanged();
     void accentChanged();
     void appThemeChanged();
     void taskbarChanged();
@@ -458,6 +470,8 @@ private:
 
     QString m_wallpaper;
     QStringList m_recentWallpapers;
+    QString m_wallpaperFolder;
+    QString m_wallpaperFolderSort;
     QColor m_accent;
     QString m_appTheme;
     QString m_shellTheme;

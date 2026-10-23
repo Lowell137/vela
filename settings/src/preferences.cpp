@@ -205,6 +205,13 @@ void Preferences::reload()
         m_recentWallpapers = recent;
         emit wallpaperChanged();
     }
+    const QString folder = settings.value(QStringLiteral("appearance/wallpaperFolder")).toString();
+    const QString sort = settings.value(QStringLiteral("appearance/wallpaperFolderSort"), QStringLiteral("name")).toString();
+    if (folder != m_wallpaperFolder || sort != m_wallpaperFolderSort) {
+        m_wallpaperFolder = folder;
+        m_wallpaperFolderSort = sort;
+        emit wallpaperFolderChanged();
+    }
 
     QColor accent(settings.value(QStringLiteral("appearance/accent")).toString());
     if (!accent.isValid()) {
@@ -506,6 +513,48 @@ void Preferences::setWallpaper(const QString& pathOrUrl)
     m_wallpaper = path;
     m_recentWallpapers = recent;
     emit wallpaperChanged();
+}
+
+QStringList Preferences::folderWallpapers() const
+{
+    if (m_wallpaperFolder.isEmpty()) {
+        return {};
+    }
+    const QStringList images { QStringLiteral("*.jpg"), QStringLiteral("*.jpeg"), QStringLiteral("*.png"),
+        QStringLiteral("*.webp"), QStringLiteral("*.bmp"), QStringLiteral("*.gif"), QStringLiteral("*.svg"),
+        QStringLiteral("*.avif"), QStringLiteral("*.jxl") };
+    QStringList out;
+    const QDir::SortFlags sort = m_wallpaperFolderSort == QLatin1String("size") ? QDir::Size
+        : m_wallpaperFolderSort == QLatin1String("newest")                     ? QDir::Time
+        : m_wallpaperFolderSort == QLatin1String("oldest")                     ? QDir::Time | QDir::Reversed
+                                                                               : QDir::Name | QDir::IgnoreCase;
+    const QDir dir(m_wallpaperFolder);
+    for (const QFileInfo& entry : dir.entryInfoList(images, QDir::Files, sort)) {
+        out.append(entry.filePath());
+    }
+    return out;
+}
+
+void Preferences::setWallpaperFolder(const QString& pathOrUrl)
+{
+    const QUrl url(pathOrUrl);
+    const QString path = url.isLocalFile() ? url.toLocalFile() : pathOrUrl;
+    if (path == m_wallpaperFolder) {
+        return;
+    }
+    setShell(QStringLiteral("appearance/wallpaperFolder"), path);
+    m_wallpaperFolder = path;
+    emit wallpaperFolderChanged();
+}
+
+void Preferences::setWallpaperFolderSort(const QString& sort)
+{
+    if (sort == m_wallpaperFolderSort) {
+        return;
+    }
+    setShell(QStringLiteral("appearance/wallpaperFolderSort"), sort);
+    m_wallpaperFolderSort = sort;
+    emit wallpaperFolderChanged();
 }
 
 // --------------------------------------------------- colors and theme --

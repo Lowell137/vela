@@ -6,8 +6,8 @@ import QtQuick.Dialogs
 import QtCore
 import Vela.Controls
 
-// Personalization > Background: recent images, "Browse photos" and the
-// wallpapers installed on the system.
+// Personalization > Background: recent images, "Browse photos", a folder of
+// the user's own pictures and the wallpapers installed on the system.
 Page {
     id: page
 
@@ -89,6 +89,50 @@ Page {
                 }
             }
         }
+        Card {
+            icon: "folder"
+            title: qsTr("Pictures from a folder")
+            description: Prefs.wallpaperFolder || qsTr("Show the pictures of a folder here")
+            trailing: Row {
+                spacing: 8
+                Choice {
+                    readonly property var sorts: ["name", "size", "newest", "oldest"]
+                    visible: Prefs.wallpaperFolder !== ""
+                    model: [qsTr("Name"), qsTr("Size"), qsTr("Newest"), qsTr("Oldest")]
+                    currentIndex: Math.max(0, sorts.indexOf(Prefs.wallpaperFolderSort))
+                    onChosen: index => Prefs.wallpaperFolderSort = sorts[index]
+                }
+                Button {
+                    text: qsTr("Remove")
+                    visible: Prefs.wallpaperFolder !== ""
+                    onClicked: Prefs.setWallpaperFolder("")
+                }
+                Button {
+                    text: qsTr("Choose folder")
+                    onClicked: {
+                        folderDialog.close()
+                        folderDialog.open()
+                    }
+                }
+            }
+        }
+    }
+
+    CardGroup {
+        title: Prefs.wallpaperFolder.split("/").pop()
+        visible: folder.count > 0
+        Card {
+            minimumHeight: 0
+            contentItem: Flow {
+                width: parent.width
+                spacing: 8
+                Repeater {
+                    id: folder
+                    model: Prefs.folderWallpapers
+                    delegate: Thumb { required property string modelData; path: modelData }
+                }
+            }
+        }
     }
 
     CardGroup {
@@ -114,5 +158,12 @@ Page {
         currentFolder: StandardPaths.writableLocation(StandardPaths.PicturesLocation)
         nameFilters: [qsTr("Images (*.jpg *.jpeg *.png *.webp *.bmp *.gif *.svg *.avif *.jxl)")]
         onAccepted: Prefs.setWallpaper(selectedFile.toString())
+    }
+
+    FolderDialog {
+        id: folderDialog
+        title: qsTr("Choose a folder")
+        currentFolder: StandardPaths.writableLocation(StandardPaths.PicturesLocation)
+        onAccepted: Prefs.setWallpaperFolder(selectedFolder.toString())
     }
 }
