@@ -13,6 +13,7 @@
 #include <QObject>
 #include <QPoint>
 #include <QString>
+#include <QTimer>
 #include <QStringList>
 
 // The point of contact between the shell and the rest of the system:
@@ -118,6 +119,11 @@ public:
         }
     }
 
+    // A Vela update is waiting (found by the last check, not installed yet):
+    // the power menu offers Update and shut down / restart.
+    Q_INVOKABLE bool updatePending() const;
+    // Installs it, then shuts down or restarts (vela-settings --install-update).
+    Q_INVOKABLE void updateThen(bool reboot);
     Q_INVOKABLE void toggleStartMenu() { emit toggleStartRequested(); }
 
     QStringList startPins() const { return m_startPins; }
@@ -226,4 +232,5 @@ private:
     int m_captureHidden = 0;
     bool m_fullscreenActive = false;
     QStringList m_startPins;
+    QTimer m_updateCheck; // vela-settings --check-updates now and then
 };

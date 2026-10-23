@@ -150,11 +150,25 @@ int main(int argc, char* argv[])
     const QCommandLineOption scheduleOption(QStringLiteral("apply-theme-schedule"),
         QStringLiteral("Set the light or dark mode the schedule (Personalization > Colors) says for now, and exit."));
     parser.addOption(scheduleOption);
+    const QCommandLineOption checkUpdatesOption(QStringLiteral("check-updates"),
+        QStringLiteral("Check for a newer Vela if it's time (Updates > Update options), notify once per new version, and exit."));
+    parser.addOption(checkUpdatesOption);
+    const QCommandLineOption installUpdateOption(QStringLiteral("install-update"),
+        QStringLiteral("Install the waiting Vela update, then shut down or restart (only if it worked)."), QStringLiteral("poweroff|reboot"));
+    parser.addOption(installUpdateOption);
     parser.process(app);
     if (parser.isSet(scheduleOption)) {
         Preferences preferences;
         preferences.applyThemeSchedule();
         return 0;
+    }
+    if (parser.isSet(checkUpdatesOption)) {
+        Updates updates;
+        return updates.checkInBackground();
+    }
+    if (parser.isSet(installUpdateOption)) {
+        Updates updates;
+        return updates.installThen(parser.value(installUpdateOption));
     }
     const QString page = parser.value(pageOption);
 

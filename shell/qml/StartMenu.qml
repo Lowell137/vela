@@ -69,6 +69,7 @@ Window {
     // --- search, like Windows 11: tabs, the results in a list (the best
     // match first) and the selected one's details and actions beside it ---
     readonly property bool searching: search.text.trim().length > 0
+    property bool updatePending: false // asked when the power menu opens
     property string searchFilter: "all" // all, apps, settings, files
     readonly property var results: {
         const q = search.text.trim()
@@ -1127,6 +1128,7 @@ Window {
                 width: 40
                 height: 40
                 property bool menuOpen: false
+                onMenuOpenChanged: if (menuOpen) root.updatePending = Shell.updatePending()
 
                 Rectangle {
                     anchors.fill: parent
@@ -1236,6 +1238,20 @@ Window {
                             icon: "view-refresh"
                             label: qsTr("Restart shell")
                             onActivated: { root.close(); Shell.restartShell() }
+                        }
+                        // A Vela update waiting, like Windows' "Update and
+                        // shut down": installed first, then off (only if it worked).
+                        PowerEntry {
+                            visible: root.updatePending
+                            icon: "system-software-update"
+                            label: qsTr("Update and restart")
+                            onActivated: { root.close(); Shell.updateThen(true) }
+                        }
+                        PowerEntry {
+                            visible: root.updatePending
+                            icon: "system-software-update"
+                            label: qsTr("Update and shut down")
+                            onActivated: { root.close(); Shell.updateThen(false) }
                         }
                         PowerEntry {
                             icon: "system-reboot"

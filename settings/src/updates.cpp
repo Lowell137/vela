@@ -3,6 +3,9 @@
 
 #include "updates.h"
 
+#include <QDBusConnection>
+#include <QDBusInterface>
+#include <QDBusReply>
 #include <QDateTime>
 #include <QDir>
 #include <QFile>
@@ -12,6 +15,7 @@
 #include <QProcessEnvironment>
 #include <QRegularExpression>
 #include <QStandardPaths>
+#include <QTimer>
 
 namespace {
 
@@ -284,10 +288,18 @@ void Updates::check()
         m_lastCheckBy = QDateTime::currentDateTime();
         m_lastCheckText = m_lastCheckBy.toString(QStringLiteral("yyyy-MM-dd HH:mm"));
         m_config.insert(QStringLiteral("last-check"), m_lastCheckBy.toString(Qt::ISODate));
+        // The update waiting, for the shell's power menu (Update and shut
+        // down) and the notification (vela-settings --check-updates).
+        if (m_status == QStringLiteral("available") && !m_newRevision.isEmpty()) {
+            m_config.insert(QStringLiteral("pending-revision"), m_newRevision);
+        } else if (m_status == QStringLiteral("up-to-date")) {
+            m_config.remove(QStringLiteral("pending-revision"));
+        }
         saveConfig();
         refreshRollbackTargets();
         refreshRecent();
         emit changed();
+        emit checked();
     });
     m_process->start(updater, { QStringLiteral("--check") });
 }
@@ -453,6 +465,8 @@ void Updates::install()
     setStatus(QStringLiteral("updating"), tr("Updating..."));
     runJob(QStringLiteral("vela"), QStringLiteral("vela-update"), { QStringLiteral("--download") }, [this](bool ok) {
         if (ok) {
+            m_config.remove(QStringLiteral("pending-revision"));
+            saveConfig();
             setStatus(QStringLiteral("updating"), tr("Installed. Log out to start the new version."));
         } else {
             setStatus(QStringLiteral("error"), m_jobs.value(QStringLiteral("vela")).toMap().value(QStringLiteral("message")).toString());
@@ -635,4 +649,104 @@ void Updates::setPausedUntil(const QString& day)
     saveConfig();
     m_pausedUntil = day;
     emit changed();
+}
+
+// --- without a window: the shell's background check and power menu ---
+
+namespace {
+
+const QString notificationsService = QStringLiteral("org.freedesktop.Notifications");
+const QString notificationsPath = QStringLiteral("/org/freedesktop/Notifications");
+
+// A notification from Vela Update, with "Open Updates" as its click; its id
+// (0: there is no notification server).
+uint notify(const QString& summary, const QString& body, bool clickable)
+{
+    QDBusInterface server(notificationsService, notificationsPath, notificationsService);
+    const QStringList actions = clickable ? QStringList { QStringLiteral("default"), Updates::tr("Open Updates") } : QStringList();
+    const QVariantMap hints { { QStringLiteral("desktop-entry"), QStringLiteral("vela-settings") } };
+    const QDBusReply<uint> reply = server.call(QStringLiteral("Notify"), Updates::tr("Vela Update"), 0u,
+        QStringLiteral("system-software-update"), summary, body, actions, hints, -1);
+    return reply.isValid() ? reply.value() : 0;
+}
+
+} // namespace
+
+int Updates::checkInBackground()
+{
+    checkIfDue();
+    if (!m_process) {
+        return 0; // not due, paused or never
+    }
+    QEventLoop checking;
+    connect(this, &Updates::checked, &checking, &QEventLoop::quit);
+    checking.exec();
+    if (!available() || m_newRevision.isEmpty() || m_config.value(QStringLiteral("notified-revision")) == m_newRevision) {
+        return 0;
+    }
+    m_config.insert(QStringLiteral("notified-revision"), m_newRevision);
+    saveConfig();
+    m_notification = notify(tr("A Vela update is ready"),
+        m_changes.isEmpty() ? tr("Open Updates to install it.") : tr("%n change(s). Open Updates to install it.", "", int(m_changes.size())),
+        true);
+    if (m_notification == 0) {
+        return 0;
+    }
+    QDBusConnection bus = QDBusConnection::sessionBus();
+    bus.connect(notificationsService, notificationsPath, notificationsService, QStringLiteral("ActionInvoked"), this,
+        SLOT(notificationAction(uint, QString)));
+    bus.connect(notificationsService, notificationsPath, notificationsService, QStringLiteral("NotificationClosed"), this,
+        SLOT(notificationClosed(uint, uint)));
+    QEventLoop waiting;
+    m_wait = &waiting;
+    QTimer::singleShot(12 * 3600 * 1000, &waiting, &QEventLoop::quit); // the next check notifies no more anyway
+    waiting.exec();
+    m_wait = nullptr;
+    return 0;
+}
+
+void Updates::notificationAction(uint id, const QString&)
+{
+    if (id == m_notification && m_wait) {
+        QProcess::startDetached(QStringLiteral("vela-settings"), { QStringLiteral("--page"), QStringLiteral("updates") });
+        m_wait->quit();
+    }
+}
+
+void Updates::notificationClosed(uint id, uint reason)
+{
+    // 1, expired: gone to the notification center, still clickable there.
+    if (id == m_notification && reason != 1 && m_wait) {
+        m_wait->quit();
+    }
+}
+
+int Updates::installThen(const QString& power)
+{
+    const bool reboot = power == QLatin1String("reboot");
+    if (!reboot && power != QLatin1String("poweroff")) {
+        return 2;
+    }
+    notify(reboot ? tr("Updating Vela, then restarting") : tr("Updating Vela, then shutting down"),
+        tr("This can take a few minutes. The system asks for your password when it is needed."), false);
+    const auto state = [this] { return m_jobs.value(QStringLiteral("vela")).toMap().value(QStringLiteral("state")).toString(); };
+    QEventLoop installing;
+    const auto over = [&] {
+        if (state() == QLatin1String("done") || state() == QLatin1String("error") || m_status == QLatin1String("error")) {
+            installing.quit();
+        }
+    };
+    connect(this, &Updates::changed, &installing, over);
+    connect(this, &Updates::jobsChanged, &installing, over);
+    install();
+    if (state() != QLatin1String("done") && m_status != QLatin1String("error")) {
+        installing.exec();
+    }
+    if (state() != QLatin1String("done")) {
+        // Never off with a failed update: the user must see why.
+        notify(tr("The update failed"), tr("Vela was not updated and the computer stays on. Open Updates to see why."), false);
+        return 1;
+    }
+    QProcess::startDetached(QStringLiteral("systemctl"), { reboot ? QStringLiteral("reboot") : QStringLiteral("poweroff") });
+    return 0;
 }

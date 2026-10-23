@@ -21,6 +21,8 @@
 #include <QDBusUnixFileDescriptor>
 #include <QLocalSocket>
 #include <QTimer>
+#include <QProcess>
+#include <QFile>
 #include <QStandardPaths>
 #include <QtDebug>
 
@@ -54,6 +56,13 @@ ShellController::ShellController(QObject* parent)
     , m_startPins(QSettings().value(QStringLiteral("start/pinned"), defaultStartPins).toStringList())
 {
     connect(qGuiApp, &QGuiApplication::primaryScreenChanged, this, &ShellController::primaryScreenChanged);
+    // Vela Update in the background: Settings checks only when Updates >
+    // Update options says it's time and notifies once per new version.
+    const auto checkUpdates = [] { QProcess::startDetached(QStringLiteral("vela-settings"), { QStringLiteral("--check-updates") }); };
+    m_updateCheck.setInterval(30 * 60 * 1000);
+    connect(&m_updateCheck, &QTimer::timeout, this, checkUpdates);
+    m_updateCheck.start();
+    QTimer::singleShot(2 * 60 * 1000, this, checkUpdates); // not with the session's start
     connect(&m_server, &QLocalServer::newConnection, this, [this] {
         while (QLocalSocket* socket = m_server.nextPendingConnection()) {
             connect(socket, &QLocalSocket::readyRead, this, [this, socket] {
@@ -205,6 +214,33 @@ void ShellController::reboot()
 void ShellController::powerOff()
 {
     callLogin1("PowerOff");
+}
+
+bool ShellController::updatePending() const
+{
+    QFile conf(QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + QStringLiteral("/vela/updates.conf"));
+    QString revision;
+    if (conf.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        for (const QByteArray& line : conf.readAll().split('\n')) {
+            if (line.startsWith("pending-revision=")) {
+                revision = QString::fromUtf8(line.mid(17)).trimmed();
+            }
+        }
+    }
+    if (revision.isEmpty()) {
+        return false;
+    }
+    // Installed since (from a terminal, say): no longer waiting.
+    QProcess pacman;
+    pacman.start(QStringLiteral("pacman"), { QStringLiteral("-Q"), QStringLiteral("vela-git") });
+    pacman.waitForFinished(2000);
+    return !QString::fromUtf8(pacman.readAllStandardOutput()).contains(QLatin1Char('g') + revision.left(7));
+}
+
+void ShellController::updateThen(bool reboot)
+{
+    QProcess::startDetached(QStringLiteral("vela-settings"),
+        { QStringLiteral("--install-update"), reboot ? QStringLiteral("reboot") : QStringLiteral("poweroff") });
 }
 
 // Before suspending, the screen locks: on wakeup the desktop is never exposed.

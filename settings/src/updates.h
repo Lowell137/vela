@@ -5,6 +5,7 @@
 
 #include <QDate>
 #include <QDateTime>
+#include <QEventLoop>
 #include <QHash>
 #include <QObject>
 #include <QProcess>
@@ -92,6 +93,14 @@ public:
     // it, like the shell's own "Log out").
     Q_INVOKABLE void logOut();
 
+    // Without a window (vela-settings --check-updates, run by the shell now
+    // and then): check if due and notify once per new version, then wait for
+    // a click on the notification to open this page. The exit code.
+    int checkInBackground();
+    // vela-settings --install-update poweroff|reboot (the shell's power menu:
+    // Update and shut down / restart): install, then that if it worked.
+    int installThen(const QString& power);
+
     // The setters of the source, the automatic check and the pause (the QML
     // assigns to the properties).
     void setSource(const QString& source);
@@ -123,8 +132,14 @@ public:
     QStringList flatpakUpdates() const { return m_flatpakUpdates; }
     bool flatpakChecking() const { return m_flatpakProcess != nullptr; }
 
+private slots:
+    void notificationAction(uint id, const QString& action);
+    void notificationClosed(uint id, uint reason);
+
 signals:
     void changed();
+    // A check (check()) is over, whatever it found.
+    void checked();
     void flatpakChanged();
     void packagesChanged();
     void jobsChanged();
@@ -155,6 +170,8 @@ private:
     QString m_status;
     QString m_message;
     QString m_installedVersion;
+    uint m_notification = 0; // checkInBackground's, waiting for a click
+    QEventLoop* m_wait = nullptr;
     QDateTime m_installedAt;
     bool m_restartNeeded = false;
     QString m_newRevision;
