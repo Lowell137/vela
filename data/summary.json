@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-22T08:40:51+00:00",
+  "generated_at": "2026-10-23T08:36:51+00:00",
   "popular_paths": null,
   "releases": {
     "asset_count": 0,
@@ -7,14 +7,14 @@
     "downloads_current_assets": 0,
     "downloads_observed_maxima": 21,
     "downloads_since_previous_daily_snapshot": 0,
-    "previous_snapshot_date": "2026-10-14",
+    "previous_snapshot_date": "2026-10-22",
     "release_count": 0
   },
   "repository": "Lowell137/vela",
   "schema_version": 1,
   "sources": {
     "releases": {
-      "last_collected_at": "2026-10-22T08:40:51+00:00",
+      "last_collected_at": "2026-10-23T08:36:51+00:00",
       "status": "ok"
     },
     "traffic": {
