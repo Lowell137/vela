@@ -13,7 +13,7 @@
 //        vela-x11 --delete-wine-style XID
 //        vela-x11 --geometry XID (root-relative X11 x y width height)
 //        vela-x11 --root-size (current X11 root width height)
-//        vela-x11 [--start-fullscreen] [WIDTH HEIGHT]
+//        vela-x11 [--start-fullscreen] [--steal-focus] [WIDTH HEIGHT]
 //
 // Opens an orange window with class "vela.x11" and title "vela-x11", which
 // closes on WM_DELETE_WINDOW (Alt+F4). --menu also opens a green 120x80
@@ -24,6 +24,8 @@
 // override-redirect and as large as the screen; once it is shown the orange
 // window asks for fullscreen and the backdrop becomes managed, asking for
 // fullscreen, skip-taskbar/pager and below after mapping.
+// --steal-focus asks for its window back (_NET_ACTIVE_WINDOW) whenever it
+// loses the keyboard, like Wine games and Darling's League.
 
 #include <fcntl.h>
 #include <stdio.h>
@@ -116,6 +118,7 @@ int main(int argc, char** argv)
     int hasWineStyle = 0;
     int startFullscreen = 0;
     int wineBackdrop = 0;
+    int stealFocus = 0;
     int control = (argc == 4
         && (!strcmp(argv[1], "--fullscreen") || !strcmp(argv[1], "--set-wine-style")
             || !strcmp(argv[1], "--override-redirect")))
@@ -128,6 +131,11 @@ int main(int argc, char** argv)
         while (arg < argc) {
             if (!strcmp(argv[arg], "--start-fullscreen")) {
                 startFullscreen = 1;
+                ++arg;
+                continue;
+            }
+            if (!strcmp(argv[arg], "--steal-focus")) {
+                stealFocus = 1;
                 ++arg;
                 continue;
             }
@@ -249,6 +257,10 @@ int main(int argc, char** argv)
         return failed != 0;
     }
     xcb_window_t window = create(connection, screen, 0, 0, width, height, 0xff8000, 0);
+    if (stealFocus) {
+        const uint32_t mask = XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_FOCUS_CHANGE;
+        xcb_change_window_attributes(connection, window, XCB_CW_EVENT_MASK, &mask);
+    }
     if (idFile && write_xid_file(idFile, window) != 0) {
         xcb_disconnect(connection);
         return 1;
@@ -327,6 +339,13 @@ int main(int argc, char** argv)
             }
             const xcb_rectangle_t area = { (int16_t)expose->x, (int16_t)expose->y, expose->width, expose->height };
             xcb_poly_fill_rectangle(connection, expose->window, *gc, 1, &area);
+            xcb_flush(connection);
+        } else if (type == XCB_FOCUS_OUT && ((const xcb_focus_out_event_t*)event)->mode == XCB_NOTIFY_MODE_NORMAL) {
+            xcb_client_message_event_t ev = { .response_type = XCB_CLIENT_MESSAGE, .format = 32, .window = window,
+                .type = atom(connection, "_NET_ACTIVE_WINDOW") };
+            ev.data.data32[0] = 1; // application source
+            xcb_send_event(connection, 0, screen->root,
+                XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT | XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY, (const char*)&ev);
             xcb_flush(connection);
         } else if (type == XCB_CLIENT_MESSAGE) {
             const xcb_client_message_event_t* message = (const xcb_client_message_event_t*)event;

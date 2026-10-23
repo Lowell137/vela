@@ -570,10 +570,23 @@ static void handle_request_minimize(struct wl_listener *listener, void *data)
     vela_view_set_minimized(view, event->minimize);
 }
 
+// _NET_ACTIVE_WINDOW. Honored only when the app already has the keyboard
+// (moving it between its own windows, like Steam) or nobody has it: a game
+// that loses it to Alt+Tab or the Start menu asks right away to take it back
+// (Wine, Darling's League), and the keyboard stays where the user put it.
 static void handle_request_activate(struct wl_listener *listener, void *data)
 {
     struct vela_view *view = wl_container_of(listener, view, request_activate);
-    vela_focus_new_view(view->server, view);
+    struct vela_server *server = view->server;
+    struct vela_view *focused = vela_views_focused(server);
+    pid_t pid = vela_view_pid(view);
+    bool same_app = focused && !server->focused_layer && pid && vela_view_pid(focused) == pid;
+    if (same_app || !server->seat->keyboard_state.focused_surface) {
+        vela_focus_new_view(server, view);
+    } else {
+        wlr_log(WLR_INFO, "X11 activation request from \"%s\" (pid %d) ignored: the keyboard is elsewhere",
+            view->x11->title ? view->x11->title : "", (int)pid);
+    }
 }
 
 static void handle_set_title(struct wl_listener *listener, void *data)

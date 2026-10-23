@@ -423,6 +423,26 @@ class X11(unittest.TestCase):
         time.sleep(0.4)
         self.assertEqual(self.vela.pixels().at(*center), ORANGE)
 
+    def test_fullscreen_game_asking_for_focus_back_does_not_undo_alt_tab(self):
+        """A game that asks for its window back as soon as it loses the
+        keyboard (Wine, Darling's League) does not get it: quick Alt+Tab and
+        Alt held through Tab both stay on the chosen window."""
+        game = self.open_x11("--steal-focus", "--start-fullscreen")
+        self.vela.wait_for(lambda s: s.window(game)["fullscreen"] and s["focused"] == game,
+                           what="fullscreen with focus")
+        other = self.vela.open_window(300, 200)
+        self.vela.wait_for(lambda s: s["focused"] == other, what="the new window has focus")
+        for held in (False, True):
+            self.vela.keys("alt+Tab")
+            self.vela.wait_for(lambda s: s["focused"] == game, what="Alt+Tab to the game")
+            if held:
+                self.vela.input("keydown", "alt", "key", "Tab", "sleep", "300", "keyup", "alt")
+            else:
+                self.vela.keys("alt+Tab")
+            self.vela.wait_for(lambda s: s["focused"] == other, what="Alt+Tab to the other window")
+            time.sleep(0.5)
+            self.assertEqual(self.vela.state()["focused"], other, "the game took the keyboard back")
+
 
 if __name__ == "__main__":
     unittest.main()
