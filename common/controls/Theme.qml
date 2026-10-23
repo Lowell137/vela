@@ -73,9 +73,11 @@ QtObject {
     // The hairline of the taskbar's edge and pills; a theme with a see-through
     // taskbar sets it transparent (taskbar-stroke=#00000000).
     readonly property color taskbarStroke: themed("taskbar-stroke", stroke)
+    // Acrylic: the compositor's blur is the whole fill, like Windows 11's
+    // flyouts; the panel only gives it its shape (blur_mix.frag's mask).
     readonly property color surface: themed("surface", light
-        ? (acrylic ? Qt.rgba(0.96, 0.96, 0.97, 0.74) : Qt.rgba(0.95, 0.95, 0.96, 0.98))
-        : (acrylic ? Qt.rgba(0.14, 0.14, 0.16, 0.72) : Qt.rgba(0.14, 0.14, 0.16, 0.97)))
+        ? (acrylic ? Qt.rgba(0.99, 0.99, 0.99, 0.04) : Qt.rgba(0.95, 0.95, 0.96, 0.98))
+        : (acrylic ? Qt.rgba(0.17, 0.17, 0.17, 0.04) : Qt.rgba(0.14, 0.14, 0.16, 0.97)))
     // The shell's menus, surfaces of their own that the compositor blurs.
     readonly property color popup: themed("popup", light
         ? (acrylic ? Qt.rgba(0.98, 0.98, 0.98, 0.82) : "#f9f9f9")

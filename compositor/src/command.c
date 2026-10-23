@@ -420,10 +420,13 @@ static void theme(struct vela_server *server, const char *arguments)
     }
     server->light_shell = shell_light;
     server->light_apps = apps_light;
-    // Windows 11's acrylic tint, dark or light (premultiplied sRGB).
+    // Windows 11's acrylic, dark or light: WinUI's
+    // AcrylicBackgroundFillColorDefaultBrush (#2C2C2C at 0.15, luminosity
+    // 0.96; #FCFCFC at 0, luminosity 0.85).
     server->scene->acrylic_tint = shell_light
-        ? (struct wlr_render_color) { 0.95f * 0.55f, 0.95f * 0.55f, 0.96f * 0.55f, 0.55f }
-        : (struct wlr_render_color) { 0.11f * 0.55f, 0.11f * 0.55f, 0.12f * 0.55f, 0.55f };
+        ? (struct wlr_render_color) { 0.988f, 0.988f, 0.988f, 0.0f }
+        : (struct wlr_render_color) { 0.173f, 0.173f, 0.173f, 0.15f };
+    server->scene->acrylic_luminosity = shell_light ? 0.85f : 0.96f;
     ++server->wallpaper_tint_version;
     reload_icons(server);
     refresh_decorations(server);
@@ -532,7 +535,7 @@ static void run_command(struct vela_server *server, const char *line)
     } else if (starts_with(line, "theme ")) {
         theme(server, line + 6);
     } else if (starts_with(line, "blur-look ")) {
-        float saturation = 1.25f;
+        float saturation = 1.0f;
         float strength = 1.0f;
         if (sscanf(line + 10, "%f %f", &saturation, &strength) == 2) {
             vela_blur_set_look(saturation, strength);

@@ -115,7 +115,7 @@ static bool is_one_to_one(const struct wlr_fbox *src, const struct wlr_box *box,
 
 // The blur width in output pixels: the radius is in logical units, so the same
 // blur at every scale (§8.3).
-static float blur_look_saturation = 1.25f;
+static float blur_look_saturation = 1.0f; // WinUI's luminosity acrylic has none
 static float blur_look_scale = 1.0f;
 
 // The look of the blur (a theme's blur-saturation / blur-strength, sent by the
@@ -622,7 +622,7 @@ void vela_draw_elements(struct vela_scene *scene, struct vela_pass *pass, const 
                 panel.clip = NULL;
                 panel.alpha = e->blur_opacity; // the blur as strong as if the window were opaque
                 vela_pass_add_blur(pass, &panel, &region, blur_strength(e->scale_x), &scene->acrylic_tint,
-                    !wlr_box_empty(&e->blur_forced), blur_look_saturation);
+                    !wlr_box_empty(&e->blur_forced), blur_look_saturation, scene->acrylic_luminosity);
             }
             pixman_region32_fini(&region);
         }

@@ -137,7 +137,7 @@ void vela_pass_add_shadow(struct vela_pass *pass, const struct wlr_box *box, con
 // be read.
 void vela_pass_add_blur(struct vela_pass *pass, const struct vela_texture_draw *panel,
     const pixman_region32_t *region, float strength, const struct wlr_render_color *tint, bool unmasked,
-    float saturation);
+    float saturation, float luminosity);
 
 // How far around a zone the blur reads, in pixels.
 int vela_blur_reach(float strength);

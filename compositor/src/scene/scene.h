@@ -125,9 +125,11 @@ struct vela_scene {
     struct wlr_linux_dmabuf_v1 *linux_dmabuf;
     // For the explicit sync release points.
     struct wl_event_loop *event_loop;
-    // The acrylic tint of blurs (premultiplied sRGB): Windows 11's dark theme
-    // one, or the light one when the shell is light.
+    // The acrylic of blurs, Windows 11's dark theme one or the light one when
+    // the shell is light: the tint (straight sRGB, alpha: TintOpacity) and
+    // its TintLuminosityOpacity (blur_mix.frag).
     struct wlr_render_color acrylic_tint;
+    float acrylic_luminosity;
     // The color filters of all outputs: a 3x3 matrix by rows in linear space,
     // if color_filtered. Applied while drawing.
     bool color_filtered;

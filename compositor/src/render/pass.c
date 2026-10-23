@@ -352,7 +352,7 @@ int vela_blur_reach(float strength)
 
 void vela_pass_add_blur(struct vela_pass *pass, const struct vela_texture_draw *panel,
     const pixman_region32_t *region, float strength, const struct wlr_render_color *tint, bool unmasked,
-    float saturation)
+    float saturation, float luminosity)
 {
     if (!pass->target->sampleable || !region || !pixman_region32_not_empty(region)) {
         return;
@@ -392,7 +392,14 @@ void vela_pass_add_blur(struct vela_pass *pass, const struct vela_texture_draw *
     draw.push.shape[1] = saturation; // the corner radius and the sigma are not used here
     draw.push.shape[2] = 0.5f / (float)level0->width;
     draw.push.shape[3] = 0.5f / (float)level0->height;
-    linear_color(tint, 0.001f, draw.push.color);
+    // The tint straight (blur_mix.frag needs its color even at alpha 0), the
+    // luminosity in flags bits 8-15.
+    const float channels[3] = { tint->r, tint->g, tint->b };
+    for (int i = 0; i < 3; ++i) {
+        draw.push.color[i] = vela_srgb_to_linear(vela_clampf(channels[i], 0.0f, 1.0f));
+    }
+    draw.push.color[3] = vela_clampf(tint->a, 0.0f, 1.0f);
+    draw.push.flags |= (uint32_t)lroundf(vela_clampf(luminosity, 0.0f, 1.0f) * 255.0f) << 8;
     add_draw(pass, &draw, &panel->dst, region);
 }
 

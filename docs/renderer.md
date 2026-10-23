@@ -638,8 +638,9 @@ corners): it costs a frame, not the whole area.
   decorations. Not "everything transparent": apps' shadow margins are
   transparent and must not be blurred.
 - **Algorithm**: dual Kawase (a chain of downsamples and upsamples at half
-  resolution), then the acrylic recipe: saturation, tint, luminosity and a veil
-  of noise to avoid banding. The radius is in logical units, so it is identical
+  resolution), then WinUI's luminosity acrylic recipe: the tint's brightness
+  (Luminosity blend, 0.96 dark / 0.85 light), the tint's hue (Color blend,
+  #2C2C2C at 0.15 dark / #FCFCFC at 0 light), 2% noise to avoid banding. The radius is in logical units, so it is identical
   at every scale.
 - **Cost under control**:
   - only the **damaged** part behind each area is blurred, enlarged by the

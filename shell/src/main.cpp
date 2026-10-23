@@ -434,7 +434,7 @@ int main(int argc, char* argv[])
     // acrylic) to the compositor, which draws the blur.
     auto sendBlurLook = [appearance] {
         const QVariantMap theme = appearance->theme();
-        ShellController::sendToCompositor("blur-look " + QByteArray::number(theme.value(QStringLiteral("blur-saturation"), 1.25).toDouble())
+        ShellController::sendToCompositor("blur-look " + QByteArray::number(theme.value(QStringLiteral("blur-saturation"), 1.0).toDouble())
             + ' ' + QByteArray::number(theme.value(QStringLiteral("blur-strength"), 1.0).toDouble()));
     };
     sendBlurLook();

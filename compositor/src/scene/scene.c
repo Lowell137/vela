@@ -296,7 +296,8 @@ struct vela_scene *vela_scene_create(void)
     struct vela_scene *scene = calloc(1, sizeof(*scene));
     wl_list_init(&scene->frames);
     wl_list_init(&scene->new_surface.link);
-    scene->acrylic_tint = (struct wlr_render_color) { 0.11f * 0.55f, 0.11f * 0.55f, 0.12f * 0.55f, 0.55f };
+    scene->acrylic_tint = (struct wlr_render_color) { 0.173f, 0.173f, 0.173f, 0.15f };
+    scene->acrylic_luminosity = 0.96f;
     scene->night_gains[0] = scene->night_gains[1] = scene->night_gains[2] = 1.0f;
     scene->allow_tearing = true;
     scene->allow_scanout = true;
