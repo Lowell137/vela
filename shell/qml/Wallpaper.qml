@@ -605,8 +605,12 @@ Window {
 
                 // Highlight: on hover, and stronger if selected.
                 Rectangle {
-                    anchors.fill: content
-                    anchors.margins: -2
+                    // At least the whole cell, so highlights match and neighbours stay
+                    // apart; taller only for a selected long name.
+                    x: 1
+                    y: 1
+                    width: parent.width - 2
+                    height: Math.max(parent.height, content.height + 4) - 2
                     radius: 4
                     color: icon.selected ? Qt.rgba(0.36, 0.55, 1.0, 0.30) : Qt.rgba(1, 1, 1, 0.12)
                     border.width: icon.selected ? 1 : 0
