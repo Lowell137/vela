@@ -1,7 +1,7 @@
 [Icon Theme]
 Name=Vela
-Comment=Vela's Windows 11 style icons: Fluent glyphs, yellow folders; apps and files from Reversal (if installed), then Fluent, Breeze, hicolor
-Inherits=Reversal-orange,Reversal-blue,Reversal-green,Fluent,breeze,hicolor
+Comment=Vela's Windows 11 style: Fluent glyphs for commands and status; folders, apps and files from Win11 (if installed), then Reversal, Fluent, Breeze, hicolor
+Inherits=Win11,Reversal-orange,Reversal-blue,Reversal-green,Fluent,breeze,hicolor
 Directories=scalable/actions,scalable/categories,scalable/devices,scalable/mimetypes,scalable/places,scalable/status,scalable/apps
 
 [scalable/actions]
