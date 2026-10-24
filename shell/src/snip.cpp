@@ -94,6 +94,11 @@ Snip::Snip(QQmlEngine* engine, WindowCapture* capture, Clipboard* clipboard, Not
     });
     m_countdown.setInterval(1000);
     connect(&m_countdown, &QTimer::timeout, this, &Snip::tickCountdown);
+    connect(m_capture, &WindowCapture::windowShot, this, [this](const QString&, const QImage& image) {
+        if (!image.isNull()) {
+            keep(image);
+        }
+    });
     // A click on the notification: the screenshot opens.
     connect(m_notifications, &NotificationServer::ActionInvoked, this, [this](uint id, const QString&) {
         const QString path = m_saved.take(id);
@@ -101,6 +106,13 @@ Snip::Snip(QQmlEngine* engine, WindowCapture* capture, Clipboard* clipboard, Not
             QDesktopServices::openUrl(QUrl::fromLocalFile(path));
         }
     });
+}
+
+// The window menu's Screenshot: that window alone, as it is, to the clipboard
+// and Pictures/Screenshot.
+void Snip::screenshotWindow(const QString& identifier)
+{
+    m_capture->captureWindowFull(identifier);
 }
 
 void Snip::cycleDelay()
@@ -368,7 +380,13 @@ void Snip::finishNow(const QString& screenName, qreal x, qreal y, qreal width, q
         return;
     }
 
-    m_clipboard->copyImage(cut);
+    keep(cut);
+}
+
+// The picture is saved in Pictures/Screenshot, goes to the clipboard (as an
+// image and as that file, so it pastes into Explorer) and a notification says so.
+void Snip::keep(const QImage& cut)
+{
     // In Pictures/Screenshots, like Windows.
     const QString folder = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation) + QStringLiteral("/Screenshot");
     QDir().mkpath(folder);
@@ -377,6 +395,7 @@ void Snip::finishNow(const QString& screenName, qreal x, qreal y, qreal width, q
     // Screenshots may contain private information. Save atomically and 0600.
     QSaveFile file(path);
     const bool saved = vela::openPrivateFile(file) && cut.save(&file, "PNG") && file.commit();
+    m_clipboard->copyImage(cut, saved ? path : QString());
     const uint id = m_notifications->Notify(QCoreApplication::translate("Snip", "Snipping Tool"), 0,
         QStringLiteral("accessories-screenshot"), QCoreApplication::translate("Snip", "Screenshot copied to clipboard"),
         saved ? QCoreApplication::translate("Snip", "Saved to Pictures > Screenshot. Click to open it.")

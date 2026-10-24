@@ -26,6 +26,7 @@ class ShellController : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString userName READ userName CONSTANT)
     Q_PROPERTY(QString userInitial READ userInitial CONSTANT)
+    Q_PROPERTY(QString userPicture READ userPicture CONSTANT)
     // The Start menu state, shared by the menu window and the taskbar.
     Q_PROPERTY(bool startMenuOpen READ startMenuOpen WRITE setStartMenuOpen NOTIFY startMenuOpenChanged)
     // The apps pinned to Start (.desktop ids), in the chosen order.
@@ -103,6 +104,7 @@ public:
     Q_INVOKABLE void pickSwitcher(int index) { sendToCompositor("switcher-pick " + QByteArray::number(index)); }
 
     QString userName() const;
+    QString userPicture() const;
     QString primaryScreen() const;
     QString userInitial() const;
 
@@ -208,6 +210,7 @@ signals:
     void mediaKeyPressed(const QString& key);
     // The window menu (right click on the title bar, Alt+Space): on which
     // output and where, in output coordinates.
+    void windowScreenshotRequested(const QString& window);
     void windowMenuRequested(const QString& window, const QString& output, int x, int y, bool maximized,
         bool resizable, bool keyboard, bool onTop, bool captureHidden);
 

@@ -35,6 +35,7 @@ struct WindowCapture::Job {
     QString identifier;
     vela_capture_job* capture = nullptr;
     bool full = false; // the whole image, not the thumbnail
+    bool shot = false; // one window at full size, for a screenshot (windowShot)
 };
 
 namespace {
@@ -276,6 +277,38 @@ void WindowCapture::capture(const QStringList& identifiers)
     }
 }
 
+/** One window at full size: windowShot(identifier, image) when it arrives. */
+void WindowCapture::captureWindowFull(const QString& identifier)
+{
+    if (!m_shm || !m_sources || !m_copier) {
+        qWarning("vela-shell: the compositor doesn't offer window capture");
+        emit windowShot(identifier, QImage());
+        return;
+    }
+    for (const Window* window : std::as_const(m_windows)) {
+        if (window->identifier != identifier) {
+            continue;
+        }
+        auto* job = new Job;
+        job->owner = this;
+        job->shot = true;
+        job->identifier = identifier;
+        auto* source = ext_foreign_toplevel_image_capture_source_manager_v1_create_source(m_sources, window->handle);
+        job->capture = vela_capture_begin(m_shm, m_copier, source, &CaptureCallbacks::captured, job);
+        if (!job->capture) {
+            if (source) ext_image_capture_source_v1_destroy(source);
+            delete job;
+            break;
+        }
+        m_jobs.append(job);
+        if (auto* wayland = qGuiApp->nativeInterface<QNativeInterface::QWaylandApplication>()) {
+            wl_display_flush(wayland->display());
+        }
+        return;
+    }
+    emit windowShot(identifier, QImage());
+}
+
 QVariantList WindowCapture::windowList() const
 {
     QVariantList out;
@@ -374,6 +407,14 @@ void WindowCapture::finishJob(Job* job, bool ok)
     if (ok) {
         QImage full = uprightImage(frame);
         if (!full.isNull()) {
+            if (job->shot) {
+                const QString id = job->identifier;
+                vela_capture_end(job->capture);
+                m_jobs.removeOne(job);
+                delete job;
+                emit windowShot(id, full.convertToFormat(QImage::Format_ARGB32));
+                return;
+            }
             if (job->full) {
                 m_full.insert(job->identifier, full.convertToFormat(QImage::Format_RGB32));
             } else {
@@ -385,6 +426,14 @@ void WindowCapture::finishJob(Job* job, bool ok)
         }
     } else {
         ok = false;
+    }
+    if (job->shot) {
+        const QString id = job->identifier;
+        vela_capture_end(job->capture);
+        m_jobs.removeOne(job);
+        delete job;
+        emit windowShot(id, QImage());
+        return;
     }
     vela_capture_end(job->capture);
     const QString identifier = job->identifier;
