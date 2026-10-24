@@ -246,7 +246,7 @@ void Preferences::reload()
         ? QStringLiteral("never")
         : QStringLiteral("always");
     const QString weather = settings.value(QStringLiteral("taskbar/weather")).toString().toLower();
-    m_weather = weather == QLatin1String("on") || weather == QLatin1String("true") || weather == QLatin1String("1");
+    m_weather = weather.isEmpty() || weather == QLatin1String("on") || weather == QLatin1String("true") || weather == QLatin1String("1");
     m_weatherCity = settings.value(QStringLiteral("taskbar/weather-city")).toString();
     m_weatherUnit = settings.value(QStringLiteral("taskbar/weather-unit")).toString().toLower() == QLatin1String("f")
         ? QStringLiteral("f")

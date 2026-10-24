@@ -511,7 +511,7 @@ private:
     bool m_taskbarAllDesktops = false;
     bool m_taskbarAutoHide = false;
     QString m_taskbarCombine = QStringLiteral("always");
-    bool m_weather = false;
+    bool m_weather = true;
     QString m_weatherCity;
     QString m_weatherUnit = QStringLiteral("c");
     QString m_iconTheme;

@@ -77,7 +77,7 @@ void Config::reload()
         : QStringLiteral("always");
     // weather=on|off ("true"/"false" too: a QSettings bool would read "off" as true).
     const QString weatherValue = settings.value(QStringLiteral("taskbar/weather")).toString().toLower();
-    const bool weather = weatherValue == QLatin1String("on") || weatherValue == QLatin1String("true") || weatherValue == QLatin1String("1");
+    const bool weather = weatherValue.isEmpty() || weatherValue == QLatin1String("on") || weatherValue == QLatin1String("true") || weatherValue == QLatin1String("1");
     const QString weatherCity = settings.value(QStringLiteral("taskbar/weather-city")).toString();
     const QString weatherLat = settings.value(QStringLiteral("taskbar/weather-lat")).toString();
     const QString weatherLon = settings.value(QStringLiteral("taskbar/weather-lon")).toString();

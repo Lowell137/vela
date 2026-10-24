@@ -60,6 +60,14 @@ Forecast parseForecast(const QJsonObject& root);
 // [{name, detail, lat, lon}] from a geocoding answer.
 QVariantList parsePlaces(const QByteArray& body);
 
+// {ok, lat, lon, city} from an IP geolocation answer (ipwho.is).
+struct IpPlace {
+    bool ok = false;
+    double lat = 0, lon = 0;
+    QString city;
+};
+IpPlace parseIpPlace(const QByteArray& body);
+
 } // namespace vela::weather
 
 class Weather : public QObject {
@@ -116,10 +124,18 @@ private:
     int display(double celsius) const;
     void loadCache();
     void fetched(const QByteArray& body);
+    // No city chosen: the place is looked up once from the IP address.
+    void locate();
+    void apply(bool enabled, const QString& city, const QString& lat, const QString& lon, const QString& unit);
 
     bool m_enabled = false, m_placed = false, m_fahrenheit = false, m_stale = false;
     double m_lat = 0, m_lon = 0;
     QString m_city, m_cachePath;
+    // What the config said, and the place found from the IP when it had none.
+    bool m_cfgEnabled = false, m_located = false, m_locating = false;
+    QString m_cfgCity, m_cfgLat, m_cfgLon, m_cfgUnit;
+    double m_ipLat = 0, m_ipLon = 0;
+    QString m_ipCity;
     QDateTime m_updated;
     vela::weather::Forecast m_forecast;
     vela::weather::Fetcher m_fetcher;

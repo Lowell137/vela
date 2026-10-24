@@ -103,7 +103,7 @@ private:
     bool m_taskbarAllScreens = true;
     bool m_taskbarAutoHide = false;
     QString m_taskbarCombine = QStringLiteral("always");
-    bool m_weather = false;
+    bool m_weather = true;
     QString m_weatherCity, m_weatherLat, m_weatherLon;
     QString m_weatherUnit = QStringLiteral("c");
     bool m_showDesktopCorner = true;

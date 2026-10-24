@@ -117,7 +117,7 @@ private Q_SLOTS:
         QSettings().clear();
         {
             Config config;
-            QVERIFY(!config.weather());
+            QVERIFY(config.weather()); // on by default
             QCOMPARE(config.weatherUnit(), QStringLiteral("c"));
         }
         {
@@ -148,14 +148,35 @@ private Q_SLOTS:
         w.setConfig(false, QStringLiteral("Izmir"), QStringLiteral("38.4"), QStringLiteral("27.1"), QStringLiteral("c"));
         w.refresh();
         QCOMPARE(net.requests, 0);
-        // On, but without a place (never guessed): still nothing.
+        // On, without a place: one lookup by IP; an answer that is not a place leaves it hidden.
         w.setConfig(true, QString(), QString(), QString(), QStringLiteral("c"));
-        w.refresh();
-        QCOMPARE(net.requests, 0);
+        QCOMPARE(net.requests, 1);
         QVERIFY(!w.shown());
-        // Out-of-range coordinates are not a place.
+        // Out-of-range coordinates are not a place, and are not looked up.
         w.setConfig(true, QStringLiteral("x"), QStringLiteral("123"), QStringLiteral("27.1"), QStringLiteral("c"));
-        QCOMPARE(net.requests, 0);
+        QCOMPARE(net.requests, 1);
+    }
+
+    void guessesThePlaceFromTheIp()
+    {
+        const IpPlace place = parseIpPlace(R"({"success":true,"latitude":41.0138,"longitude":28.9497,"city":"Istanbul"})");
+        QVERIFY(place.ok);
+        QCOMPARE(place.city, QStringLiteral("Istanbul"));
+        QVERIFY(!parseIpPlace(R"({"success":false})").ok);
+        QVERIFY(!parseIpPlace("not json").ok);
+        QVERIFY(!parseIpPlace(R"({"success":true,"latitude":95,"longitude":0})").ok);
+
+        FakeNetwork net;
+        net.reply = R"({"success":true,"latitude":41.0138,"longitude":28.9497,"city":"Istanbul"})";
+        Weather w;
+        w.setCachePath(m_dir.filePath(QStringLiteral("ip.json")));
+        w.setFetcher(net.fetcher());
+        w.setConfig(true, QString(), QString(), QString(), QStringLiteral("c"));
+        QVERIFY(w.shown());
+        QCOMPARE(w.city(), QStringLiteral("Istanbul"));
+        // A chosen city wins over the guess.
+        w.setConfig(true, QStringLiteral("Izmir"), QStringLiteral("38.4"), QStringLiteral("27.1"), QStringLiteral("c"));
+        QCOMPARE(w.city(), QStringLiteral("Izmir"));
     }
 
     void fetchUnitsAndCache()

@@ -183,6 +183,21 @@ QVariantList parsePlaces(const QByteArray& body)
 
 using namespace vela::weather;
 
+vela::weather::IpPlace vela::weather::parseIpPlace(const QByteArray& body)
+{
+    const QJsonObject root = QJsonDocument::fromJson(body).object();
+    vela::weather::IpPlace place;
+    if (!root.value(QLatin1String("success")).toBool(false) || !root.contains(QLatin1String("latitude"))
+        || !root.contains(QLatin1String("longitude"))) {
+        return place;
+    }
+    place.lat = root.value(QLatin1String("latitude")).toDouble();
+    place.lon = root.value(QLatin1String("longitude")).toDouble();
+    place.city = root.value(QLatin1String("city")).toString();
+    place.ok = std::abs(place.lat) <= 90 && std::abs(place.lon) <= 180;
+    return place;
+}
+
 Weather::Weather(QObject* parent)
     : QObject(parent)
 {
@@ -191,6 +206,56 @@ Weather::Weather(QObject* parent)
 }
 
 void Weather::setConfig(bool enabled, const QString& city, const QString& lat, const QString& lon, const QString& unit)
+{
+    m_cfgEnabled = enabled;
+    m_cfgCity = city;
+    m_cfgLat = lat;
+    m_cfgLon = lon;
+    m_cfgUnit = unit;
+    bool latOk = false, lonOk = false;
+    lat.toDouble(&latOk);
+    lon.toDouble(&lonOk);
+    if (enabled && !(latOk && lonOk)) {
+        if (m_located) {
+            // No place chosen: the one found from the IP address.
+            apply(enabled, city.isEmpty() ? m_ipCity : city, QString::number(m_ipLat, 'f', 4), QString::number(m_ipLon, 'f', 4), unit);
+            return;
+        }
+        locate();
+        if (m_located) {
+            return; // answered at once (a test's fetcher): already applied
+        }
+    }
+    apply(enabled, city, lat, lon, unit);
+}
+
+void Weather::locate()
+{
+    if (m_locating) {
+        return;
+    }
+    if (!m_fetcher) {
+        if (!m_manager) {
+            m_manager = new QNetworkAccessManager(this);
+        }
+        m_fetcher = networkFetcher(m_manager);
+    }
+    m_locating = true;
+    m_fetcher(QUrl(QStringLiteral("https://ipwho.is/?fields=success,latitude,longitude,city")), [this](const QByteArray& body) {
+        m_locating = false;
+        const vela::weather::IpPlace place = vela::weather::parseIpPlace(body);
+        if (!place.ok) {
+            return; // offline: the widget stays hidden until the next config change
+        }
+        m_located = true;
+        m_ipLat = place.lat;
+        m_ipLon = place.lon;
+        m_ipCity = place.city;
+        setConfig(m_cfgEnabled, m_cfgCity, m_cfgLat, m_cfgLon, m_cfgUnit);
+    });
+}
+
+void Weather::apply(bool enabled, const QString& city, const QString& lat, const QString& lon, const QString& unit)
 {
     bool latOk = false, lonOk = false;
     const double la = lat.toDouble(&latOk), lo = lon.toDouble(&lonOk);

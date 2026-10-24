@@ -49,7 +49,7 @@ Page {
         Card {
             icon: "mark-location"
             title: qsTr("City")
-            description: Prefs.weatherCity !== "" ? Prefs.weatherCity : qsTr("No city chosen. The location is never guessed")
+            description: Prefs.weatherCity !== "" ? Prefs.weatherCity : qsTr("No city chosen: the place is guessed from your IP address")
             trailing: TextBox {
                 id: cityField
                 width: 220
