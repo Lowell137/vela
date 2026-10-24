@@ -30,10 +30,11 @@ is designed around physical pixels rather than treated as an afterthought.
 
 </div>
 
-> **This fork: themes and styles.** Windhawk-style looks for the taskbar, the Start menu and
-> the notification center (Settings > Personalization > Themes), WindowGlass and 70 more.
-> Install it on Arch, CachyOS or EndeavourOS with one command (it builds the package and
-> installs it with pacman, asking for sudo):
+> **This is a fork of Vela with a lot more on top.** Themes, thirteen new apps, a Windows-style
+> Updates page and many smaller things. [What's in this fork](#whats-in-this-fork) lists them,
+> and [Branches](#branches-in-this-fork) explains the long branch list on GitHub (use `main`).
+> On Arch, CachyOS or EndeavourOS one command builds the package and installs it with
+> pacman, asking for sudo:
 >
 > ```sh
 > sh -c "$(curl -fsSL https://raw.githubusercontent.com/Lowell137/vela/main/scripts/install-fork.sh)"
@@ -117,6 +118,109 @@ responsive without heavyweight runtimes for simple desktop UI. The compositor id
 </tr>
 </table>
 
+
+## What's in this fork
+
+The upstream project is the base. Everything below is extra in this fork, and most of it is
+also open as a separate pull request branch so upstream can take it piece by piece.
+
+### Themes
+
+Settings > Personalization > Themes now has a gallery. The taskbar, the Start menu and the
+quick settings and notifications each have their own styles, and every style shows a picture
+before you pick it. Styles come from Windhawk's taskbar, Start menu and notification center
+themes, plus WindowGlass and its variants (Split, Full-Length, Translucent, Acrylic). Aero
+brings Windows 7's blue glass, its orb, its show desktop strip and its Start menu layout.
+You can also write your own theme file under `~/.config/vela/themes/`. A theme can set the
+acrylic's tint, saturation and strength.
+
+<p align="center"><img src="docs/screenshots/fork-themes.webp" alt="The Themes page in Settings, with a picture for each taskbar style" width="70%"></p>
+
+<table>
+<tr>
+<td width="50%"><img src="themes/screenshots/taskbar/window-glass.png" alt="WindowGlass taskbar"><br><sub>WindowGlass taskbar</sub></td>
+<td width="50%"><img src="themes/screenshots/taskbar/aero.png" alt="Aero taskbar"><br><sub>Aero taskbar</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="themes/screenshots/startmenu/aero.png" alt="Aero Start menu"><br><sub>Aero Start menu, laid out like Windows 7</sub></td>
+<td width="50%"><img src="themes/screenshots/notifications/aero-qs.png" alt="Aero quick settings"><br><sub>Aero quick settings</sub></td>
+</tr>
+</table>
+
+### New apps
+
+Calculator, Calendar, Clock (timers, alarms, stopwatch, world clock), Paint, Photos (also
+opens AVIF, HEIC, JPEG XL, PSD, OpenEXR and camera RAW), Media Player, Video Editor, Sticky
+Notes, Sound Recorder, Event Viewer (reads the systemd journal), Weather, Terminal and Task
+Manager. They share one look with Files and Settings, and Settings can pick which terminal
+and task manager Vela opens.
+
+<p align="center"><img src="docs/screenshots/fork-new-apps.webp" alt="Calculator, Calendar, Clock and Paint" width="80%"></p>
+
+### Settings
+
+- An Updates page like Windows Update. It checks Vela, pacman, the AUR and Flatpak, can
+  pause for a week, and offers a rollback and "Update and shut down".
+- A Storage page, a Multitasking page, window rules per app (output, desktop, position, size,
+  flags) and a Window blur page with a window opacity slider.
+- Mouse pointer and icon theme pickers, a light and dark schedule, a Reset button for themes,
+  and a Turkish translation.
+
+<p align="center"><img src="docs/screenshots/fork-updates.webp" alt="The Updates page in Settings" width="70%"></p>
+
+### Files
+
+- Quick preview with Space. It zooms with the wheel or a pinch, plays video and sound, and
+  turns PDF pages. Extract and compress zip, 7z and tar through libarchive, and drag a pinned
+  folder to reorder Quick access.
+- Tabs sit in the title bar like in Windows 11, and file dialogs from other apps go through
+  the portal.
+
+<p align="center"><img src="docs/screenshots/fork-files-quick-preview.webp" alt="Quick preview of a picture in Files" width="80%"></p>
+
+### Shell and window management
+
+- Start search finds apps, Settings and files, and the right pane shows the app's actions.
+  The clipboard panel (Super+V) also has emoji, kaomoji and symbols.
+- Taskbar: top, left or right placement, auto-hide, never combine buttons, taskbar badges
+  with unread counts and progress, a weather widget, a hidden tray icons flyout, media
+  controls in the hover preview, and an indicator while the screen is shared.
+- Snap layouts appear when you drag a window to the top, like Windows 11. A hot corner
+  opens Task View, the wheel switches desktops, and Super+Shift+1..0 sends a window to a
+  desktop. Windows can be pinned always on top, hidden from screen capture, or reopened
+  where they closed.
+- Notifications are grouped by app, stay quiet while a window is fullscreen or the screen is
+  shared, and the media card in quick settings switches between players.
+- Snipping Tool with a delay timer, screen recording, a color picker and a Text mode that
+  lets you select words with OCR. Middle-click autoscroll like Windows. Caffeine with
+  timers. A Windows-like Game Bar was tried and then reverted.
+
+<table>
+<tr>
+<td width="50%"><img src="docs/screenshots/fork-start-search.webp" alt="Start menu search results"></td>
+<td width="50%"><img src="docs/screenshots/fork-emoji-panel.webp" alt="The emoji panel on Super+V" width="60%"></td>
+</tr>
+</table>
+
+### Graphics
+
+Direct scanout is a setting (`direct-scanout=auto|yes|no`), a hardware cursor path exists for
+NVIDIA, and the compositor can take the accent color from the wallpaper.
+
+## Branches in this fork
+
+The fork has many branches because each feature was built on its own so it could become its
+own upstream pull request. You can ignore all of them.
+
+| Branch | What it is |
+|---|---|
+| `main` | The one to use. It has every feature above, and the install command builds from it. |
+| `feat/*`, `pr/*` | One feature each, cut from upstream's `main`. These are what a pull request to upstream is made from. |
+| `topic/*` | Older copies of the same features from the first split. Safe to ignore. |
+| `backup/*`, `test/*`, `debug/*`, `metrics` | Safety copies and experiments. |
+
+If you want to try a single feature without the rest, check out its `feat/` branch. Everything
+else is on `main`.
 
 ## Try Vela
 
