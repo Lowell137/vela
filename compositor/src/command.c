@@ -668,7 +668,10 @@ static void run_command(struct vela_server *server, const char *line)
             }
         }
         if (any_visible) {
-            wl_list_for_each (view, &server->views, link) {
+            // Minimizing moves a window to the end of server->views: the
+            // plain iteration would stop after the first one.
+            struct vela_view *next;
+            wl_list_for_each_safe (view, next, &server->views, link) {
                 if (view->mapped && !view->minimized) {
                     vela_view_set_minimized(view, true);
                     // Minimized again after a manual restore: still listed.
