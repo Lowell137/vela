@@ -46,9 +46,18 @@ Item {
         anchors.fill: parent
         source: root.running
             ? (root.active ? Theme.taskbarTileImageActive : root.hovered ? Theme.taskbarTileImageHover : Theme.taskbarTileImage)
-            : (root.hovered ? Theme.taskbarTileImageIdleHover : "")
+            : ""
         visible: source != ""
         border { left: 3; right: 3; top: 3; bottom: 3 }
+    }
+    // An app that is not open, under the pointer: the picture's glow without
+    // its two side lines (4 px cut off each side).
+    Image {
+        anchors.fill: parent
+        visible: root.pictured && !root.running && root.hovered && source != ""
+        source: Theme.taskbarTileImageIdleHover
+        sourceClipRect: Qt.rect(4, 0, Math.max(1, sourceSize.width - 8), sourceSize.height)
+        fillMode: Image.Stretch
     }
 
     // A tile under each open app (Windows 7's glass buttons), if the theme has one.
