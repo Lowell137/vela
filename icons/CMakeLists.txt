@@ -10,7 +10,7 @@ foreach(icon IN LISTS VELA_ICON_FILES)
 endforeach()
 file(READ ${CMAKE_CURRENT_SOURCE_DIR}/vela/index.theme index)
 string(REPLACE "Name=Vela" "Name=Vela (dark)" index "${index}")
-string(REPLACE "Inherits=Win11,Reversal-orange,Reversal-blue,Reversal-green,Fluent,breeze," "Inherits=Win11-dark,Reversal-orange-dark,Reversal-blue-dark,Reversal-green-dark,Fluent-dark,Fluent,breeze-dark,breeze," index "${index}")
+string(REPLACE "Inherits=Reversal-orange,Reversal-blue,Reversal-green,Fluent,breeze," "Inherits=Reversal-orange-dark,Reversal-blue-dark,Reversal-green-dark,Fluent-dark,Fluent,breeze-dark,breeze," index "${index}")
 file(WRITE ${VELA_DARK_DIR}/index.theme "${index}")
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/vela/index.theme)
 
