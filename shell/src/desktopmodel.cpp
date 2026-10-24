@@ -452,8 +452,20 @@ void DesktopModel::layout(bool notify)
         const QRectF box = QRectF(p, QSizeF(cw, ch)).adjusted(3, 3, -3, -3);
         return std::any_of(placed.cbegin(), placed.cend(), [&](const QRectF& other) { return other.intersects(box); });
     };
-    // Those placed by hand first, then the others in a row by columns.
+    // Those placed by hand first (the ones just dropped last: they give way
+    // rather than push the others), then the others in a row by columns.
+    QList<qsizetype> order;
     for (qsizetype i = 0; i < m_items.size(); ++i) {
+        if (!m_justMoved.contains(m_items.at(i).path)) {
+            order.append(i);
+        }
+    }
+    for (qsizetype i = 0; i < m_items.size(); ++i) {
+        if (m_justMoved.contains(m_items.at(i).path)) {
+            order.append(i);
+        }
+    }
+    for (const qsizetype i : std::as_const(order)) {
         const QPointF saved = m_items.at(i).position;
         if (saved.x() < 0) {
             continue;
@@ -528,6 +540,21 @@ void DesktopModel::moveTo(const QString& path, qreal x, qreal y)
         layout(); // back in a row
         return;
     }
+    // The first drop fixes where everything is now, so the others stay put
+    // instead of flowing around the icon that was dropped.
+    for (qsizetype i = 0; i < m_items.size() && i < m_layout.size(); ++i) {
+        Item& other = m_items[i];
+        if (other.position.x() < 0) {
+            other.position = m_layout.at(i);
+            savePosition(other.isTrash ? other.path : QFileInfo(other.path).fileName(), other.position);
+        }
+    }
+    const qint64 now = QDateTime::currentMSecsSinceEpoch();
+    if (now - m_lastMove > 1000) {
+        m_justMoved.clear(); // a new drop
+    }
+    m_lastMove = now;
+    m_justMoved.insert(path);
     for (Item& item : m_items) {
         if (item.path == path) {
             item.position = QPointF(std::max(0.0, x), std::max(0.0, y));

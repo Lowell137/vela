@@ -9,6 +9,7 @@
 #include <QHash>
 #include <QList>
 #include <QPointF>
+#include <QSet>
 #include <QString>
 #include <QStringList>
 #include <QTimer>
@@ -159,6 +160,10 @@ private:
     QString m_dir;
     QList<Item> m_items;
     QList<QPointF> m_layout; // where each icon shows
+    // The icons just dropped (one drop moves several): they keep their place
+    // and the others give way.
+    QSet<QString> m_justMoved;
+    qint64 m_lastMove = 0;
     QFileSystemWatcher m_watcher;
     QTimer m_reloadTimer;
     int m_iconSize = 1;
