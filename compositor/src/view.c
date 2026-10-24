@@ -25,6 +25,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <wlr/config.h>
 #include <wlr/interfaces/wlr_ext_image_capture_source_v1.h>
 #include <wlr/types/wlr_compositor.h>
@@ -845,9 +846,16 @@ void vela_view_update_blur(struct vela_view *view)
 {
     struct vela_server *server = view->server;
     const char *app_id = vela_view_app_id(view);
+    const struct vela_blur_app *own = NULL;
+    for (int i = 0; app_id && i < server->window_blur_app_count; ++i) {
+        if (strcasecmp(server->window_blur_apps[i].app, app_id) == 0) {
+            own = &server->window_blur_apps[i];
+            break;
+        }
+    }
     bool forced = server->window_blur && view->mapped && !view->fullscreen
         && !vela_config_list_has(server->window_blur_exclude, app_id)
-        && (server->window_blur_all || vela_config_list_has(server->window_blur_include, app_id));
+        && (server->window_blur_all || own || vela_config_list_has(server->window_blur_include, app_id));
     struct wlr_box box = { 0 };
     if (forced) {
         box = vela_view_geometry(view);
@@ -858,15 +866,59 @@ void vela_view_update_blur(struct vela_view *view)
     }
     // The whole window (surfaces and bar) translucent, the shadow not: it
     // stays outside the window. The blur keeps its own strength (frame.c).
-    float opacity = forced ? (view->activated ? server->window_opacity : server->window_opacity_inactive) / 100.0f
-                           : 1.0f;
+    int percent = view->activated ? server->window_opacity : server->window_opacity_inactive;
+    if (own && own->opacity) {
+        percent = own->opacity;
+    }
+    float opacity = forced ? percent / 100.0f : 1.0f;
+    int strength = own && own->strength ? own->strength : server->window_blur_strength;
     if (view->surface_node) {
         vela_surface_node_set_blur(view->surface_node, &box);
+        vela_surface_node_set_blur_scale(view->surface_node, strength / 100.0f);
         vela_node_set_opacity(&view->surface_node->node, opacity);
     }
     if (view->decoration) {
         vela_decoration_set_opacity(view->decoration, opacity);
     }
+}
+
+static void free_blur_apps(struct vela_server *server)
+{
+    for (int i = 0; i < server->window_blur_app_count; ++i) {
+        free(server->window_blur_apps[i].app);
+    }
+    free(server->window_blur_apps);
+    server->window_blur_apps = NULL;
+    server->window_blur_app_count = 0;
+}
+
+// window-blur-app=<app-id>|strength=N,opacity=N (either may be missing).
+static void add_blur_app(const char *value, void *data)
+{
+    struct vela_server *server = data;
+    const char *bar = strchr(value, '|');
+    if (!bar || bar == value) {
+        return;
+    }
+    struct vela_blur_app entry = { strndup(value, (size_t)(bar - value)), 0, 0 };
+    char *copy = strdup(bar + 1);
+    char *save = NULL;
+    for (char *pair = strtok_r(copy, ",", &save); pair; pair = strtok_r(NULL, ",", &save)) {
+        if (strncmp(pair, "strength=", 9) == 0) {
+            entry.strength = vela_clamp(atoi(pair + 9), 50, 300);
+        } else if (strncmp(pair, "opacity=", 8) == 0) {
+            entry.opacity = vela_clamp(atoi(pair + 8), 30, 100);
+        }
+    }
+    free(copy);
+    struct vela_blur_app *grown = realloc(server->window_blur_apps,
+        sizeof(*grown) * (size_t)(server->window_blur_app_count + 1));
+    if (!grown) {
+        free(entry.app);
+        return;
+    }
+    server->window_blur_apps = grown;
+    grown[server->window_blur_app_count++] = entry;
 }
 
 void vela_views_load_settings(struct vela_server *server)
@@ -884,6 +936,17 @@ void vela_views_load_settings(struct vela_server *server)
     server->window_opacity = vela_clamp(atoi(vela_config_get(&settings, "window-opacity", "100")), 30, 100);
     const char *inactive = vela_config_get(&settings, "window-opacity-inactive", "");
     server->window_opacity_inactive = *inactive ? vela_clamp(atoi(inactive), 30, 100) : server->window_opacity;
+    server->window_blur_strength = vela_clamp(atoi(vela_config_get(&settings, "window-blur-strength", "100")), 50, 300);
+    server->taskbar_look.blur = vela_clamp(atoi(vela_config_get(&settings, "taskbar-blur", "100")), 50, 300);
+    server->taskbar_look.opacity = vela_clamp(atoi(vela_config_get(&settings, "taskbar-opacity", "100")), 0, 200);
+    server->quicksettings_look.blur = vela_clamp(atoi(vela_config_get(&settings, "quicksettings-blur", "100")), 50, 300);
+    server->quicksettings_look.opacity = vela_clamp(atoi(vela_config_get(&settings, "quicksettings-opacity", "100")), 0, 200);
+    struct vela_layer_surface *panel;
+    wl_list_for_each (panel, &server->layer_surfaces, link) {
+        vela_layer_update_look(panel);
+    }
+    free_blur_apps(server);
+    vela_config_each("window-blur-app", add_blur_app, server);
     vela_window_rules_load(&server->window_rules);
     server->remember_window_positions = vela_config_flag(&settings, "remember-window-positions", true);
     free(server->ssd_include);
@@ -1709,6 +1772,7 @@ void vela_views_finish(struct vela_server *server)
     free(server->window_blur_include);
     free(server->window_blur_exclude);
     server->window_blur_include = server->window_blur_exclude = NULL;
+    free_blur_apps(server);
     vela_window_rules_free(&server->window_rules);
     vela_window_memory_free(&server->window_memory);
     free(server->ssd_include);

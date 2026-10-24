@@ -355,6 +355,28 @@ void Preferences::reloadCompositor()
     m_windowBlurInclude = cleanAppIds(value(QStringLiteral("window-blur-include"), {}).split(u','));
     m_windowBlurExclude = cleanAppIds(value(QStringLiteral("window-blur-exclude"), {}).split(u','));
     m_windowOpacity = std::clamp(value(QStringLiteral("window-opacity"), QStringLiteral("100")).toInt(), 30, 100);
+    m_windowBlurStrength = std::clamp(value(QStringLiteral("window-blur-strength"), QStringLiteral("100")).toInt(), 50, 300);
+    for (const QString& key : { QStringLiteral("taskbar-blur"), QStringLiteral("quicksettings-blur") }) {
+        m_panelLook[key] = std::clamp(value(key, QStringLiteral("100")).toInt(), 50, 300);
+    }
+    for (const QString& key : { QStringLiteral("taskbar-opacity"), QStringLiteral("quicksettings-opacity") }) {
+        m_panelLook[key] = std::clamp(value(key, QStringLiteral("100")).toInt(), 0, 200);
+    }
+    m_windowBlurApps.clear();
+    for (const auto& [key, line] : std::as_const(m_compositor)) {
+        const qsizetype bar = line.indexOf(u'|');
+        if (key != QLatin1String("window-blur-app") || bar <= 0) {
+            continue;
+        }
+        QVariantMap entry { { QStringLiteral("app"), line.left(bar) }, { QStringLiteral("strength"), 0 }, { QStringLiteral("opacity"), 0 } };
+        for (const QString& pair : line.mid(bar + 1).split(u',')) {
+            const QStringList kv = pair.split(u'=');
+            if (kv.size() == 2 && (kv[0] == QLatin1String("strength") || kv[0] == QLatin1String("opacity"))) {
+                entry[kv[0]] = kv[1].toInt();
+            }
+        }
+        m_windowBlurApps << entry;
+    }
     emit windowBlurChanged();
     m_windowRules.clear();
     for (const auto& [key, rule] : std::as_const(m_compositor)) {
@@ -864,6 +886,100 @@ void Preferences::setWindowBlurExclude(const QStringList& apps)
     emit windowBlurChanged();
 }
 
+void Preferences::setWindowBlurStrength(int percent)
+{
+    percent = std::clamp(percent, 50, 300);
+    if (percent == m_windowBlurStrength) {
+        return;
+    }
+    m_windowBlurStrength = percent;
+    saveCompositor({ { QStringLiteral("window-blur-strength"), QString::number(percent) } });
+    emit windowBlurChanged();
+}
+
+void Preferences::setWindowBlurApp(const QString& app, int strength, int opacity)
+{
+    const QString id = app.trimmed();
+    if (id.isEmpty() || id.contains(u'|') || id.contains(u',')) {
+        return;
+    }
+    strength = strength > 0 ? std::clamp(strength, 50, 300) : 0;
+    opacity = opacity > 0 ? std::clamp(opacity, 30, 100) : 0;
+    QVariantList apps;
+    bool found = false;
+    for (const QVariant& item : std::as_const(m_windowBlurApps)) {
+        if (item.toMap().value(QStringLiteral("app")).toString().compare(id, Qt::CaseInsensitive) == 0) {
+            found = true;
+            apps << QVariantMap { { QStringLiteral("app"), id }, { QStringLiteral("strength"), strength }, { QStringLiteral("opacity"), opacity } };
+        } else {
+            apps << item;
+        }
+    }
+    if (!found) {
+        apps << QVariantMap { { QStringLiteral("app"), id }, { QStringLiteral("strength"), strength }, { QStringLiteral("opacity"), opacity } };
+    }
+    saveWindowBlurApps(apps);
+}
+
+void Preferences::removeWindowBlurApp(const QString& app)
+{
+    QVariantList apps;
+    for (const QVariant& item : std::as_const(m_windowBlurApps)) {
+        if (item.toMap().value(QStringLiteral("app")).toString().compare(app, Qt::CaseInsensitive) != 0) {
+            apps << item;
+        }
+    }
+    saveWindowBlurApps(apps);
+}
+
+void Preferences::saveWindowBlurApps(const QVariantList& apps)
+{
+    m_windowBlurApps = apps;
+    QStringList lines;
+    for (const QVariant& item : apps) {
+        const QVariantMap entry = item.toMap();
+        QStringList pairs;
+        for (const QString& key : { QStringLiteral("strength"), QStringLiteral("opacity") }) {
+            if (entry.value(key).toInt() > 0) {
+                pairs << key + u'=' + QString::number(entry.value(key).toInt());
+            }
+        }
+        // An app with both at the general value still counts: it is blurred.
+        lines << entry.value(QStringLiteral("app")).toString() + u'|' + pairs.join(u',');
+    }
+    // One window-blur-app line per app: saveCompositor replaces all of them.
+    saveCompositor({ { QStringLiteral("window-blur-app"), lines.isEmpty() ? QString() : lines.join(u'\n') } });
+    emit windowBlurChanged();
+}
+
+QVariantMap Preferences::panelLook() const
+{
+    QVariantMap look;
+    for (auto it = m_panelLook.cbegin(); it != m_panelLook.cend(); ++it) {
+        look.insert(it.key(), it.value());
+    }
+    return look;
+}
+
+void Preferences::setPanelLook(const QString& key, int percent)
+{
+    static const QStringList blur { QStringLiteral("taskbar-blur"), QStringLiteral("quicksettings-blur") };
+    static const QStringList opacity { QStringLiteral("taskbar-opacity"), QStringLiteral("quicksettings-opacity") };
+    if (blur.contains(key)) {
+        percent = std::clamp(percent, 50, 300);
+    } else if (opacity.contains(key)) {
+        percent = std::clamp(percent, 0, 200);
+    } else {
+        return;
+    }
+    if (m_panelLook.value(key, 100) == percent) {
+        return;
+    }
+    m_panelLook[key] = percent;
+    saveCompositor({ { key, QString::number(percent) } });
+    emit windowBlurChanged();
+}
+
 void Preferences::setWindowOpacity(int percent)
 {
     percent = std::clamp(percent, 30, 100);
@@ -1236,7 +1352,7 @@ void Preferences::saveCompositor(const QList<QPair<QString, QString>>& changes)
                 lines.end());
             continue;
         }
-        if (key == QLatin1String("window-rule")) {
+        if (key == QLatin1String("window-rule") || key == QLatin1String("window-blur-app")) {
             // Repeatable: all the old lines out, one new line per rule.
             lines.erase(std::remove_if(lines.begin(), lines.end(),
                             [&](const QString& line) { return line.startsWith(key + u'='); }),

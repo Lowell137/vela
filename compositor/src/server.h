@@ -166,6 +166,18 @@ struct vela_server {
     bool window_blur_all;
     char *window_blur_include;
     char *window_blur_exclude;
+    // window-blur-strength (percent, 50-300) and the per-app window-blur-app
+    // lines: strength and opacity of one app, 0: the general value. An app
+    // listed here is blurred like an included one.
+    int window_blur_strength;
+    struct vela_blur_app {
+        char *app;
+        int strength, opacity;
+    } *window_blur_apps;
+    int window_blur_app_count;
+    // The taskbar's and quick settings' blur strength and opacity, percent
+    // (taskbar-blur, taskbar-opacity, quicksettings-*), 100: the theme's.
+    struct { int blur, opacity; } taskbar_look, quicksettings_look;
     // window-rule lines of vela.conf (window_rules.h), applied when a window
     // maps; a reload affects new windows only.
     struct vela_window_rules window_rules;

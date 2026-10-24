@@ -178,6 +178,7 @@ static void handle_new_surface(struct wl_listener *listener, void *data)
     vela_listen(&wlr->events.new_popup, &layer->new_popup, handle_new_popup);
     wl_list_insert(server->layer_surfaces.prev, &layer->link);
     vela_layer_update_capture_hidden(layer);
+    vela_layer_update_look(layer);
 }
 
 void vela_layer_update_capture_hidden(struct vela_layer_surface *layer)
@@ -194,6 +195,24 @@ void vela_layer_update_capture_hidden(struct vela_layer_surface *layer)
         }
     }
     layer->tree->node.capture_hidden = hidden;
+}
+
+// The user's blur strength and opacity for the taskbar and quick settings.
+void vela_layer_update_look(struct vela_layer_surface *layer)
+{
+    const char *scope = layer->wlr->namespace;
+    const struct vela_server *server = layer->server;
+    int blur = 100;
+    int opacity = 100;
+    if (scope && strcmp(scope, "vela-taskbar") == 0) {
+        blur = server->taskbar_look.blur;
+        opacity = server->taskbar_look.opacity;
+    } else if (scope && strcmp(scope, "vela-quick-settings") == 0) {
+        blur = server->quicksettings_look.blur;
+        opacity = server->quicksettings_look.opacity;
+    }
+    vela_surface_node_set_blur_scale(layer->surface_node, blur / 100.0f);
+    vela_surface_node_set_tint_delta(layer->surface_node, (opacity - 100) / 100.0f);
 }
 
 void vela_layers_init(struct vela_server *server)

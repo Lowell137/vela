@@ -207,6 +207,10 @@ void Appearance::reload()
         };
         while (!velaConf.atEnd()) {
             const QByteArray line = velaConf.readLine().trimmed();
+            // taskbar-opacity= (percent of the theme's fill, Settings > Themes).
+            if (line.startsWith("taskbar-opacity=")) {
+                theme.insert(QStringLiteral("user-taskbar-opacity"), line.mid(16).toInt() / 100.0);
+            }
             flagLine(line, "taskbar-backdrop");
             flagLine(line, "quicksettings-slider-press-zoom");
         }

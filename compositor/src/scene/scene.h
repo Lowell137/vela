@@ -95,6 +95,10 @@ struct vela_surface_node {
     // besides what the app asks for, in its coordinates; empty: none. Only
     // where the surface isn't opaque, or is translucent (frame.c).
     struct wlr_box blur;
+    // Multiplies the blur radius of this window (window-blur-strength); 0: 1.
+    float blur_scale;
+    // Added to 1 to scale the acrylic tint's strength (taskbar-opacity...); 0: as is.
+    float tint_delta;
 };
 
 // A solid rectangle (premultiplied sRGB color, as in wlroots).
@@ -182,6 +186,8 @@ struct vela_buffer_node *vela_buffer_node_create(struct vela_tree *parent, struc
     double height);
 void vela_node_destroy(struct vela_node *node);
 void vela_surface_node_set_blur(struct vela_surface_node *node, const struct wlr_box *box);
+void vela_surface_node_set_blur_scale(struct vela_surface_node *node, float scale);
+void vela_surface_node_set_tint_delta(struct vela_surface_node *node, float delta);
 
 void vela_node_set_position(struct vela_node *node, double x, double y);
 // Absolute position (logical).

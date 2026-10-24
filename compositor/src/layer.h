@@ -56,6 +56,9 @@ void vela_layers_configure(struct vela_server *server, struct vela_output *outpu
 // window previews or titles are hidden from it too (docs/renderer.md §15.2).
 void vela_layer_update_capture_hidden(struct vela_layer_surface *layer);
 
+// Applies the taskbar-/quicksettings- blur and opacity of the server to the surface.
+void vela_layer_update_look(struct vela_layer_surface *layer);
+
 // The output goes away: its surfaces are closed.
 void vela_layers_close_output(struct vela_server *server, struct vela_output *output);
 

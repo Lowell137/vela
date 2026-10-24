@@ -133,9 +133,9 @@ void vela_blur_set_look(float saturation, float strength, float luminosity, floa
     blur_look_tint = tint < 0.0f ? -1.0f : vela_clampf(tint, 0.0f, 1.0f);
 }
 
-static float blur_strength(double scale)
+static float blur_strength(double scale, float window_scale)
 {
-    return vela_clampf((float)(1.25 * scale * blur_look_scale), 0.5f, 6.0f);
+    return vela_clampf((float)(1.25 * scale * blur_look_scale * (window_scale > 0 ? window_scale : 1.0f)), 0.5f, 6.0f);
 }
 
 // A region of the surface (in its coordinates) in pixels, within the
@@ -257,6 +257,8 @@ struct visit {
     struct clip clip;
     struct wlr_surface *root;
     struct wlr_box forced_blur; // for the root only
+    float blur_scale;
+    float tint_delta;
 };
 
 static void add_surface(struct wlr_surface *surface, int sx, int sy, void *data)
@@ -300,6 +302,8 @@ static void add_surface(struct wlr_surface *surface, int sx, int sy, void *data)
     e->box = box;
     e->opacity = v->opacity;
     e->blur_opacity = v->blur_opacity;
+    e->blur_scale = v->blur_scale;
+    e->tint_delta = v->tint_delta;
     e->linear = !is_one_to_one(&e->src, &box, e->transform);
     e->origin_x = (lx - p->origin_x) * p->scale;
     e->origin_y = (ly - p->origin_y) * p->scale;
@@ -369,7 +373,7 @@ static void visit(struct vela_scene *scene, struct vela_node *node, double lx, d
         if (!root->mapped) {
             break;
         }
-        struct visit context = { scene, p, out, lx, ly, opacity, inherited, clip, root, surface_node->blur };
+        struct visit context = { scene, p, out, lx, ly, opacity, inherited, clip, root, surface_node->blur, surface_node->blur_scale, surface_node->tint_delta };
         vela_for_each_surface(root, add_surface, &context);
         break;
     }
@@ -510,7 +514,7 @@ static void expand_damage_for_blur(const struct vela_elements *elements, pixman_
             if (!e->visible || wlr_box_empty(&e->blur_box)) {
                 continue;
             }
-            int reach = vela_blur_reach(blur_strength(e->scale_x));
+            int reach = vela_blur_reach(blur_strength(e->scale_x, e->blur_scale));
             const pixman_box32_t zone = { e->blur_box.x - reach, e->blur_box.y - reach,
                 e->blur_box.x + e->blur_box.width + reach, e->blur_box.y + e->blur_box.height + reach };
             pixman_region32_t inside;
@@ -538,6 +542,7 @@ static bool same_look(const struct vela_element *a, const struct vela_element *b
     bool same_texture = a->surface ? true : a->texture == b->texture;
     return a->surface == b->surface && same_texture && same_box(&a->box, &b->box) && same_fbox(&a->src, &b->src)
         && a->transform == b->transform && a->opacity == b->opacity && a->blur_opacity == b->blur_opacity
+        && a->blur_scale == b->blur_scale && a->tint_delta == b->tint_delta
         && a->linear == b->linear && same_color(&a->color, &b->color) && same_box(&a->shape_rect, &b->shape_rect)
         && a->shape_radius == b->shape_radius && same_box(&a->shadow_window, &b->shadow_window)
         && a->shadow_sigma == b->shadow_sigma && same_box(&a->blur_box, &b->blur_box)
@@ -717,9 +722,12 @@ void vela_draw_elements(struct vela_scene *scene, struct vela_pass *pass, const 
                 if (blur_look_tint >= 0.0f) {
                     tint.a = blur_look_tint;
                 }
-                add_blur_pieces(pass, &panel, &region, clip, blur_strength(e->scale_x), &tint,
-                    !wlr_box_empty(&e->blur_forced), blur_look_saturation,
-                    blur_look_luminosity >= 0.0f ? blur_look_luminosity : scene->acrylic_luminosity);
+                // The theme's look, then the user's opacity for this panel on top.
+                tint.a = vela_clampf(tint.a * (1.0f + e->tint_delta), 0.0f, 1.0f);
+                const float luminosity = vela_clampf((blur_look_luminosity >= 0.0f ? blur_look_luminosity : scene->acrylic_luminosity)
+                        * (1.0f + e->tint_delta), 0.0f, 1.0f);
+                add_blur_pieces(pass, &panel, &region, clip, blur_strength(e->scale_x, e->blur_scale), &tint,
+                    !wlr_box_empty(&e->blur_forced), blur_look_saturation, luminosity);
             }
             pixman_region32_fini(&region);
         }

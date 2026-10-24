@@ -67,9 +67,14 @@ QtObject {
     // Without it, opaque.
     readonly property bool acrylic: Effects.blurAvailable
     readonly property color desktop: "#06182d" // below the wallpaper, its darkest blue
-    readonly property color taskbar: themed("taskbar", light
-        ? (acrylic ? Qt.rgba(0.95, 0.95, 0.96, 0.66) : Qt.rgba(0.94, 0.94, 0.95, 0.96))
-        : (acrylic ? Qt.rgba(0.11, 0.11, 0.13, 0.62) : Qt.rgba(0.10, 0.10, 0.12, 0.94)))
+    // taskbar-opacity= of vela.conf scales the fill's alpha (100%: the theme's).
+    readonly property color taskbar: {
+        const c = Qt.color(themed("taskbar", light
+            ? (acrylic ? Qt.rgba(0.95, 0.95, 0.96, 0.66) : Qt.rgba(0.94, 0.94, 0.95, 0.96))
+            : (acrylic ? Qt.rgba(0.11, 0.11, 0.13, 0.62) : Qt.rgba(0.10, 0.10, 0.12, 0.94))))
+        const k = Style.theme["user-taskbar-opacity"]
+        return k === undefined ? c : Qt.rgba(c.r, c.g, c.b, Math.max(0, Math.min(1, c.a * k)))
+    }
     // The hairline of the taskbar's edge and pills; a theme with a see-through
     // taskbar sets it transparent (taskbar-stroke=#00000000).
     readonly property color taskbarStroke: themed("taskbar-stroke", stroke)

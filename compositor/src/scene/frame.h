@@ -59,6 +59,8 @@ struct vela_element {
     struct wlr_box blur_box;
     // The window's forced blur (vela_surface_node.blur), surface coordinates.
     struct wlr_box blur_forced;
+    float tint_delta; // see vela_surface_node.tint_delta
+    float blur_scale; // the window's blur radius factor (window-blur-strength)
     bool capture_hidden; // under a node hidden from captures (§15)
     bool visible; // not entirely covered
     int64_t visible_area; // uncovered pixels

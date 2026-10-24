@@ -71,6 +71,24 @@ void vela_surface_node_set_blur(struct vela_surface_node *node, const struct wlr
     vela_scene_changed(node->node.scene);
 }
 
+void vela_surface_node_set_blur_scale(struct vela_surface_node *node, float scale)
+{
+    if (node->blur_scale == scale) {
+        return;
+    }
+    node->blur_scale = scale;
+    vela_scene_changed(node->node.scene);
+}
+
+void vela_surface_node_set_tint_delta(struct vela_surface_node *node, float delta)
+{
+    if (node->tint_delta == delta) {
+        return;
+    }
+    node->tint_delta = delta;
+    vela_scene_changed(node->node.scene);
+}
+
 struct vela_rect_node *vela_rect_node_create(struct vela_tree *parent, double width, double height,
     const struct wlr_render_color *color)
 {

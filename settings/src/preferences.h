@@ -94,6 +94,12 @@ class Preferences : public QObject {
     Q_PROPERTY(QStringList windowBlurExclude READ windowBlurExclude WRITE setWindowBlurExclude NOTIFY windowBlurChanged)
     // window-opacity= (percent, 30-100): the same windows drawn translucent.
     Q_PROPERTY(int windowOpacity READ windowOpacity WRITE setWindowOpacity NOTIFY windowBlurChanged)
+    // window-blur-strength= (percent, 50-300) and window-blur-app= lines
+    // ("app|strength=N,opacity=N"; 0: the general value), kept as [{app, strength, opacity}].
+    Q_PROPERTY(int windowBlurStrength READ windowBlurStrength WRITE setWindowBlurStrength NOTIFY windowBlurChanged)
+    Q_PROPERTY(QVariantList windowBlurApps READ windowBlurApps NOTIFY windowBlurChanged)
+    // taskbar-/quicksettings- blur (50-300) and opacity (0-200) in percent of the theme's.
+    Q_PROPERTY(QVariantMap panelLook READ panelLook NOTIFY windowBlurChanged)
     Q_PROPERTY(bool showDesktopCorner READ showDesktopCorner WRITE setShowDesktopCorner NOTIFY taskbarChanged)
     // --- Notifications ---
     Q_PROPERTY(bool doNotDisturb READ doNotDisturb WRITE setDoNotDisturb NOTIFY doNotDisturbChanged)
@@ -281,6 +287,13 @@ public:
     void setWindowRules(const QStringList& rules);
     QStringList windowBlurExclude() const { return m_windowBlurExclude; }
     void setWindowBlurExclude(const QStringList& apps);
+    int windowBlurStrength() const { return m_windowBlurStrength; }
+    void setWindowBlurStrength(int percent);
+    QVariantList windowBlurApps() const { return m_windowBlurApps; }
+    Q_INVOKABLE void setWindowBlurApp(const QString& app, int strength, int opacity);
+    Q_INVOKABLE void removeWindowBlurApp(const QString& app);
+    QVariantMap panelLook() const;
+    Q_INVOKABLE void setPanelLook(const QString& key, int percent);
     int windowOpacity() const { return m_windowOpacity; }
     void setWindowOpacity(int percent);
     // The open windows, one per app: [{appId, title}] (the compositor's
@@ -470,6 +483,7 @@ private:
     void setShell(const QString& key, const QVariant& value);
     // vela.conf: reread, only these keys changed, then "reload-config".
     void saveCompositor(const QList<QPair<QString, QString>>& changes);
+    void saveWindowBlurApps(const QVariantList& apps);
     void saveCompositorKeys(const QStringList& keys); // the current values of these keys
     void reloadCompositor(); // vela.conf and the compositor's state
     void queryCompositor(); // night light, magnifier...: the current state
@@ -516,6 +530,9 @@ private:
     QStringList m_windowBlurExclude;
     QStringList m_windowRules;
     int m_windowOpacity = 100;
+    int m_windowBlurStrength = 100;
+    QVariantList m_windowBlurApps;
+    QMap<QString, int> m_panelLook;
     bool m_showDesktopCorner = true;
     bool m_doNotDisturb = false;
     int m_screenOffMinutes = 10;

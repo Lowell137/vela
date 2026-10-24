@@ -79,6 +79,10 @@ Vela Settings preserves unrelated lines when it updates a key and asks the compo
 | `window-blur-exclude` | empty | App ids never forced; wins over the other two. |
 | `window-opacity` | `100` | The same windows drawn translucent, in percent (30–100), so the blur shows through them; title bar included, shadow and fullscreen windows not. `100` changes nothing. |
 | `window-opacity-inactive` | `window-opacity` | The same for windows that aren't active. |
+| `window-blur-strength` | `100` | How strong the window blur is, in percent (50–300) of the usual radius. |
+| `window-blur-app` | none | Repeatable, `app-id\|strength=N,opacity=N` (either may be left out; `0`/missing: the general value). An app listed here is blurred like an included one, with its own strength (50–300) and opacity (30–100), unless excluded. |
+| `taskbar-opacity`, `quicksettings-opacity` | `100` | The taskbar's and the quick settings panel's fill and acrylic tint, in percent of the theme's (0–200): lower is more see-through. |
+| `taskbar-blur`, `quicksettings-blur` | `100` | The same two panels' blur strength, in percent of the theme's (50–300). |
 | `remember-window-positions` | `yes` | An app's window reopens where it was closed: position, size, output, desktop and maximized, kept per app id in `~/.local/state/vela/window-positions.json` (`$XDG_STATE_HOME/vela/`), last closed window wins. A `window-rule` wins over it; dialogs, fullscreen windows, windows under 100 px and X11 windows that place themselves are left alone. If the output is gone, the window opens on the usual output, kept inside it. Session restore (reopening apps after login) is not part of this. |
 
 ## Taskbar settings
