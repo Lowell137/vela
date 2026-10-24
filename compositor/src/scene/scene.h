@@ -87,6 +87,15 @@ struct vela_tree {
     struct vela_shape shape;
 };
 
+// The look of the blur behind one surface (a theme or style's blur-saturation,
+// blur-strength, blur-luminosity, blur-tint): its own, so that choosing another
+// taskbar style does not change the Start menu's. luminosity and tint negative:
+// the mode's. set false: the general look (vela_blur_set_look).
+struct vela_blur_look {
+    bool set;
+    float saturation, strength, luminosity, tint;
+};
+
 // An app surface with its subsurfaces, read live.
 struct vela_surface_node {
     struct vela_node node;
@@ -99,6 +108,7 @@ struct vela_surface_node {
     float blur_scale;
     // Added to 1 to scale the acrylic tint's strength (taskbar-opacity...); 0: as is.
     float tint_delta;
+    struct vela_blur_look look;
 };
 
 // A solid rectangle (premultiplied sRGB color, as in wlroots).
@@ -188,6 +198,7 @@ void vela_node_destroy(struct vela_node *node);
 void vela_surface_node_set_blur(struct vela_surface_node *node, const struct wlr_box *box);
 void vela_surface_node_set_blur_scale(struct vela_surface_node *node, float scale);
 void vela_surface_node_set_tint_delta(struct vela_surface_node *node, float delta);
+void vela_surface_node_set_look(struct vela_surface_node *node, const struct vela_blur_look *look);
 
 void vela_node_set_position(struct vela_node *node, double x, double y);
 // Absolute position (logical).

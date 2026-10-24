@@ -133,9 +133,11 @@ void vela_blur_set_look(float saturation, float strength, float luminosity, floa
     blur_look_tint = tint < 0.0f ? -1.0f : vela_clampf(tint, 0.0f, 1.0f);
 }
 
-static float blur_strength(double scale, float window_scale)
+// The surface's own look wins over the general one.
+static float blur_strength(double scale, float window_scale, const struct vela_blur_look *look)
 {
-    return vela_clampf((float)(1.25 * scale * blur_look_scale * (window_scale > 0 ? window_scale : 1.0f)), 0.5f, 6.0f);
+    const float look_scale = look->set ? look->strength : blur_look_scale;
+    return vela_clampf((float)(1.25 * scale * look_scale * (window_scale > 0 ? window_scale : 1.0f)), 0.5f, 6.0f);
 }
 
 // A region of the surface (in its coordinates) in pixels, within the
@@ -259,6 +261,7 @@ struct visit {
     struct wlr_box forced_blur; // for the root only
     float blur_scale;
     float tint_delta;
+    struct vela_blur_look look;
 };
 
 static void add_surface(struct wlr_surface *surface, int sx, int sy, void *data)
@@ -304,6 +307,7 @@ static void add_surface(struct wlr_surface *surface, int sx, int sy, void *data)
     e->blur_opacity = v->blur_opacity;
     e->blur_scale = v->blur_scale;
     e->tint_delta = v->tint_delta;
+    e->look = v->look;
     e->linear = !is_one_to_one(&e->src, &box, e->transform);
     e->origin_x = (lx - p->origin_x) * p->scale;
     e->origin_y = (ly - p->origin_y) * p->scale;
@@ -373,7 +377,7 @@ static void visit(struct vela_scene *scene, struct vela_node *node, double lx, d
         if (!root->mapped) {
             break;
         }
-        struct visit context = { scene, p, out, lx, ly, opacity, inherited, clip, root, surface_node->blur, surface_node->blur_scale, surface_node->tint_delta };
+        struct visit context = { scene, p, out, lx, ly, opacity, inherited, clip, root, surface_node->blur, surface_node->blur_scale, surface_node->tint_delta, surface_node->look };
         vela_for_each_surface(root, add_surface, &context);
         break;
     }
@@ -514,7 +518,7 @@ static void expand_damage_for_blur(const struct vela_elements *elements, pixman_
             if (!e->visible || wlr_box_empty(&e->blur_box)) {
                 continue;
             }
-            int reach = vela_blur_reach(blur_strength(e->scale_x, e->blur_scale));
+            int reach = vela_blur_reach(blur_strength(e->scale_x, e->blur_scale, &e->look));
             const pixman_box32_t zone = { e->blur_box.x - reach, e->blur_box.y - reach,
                 e->blur_box.x + e->blur_box.width + reach, e->blur_box.y + e->blur_box.height + reach };
             pixman_region32_t inside;
@@ -543,6 +547,7 @@ static bool same_look(const struct vela_element *a, const struct vela_element *b
     return a->surface == b->surface && same_texture && same_box(&a->box, &b->box) && same_fbox(&a->src, &b->src)
         && a->transform == b->transform && a->opacity == b->opacity && a->blur_opacity == b->blur_opacity
         && a->blur_scale == b->blur_scale && a->tint_delta == b->tint_delta
+        && memcmp(&a->look, &b->look, sizeof(a->look)) == 0
         && a->linear == b->linear && same_color(&a->color, &b->color) && same_box(&a->shape_rect, &b->shape_rect)
         && a->shape_radius == b->shape_radius && same_box(&a->shadow_window, &b->shadow_window)
         && a->shadow_sigma == b->shadow_sigma && same_box(&a->blur_box, &b->blur_box)
@@ -719,15 +724,17 @@ void vela_draw_elements(struct vela_scene *scene, struct vela_pass *pass, const 
                 panel.clip = NULL;
                 panel.alpha = e->blur_opacity; // the blur as strong as if the window were opaque
                 struct wlr_render_color tint = scene->acrylic_tint;
-                if (blur_look_tint >= 0.0f) {
-                    tint.a = blur_look_tint;
+                const float look_tint = e->look.set ? e->look.tint : blur_look_tint;
+                const float look_luminosity = e->look.set ? e->look.luminosity : blur_look_luminosity;
+                if (look_tint >= 0.0f) {
+                    tint.a = look_tint;
                 }
-                // The theme's look, then the user's opacity for this panel on top.
+                // The look, then the user's opacity for this panel on top.
                 tint.a = vela_clampf(tint.a * (1.0f + e->tint_delta), 0.0f, 1.0f);
-                const float luminosity = vela_clampf((blur_look_luminosity >= 0.0f ? blur_look_luminosity : scene->acrylic_luminosity)
+                const float luminosity = vela_clampf((look_luminosity >= 0.0f ? look_luminosity : scene->acrylic_luminosity)
                         * (1.0f + e->tint_delta), 0.0f, 1.0f);
-                add_blur_pieces(pass, &panel, &region, clip, blur_strength(e->scale_x, e->blur_scale), &tint,
-                    !wlr_box_empty(&e->blur_forced), blur_look_saturation, luminosity);
+                add_blur_pieces(pass, &panel, &region, clip, blur_strength(e->scale_x, e->blur_scale, &e->look), &tint,
+                    !wlr_box_empty(&e->blur_forced), e->look.set ? e->look.saturation : blur_look_saturation, luminosity);
             }
             pixman_region32_fini(&region);
         }

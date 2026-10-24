@@ -20,6 +20,8 @@
 #include <wlr/util/box.h>
 #include <wlr/types/wlr_damage_ring.h>
 
+#include "scene.h"
+
 struct vela_node;
 struct vela_output;
 struct vela_pass;
@@ -60,6 +62,7 @@ struct vela_element {
     // The window's forced blur (vela_surface_node.blur), surface coordinates.
     struct wlr_box blur_forced;
     float tint_delta; // see vela_surface_node.tint_delta
+    struct vela_blur_look look; // the surface's own blur look, if set
     float blur_scale; // the window's blur radius factor (window-blur-strength)
     bool capture_hidden; // under a node hidden from captures (§15)
     bool visible; // not entirely covered

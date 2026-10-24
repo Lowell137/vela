@@ -39,6 +39,9 @@ public:
     QColor micaInactive() const { return m_micaInactive; }
     QString iconMode() const { return m_iconMode; }
     QVariantMap theme() const { return m_theme; }
+    // The theme with only one surface's style ("taskbar/", "startmenu/",
+    // "notifications/"): what that surface looks like by itself.
+    QVariantMap themeFor(const QString& surface) const;
 
     // Starts watching the files (after the first frame: startup stays fast).
     void watch();

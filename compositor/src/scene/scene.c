@@ -8,6 +8,7 @@
 #include "scene/frame.h"
 #include "scene/surface.h"
 
+#include <string.h>
 #include <stdlib.h>
 #include <wlr/types/wlr_buffer.h>
 #include <wlr/types/wlr_compositor.h>
@@ -86,6 +87,15 @@ void vela_surface_node_set_tint_delta(struct vela_surface_node *node, float delt
         return;
     }
     node->tint_delta = delta;
+    vela_scene_changed(node->node.scene);
+}
+
+void vela_surface_node_set_look(struct vela_surface_node *node, const struct vela_blur_look *look)
+{
+    if (memcmp(&node->look, look, sizeof(*look)) == 0) {
+        return;
+    }
+    node->look = *look;
     vela_scene_changed(node->node.scene);
 }
 

@@ -211,6 +211,14 @@ void vela_layer_update_look(struct vela_layer_surface *layer)
         blur = server->quicksettings_look.blur;
         opacity = server->quicksettings_look.opacity;
     }
+    struct vela_blur_look look = { 0 };
+    for (int i = 0; scope && i < server->panel_look_count; ++i) {
+        if (strcmp(server->panel_looks[i].scope, scope) == 0) {
+            look = server->panel_looks[i].look;
+            break;
+        }
+    }
+    vela_surface_node_set_look(layer->surface_node, &look);
     vela_surface_node_set_blur_scale(layer->surface_node, blur / 100.0f);
     vela_surface_node_set_tint_delta(layer->surface_node, (opacity - 100) / 100.0f);
 }

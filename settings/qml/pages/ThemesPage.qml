@@ -87,7 +87,7 @@ Page {
                     width: parent.width
                     spacing: 12
                     // The shots side by side (a taskbar's one is wide, quick settings' two are tall).
-                    readonly property real each: (width - spacing * (count - 1)) / count
+                    readonly property real each: (width - spacing * (Math.max(count, 1) - 1)) / Math.max(count, 1)
                     readonly property int count: styleCard.modelData.images.length
                     Repeater {
                         model: styleCard.modelData.images

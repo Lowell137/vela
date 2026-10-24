@@ -444,8 +444,33 @@ int main(int argc, char* argv[])
             + ' ' + QByteArray::number(theme.value(QStringLiteral("blur-luminosity"), -1.0).toDouble())
             + ' ' + QByteArray::number(theme.value(QStringLiteral("blur-tint"), -1.0).toDouble()));
     };
+    // Each panel's own blur look, from its own style: choosing another taskbar
+    // style must not change the Start menu's or quick settings'.
+    auto sendPanelLooks = [appearance] {
+        static const struct {
+            const char* dir;
+            const char* scopes[2];
+        } panels[] = {
+            { "taskbar/", { "vela-taskbar", nullptr } },
+            { "startmenu/", { "vela-start-menu", nullptr } },
+            { "notifications/", { "vela-quick-settings", "vela-notification-center" } },
+        };
+        for (const auto& panel : panels) {
+            const QVariantMap own = appearance->themeFor(QString::fromLatin1(panel.dir));
+            const auto number = [&own](const char* key, double fallback) { return own.value(QString::fromLatin1(key), fallback).toDouble(); };
+            for (const char* scope : panel.scopes) {
+                if (scope) {
+                    ShellController::sendToCompositor(QByteArray("blur-look-for ") + scope + ' '
+                        + QByteArray::number(number("blur-saturation", 1.0)) + ' ' + QByteArray::number(number("blur-strength", 1.0)) + ' '
+                        + QByteArray::number(number("blur-luminosity", -1.0)) + ' ' + QByteArray::number(number("blur-tint", -1.0)));
+                }
+            }
+        }
+    };
     sendBlurLook();
+    sendPanelLooks();
     QObject::connect(appearance, &Appearance::changed, &shell, sendBlurLook);
+    QObject::connect(appearance, &Appearance::changed, &shell, sendPanelLooks);
     QObject::connect(appearance, &Appearance::changed, &shell, sendTheme);
     sendTheme();
     engine.addImageProvider(QStringLiteral("fileicon"), new IconProvider(32));

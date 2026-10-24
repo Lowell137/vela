@@ -15,7 +15,7 @@
 #include <QStandardPaths>
 #include <QUrl>
 
-static QStringList themeFilePaths();
+static QStringList themeFilePaths(const QString& onlySurface = QString());
 
 Appearance::Appearance(QObject* parent, Mode mode)
     : QObject(parent)
@@ -74,7 +74,8 @@ void Appearance::watch()
 // themes/taskbar/, themes/startmenu/, themes/notifications/: where their
 // files are, the user's first, then the data directories' (a package or a
 // nested run's XDG_DATA_DIRS). A style's values win over the theme's.
-static QStringList themeFilePaths()
+// onlySurface ("taskbar/"...): the theme and just that surface's style.
+static QStringList themeFilePaths(const QString& onlySurface)
 {
     static const std::pair<QByteArray, QString> keys[] = {
         { "theme=", QString() },
@@ -96,6 +97,9 @@ static QStringList themeFilePaths()
     }
     QStringList paths;
     for (size_t i = 0; i < std::size(keys); ++i) {
+        if (!onlySurface.isEmpty() && !keys[i].second.isEmpty() && keys[i].second != onlySurface) {
+            continue;
+        }
         // A name is a file name: nothing that leads elsewhere.
         if (names[i].isEmpty() || names[i].contains(u'/') || names[i].startsWith(u'.')) {
             continue;
@@ -167,6 +171,15 @@ static void applyCursorEnvironment()
             qputenv(line.startsWith("cursor-theme=") ? "XCURSOR_THEME" : "XCURSOR_SIZE", line.mid(equals + 1).trimmed());
         }
     }
+}
+
+QVariantMap Appearance::themeFor(const QString& surface) const
+{
+    QVariantMap map;
+    for (const QString& path : themeFilePaths(surface)) {
+        loadThemeFile(path, map);
+    }
+    return map;
 }
 
 void Appearance::reload()

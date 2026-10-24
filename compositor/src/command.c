@@ -546,6 +546,39 @@ static void run_command(struct vela_server *server, const char *line)
                 vela_output_frame_damage_whole(output->frame);
             }
         }
+    } else if (starts_with(line, "blur-look-for ")) {
+        // blur-look-for <scope> <saturation> <strength> <luminosity> <tint>
+        char scope[64];
+        float v[4];
+        if (sscanf(line + 14, "%63s %f %f %f %f", scope, &v[0], &v[1], &v[2], &v[3]) == 5) {
+            struct vela_blur_look look = { true, vela_clampf(v[0], 1.0f, 3.0f), vela_clampf(v[1], 0.25f, 3.0f),
+                v[2] < 0.0f ? -1.0f : vela_clampf(v[2], 0.0f, 1.0f), v[3] < 0.0f ? -1.0f : vela_clampf(v[3], 0.0f, 1.0f) };
+            struct vela_panel_look *entry = NULL;
+            for (int i = 0; i < server->panel_look_count; ++i) {
+                if (strcmp(server->panel_looks[i].scope, scope) == 0) {
+                    entry = &server->panel_looks[i];
+                }
+            }
+            if (!entry) {
+                struct vela_panel_look *grown = realloc(server->panel_looks,
+                    sizeof(*grown) * (size_t)(server->panel_look_count + 1));
+                if (!grown) {
+                    return;
+                }
+                server->panel_looks = grown;
+                entry = &grown[server->panel_look_count++];
+                entry->scope = strdup(scope);
+            }
+            entry->look = look;
+            struct vela_layer_surface *layer;
+            wl_list_for_each (layer, &server->layer_surfaces, link) {
+                vela_layer_update_look(layer);
+            }
+            struct vela_output *output;
+            wl_list_for_each (output, &server->outputs, link) {
+                vela_output_frame_damage_whole(output->frame);
+            }
+        }
     } else if (starts_with(line, "taskbar-autohide ")) {
         const bool on = strcmp(line + 17, "yes") == 0;
         if (on != server->taskbar_autohide) {

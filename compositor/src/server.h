@@ -19,6 +19,7 @@
 
 #include "process.h"
 #include "scene/ready.h"
+#include "scene/scene.h"
 #include "shell.h"
 #include "window_memory.h"
 #include "window_rules.h"
@@ -178,6 +179,13 @@ struct vela_server {
     // The taskbar's and quick settings' blur strength and opacity, percent
     // (taskbar-blur, taskbar-opacity, quicksettings-*), 100: the theme's.
     struct { int blur, opacity; } taskbar_look, quicksettings_look;
+    // The blur look of each shell panel by layer-shell scope ("blur-look-for"
+    // of the shell): chosen with that panel's own style.
+    struct vela_panel_look {
+        char *scope;
+        struct vela_blur_look look;
+    } *panel_looks;
+    int panel_look_count;
     // window-rule lines of vela.conf (window_rules.h), applied when a window
     // maps; a reload affects new windows only.
     struct vela_window_rules window_rules;
