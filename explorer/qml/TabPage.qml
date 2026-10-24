@@ -19,7 +19,7 @@ Item {
     readonly property bool isTrash: location === Places.trash
     readonly property bool writable: isFolder && !isTrash
     readonly property string title: location === "home:" ? qsTr("Home") : location === "thispc:" ? qsTr("This PC") : Places.displayName(location)
-    readonly property string icon: location === "home:" ? "go-home" : location === "thispc:" ? "computer" : Places.iconFor(location)
+    readonly property string icon: location === "home:" ? "folder" : location === "thispc:" ? "computer" : Places.iconFor(location)
     readonly property var model: isFolder ? folder : null
     readonly property bool showHidden: win.showHidden
     readonly property string viewMode: isFolder ? win.viewModeFor(location) : "details"

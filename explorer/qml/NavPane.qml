@@ -171,7 +171,7 @@ Flickable {
         width: pane.width - 16
         spacing: 2
 
-        Entry { icon: "go-home"; label: qsTr("Home"); location: "home:" }
+        Entry { icon: "folder"; label: qsTr("Home"); location: "home:" }
         Item { width: 1; height: 8 }
         Repeater {
             model: Places.quickAccess

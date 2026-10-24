@@ -28,7 +28,7 @@ Item {
     // The path pieces: [{label, location, icon}].
     readonly property var crumbs: {
         const loc = tab.location
-        if (loc === "home:") return [{ label: qsTr("Home"), location: "home:", icon: "go-home" }]
+        if (loc === "home:") return [{ label: qsTr("Home"), location: "home:", icon: "folder" }]
         if (loc === "thispc:") return [{ label: qsTr("This PC"), location: "thispc:", icon: "computer" }]
         if (loc === Places.trash) return [{ label: qsTr("Recycle Bin"), location: Places.trash, icon: "user-trash" }]
         const out = []
