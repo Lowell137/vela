@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import QtQuick
+import QtQuick.Effects
 import QtQuick.Window
 import Vela.Controls
 
@@ -258,7 +259,25 @@ Window {
                 height: 64
                 radius: 32
                 color: Theme.accentFill
+                Image {
+                    id: accountPhoto
+                    anchors.fill: parent
+                    source: About.userPicture
+                    sourceSize: Qt.size(128, 128)
+                    fillMode: Image.PreserveAspectCrop
+                    asynchronous: true
+                    visible: status === Image.Ready
+                    layer.enabled: true
+                    layer.effect: MultiEffect { maskEnabled: true; maskSource: accountPhotoMask }
+                }
+                Rectangle { // the round cut of the picture
+                    id: accountPhotoMask
+                    width: 64; height: 64; radius: 32
+                    layer.enabled: true
+                    visible: false
+                }
                 Text {
+                    visible: accountPhoto.status !== Image.Ready
                     anchors.centerIn: parent
                     text: About.userName.charAt(0).toUpperCase()
                     color: Theme.accentText

@@ -456,6 +456,7 @@ int main(int argc, char* argv[])
     engine.addImageProvider(QStringLiteral("tray"), new TrayImageProvider(&tray));
     engine.addImageProvider(QStringLiteral("clipboard"), new ClipboardImageProvider(&clipboard));
     Snip snip(&engine, &capture, &clipboard, &notifications);
+    QObject::connect(&shell, &ShellController::windowScreenshotRequested, &snip, &Snip::screenshotWindow);
     engine.addImageProvider(QStringLiteral("snip"), new SnipImageProvider(&snip));
     QObject::connect(&shell, &ShellController::snipRequested, &snip, &Snip::start);
     QObject::connect(&shell, &ShellController::snipTextRequested, &snip, &Snip::startText);

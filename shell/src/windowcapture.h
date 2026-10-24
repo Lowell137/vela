@@ -40,6 +40,9 @@ public:
     // The same at full resolution (the Snipping Tool): then screenCaptured and
     // fullImage(name). The number of outputs captured.
     int captureScreensFull();
+    // One window at full size (the window menu's Screenshot): windowShot, with
+    // a null image when it can't be captured.
+    void captureWindowFull(const QString& identifier);
     QImage fullImage(const QString& screen) const { return m_full.value(screen); }
     void clearFull();
     // The open windows: [{id, title, appId}], in opening order.
@@ -54,6 +57,7 @@ public:
 signals:
     void thumbnailReady(const QString& identifier);
     void screenCaptured(const QString& screen, bool ok);
+    void windowShot(const QString& identifier, const QImage& image);
 
 private:
     struct Window;

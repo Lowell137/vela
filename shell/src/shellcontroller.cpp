@@ -10,6 +10,9 @@
 #include <QImageReader>
 #include <LayerShellQt/Window>
 #include <QGuiApplication>
+#include <QUrl>
+#include <QFileInfo>
+#include <QDir>
 #include <QJsonArray>
 #include <QScreen>
 #include <QJsonDocument>
@@ -700,6 +703,20 @@ QString ShellController::userName() const
     return qEnvironmentVariable("USER");
 }
 
+// The account's picture: AccountsService's (Settings of GNOME, KDE...), else
+// ~/.face; a file: URL, or empty when there is none.
+QString ShellController::userPicture() const
+{
+    const passwd* pw = getpwuid(getuid());
+    const QString login = pw ? QString::fromLocal8Bit(pw->pw_name) : qEnvironmentVariable("USER");
+    for (const QString& path : { QStringLiteral("/var/lib/AccountsService/icons/") + login, QDir::homePath() + QStringLiteral("/.face") }) {
+        if (QFileInfo(path).isReadable()) {
+            return QUrl::fromLocalFile(path).toString();
+        }
+    }
+    return {};
+}
+
 void ShellController::sendWallpaperTint(const QString& wallpaper) const
 {
     // Scaled down to a few pixels already while reading (SVGs too): then the
@@ -765,6 +782,10 @@ void ShellController::moveStartPinToFront(const QString& id)
 
 void ShellController::windowAction(const QString& window, const QString& action)
 {
+    if (action == QLatin1String("screenshot")) { // the shell does it (Snip), not the compositor
+        emit windowScreenshotRequested(window);
+        return;
+    }
     sendToCompositor("window " + window.toLatin1() + ' ' + action.toLatin1());
 }
 

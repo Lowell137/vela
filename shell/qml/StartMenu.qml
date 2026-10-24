@@ -1164,7 +1164,25 @@ Window {
                     height: 32
                     radius: 16
                     color: Theme.accent
+                    Image {
+                        id: userPhoto
+                        anchors.fill: parent
+                        source: Shell.userPicture
+                        sourceSize: Qt.size(64, 64)
+                        fillMode: Image.PreserveAspectCrop
+                        asynchronous: true
+                        visible: status === Image.Ready
+                        layer.enabled: true
+                        layer.effect: MultiEffect { maskEnabled: true; maskSource: userPhotoMask }
+                    }
+                    Rectangle { // the round cut of the picture
+                        id: userPhotoMask
+                        width: 32; height: 32; radius: 16
+                        layer.enabled: true
+                        visible: false
+                    }
                     Text {
+                        visible: userPhoto.status !== Image.Ready
                         anchors.centerIn: parent
                         text: Shell.userInitial
                         color: "white"
@@ -1466,7 +1484,7 @@ Window {
                         id: portraitImage
                         anchors.fill: parent
                         anchors.margins: 1
-                        source: "file:///var/lib/AccountsService/icons/" + portrait.user
+                        source: Shell.userPicture
                         fillMode: Image.PreserveAspectCrop
                         asynchronous: true
                     }

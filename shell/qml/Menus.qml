@@ -203,6 +203,7 @@ QtObject {
             { text: qsTr("Ma&ximize"), icon: "window-maximize", enabled: !maximized && resizable, action: () => act("maximize") },
             ...(onTop === undefined ? [] : [{ text: qsTr("Always on &top"), checked: onTop, action: () => act(onTop ? "always-on-top off" : "always-on-top on") }]),
             ...(captureHidden === undefined ? [] : [{ text: qsTr("&Hide from screen capture"), checked: captureHidden, action: () => act(captureHidden ? "capture-hide off" : "capture-hide on") }]),
+            ...(onTop === undefined ? [] : [{ text: qsTr("Sc&reenshot"), icon: "accessories-screenshot", action: () => act("screenshot") }]),
             { separator: true },
             { text: qsTr("&Close"), icon: "window-close", shortcut: "Alt+F4", action: () => act("close") }
         ]

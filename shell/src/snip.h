@@ -48,6 +48,7 @@ public:
     bool active() const { return m_active; }
     int delay() const { return m_delay; }
     Q_INVOKABLE void cycleDelay();
+    Q_INVOKABLE void screenshotWindow(const QString& identifier);
     QString mode() const { return m_mode; }
     void setMode(const QString& mode);
     QVariantList windows() const { return m_windows; }
@@ -84,6 +85,7 @@ signals:
     void recognizeFailed(const QString& screen, const QString& reason);
 
 private:
+    void keep(const QImage& picture); // save, clipboard, notification
     void showOverlays();
     void closeOverlays();
     void startWorker();

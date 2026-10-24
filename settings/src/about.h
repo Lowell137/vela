@@ -13,6 +13,7 @@ class About : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString hostname READ hostname NOTIFY hostnameChanged)
     Q_PROPERTY(QString userName READ userName CONSTANT) // the full name, otherwise the login
+    Q_PROPERTY(QString userPicture READ userPicture CONSTANT) // file: URL, or empty
     // [{label, value}]
     Q_PROPERTY(QVariantList device READ device CONSTANT)
     Q_PROPERTY(QVariantList system READ system CONSTANT)
@@ -24,6 +25,7 @@ public:
 
     QString hostname() const { return m_hostname; }
     QString userName() const;
+    QString userPicture() const;
     QVariantList device() const { return m_device; }
     QVariantList system() const { return m_system; }
     QString model() const { return m_model; }

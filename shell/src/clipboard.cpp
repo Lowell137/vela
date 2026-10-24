@@ -15,6 +15,7 @@
 #include <QSettings>
 #include <QStandardPaths>
 #include <QThread>
+#include <QUrl>
 #include <QVariantMap>
 
 #include <algorithm>
@@ -155,7 +156,16 @@ struct ClipboardCallbacks {
         QByteArray payload;
         {
             QMutexLocker lock(&self->m_mutex);
-            payload = QByteArray(mimeType) == "image/png" ? self->m_sourcePng : self->m_sourceText;
+            const QByteArray type(mimeType);
+            if (type == "image/png") {
+                payload = self->m_sourcePng;
+            } else if (type == "text/uri-list") {
+                payload = self->m_sourceUri + "\r\n";
+            } else if (type == "x-special/gnome-copied-files") {
+                payload = "copy\n" + self->m_sourceUri;
+            } else {
+                payload = self->m_sourceText;
+            }
         }
         // In another thread: a large image doesn't stall the shell while the
         // app reads it.
@@ -455,6 +465,7 @@ void Clipboard::setSelection(const Item& item)
         QMutexLocker lock(&m_mutex);
         m_sourceText = item.image.isNull() ? item.text.toUtf8() : QByteArray();
         m_sourcePng = item.image.isNull() ? QByteArray() : png;
+        m_sourceUri = item.file.isEmpty() ? QByteArray() : QUrl::fromLocalFile(item.file).toEncoded();
     }
     auto* source = ext_data_control_manager_v1_create_data_source(m_manager);
     ext_data_control_source_v1_add_listener(source, &ClipboardCallbacks::sourceListener, this);
@@ -463,6 +474,10 @@ void Clipboard::setSelection(const Item& item)
             ext_data_control_source_v1_offer(source, type);
         }
     } else {
+        if (!item.file.isEmpty()) {
+            ext_data_control_source_v1_offer(source, "text/uri-list");
+            ext_data_control_source_v1_offer(source, "x-special/gnome-copied-files");
+        }
         ext_data_control_source_v1_offer(source, "image/png");
     }
     m_ignoreNext = true;
@@ -529,10 +544,11 @@ void Clipboard::copyText(const QString& text)
     add(item);
 }
 
-void Clipboard::copyImage(const QImage& image)
+void Clipboard::copyImage(const QImage& image, const QString& file)
 {
     Item item;
     item.image = image;
+    item.file = file;
     QBuffer buffer(&item.png);
     buffer.open(QIODevice::WriteOnly);
     image.save(&buffer, "PNG");

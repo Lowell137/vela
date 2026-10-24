@@ -66,7 +66,9 @@ public:
 
     // On the clipboard (and in the history, if on).
     void copyText(const QString& text);
-    void copyImage(const QImage& image);
+    // `file`: the image saved on disk, offered too as a file (text/uri-list), so
+    // it pastes into Explorer.
+    void copyImage(const QImage& image, const QString& file = QString());
 
     QImage image(int id) const;
 
@@ -80,6 +82,7 @@ private:
         QString text;
         QImage image;
         QByteArray png; // the image as it arrived (or encoded), to put it back
+        QString file; // where the image is saved (not kept in the history files)
         bool pinned = false;
         QDateTime time;
     };
@@ -100,12 +103,13 @@ private:
     QThread* m_thread = nullptr;
     std::atomic<bool> m_stop { false };
     int m_wake[2] { -1, -1 }; // to wake the thread when closing
-    QMutex m_mutex; // m_sourceText and m_sourcePng, read by the thread
+    QMutex m_mutex; // m_sourceText, m_sourcePng and m_sourceUri, read by the thread
     wl_registry* m_registry = nullptr;
     ext_data_control_manager_v1* m_manager = nullptr;
     ext_data_control_device_v1* m_device = nullptr;
     QByteArray m_sourceText;
     QByteArray m_sourcePng;
+    QByteArray m_sourceUri; // the file's URL, when the image is also a file
     QHash<ext_data_control_offer_v1*, Offer*> m_offers; // only in the thread
     std::atomic<bool> m_ignoreNext { false }; // the selection we set ourselves
     QList<Item> m_items;

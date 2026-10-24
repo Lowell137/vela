@@ -6,6 +6,8 @@
 #include <QCoreApplication>
 #include <QDBusConnection>
 #include <QDBusInterface>
+#include <QUrl>
+#include <QDir>
 #include <QDBusMessage>
 #include <QDBusPendingCallWatcher>
 #include <QDBusPendingReply>
@@ -154,6 +156,20 @@ QString About::userName() const
         return gecos.isEmpty() ? QString::fromLocal8Bit(pw->pw_name) : gecos;
     }
     return qEnvironmentVariable("USER");
+}
+
+// The account's picture: AccountsService's (Settings of GNOME, KDE...), else
+// ~/.face; a file: URL, or empty when there is none.
+QString About::userPicture() const
+{
+    const passwd* pw = getpwuid(getuid());
+    const QString login = pw ? QString::fromLocal8Bit(pw->pw_name) : qEnvironmentVariable("USER");
+    for (const QString& path : { QStringLiteral("/var/lib/AccountsService/icons/") + login, QDir::homePath() + QStringLiteral("/.face") }) {
+        if (QFileInfo(path).isReadable()) {
+            return QUrl::fromLocalFile(path).toString();
+        }
+    }
+    return {};
 }
 
 void About::rename(const QString& name)
