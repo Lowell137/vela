@@ -147,7 +147,8 @@ Window {
             radius: Theme.notificationsRadius
             color: Theme.notificationsSurface
             border.width: 1
-            border.color: Theme.stroke
+            border.color: Theme.notificationsGlass ? "#B3101820" : Theme.stroke
+            AeroGlass { z: 1; radius: parent.radius }
             onHeightChanged: root.updateBlur()
 
             Item {
@@ -356,7 +357,8 @@ Window {
             radius: Theme.notificationsRadius
             color: Theme.notificationsSurface
             border.width: 1
-            border.color: Theme.stroke
+            border.color: Theme.notificationsGlass ? "#B3101820" : Theme.stroke
+            AeroGlass { z: 1; radius: parent.radius }
 
             // notifications-week-strip: the weekdays on a rounded band.
             Rectangle {

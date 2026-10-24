@@ -215,6 +215,11 @@ QtObject {
     readonly property bool notificationsClock: themed("notifications-clock", 0) !== 0
     readonly property bool notificationsWeekStrip: themed("notifications-week-strip", 0) !== 0
     readonly property int notificationsTodayRadius: themed("notifications-today-radius", 16)
+    // Windows 7's glass over the quick settings and the notification center
+    // (AeroGlass.qml): lit panel, white inner line, streaks of light.
+    readonly property bool notificationsGlass: themed("notifications-glass", 0) !== 0
+    readonly property string notificationsReflection: themed("notifications-reflection", "")
+    readonly property real notificationsReflectionOpacity: themed("notifications-reflection-opacity", 0.3)
     readonly property bool notificationsFocus: themed("notifications-focus", 0) !== 0
     readonly property int fontCaption: 12
     readonly property int fontBody: 14

@@ -874,7 +874,8 @@ Window {
         radius: Theme.quickSettingsRadius
         color: Theme.quickSettingsSurface
         border.width: 1
-        border.color: Theme.stroke
+        border.color: Theme.notificationsGlass ? "#B3101820" : Theme.stroke
+        AeroGlass { radius: parent.radius }
         opacity: panel.opacity
         transform: Translate { x: slide.x; y: slide.y }
         onVisibleChanged: root.updateBlur()
@@ -901,7 +902,8 @@ Window {
         radius: Theme.quickSettingsRadius
         color: Theme.quickSettingsSurface
         border.width: 1
-        border.color: Theme.stroke
+        border.color: Theme.notificationsGlass ? "#B3101820" : Theme.stroke
+        AeroGlass { z: 1; radius: parent.radius }
         transform: Translate { id: slide }
         focus: true
         clip: true

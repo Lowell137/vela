@@ -110,4 +110,5 @@ endif()
 
 # Themes (themes/*.conf) and the surfaces' styles (themes/taskbar/, startmenu/,
 # notifications/): theme= and <surface>-style= of vela.conf (Settings > Personalization > Themes).
-install(DIRECTORY themes/ DESTINATION ${CMAKE_INSTALL_DATADIR}/vela/themes FILES_MATCHING PATTERN "*.conf")
+# themes/screenshots/<surface>/<name>.png are what Themes > Gallery shows.
+install(DIRECTORY themes/ DESTINATION ${CMAKE_INSTALL_DATADIR}/vela/themes FILES_MATCHING PATTERN "*.conf" PATTERN "*.png")

@@ -765,6 +765,32 @@ QVariantList Preferences::visualThemes(const QString& surface) const
     return list;
 }
 
+QVariantList Preferences::themeGallery(const QString& surface) const
+{
+    const QStringList roots = QStandardPaths::locateAll(QStandardPaths::GenericDataLocation,
+        QStringLiteral("vela/themes/screenshots/") + surface, QStandardPaths::LocateDirectory);
+    QVariantList list;
+    for (const QVariant& theme : visualThemes(surface)) {
+        const QVariantMap entry = theme.toMap();
+        const QString name = entry.value(QStringLiteral("name")).toString();
+        QVariantList images;
+        // The plain one first, then quick settings, then the notification center.
+        for (const QString& suffix : { QString(), QStringLiteral("-qs"), QStringLiteral("-nc") }) {
+            for (const QString& root : roots) {
+                const QString file = root + u'/' + name + suffix + QStringLiteral(".png");
+                if (QFileInfo::exists(file)) {
+                    images.append(QUrl::fromLocalFile(file).toString());
+                    break;
+                }
+            }
+        }
+        if (!images.isEmpty()) {
+            list.append(QVariantMap { { QStringLiteral("name"), name }, { QStringLiteral("text"), entry.value(QStringLiteral("text")) }, { QStringLiteral("images"), images } });
+        }
+    }
+    return list;
+}
+
 void Preferences::setCursorTheme(const QString& theme)
 {
     if (theme == m_cursorTheme || (!theme.isEmpty() && cursorThemeDir(theme).isEmpty())) {

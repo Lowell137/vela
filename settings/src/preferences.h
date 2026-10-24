@@ -254,6 +254,9 @@ public:
     Q_INVOKABLE void setSurfaceStyle(const QString& surface, const QString& style);
     // The installed themes, or a surface's styles ("taskbar"...): { name, text }.
     Q_INVOKABLE QVariantList visualThemes(const QString& surface = QString()) const;
+    // The styles of a surface that have screenshots (themes/screenshots/<surface>/<name>[-qs|-nc].png):
+    // { name, text, images: [file URLs] }, for Themes > Gallery.
+    Q_INVOKABLE QVariantList themeGallery(const QString& surface) const;
     void setIconTheme(const QString& theme);
     // The installed icon themes: [{name, text}], by text; "X-dark"/"X-Dark"
     // are inside "X" (chosen by the mode).

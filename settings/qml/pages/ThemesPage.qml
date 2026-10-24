@@ -33,26 +33,74 @@ Page {
         }
     }
 
+    // The surfaces' own styles (themes/taskbar/, startmenu/, notifications/),
+    // one surface at a time with their screenshots and a button to use each.
+    property string surface: "taskbar"
+    readonly property var surfaces: [
+        { surface: "taskbar", text: qsTr("Taskbar") },
+        { surface: "startmenu", text: qsTr("Start menu") },
+        { surface: "notifications", text: qsTr("Quick settings") }
+    ]
+    // Re-read when the surface changes or a style is chosen.
+    readonly property var gallery: { Prefs.surfaceStyles; return Prefs.themeGallery(surface) }
+    readonly property string chosenStyle: Prefs.surfaceStyles[surface] || ""
+
+    Row {
+        spacing: 8
+        Repeater {
+            model: page.surfaces
+            Button {
+                required property var modelData
+                text: modelData.text
+                accent: page.surface === modelData.surface
+                onClicked: page.surface = modelData.surface
+            }
+        }
+    }
+
     CardGroup {
         title: qsTr("Styles")
+        Card {
+            title: qsTr("From the theme")
+            description: qsTr("Your own styles: ~/.config/vela/themes/%1/<name>.conf").arg(page.surface)
+            trailing: Button {
+                text: page.chosenStyle === "" ? qsTr("In use") : qsTr("Use")
+                accent: page.chosenStyle !== ""
+                usable: page.chosenStyle !== ""
+                onClicked: Prefs.setSurfaceStyle(page.surface, "")
+            }
+        }
         Repeater {
-            model: [
-                { surface: "taskbar", icon: "preferences-desktop-panel", title: qsTr("Taskbar") },
-                { surface: "startmenu", icon: "start-here", title: qsTr("Start menu") },
-                { surface: "notifications", icon: "preferences-desktop-notification", title: qsTr("Notification center and quick settings") },
-            ]
+            model: page.gallery
             Card {
                 id: styleCard
                 required property var modelData
-                readonly property var choices: [{ name: "", text: qsTr("From the theme") }].concat(Prefs.visualThemes(modelData.surface))
-                readonly property string chosen: Prefs.surfaceStyles[modelData.surface] || ""
-                icon: modelData.icon
-                title: modelData.title
-                description: qsTr("Your own styles: ~/.config/vela/themes/%1/<name>.conf").arg(modelData.surface)
-                trailing: Choice {
-                    model: styleCard.choices
-                    currentIndex: Math.max(0, styleCard.choices.findIndex(c => c.name === styleCard.chosen))
-                    onChosen: index => Prefs.setSurfaceStyle(styleCard.modelData.surface, styleCard.choices[index].name)
+                title: modelData.text
+                description: page.chosenStyle === modelData.name ? qsTr("In use") : ""
+                trailing: Button {
+                    text: page.chosenStyle === styleCard.modelData.name ? qsTr("In use") : qsTr("Use")
+                    accent: page.chosenStyle !== styleCard.modelData.name
+                    usable: page.chosenStyle !== styleCard.modelData.name
+                    onClicked: Prefs.setSurfaceStyle(page.surface, styleCard.modelData.name)
+                }
+                contentItem: Row {
+                    width: parent.width
+                    spacing: 12
+                    // The shots side by side (a taskbar's one is wide, quick settings' two are tall).
+                    readonly property real each: (width - spacing * (count - 1)) / count
+                    readonly property int count: styleCard.modelData.images.length
+                    Repeater {
+                        model: styleCard.modelData.images
+                        Image {
+                            required property string modelData
+                            width: parent.each
+                            height: implicitWidth > 0 ? Math.min(width * implicitHeight / implicitWidth, 340) : 0
+                            fillMode: Image.PreserveAspectFit
+                            source: modelData
+                            asynchronous: true
+                            smooth: true
+                        }
+                    }
                 }
             }
         }
