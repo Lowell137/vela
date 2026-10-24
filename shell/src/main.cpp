@@ -15,6 +15,7 @@
 #include "clipboard.h"
 #include "emoji.h"
 #include "config.h"
+#include "systemstats.h"
 #include "weather.h"
 #include "controls.h"
 #include "desktopmodel.h"
@@ -514,6 +515,8 @@ int main(int argc, char* argv[])
     engine.rootContext()->setContextProperty(QStringLiteral("Access"), &accessibility);
     engine.rootContext()->setContextProperty(QStringLiteral("Network"), &network);
     engine.rootContext()->setContextProperty(QStringLiteral("Weather"), &weather);
+    SystemStats systemStats;
+    engine.rootContext()->setContextProperty(QStringLiteral("SysStats"), &systemStats);
 
     QQuickWindow* startMenu = nullptr;
     for (const Panel& panel : panels) {

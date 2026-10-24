@@ -77,6 +77,8 @@ qt_add_executable(vela-shell
     src/windowcapture.cpp
     src/windowcapture.h
     src/workspaces.cpp
+    src/systemstats.cpp
+    src/systemstats.h
     src/weather.cpp
     src/weather.h
     src/workspaces.h)
@@ -320,6 +322,13 @@ if(VELA_BUILD_TOOLS)
     target_link_libraries(vela-service-models-test PRIVATE Qt6::Core Qt6::DBus Qt6::Test)
     add_test(NAME shell-service-models COMMAND vela-service-models-test)
     set_tests_properties(shell-service-models PROPERTIES TIMEOUT 90)
+
+    # The widgets board's system card: processor and memory figures.
+    qt_add_executable(vela-systemstats-test tests/systemstats.cpp src/systemstats.cpp src/systemstats.h)
+    target_include_directories(vela-systemstats-test PRIVATE src)
+    target_compile_options(vela-systemstats-test PRIVATE -Wall -Wextra)
+    target_link_libraries(vela-systemstats-test PRIVATE Qt6::Core Qt6::Test)
+    add_test(NAME shell-systemstats COMMAND vela-systemstats-test)
 
     # Weather: WMO codes, parsing, config and "off means no request" (a fake
     # fetcher; no network).

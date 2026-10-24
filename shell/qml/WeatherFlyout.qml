@@ -6,7 +6,8 @@ import Vela.Controls
 
 // The weather flyout, like the hidden icons one (TrayOverflow.qml): a panel
 // next to the taskbar button with the place, the current conditions, the next
-// twelve hours and five days. A click outside, Esc or the button close it.
+// twelve hours and five days, and beside it the widgets board's other cards:
+// the month's calendar and the system status. A click outside, Esc or the button close it.
 // Opened with Menus.weather.
 Window {
     id: root
@@ -47,11 +48,14 @@ Window {
         appear.restart()
         content.forceActiveFocus()
         Weather.refresh()
+        board.today()
+        SysStats.active = true
         root.updateBlur()
     }
     function close() {
         Menus.weather = null
     }
+    onVisibleChanged: if (!visible) SysStats.active = false
     function updateBlur() {
         if (visible) {
             Effects.setBlur(root, [Qt.rect(panel.x, root.panelY, panel.width, panel.height)], panel.radius)
@@ -92,8 +96,8 @@ Window {
         id: panel
         x: root.panelX + (Config.taskbarVertical ? root.offset : 0)
         y: root.panelY + (Config.taskbarVertical ? 0 : root.offset)
-        width: 400
-        height: column.implicitHeight + 32
+        width: 400 + 340
+        height: Math.max(column.implicitHeight, board.implicitHeight) + 32
         radius: Theme.radiusOverlay
         color: Theme.popup
         border.width: 1
@@ -110,7 +114,7 @@ Window {
             id: column
             x: 16
             y: 16
-            width: parent.width - 32
+            width: 400 - 32
             spacing: 14
 
             // Place, and now.
@@ -243,6 +247,143 @@ Window {
                             text: modelData.max + "°  " + modelData.min + "°"
                             color: Theme.text
                             font.pixelSize: Theme.fontBody
+                        }
+                    }
+                }
+            }
+        }
+
+        // The other cards: the calendar and the system status.
+        Column {
+            id: board
+            x: 16 + 400 - 32 + 16
+            y: 16
+            width: 340 - 0 - 16
+            spacing: 12
+
+            property date shown: new Date()
+            function today() { shown = new Date() }
+            function step(months) { shown = new Date(shown.getFullYear(), shown.getMonth() + months, 1) }
+            readonly property date now: new Date()
+
+            Rectangle {
+                width: parent.width
+                height: calendarColumn.implicitHeight + 24
+                radius: Theme.radius
+                color: Theme.subtleHover
+
+                Column {
+                    id: calendarColumn
+                    x: 12
+                    y: 12
+                    width: parent.width - 24
+                    spacing: 6
+
+                    Row {
+                        width: parent.width
+                        Text {
+                            width: parent.width - 56
+                            text: Qt.locale().standaloneMonthName(board.shown.getMonth()) + " " + board.shown.getFullYear()
+                            color: Theme.text
+                            font.pixelSize: Theme.fontBody
+                            font.weight: Font.DemiBold
+                        }
+                        Repeater {
+                            model: [{ glyph: "‹", months: -1 }, { glyph: "›", months: 1 }]
+                            delegate: Item {
+                                required property var modelData
+                                width: 28
+                                height: 22
+                                Text { anchors.centerIn: parent; text: modelData.glyph; color: Theme.text; font.pixelSize: Theme.fontSubtitle }
+                                MouseArea { anchors.fill: parent; onClicked: board.step(modelData.months) }
+                            }
+                        }
+                    }
+                    Grid {
+                        columns: 7
+                        width: parent.width
+                        readonly property real cell: width / 7
+                        readonly property int offset: (new Date(board.shown.getFullYear(), board.shown.getMonth(), 1).getDay() + 6) % 7 // Monday first
+                        readonly property int days: new Date(board.shown.getFullYear(), board.shown.getMonth() + 1, 0).getDate()
+
+                        Repeater {
+                            model: 7
+                            delegate: Text {
+                                required property int index
+                                width: parent.cell
+                                horizontalAlignment: Text.AlignHCenter
+                                text: Qt.locale().dayName((index + 1) % 7, Locale.NarrowFormat)
+                                color: Theme.textSecondary
+                                font.pixelSize: Theme.fontCaption
+                            }
+                        }
+                        Repeater {
+                            model: parent.offset + parent.days
+                            delegate: Item {
+                                required property int index
+                                readonly property int day: index - parent.offset + 1
+                                readonly property bool isToday: day === board.now.getDate()
+                                    && board.shown.getMonth() === board.now.getMonth()
+                                    && board.shown.getFullYear() === board.now.getFullYear()
+                                width: parent.cell
+                                height: 28
+                                Rectangle {
+                                    anchors.centerIn: parent
+                                    width: 26
+                                    height: 26
+                                    radius: 13
+                                    color: Theme.accent
+                                    visible: parent.isToday
+                                }
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: parent.day > 0 ? parent.day : ""
+                                    color: parent.isToday ? Theme.accentText : Theme.text
+                                    font.pixelSize: Theme.fontCaption + 1
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Rectangle {
+                width: parent.width
+                height: statsColumn.implicitHeight + 24
+                radius: Theme.radius
+                color: Theme.subtleHover
+
+                Column {
+                    id: statsColumn
+                    x: 12
+                    y: 12
+                    width: parent.width - 24
+                    spacing: 10
+
+                    Text { text: qsTr("System"); color: Theme.text; font.pixelSize: Theme.fontBody; font.weight: Font.DemiBold }
+                    Repeater {
+                        model: [
+                            { label: qsTr("Processor"), value: SysStats.cpu, text: SysStats.cpu + "%" },
+                            { label: qsTr("Memory"), value: SysStats.memory, text: SysStats.memoryText },
+                            { label: qsTr("Disk"), value: SysStats.disk, text: SysStats.diskText }
+                        ]
+                        delegate: Column {
+                            required property var modelData
+                            width: statsColumn.width
+                            spacing: 3
+                            Item {
+                                width: parent.width
+                                height: label.implicitHeight
+                                Text { id: label; text: modelData.label; color: Theme.textSecondary; font.pixelSize: Theme.fontCaption }
+                                Text { anchors.right: parent.right; text: modelData.text; color: Theme.text; font.pixelSize: Theme.fontCaption }
+                            }
+                            Rectangle {
+                                width: parent.width
+                                height: 4
+                                radius: 2
+                                color: Theme.divider
+                                Rectangle { width: parent.width * Math.min(100, modelData.value) / 100; height: parent.height; radius: 2; color: Theme.accent }
+                            }
                         }
                     }
                 }
