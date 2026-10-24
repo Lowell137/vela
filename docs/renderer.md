@@ -1104,7 +1104,7 @@ on, even on another output (without it, a selection rectangle leaving the output
 never received the release).
 
 - **Background**: "View" › ("Large icons", "Medium icons", "Small icons", "Auto
-  arrange icons", "Align icons to grid", "Show desktop icons"); "Sort by" ›
+  arrange icons", "Show desktop icons"; icons always sit on the grid); "Sort by" ›
   ("Name", "Size", "Item type", "Date modified"); "Refresh"; "Undo …" (the last
   action, Ctrl+Z); "New" › ("Folder", "Shortcut", then the document types);
   "Display settings"; "Personalize"; "Open in Terminal"; "Show more options".

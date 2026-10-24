@@ -27,7 +27,6 @@ class DesktopModel : public QAbstractListModel {
     // View: 0 large icons, 1 medium, 2 small.
     Q_PROPERTY(int iconSize READ iconSize WRITE setIconSize NOTIFY viewChanged)
     Q_PROPERTY(bool autoArrange READ autoArrange WRITE setAutoArrange NOTIFY viewChanged)
-    Q_PROPERTY(bool alignToGrid READ alignToGrid WRITE setAlignToGrid NOTIFY viewChanged)
     Q_PROPERTY(bool showIcons READ showIcons WRITE setShowIcons NOTIFY viewChanged)
     // Sort by: 0 name, 1 size, 2 item type, 3 date modified.
     Q_PROPERTY(int sortMode READ sortMode NOTIFY viewChanged)
@@ -69,8 +68,6 @@ public:
     void setIconSize(int size);
     bool autoArrange() const { return m_autoArrange; }
     void setAutoArrange(bool on);
-    bool alignToGrid() const { return m_alignToGrid; }
-    void setAlignToGrid(bool on);
     bool showIcons() const { return m_showIcons; }
     void setShowIcons(bool on);
     int sortMode() const { return m_sortMode; }
@@ -88,7 +85,7 @@ public:
     Q_INVOKABLE void sortBy(int mode);
     Q_INVOKABLE void refresh();
     // Dragged there (logical coordinates of the area): it snaps to the nearest
-    // free cell with "Align icons to grid".
+    // free cell.
     Q_INVOKABLE void moveTo(const QString& path, qreal x, qreal y);
 
     Q_INVOKABLE void open(const QStringList& paths);
@@ -169,7 +166,6 @@ private:
     int m_iconSize = 1;
     int m_sortMode = 0;
     bool m_autoArrange = false;
-    bool m_alignToGrid = true;
     bool m_showIcons = true;
     qreal m_areaWidth = 0;
     qreal m_areaHeight = 0;

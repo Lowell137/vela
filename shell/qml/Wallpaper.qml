@@ -170,7 +170,6 @@ Window {
                 size(qsTr("&Small icons"), 2, qsTr("Ctrl+Shift+4")),
                 { separator: true },
                 { text: qsTr("&Auto arrange icons"), checked: Desktop.autoArrange, action: () => Desktop.autoArrange = !Desktop.autoArrange },
-                { text: qsTr("Al&ign icons to grid"), checked: Desktop.alignToGrid, action: () => Desktop.alignToGrid = !Desktop.alignToGrid },
                 { separator: true },
                 { text: qsTr("Show desktop &icons"), checked: Desktop.showIcons, action: () => Desktop.showIcons = !Desktop.showIcons }
             ] },

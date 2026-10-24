@@ -137,7 +137,6 @@ DesktopModel::DesktopModel(AppModel* apps, QObject* parent)
     m_iconSize = std::clamp(settings.value(QStringLiteral("desktop/iconSize"), 1).toInt(), 0, 2);
     m_sortMode = std::clamp(settings.value(QStringLiteral("desktop/sortMode"), 0).toInt(), 0, 3);
     m_autoArrange = settings.value(QStringLiteral("desktop/autoArrange"), false).toBool();
-    m_alignToGrid = settings.value(QStringLiteral("desktop/alignToGrid"), true).toBool();
     m_showIcons = settings.value(QStringLiteral("desktop/showIcons"), true).toBool();
 
     // Changes come in bursts (a copy, a save): reread only once, shortly
@@ -247,16 +246,6 @@ void DesktopModel::setAutoArrange(bool on)
     }
     emit viewChanged();
     layout();
-}
-
-void DesktopModel::setAlignToGrid(bool on)
-{
-    if (on != m_alignToGrid) {
-        m_alignToGrid = on;
-        QSettings().setValue(QStringLiteral("desktop/alignToGrid"), on);
-        emit viewChanged();
-        layout();
-    }
 }
 
 void DesktopModel::setShowIcons(bool on)
@@ -447,11 +436,6 @@ void DesktopModel::layout(bool notify)
     };
 
     QList<QPointF> positions(m_items.size(), QPointF(-1, -1));
-    QList<QRectF> placed; // icons placed so far
-    const auto overlaps = [&](const QPointF& p) {
-        const QRectF box = QRectF(p, QSizeF(cw, ch)).adjusted(3, 3, -3, -3);
-        return std::any_of(placed.cbegin(), placed.cend(), [&](const QRectF& other) { return other.intersects(box); });
-    };
     // Those placed by hand first (the ones just dropped last: they give way
     // rather than push the others), then the others in a row by columns.
     QList<qsizetype> order;
@@ -470,39 +454,11 @@ void DesktopModel::layout(bool notify)
         if (saved.x() < 0) {
             continue;
         }
-        if (m_alignToGrid) {
-            const auto [c, r] = cellOf(saved);
-            const auto [fc, fr] = nearestFree(c, r);
-            used.insert(qint64(fc) * 1000 + fr);
-            positions[i] = cellPosition(fc, fr);
-        } else {
-            // Free placement, but never one icon over another: the one that
-            // would overlap shows in the nearest free cell (the saved position
-            // stays as it was).
-            QPointF where(std::clamp(saved.x(), 0.0, std::max(0.0, m_areaWidth - cw)),
-                std::clamp(saved.y(), 0.0, std::max(0.0, m_areaHeight - ch)));
-            if (overlaps(where)) {
-                const auto [c, r] = cellOf(saved);
-                bool found = false;
-                for (int radius = 0; radius < 200 && !found; ++radius) {
-                    for (int dc = -radius; dc <= radius && !found; ++dc) {
-                        for (int dr = -radius; dr <= radius && !found; ++dr) {
-                            const int fc = c + dc;
-                            const int fr = r + dr;
-                            if (std::max(std::abs(dc), std::abs(dr)) == radius && fc >= 0 && fr >= 0 && fr < rowCount
-                                && !overlaps(cellPosition(fc, fr))) {
-                                where = cellPosition(fc, fr);
-                                found = true;
-                            }
-                        }
-                    }
-                }
-            }
-            const auto [c, r] = cellOf(where);
-            used.insert(qint64(c) * 1000 + r);
-            placed.append(QRectF(where, QSizeF(cw, ch)));
-            positions[i] = where;
-        }
+        // Always on the grid: the nearest free cell to where it was left.
+        const auto [c, r] = cellOf(saved);
+        const auto [fc, fr] = nearestFree(c, r);
+        used.insert(qint64(fc) * 1000 + fr);
+        positions[i] = cellPosition(fc, fr);
     }
     int column = 0;
     int row = 0;
@@ -510,8 +466,7 @@ void DesktopModel::layout(bool notify)
         if (positions[i].x() >= 0) {
             continue;
         }
-        // The next cell that is free and has no icon placed by hand over it.
-        while (used.contains(qint64(column) * 1000 + row) || overlaps(cellPosition(column, row))) {
+        while (used.contains(qint64(column) * 1000 + row)) {
             if (++row >= rowCount) {
                 row = 0;
                 ++column;
@@ -519,7 +474,6 @@ void DesktopModel::layout(bool notify)
         }
         used.insert(qint64(column) * 1000 + row);
         positions[i] = cellPosition(column, row);
-        placed.append(QRectF(positions[i], QSizeF(cw, ch)));
     }
 
     // The positions to show; the saved ones stay in m_items as a request.
@@ -563,9 +517,9 @@ void DesktopModel::moveTo(const QString& path, qreal x, qreal y)
         }
     }
     layout();
-    // With the grid the saved position becomes the chosen cell's.
+    // The saved position becomes the chosen cell's.
     for (qsizetype i = 0; i < m_items.size(); ++i) {
-        if (m_items.at(i).path == path && m_alignToGrid) {
+        if (m_items.at(i).path == path) {
             m_items[i].position = m_layout.at(i);
             savePosition(m_items.at(i).isTrash ? path : QFileInfo(path).fileName(), m_layout.at(i));
         }
