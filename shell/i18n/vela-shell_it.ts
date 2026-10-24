@@ -97,6 +97,7 @@
         <source>Check the executable format and required libraries.</source>
         <translation>Controlla il formato dell&apos;eseguibile e le librerie necessarie.</translation>
     </message>
+    <message>
         <source>Couldn&apos;t create the shortcut.</source>
         <translation>Impossibile creare il collegamento.</translation>
     </message>

@@ -10,6 +10,7 @@
 #include <QCoreApplication>
 #include <QDBusConnection>
 #include <QDBusMessage>
+#include <QDBusPendingCall>
 #include <QClipboard>
 #include <QCryptographicHash>
 #include <QImageReader>

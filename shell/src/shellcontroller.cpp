@@ -669,7 +669,7 @@ void ShellController::placeOnScreen(QWindow* window, const QString& name)
         }
     }
     if (!target) {
-        target = vela::primaryOutputScreen(m_preferredPrimaryOutput);
+        target = QGuiApplication::primaryScreen();
     }
     if (!target) {
         return;
