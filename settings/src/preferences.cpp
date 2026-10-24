@@ -806,8 +806,10 @@ QVariantList Preferences::themeGallery(const QString& surface) const
                 }
             }
         }
-        // A style without a picture is listed too (a card with just its name).
-        list.append(QVariantMap { { QStringLiteral("name"), name }, { QStringLiteral("text"), entry.value(QStringLiteral("text")) }, { QStringLiteral("images"), images } });
+        // Only styles with a picture are shown.
+        if (!images.isEmpty()) {
+            list.append(QVariantMap { { QStringLiteral("name"), name }, { QStringLiteral("text"), entry.value(QStringLiteral("text")) }, { QStringLiteral("images"), images } });
+        }
     }
     return list;
 }
