@@ -187,6 +187,7 @@ QtObject {
     readonly property int startMenuWidth: themed("startmenu-width", 660)
     readonly property int startMenuHeight: themed("startmenu-height", 732) // at most
     readonly property int startMenuRadius: themed("startmenu-radius", radiusOverlay)
+    readonly property bool startMenuSeven: themed("startmenu-layout", 0) === 1 // Windows 7's two columns
     readonly property int startMenuColumns: themed("startmenu-columns", 6)
     readonly property int startMenuCellHeight: themed("startmenu-cell-height", 96)
     readonly property bool startMenuFooter: themed("startmenu-footer", 1) !== 0

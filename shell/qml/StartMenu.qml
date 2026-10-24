@@ -70,6 +70,31 @@ Window {
     // match first) and the selected one's details and actions beside it ---
     readonly property bool searching: search.text.trim().length > 0
     property bool updatePending: false // asked when the power menu opens
+    // startmenu-layout=1: Windows 7's Start menu (programs and the search at the
+    // left, places and Shut down at the right) in place of the grid.
+    readonly property bool seven: Theme.startMenuSeven
+    property bool sevenAll: false // "All Programs": every app, not only the pinned ones
+    property bool sevenPowerOpen: false
+    readonly property var sevenPrograms: {
+        Apps.catalogRevision
+        if (searching) {
+            return results
+        }
+        const out = []
+        if (sevenAll) {
+            void Apps.query
+            for (let i = 0; i < Apps.count; ++i) {
+                const id = Apps.idAt(i)
+                const e = Apps.entry(id)
+                out.push({ kind: "app", id: id, name: e.name, iconName: e.iconName })
+            }
+        } else {
+            for (const p of pinned) {
+                out.push({ kind: "app", id: p.id, name: p.name, iconName: p.iconName })
+            }
+        }
+        return out
+    }
     property string searchFilter: "all" // all, apps, settings, files
     readonly property var results: {
         const q = search.text.trim()
@@ -589,24 +614,29 @@ Window {
         // --- search ---
         Rectangle {
             id: searchBox
-            anchors { top: parent.top; left: parent.left; right: parent.right; margins: 24 }
-            height: 38
-            radius: height / 2
-            color: Theme.control
-            border.width: search.activeFocus ? 1 : 0
-            border.color: Theme.accent
+            // x/y, not anchors: Windows 7's layout puts it at the bottom left.
+            z: 5
+            x: root.seven ? 14 : 24
+            y: root.seven ? parent.height - height - 14 : 24
+            width: root.seven ? 234 : parent.width - 48
+            height: root.seven ? 28 : 38
+            radius: root.seven ? 3 : height / 2
+            color: root.seven ? "#FFFFFF" : Theme.control
+            border.width: root.seven ? 1 : search.activeFocus ? 1 : 0
+            border.color: root.seven ? "#9DB6D3" : Theme.accent
 
             Text {
-                anchors { left: parent.left; leftMargin: 18; verticalCenter: parent.verticalCenter }
+                anchors { left: parent.left; leftMargin: root.seven ? 8 : 18; verticalCenter: parent.verticalCenter }
                 visible: search.text.length === 0
-                text: qsTr("Search apps, files and settings")
-                color: Theme.textSecondary
+                text: root.seven ? qsTr("Search programs and files") : qsTr("Search apps, files and settings")
+                color: root.seven ? "#7C8794" : Theme.textSecondary
                 font.pixelSize: Theme.fontBody
             }
 
             MenuTextField {
                 id: search
-                anchors { left: parent.left; right: parent.right; leftMargin: 18; rightMargin: 18; verticalCenter: parent.verticalCenter }
+                color: root.seven ? "#1B2B40" : Theme.text
+                anchors { left: parent.left; right: parent.right; leftMargin: root.seven ? 8 : 18; rightMargin: root.seven ? 8 : 18; verticalCenter: parent.verticalCenter }
                 mapToScreen: (x, y) => root.screenPoint(search, x, y)
 
                 onTextChanged: {
@@ -646,7 +676,7 @@ Window {
 
         Text {
             id: sectionTitle
-            visible: !root.searching
+            visible: !root.searching && !root.seven
             anchors { top: searchBox.bottom; left: parent.left; topMargin: 20; leftMargin: 32 }
             text: search.text.length > 0 ? qsTr("Results") : root.showPinned ? qsTr("Pinned") : qsTr("All apps")
             color: Theme.text
@@ -657,7 +687,7 @@ Window {
         // --- app grid ---
         GridView {
             id: grid
-            visible: !root.searching
+            visible: !root.searching && !root.seven
             anchors {
                 top: sectionTitle.bottom; bottom: footer.top
                 left: parent.left; right: parent.right
@@ -818,7 +848,7 @@ Window {
         // --- search results (while searching, in place of the grid) ---
         Item {
             id: searchView
-            visible: root.searching
+            visible: root.searching && !root.seven
             anchors { top: searchBox.bottom; bottom: footer.top; left: parent.left; right: parent.right
                 topMargin: 12; leftMargin: 24; rightMargin: 24; bottomMargin: 12 }
 
@@ -1085,7 +1115,7 @@ Window {
         Rectangle {
             id: footer
             anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
-            visible: Theme.startMenuFooter
+            visible: Theme.startMenuFooter && !root.seven
             height: visible ? 60 : 0
             color: "transparent"
 
@@ -1262,6 +1292,289 @@ Window {
                             icon: "system-shutdown"
                             label: qsTr("Shut down")
                             onActivated: Shell.powerOff()
+                        }
+                    }
+                }
+            }
+        }
+
+        // --- Windows 7's Start menu: the programs on white at the left, the
+        // places and Shut down on the glass at the right ---
+        Item {
+            id: sevenMenu
+            visible: root.seven
+            anchors.fill: parent
+
+            Rectangle { // the left column
+                id: sevenLeft
+                x: 6
+                y: 6
+                width: 250
+                height: parent.height - 12
+                radius: 4
+                color: "#F7FAFE"
+                border.width: 1
+                border.color: "#80FFFFFF"
+
+                ListView {
+                    id: sevenList
+                    anchors { left: parent.left; right: parent.right; top: parent.top
+                        bottom: allPrograms.top; margins: 4 }
+                    clip: true
+                    model: root.sevenPrograms
+                    boundsBehavior: Flickable.StopAtBounds
+                    delegate: Item {
+                        id: row
+                        required property var modelData
+                        width: sevenList.width
+                        height: 38
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: 3
+                            visible: rowMouse.containsMouse
+                            border.width: 1
+                            border.color: "#B8D6F4"
+                            gradient: Gradient {
+                                GradientStop { position: 0; color: "#EAF4FE" }
+                                GradientStop { position: 1; color: "#CFE4FA" }
+                            }
+                        }
+                        Image {
+                            x: 8
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 28
+                            height: 28
+                            source: Theme.icons + encodeURIComponent(row.modelData.iconName ?? "")
+                            sourceSize: Qt.size(width, height)
+                            smooth: true
+                        }
+                        Text {
+                            anchors { left: parent.left; leftMargin: 44; right: parent.right; rightMargin: 8; verticalCenter: parent.verticalCenter }
+                            text: row.modelData.name
+                            color: "#1B2B40"
+                            elide: Text.ElideRight
+                            font.pixelSize: Theme.fontBody
+                        }
+                        MouseArea {
+                            id: rowMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            acceptedButtons: Qt.LeftButton | Qt.RightButton
+                            onClicked: mouse => {
+                                if (mouse.button === Qt.RightButton && row.modelData.kind === "app") {
+                                    root.openAppMenu(row, mouse.x, mouse.y, row.modelData.id, false)
+                                } else if (mouse.button === Qt.LeftButton) {
+                                    root.openResult(row.modelData)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Rectangle { // "All Programs" / "Back"
+                    id: allPrograms
+                    visible: !root.searching
+                    anchors { left: parent.left; right: parent.right; margins: 4
+                        bottom: parent.bottom; bottomMargin: 50 }
+                    height: visible ? 30 : 0
+                    radius: 3
+                    border.width: allMouse.containsMouse ? 1 : 0
+                    border.color: "#B8D6F4"
+                    color: allMouse.containsMouse ? "#DCEBFA" : "transparent"
+                    Text {
+                        x: 12
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: root.sevenAll ? "\u25C2  " + qsTr("Back") : "\u25B8  " + qsTr("All Programs")
+                        color: "#1B2B40"
+                        font.pixelSize: Theme.fontBody
+                        font.weight: Font.DemiBold
+                    }
+                    MouseArea {
+                        id: allMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        onClicked: root.sevenAll = !root.sevenAll
+                    }
+                }
+            }
+
+            // The right column: the user, the places, Shut down.
+            Item {
+                id: sevenRight
+                x: 266
+                y: 6
+                width: parent.width - 266 - 8
+                height: parent.height - 12
+
+                Rectangle {
+                    x: 0
+                    y: 0
+                    width: 52
+                    height: 52
+                    radius: 4
+                    color: Theme.accent
+                    border.width: 2
+                    border.color: "#CCFFFFFF"
+                    Text {
+                        anchors.centerIn: parent
+                        text: Shell.userInitial
+                        color: "white"
+                        font.pixelSize: 24
+                        font.weight: Font.DemiBold
+                    }
+                }
+                Text {
+                    x: 0
+                    y: 62
+                    text: Shell.userName
+                    color: "white"
+                    font.pixelSize: Theme.fontBody
+                    font.weight: Font.DemiBold
+                }
+                Column {
+                    y: 92
+                    width: parent.width
+                    Repeater {
+                        model: [
+                            { text: qsTr("Documents"), dir: "Documents" },
+                            { text: qsTr("Pictures"), dir: "Pictures" },
+                            { text: qsTr("Music"), dir: "Music" },
+                            { text: qsTr("Downloads"), dir: "Downloads" },
+                            { text: qsTr("Computer"), dir: "" },
+                            { text: qsTr("Settings"), page: "" }
+                        ]
+                        delegate: Item {
+                            id: place
+                            required property var modelData
+                            width: parent.width
+                            height: 30
+                            Rectangle {
+                                anchors.fill: parent
+                                radius: 3
+                                visible: placeMouse.containsMouse
+                                color: "#40FFFFFF"
+                                border.width: 1
+                                border.color: "#66FFFFFF"
+                            }
+                            Text {
+                                x: 8
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: place.modelData.text
+                                color: "white"
+                                font.pixelSize: Theme.fontBody
+                            }
+                            MouseArea {
+                                id: placeMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                onClicked: {
+                                    if (place.modelData.page !== undefined) {
+                                        System.openSettingsPage(place.modelData.page)
+                                    } else {
+                                        const home = System.homeDirectory()
+                                        System.openUrl(place.modelData.dir !== "" ? home + "/" + place.modelData.dir : home)
+                                    }
+                                    root.close()
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Shut down, with the arrow for the rest.
+                Rectangle {
+                    id: sevenShut
+                    anchors { left: parent.left; bottom: parent.bottom; bottomMargin: 8 }
+                    width: parent.width - 8
+                    height: 28
+                    radius: 3
+                    border.width: 1
+                    border.color: "#99FFFFFF"
+                    gradient: Gradient {
+                        GradientStop { position: 0; color: "#6A8DB8" }
+                        GradientStop { position: 0.5; color: "#4F74A1" }
+                        GradientStop { position: 0.51; color: "#3F6593" }
+                        GradientStop { position: 1; color: "#587DAA" }
+                    }
+                    Text {
+                        anchors { left: parent.left; leftMargin: 14; verticalCenter: parent.verticalCenter }
+                        text: qsTr("Shut down")
+                        color: "white"
+                        font.pixelSize: Theme.fontBody
+                    }
+                    MouseArea {
+                        anchors { left: parent.left; top: parent.top; bottom: parent.bottom; right: arrowPart.left }
+                        onClicked: Shell.powerOff()
+                    }
+                    Rectangle {
+                        id: arrowPart
+                        anchors { right: parent.right; top: parent.top; bottom: parent.bottom }
+                        width: 26
+                        color: arrowMouse.containsMouse || root.sevenPowerOpen ? "#33FFFFFF" : "transparent"
+                        Rectangle { width: 1; height: parent.height; color: "#66FFFFFF" }
+                        Text {
+                            anchors.centerIn: parent
+                            text: "\u25B8"
+                            color: "white"
+                            font.pixelSize: Theme.fontBody
+                        }
+                        MouseArea {
+                            id: arrowMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            onClicked: {
+                                root.sevenPowerOpen = !root.sevenPowerOpen
+                                if (root.sevenPowerOpen) root.updatePending = Shell.updatePending()
+                            }
+                        }
+                    }
+                }
+
+                Rectangle { // the menu of the arrow
+                    visible: root.sevenPowerOpen
+                    anchors { right: parent.right; bottom: sevenShut.top; bottomMargin: 4 }
+                    width: 190
+                    height: sevenPowerEntries.implicitHeight + 8
+                    radius: 4
+                    color: "#F2F7FC"
+                    border.width: 1
+                    border.color: "#99FFFFFF"
+                    Column {
+                        id: sevenPowerEntries
+                        x: 4
+                        y: 4
+                        width: parent.width - 8
+                        PowerEntry {
+                            icon: "system-suspend"
+                            label: qsTr("Sleep")
+                            visible: root.canSuspend
+                            onActivated: { root.close(); Shell.suspend() }
+                        }
+                        PowerEntry {
+                            icon: "view-refresh"
+                            label: qsTr("Restart shell")
+                            onActivated: { root.close(); Shell.restartShell() }
+                        }
+                        PowerEntry {
+                            visible: root.updatePending
+                            icon: "system-software-update"
+                            label: qsTr("Update and restart")
+                            onActivated: { root.close(); Shell.updateThen(true) }
+                        }
+                        PowerEntry {
+                            visible: root.updatePending
+                            icon: "system-software-update"
+                            label: qsTr("Update and shut down")
+                            onActivated: { root.close(); Shell.updateThen(false) }
+                        }
+                        PowerEntry {
+                            icon: "system-reboot"
+                            label: qsTr("Restart")
+                            onActivated: Shell.reboot()
+                        }
+                        PowerEntry {
+                            label: qsTr("Sign out")
+                            onActivated: Shell.logout()
                         }
                     }
                 }
