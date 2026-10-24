@@ -94,9 +94,9 @@ Window {
                 seen[p.id] = true
                 out.push({ kind: "app", id: p.id, name: p.name, iconName: p.iconName })
             }
-            // Windows 7 shows ten programs: the rest are the first apps.
+            // A compact list: the rest of the first apps, up to eight.
             void Apps.query
-            for (let i = 0; out.length < 10 && i < Apps.count; ++i) {
+            for (let i = 0; out.length < 8 && i < Apps.count; ++i) {
                 const id = Apps.idAt(i)
                 if (seen[id]) {
                     continue
@@ -241,7 +241,8 @@ Window {
             // At the top, next to the taskbar (placeStartMenu).
             return Qt.point((Config.taskbarLeft ? Theme.taskbarHeight : Screen.width - Theme.taskbarHeight - root.width) + p.x, p.y)
         }
-        const left = Config.taskbarAlignment === "left" ? 12 : (Screen.width - root.width) / 2 // placeStartMenu
+        // placeStartMenu: flush at the corner for a theme with Start at the left
+        const left = Theme.taskbarAlignLeft ? 0 : Config.taskbarAlignment === "left" ? 12 : (Screen.width - root.width) / 2
         return Qt.point(left + p.x, Config.taskbarTop ? Theme.taskbarHeight + p.y : Screen.height - Theme.taskbarHeight - root.height + p.y)
     }
 
@@ -630,8 +631,8 @@ Window {
             z: 5
             x: root.seven ? 14 : 24
             y: root.seven ? parent.height - height - 14 : 24
-            width: root.seven ? 234 : parent.width - 48
-            height: root.seven ? 28 : 38
+            width: root.seven ? 220 : parent.width - 48
+            height: root.seven ? 26 : 38
             radius: root.seven ? 3 : height / 2
             color: root.seven ? "#FFFFFF" : Theme.control
             border.width: root.seven ? 1 : search.activeFocus ? 1 : 0
@@ -1338,7 +1339,7 @@ Window {
                 id: sevenLeft
                 x: 6
                 y: 6
-                width: 250
+                width: 238
                 height: parent.height - 12
                 radius: 4
                 color: "#F7FAFE"
@@ -1356,7 +1357,7 @@ Window {
                         id: row
                         required property var modelData
                         width: sevenList.width
-                        height: 34
+                        height: 30
                         Rectangle {
                             anchors.fill: parent
                             radius: 3
@@ -1371,18 +1372,18 @@ Window {
                         Image {
                             x: 8
                             anchors.verticalCenter: parent.verticalCenter
-                            width: 24
-                            height: 24
+                            width: 22
+                            height: 22
                             source: Theme.icons + encodeURIComponent(row.modelData.iconName ?? "")
                             sourceSize: Qt.size(width, height)
                             smooth: true
                         }
                         Text {
-                            anchors { left: parent.left; leftMargin: 40; right: parent.right; rightMargin: 8; verticalCenter: parent.verticalCenter }
+                            anchors { left: parent.left; leftMargin: 38; right: parent.right; rightMargin: 8; verticalCenter: parent.verticalCenter }
                             text: row.modelData.name
                             color: "#3C3C3C"
                             elide: Text.ElideRight
-                            font.pixelSize: 13
+                            font.pixelSize: 12
                         }
                         MouseArea {
                             id: rowMouse
@@ -1404,8 +1405,8 @@ Window {
                     id: allPrograms
                     visible: !root.searching
                     anchors { left: parent.left; right: parent.right; margins: 4
-                        bottom: parent.bottom; bottomMargin: 50 }
-                    height: visible ? 30 : 0
+                        bottom: parent.bottom; bottomMargin: 46 }
+                    height: visible ? 26 : 0
                     radius: 3
                     border.width: allMouse.containsMouse ? 1 : 0
                     border.color: "#7DA2CE"
@@ -1418,7 +1419,7 @@ Window {
                         anchors.verticalCenter: parent.verticalCenter
                         text: root.sevenAll ? "\u25C2  " + qsTr("Back") : "\u25B8  " + qsTr("All Programs")
                         color: "#3C3C3C"
-                        font.pixelSize: 13
+                        font.pixelSize: 12
                     }
                     MouseArea {
                         id: allMouse
@@ -1431,9 +1432,9 @@ Window {
 
             // The right column: the user, the places, Shut down.
             Rectangle { // the glass of the right column, lighter at the top
-                x: 260
+                x: 248
                 y: 6
-                width: parent.width - 260 - 6
+                width: parent.width - 248 - 6
                 height: parent.height - 12
                 radius: 3
                 gradient: Gradient {
@@ -1443,9 +1444,9 @@ Window {
             }
             Item {
                 id: sevenRight
-                x: 266
+                x: 252
                 y: 6
-                width: parent.width - 266 - 8
+                width: parent.width - 252 - 8
                 height: parent.height - 12
 
                 // The user's picture (AccountsService), else a portrait drawn.
@@ -1453,9 +1454,9 @@ Window {
                     id: portrait
                     readonly property string user: System.homeDirectory().split("/").pop()
                     x: (parent.width - width) / 2
-                    y: 2
-                    width: 48
-                    height: 48
+                    y: 10
+                    width: 40
+                    height: 40
                     radius: 3
                     color: "#8AA9CC"
                     border.width: 2
@@ -1477,14 +1478,14 @@ Window {
                     }
                 }
                 Text {
-                    x: 8
-                    y: 58
+                    x: 6
+                    y: 56
                     text: Shell.userName
                     color: "white"
-                    font.pixelSize: 13
+                    font.pixelSize: 12
                 }
                 Column {
-                    y: 86
+                    y: 82
                     width: parent.width
                     Repeater {
                         // dir: a folder of the home; page: a Settings page; "": the home
@@ -1505,7 +1506,7 @@ Window {
                             id: place
                             required property var modelData
                             width: parent.width
-                            height: modelData.rule ? 9 : 27
+                            height: modelData.rule ? 8 : 24
                             Rectangle {
                                 visible: place.modelData.rule === true
                                 x: 6
@@ -1526,9 +1527,11 @@ Window {
                                 x: 8
                                 anchors.verticalCenter: parent.verticalCenter
                                 visible: !place.modelData.rule
+                                width: parent.width - 12
+                                elide: Text.ElideRight
                                 text: place.modelData.text ?? ""
                                 color: "white"
-                                font.pixelSize: 13
+                                font.pixelSize: 12
                             }
                             MouseArea {
                                 id: placeMouse
@@ -1553,8 +1556,8 @@ Window {
                 Rectangle {
                     id: sevenShut
                     anchors { left: parent.left; bottom: parent.bottom; bottomMargin: 8 }
-                    width: parent.width - 8
-                    height: 28
+                    width: Math.min(parent.width - 4, 112)
+                    height: 24
                     radius: 3
                     border.width: 1
                     border.color: "#99FFFFFF"
@@ -1568,7 +1571,7 @@ Window {
                         anchors { left: parent.left; leftMargin: 14; verticalCenter: parent.verticalCenter }
                         text: qsTr("Shut down")
                         color: "white"
-                        font.pixelSize: Theme.fontBody
+                        font.pixelSize: 12
                     }
                     MouseArea {
                         anchors { left: parent.left; top: parent.top; bottom: parent.bottom; right: arrowPart.left }
