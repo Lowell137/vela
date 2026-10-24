@@ -71,6 +71,10 @@ public:
     Q_INVOKABLE void compress(const QStringList& paths, const QString& directory,
         const QString& name, const QString& format);
     Q_INVOKABLE bool isArchive(const QString& path) const;
+    // Disk images (.iso, .img): "Mount" sets up a loop device and mounts it
+    // with udisks, like Windows; `imageMounted` has the folder to open.
+    Q_INVOKABLE bool isDiskImage(const QString& path) const;
+    Q_INVOKABLE void mountImage(const QString& path);
     // "Extract here": into a folder named after the archive next to it,
     // "name (2)" when it exists. It returns the folder: the double click goes
     // in when the files arrive, the menu doesn't move.
@@ -127,6 +131,7 @@ signals:
     // renamed).
     void created(const QString& path, bool rename);
     void failed(const QString& message);
+    void imageMounted(const QString& mountPoint);
 
 private:
     struct UndoStep {

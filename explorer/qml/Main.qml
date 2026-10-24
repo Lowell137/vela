@@ -309,6 +309,7 @@ Window {
     Connections {
         target: Ops
         function onFailed(message) { root.showError(message) }
+        function onImageMounted(mountPoint) { if (root.current) root.current.navigate(mountPoint, "") }
         // The destination already has files with the same name: like Windows.
         function onConflict(count, firstName, directory) {
             conflictDialog.title = qsTr("Replace or skip files")

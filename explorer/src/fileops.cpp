@@ -26,6 +26,7 @@
 #include <QMimeData>
 #include <QMimeDatabase>
 #include <QPointer>
+#include <QRegularExpression>
 #include <QProcess>
 #include <QSettings>
 #include <QStandardPaths>
@@ -1089,6 +1090,57 @@ void FileOps::compress(const QStringList& paths, const QString& directory,
             emit self->created(archivePath, false);
         });
     });
+}
+
+bool FileOps::isDiskImage(const QString& path) const
+{
+    return path.endsWith(QLatin1String(".iso"), Qt::CaseInsensitive) || path.endsWith(QLatin1String(".img"), Qt::CaseInsensitive);
+}
+
+void FileOps::mountImage(const QString& path)
+{
+    const QString name = QFileInfo(path).fileName();
+    auto udisks = [this](const QStringList& arguments, const QString& failure, std::function<void(const QString&)> done) {
+        auto* process = new QProcess(this);
+        connect(process, &QProcess::finished, this, [this, process, failure, done](int code, QProcess::ExitStatus status) {
+            const QString out = QString::fromUtf8(process->readAllStandardOutput()).trimmed();
+            const QString err = QString::fromUtf8(process->readAllStandardError()).trimmed();
+            process->deleteLater();
+            if (status != QProcess::NormalExit || code != 0) {
+                emit failed(err.isEmpty() ? failure : failure + u' ' + err);
+                return;
+            }
+            done(out);
+        });
+        connect(process, &QProcess::errorOccurred, this, [this, process, failure](QProcess::ProcessError error) {
+            if (error == QProcess::FailedToStart) {
+                process->deleteLater();
+                emit failed(failure);
+            }
+        });
+        process->start(QStringLiteral("udisksctl"), arguments);
+    };
+    const QString failure = QCoreApplication::translate("Files", "Couldn't mount \"%1\".").arg(name);
+    // "Mapped file X as /dev/loop3." then "Mounted /dev/loop3 at /run/media/u/LABEL".
+    udisks({ QStringLiteral("loop-setup"), QStringLiteral("--no-user-interaction"), QStringLiteral("--read-only"),
+                QStringLiteral("--file"), path },
+        failure, [this, udisks, failure](const QString& out) {
+            static const QRegularExpression device(QStringLiteral("(/dev/loop\\d+)"));
+            const QRegularExpressionMatch match = device.match(out);
+            if (!match.hasMatch()) {
+                emit failed(failure);
+                return;
+            }
+            udisks({ QStringLiteral("mount"), QStringLiteral("--no-user-interaction"), QStringLiteral("--block-device"), match.captured(1) },
+                failure, [this, failure](const QString& mounted) {
+                    const int at = mounted.indexOf(QLatin1String(" at "));
+                    if (at < 0) {
+                        emit failed(failure);
+                        return;
+                    }
+                    emit imageMounted(mounted.mid(at + 4).trimmed());
+                });
+        });
 }
 
 bool FileOps::isArchive(const QString& path) const

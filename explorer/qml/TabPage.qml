@@ -356,6 +356,9 @@ Item {
                 : { text: qsTr("Pin to &Quick access"), icon: "window-pin", action: () => Places.pin(single) })
             entries.push({ text: qsTr("Open in &Terminal"), icon: "utilities-terminal", action: () => System.openTerminal(single) })
         }
+        if (single !== "" && Ops.isDiskImage(single)) {
+            entries.push({ text: qsTr("&Mount"), icon: "drive-removable-media", action: () => Ops.mountImage(single) })
+        }
         if (single !== "" && Ops.isArchive(single)) {
             // One step, like tar xf: it extracts next to the archive and
             // Files doesn't move (the double click is the one that goes in).
