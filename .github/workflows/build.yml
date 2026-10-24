@@ -37,6 +37,7 @@ env:
     mesa freetype2 harfbuzz fontconfig librsvg cairo zlib pam polkit
     qt6-base qt6-declarative qt6-svg qt6-wayland qt6-tools layer-shell-qt libarchive
     hicolor-icon-theme shared-mime-info xorg-xwayland pipewire wireplumber
+    mpv libvterm qt6-multimedia
 
 jobs:
   changes:

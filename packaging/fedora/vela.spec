@@ -58,6 +58,9 @@ BuildRequires:  layer-shell-qt-devel
 BuildRequires:  python3
 BuildRequires:  pipewire-devel
 BuildRequires:  wireplumber-devel
+BuildRequires:  mpv-devel
+BuildRequires:  libvterm-devel
+BuildRequires:  libarchive-devel
 
 Requires:       wlroots >= 0.20
 # Tools required by the installed vela-update command even without a build.
@@ -76,6 +79,9 @@ Requires:       python3
 Requires:       xorg-x11-server-Xwayland
 Requires:       pipewire
 Requires:       wireplumber
+Requires:       mpv-libs
+Requires:       libvterm
+Requires:       libarchive
 Requires:       hicolor-icon-theme
 
 # Public, attested binary downloads (curl + cosign) and local RPM build fallback.
