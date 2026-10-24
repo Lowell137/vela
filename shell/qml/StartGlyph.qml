@@ -49,50 +49,29 @@ Item {
         }
     }
 
-    Shape {
+    // Nyxel's mark: a sparkle made of pixels. Arms and diagonals are squares
+    // on a 5x5 grid; the center takes the accent, the diagonals fade.
+    Item {
         visible: Theme.taskbarStartGlyph !== 1
         anchors.fill: parent
-        // Soft antialiasing on the slanted edges too.
-        layer.enabled: true
-        layer.samples: 4
-
-        // Big sail
-        ShapePath {
-            strokeWidth: 0
-            strokeColor: "transparent"
-            fillGradient: LinearGradient {
-                x1: 12; y1: 1
-                x2: 21; y2: 16
-                GradientStop { position: 0; color: Theme.accentFill }
-                GradientStop { position: 1; color: Theme.accent }
+        Repeater {
+            // [column, row, kind]: 0 arm, 1 center, 2 diagonal
+            model: [
+                [2, 0, 0], [2, 1, 0], [2, 3, 0], [2, 4, 0],
+                [0, 2, 0], [1, 2, 0], [3, 2, 0], [4, 2, 0],
+                [2, 2, 1],
+                [1, 1, 2], [3, 1, 2], [1, 3, 2], [3, 3, 2]
+            ]
+            Rectangle {
+                required property var modelData
+                x: modelData[0] * 4.5
+                y: modelData[1] * 4.5
+                width: 4
+                height: 4
+                radius: 1
+                color: modelData[2] === 1 ? Theme.accent : Theme.accentFill
+                opacity: modelData[2] === 2 ? 0.6 : 1
             }
-            startX: 12; startY: 1
-            PathLine { x: 21; y: 16 }
-            PathLine { x: 12; y: 16 }
-            PathLine { x: 12; y: 1 }
-        }
-
-        // Small sail
-        ShapePath {
-            strokeWidth: 0
-            strokeColor: "transparent"
-            fillColor: Theme.accentFill
-            startX: 10; startY: 5
-            PathLine { x: 10; y: 16 }
-            PathLine { x: 3; y: 16 }
-            PathLine { x: 10; y: 5 }
-        }
-
-        // Hull
-        ShapePath {
-            strokeWidth: 0
-            strokeColor: "transparent"
-            fillColor: Theme.accent
-            startX: 1; startY: 18
-            PathLine { x: 21; y: 18 }
-            PathLine { x: 17.5; y: 21.5 }
-            PathLine { x: 4.5; y: 21.5 }
-            PathLine { x: 1; y: 18 }
         }
     }
 }
