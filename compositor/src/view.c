@@ -1263,6 +1263,7 @@ void vela_view_init(struct vela_view *view, struct vela_server *server)
     view->server = server;
     view->open_tween = (struct vela_tween) { -1.0, 1.0, NULL };
     wl_list_init(&view->link);
+    wl_list_init(&view->minimized_link);
     view->tree = vela_tree_create(server->layers.windows);
     view->tree->node.data = &view->owner;
     // All listeners start disconnected: they can always be removed.
@@ -1482,6 +1483,9 @@ void vela_view_destroy(struct vela_view *view)
     vela_window_capture_destroy(view->capture);
     view->capture = NULL;
     forget(view);
+    // Closed while "show desktop" had it minimized: out of that list, or the
+    // next restore removes freed memory.
+    wl_list_remove(&view->minimized_link);
     struct wl_listener *all[VIEW_LISTENERS];
     listeners(view, all);
     for (int i = 0; i < VIEW_LISTENERS; ++i) {

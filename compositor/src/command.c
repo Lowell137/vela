@@ -636,6 +636,8 @@ static void run_command(struct vela_server *server, const char *line)
             wl_list_for_each (view, &server->views, link) {
                 if (view->mapped && !view->minimized) {
                     vela_view_set_minimized(view, true);
+                    // Minimized again after a manual restore: still listed.
+                    wl_list_remove(&view->minimized_link);
                     wl_list_insert(&server->minimized_by_desktop, &view->minimized_link);
                 }
             }
@@ -643,6 +645,7 @@ static void run_command(struct vela_server *server, const char *line)
             struct vela_view *next;
             wl_list_for_each_safe (view, next, &server->minimized_by_desktop, minimized_link) {
                 wl_list_remove(&view->minimized_link);
+                wl_list_init(&view->minimized_link);
                 if (view->mapped) {
                     vela_view_set_minimized(view, false);
                 }
