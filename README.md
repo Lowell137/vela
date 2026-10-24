@@ -2,15 +2,14 @@
 
 <img src="images/vela_icon.svg" width="96" alt="Vela logo">
 
-# Vela
+# Vela, fork edition
 
-**A modern, fluid and sharp Linux desktop built for today's hardware.**
+**Vela with themes, thirteen new apps and a lot of Windows-style extras.**
 
-Vela has its own Wayland compositor and Vulkan renderer, a Qt Quick shell, and a file
-manager and settings app built to match. It uses modern hardware where that improves the
-experience — smooth motion, precise rendering, rich effects — and avoids overhead where
-it does not. Every animation is tied to your monitor's real frames, and fractional scaling
-is designed around physical pixels rather than treated as an afterthought.
+This is Lowell137's fork of [Vela](https://github.com/vela-desktop/vela), a Linux desktop with
+its own Wayland compositor, Vulkan renderer, Qt Quick shell, file manager and Settings app.
+The fork adds a theme gallery, a Windows Update-style page, apps such as Calculator, Calendar,
+Paint and Photos, and many shell and file manager features. `main` is the branch to use.
 
 [![Build](https://github.com/vela-desktop/vela/actions/workflows/build.yml/badge.svg)](https://github.com/vela-desktop/vela/actions/workflows/build.yml)
 ![Status](https://img.shields.io/badge/status-alpha-orange)
@@ -26,7 +25,7 @@ is designed around physical pixels rather than treated as an afterthought.
 
 <br>
 
-<img src="docs/screenshots/start.webp" alt="The Vela desktop with the Start menu open over the file manager" width="100%">
+<img src="docs/screenshots/fork-files-quick-preview.webp" alt="Files with a quick preview open, on the Vela desktop" width="100%">
 
 </div>
 
