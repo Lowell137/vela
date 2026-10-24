@@ -20,7 +20,7 @@ is designed around physical pixels rather than treated as an afterthought.
 ![Qt](https://img.shields.io/badge/Qt-6-41cd52)
 ![C++](https://img.shields.io/badge/C%2B%2B-20-00599c)
 
-[Screenshots](#screenshots) · [Try Vela](#try-vela) · [Features](#features) ·
+[This fork](#whats-in-this-fork) · [Branches](#branches-in-this-fork) · [Screenshots](#screenshots) · [Try Vela](#try-vela) · [Features](#features) ·
 [Install](#install) · [Build](#build-from-source) · [How it works](#how-it-works) ·
 [Docs](#documentation) · [Roadmap](docs/roadmap.md)
 
@@ -42,83 +42,6 @@ is designed around physical pixels rather than treated as an afterthought.
 
 ---
 
-## Why Vela
-
-Desktop hardware and displays have moved fast. A desktop should feel like it belongs on
-them. Vela aims for contemporary interaction design, high-refresh motion and precise
-rendering without treating visual quality and efficiency as opposing goals.
-
-> **Use hardware when it improves the experience. Avoid overhead when it doesn't.**
-> Vela does not remove motion or effects just to win a memory chart. Efficiency comes
-> from doing less unnecessary work, not from making the desktop feel less modern.
-
-<table>
-<tr>
-<td width="50%" valign="top">
-
-### Modern
-A coherent shell, polished motion, snap layouts, virtual desktops, quick settings,
-notifications and a file manager designed as one desktop rather than a collection of
-unrelated utilities. Vela targets current hardware and modern displays on purpose.
-
-</td>
-<td width="50%" valign="top">
-
-### Fluid
-Animations advance on real vblanks, never arbitrary timers: at 180 Hz they can take 180
-steps per second. Late latching draws as late as safely possible before each vblank.
-Fullscreen games can go straight to the display through direct scanout, with VRR and
-tearing support where appropriate.
-
-</td>
-</tr>
-<tr>
-<td width="50%" valign="top">
-
-### Sharp
-Fractional scaling is pixel-exact when an app renders at the screen's scale: its buffer
-can be copied 1:1 with no filtering, even at 125% or 175%. An automated test checks this
-bit for bit after opening, snapping, maximizing and restoring a window.
-
-</td>
-<td width="50%" valign="top">
-
-### Efficient
-Efficiency through architecture, not austerity. Damage tracking avoids drawing what did
-not change, direct scanout bypasses compositing when possible, and native components stay
-responsive without heavyweight runtimes for simple desktop UI. The compositor idles at
-**17 MiB** and **0.1% CPU** on the primary development system.
-
-</td>
-</tr>
-</table>
-
-## Screenshots
-
-<table>
-<tr>
-<td width="50%"><img src="docs/screenshots/snap.webp" alt="File manager and Settings snapped side by side"><br><sub><b>Snap</b>: windows side by side with Super+arrows or by dragging to an edge or corner.</sub></td>
-<td width="50%"><img src="docs/screenshots/task-view.webp" alt="Task View with two virtual desktops"><br><sub><b>Task View</b> (Super+Tab): live window previews and virtual desktops.</sub></td>
-</tr>
-<tr>
-<td width="50%"><img src="docs/screenshots/files.webp" alt="The Vela file manager showing a Pictures folder"><br><sub><b>Files</b>: tabs, breadcrumbs, thumbnails and previews; first frame in about 100 ms.</sub></td>
-<td width="50%"><img src="docs/screenshots/alt-tab.webp" alt="Alt+Tab switcher with window previews"><br><sub><b>Alt+Tab</b> with previews, minimized windows included.</sub></td>
-</tr>
-<tr>
-<td width="50%"><img src="docs/screenshots/light.webp" alt="Vela in light mode"><br><sub><b>Light and dark</b> modes for the shell and for apps, switched instantly.</sub></td>
-<td width="50%"><img src="docs/screenshots/lock.webp" alt="The Vela lock screen"><br><sub><b>Lock screen</b>: built on ext-session-lock, so a crash never reveals the desktop.</sub></td>
-</tr>
-</table>
-
-<table>
-<tr>
-<td width="34%" valign="top"><img src="docs/screenshots/snap-layouts.webp" alt="Snap layouts flyout over the maximize button"><br><sub><b>Snap layouts</b>: hover the maximize button or press Super+Z.</sub></td>
-<td width="33%" valign="top"><img src="docs/screenshots/context-menu.webp" alt="Vela desktop context menu"><br><sub><b>Context menus</b> with a compact primary view and KDE service menus under "Show more options".</sub></td>
-<td width="33%" valign="top"><img src="docs/screenshots/panels.webp" alt="Quick settings and the notification center"><br><sub><b>Quick settings</b> (Super+A) and the <b>notification center</b> (Super+N).</sub></td>
-</tr>
-</table>
-
-
 ## What's in this fork
 
 The upstream project is the base. Everything below is extra in this fork, and most of it is
@@ -136,16 +59,10 @@ acrylic's tint, saturation and strength.
 
 <p align="center"><img src="docs/screenshots/fork-themes.webp" alt="The Themes page in Settings, with a picture for each taskbar style" width="70%"></p>
 
-<table>
-<tr>
-<td width="50%"><img src="themes/screenshots/taskbar/window-glass.png" alt="WindowGlass taskbar"><br><sub>WindowGlass taskbar</sub></td>
-<td width="50%"><img src="themes/screenshots/taskbar/aero.png" alt="Aero taskbar"><br><sub>Aero taskbar</sub></td>
-</tr>
-<tr>
-<td width="50%"><img src="themes/screenshots/startmenu/aero.png" alt="Aero Start menu"><br><sub>Aero Start menu, laid out like Windows 7</sub></td>
-<td width="50%"><img src="themes/screenshots/notifications/aero-qs.png" alt="Aero quick settings"><br><sub>Aero quick settings</sub></td>
-</tr>
-</table>
+<p align="center"><img src="themes/screenshots/taskbar/window-glass.png" alt="WindowGlass taskbar" width="100%"><br><sub>WindowGlass taskbar</sub></p>
+<p align="center"><img src="themes/screenshots/taskbar/aero.png" alt="Aero taskbar" width="100%"><br><sub>Aero taskbar</sub></p>
+<p align="center"><img src="themes/screenshots/startmenu/aero.png" alt="Aero Start menu" width="60%"><br><sub>Aero Start menu, laid out like Windows 7</sub></p>
+<p align="center"><img src="themes/screenshots/notifications/aero-qs.png" alt="Aero quick settings" width="50%"><br><sub>Aero quick settings</sub></p>
 
 ### New apps
 
@@ -221,6 +138,83 @@ own upstream pull request. You can ignore all of them.
 
 If you want to try a single feature without the rest, check out its `feat/` branch. Everything
 else is on `main`.
+
+## Why Vela (upstream)
+
+Desktop hardware and displays have moved fast. A desktop should feel like it belongs on
+them. Vela aims for contemporary interaction design, high-refresh motion and precise
+rendering without treating visual quality and efficiency as opposing goals.
+
+> **Use hardware when it improves the experience. Avoid overhead when it doesn't.**
+> Vela does not remove motion or effects just to win a memory chart. Efficiency comes
+> from doing less unnecessary work, not from making the desktop feel less modern.
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### Modern
+A coherent shell, polished motion, snap layouts, virtual desktops, quick settings,
+notifications and a file manager designed as one desktop rather than a collection of
+unrelated utilities. Vela targets current hardware and modern displays on purpose.
+
+</td>
+<td width="50%" valign="top">
+
+### Fluid
+Animations advance on real vblanks, never arbitrary timers: at 180 Hz they can take 180
+steps per second. Late latching draws as late as safely possible before each vblank.
+Fullscreen games can go straight to the display through direct scanout, with VRR and
+tearing support where appropriate.
+
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
+
+### Sharp
+Fractional scaling is pixel-exact when an app renders at the screen's scale: its buffer
+can be copied 1:1 with no filtering, even at 125% or 175%. An automated test checks this
+bit for bit after opening, snapping, maximizing and restoring a window.
+
+</td>
+<td width="50%" valign="top">
+
+### Efficient
+Efficiency through architecture, not austerity. Damage tracking avoids drawing what did
+not change, direct scanout bypasses compositing when possible, and native components stay
+responsive without heavyweight runtimes for simple desktop UI. The compositor idles at
+**17 MiB** and **0.1% CPU** on the primary development system.
+
+</td>
+</tr>
+</table>
+
+## Screenshots
+
+<table>
+<tr>
+<td width="50%"><img src="docs/screenshots/snap.webp" alt="File manager and Settings snapped side by side"><br><sub><b>Snap</b>: windows side by side with Super+arrows or by dragging to an edge or corner.</sub></td>
+<td width="50%"><img src="docs/screenshots/task-view.webp" alt="Task View with two virtual desktops"><br><sub><b>Task View</b> (Super+Tab): live window previews and virtual desktops.</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/screenshots/files.webp" alt="The Vela file manager showing a Pictures folder"><br><sub><b>Files</b>: tabs, breadcrumbs, thumbnails and previews; first frame in about 100 ms.</sub></td>
+<td width="50%"><img src="docs/screenshots/alt-tab.webp" alt="Alt+Tab switcher with window previews"><br><sub><b>Alt+Tab</b> with previews, minimized windows included.</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/screenshots/light.webp" alt="Vela in light mode"><br><sub><b>Light and dark</b> modes for the shell and for apps, switched instantly.</sub></td>
+<td width="50%"><img src="docs/screenshots/lock.webp" alt="The Vela lock screen"><br><sub><b>Lock screen</b>: built on ext-session-lock, so a crash never reveals the desktop.</sub></td>
+</tr>
+</table>
+
+<table>
+<tr>
+<td width="34%" valign="top"><img src="docs/screenshots/snap-layouts.webp" alt="Snap layouts flyout over the maximize button"><br><sub><b>Snap layouts</b>: hover the maximize button or press Super+Z.</sub></td>
+<td width="33%" valign="top"><img src="docs/screenshots/context-menu.webp" alt="Vela desktop context menu"><br><sub><b>Context menus</b> with a compact primary view and KDE service menus under "Show more options".</sub></td>
+<td width="33%" valign="top"><img src="docs/screenshots/panels.webp" alt="Quick settings and the notification center"><br><sub><b>Quick settings</b> (Super+A) and the <b>notification center</b> (Super+N).</sub></td>
+</tr>
+</table>
+
 
 ## Try Vela
 
