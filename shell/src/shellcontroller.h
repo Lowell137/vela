@@ -102,6 +102,7 @@ public:
     Q_INVOKABLE QPoint placeAtPoint(QWindow* window, int x, int y);
     // Alt+Tab: a click on preview `index` (the compositor switches).
     Q_INVOKABLE void pickSwitcher(int index) { sendToCompositor("switcher-pick " + QByteArray::number(index)); }
+    Q_INVOKABLE void closeSwitcherWindow(int index) { sendToCompositor("switcher-close " + QByteArray::number(index)); }
 
     QString userName() const;
     QString userPicture() const;

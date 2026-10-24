@@ -109,13 +109,35 @@ void vela_switcher_pick(struct vela_server *server, int index)
     }
 }
 
+void vela_switcher_close(struct vela_server *server, int index)
+{
+    struct vela_switcher *switcher = server->switcher;
+    if (switcher->active && index >= 0 && index < switcher->count) {
+        // The card goes away when the window does (vela_switcher_forget).
+        vela_view_close(switcher->views[index], "alt-tab close button");
+    }
+}
+
+// A window that goes away during Alt+Tab leaves the list; the switcher stays
+// until none is left.
 void vela_switcher_forget(struct vela_server *server, struct vela_view *view)
 {
     struct vela_switcher *switcher = server->switcher;
     for (int i = 0; i < switcher->count; ++i) {
-        if (switcher->views[i] == view) {
+        if (switcher->views[i] != view) {
+            continue;
+        }
+        memmove(&switcher->views[i], &switcher->views[i + 1], sizeof(*switcher->views) * (size_t)(switcher->count - i - 1));
+        --switcher->count;
+        if (switcher->count == 0) {
             vela_switcher_finish(server, false);
             return;
         }
+        if (i < switcher->selected) {
+            --switcher->selected;
+        }
+        switcher->selected = vela_min(switcher->selected, switcher->count - 1);
+        announce(server, "show");
+        return;
     }
 }

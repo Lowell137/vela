@@ -33,6 +33,8 @@ void vela_switcher_finish(struct vela_server *server, bool activate);
 bool vela_switcher_active(const struct vela_server *server);
 // A click on a preview (from the shell).
 void vela_switcher_pick(struct vela_server *server, int index);
+// The close button of a card: asks that window to close.
+void vela_switcher_close(struct vela_server *server, int index);
 // A window that goes away during Alt+Tab closes the switcher.
 void vela_switcher_forget(struct vela_server *server, struct vela_view *view);
 

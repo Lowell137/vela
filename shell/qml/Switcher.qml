@@ -31,8 +31,12 @@ Window {
         id: showDelay
         interval: 100
         onTriggered: {
+            // Already shown (a card went away): no new fade.
+            const wasVisible = root.visible
             root.visible = true
-            appear.restart()
+            if (!wasVisible) {
+                appear.restart()
+            }
         }
     }
 
@@ -148,12 +152,34 @@ Window {
                             sourceSize: Qt.size(width, height)
                         }
                         Text {
-                            width: header.width - 24
+                            width: header.width - 24 - 28
                             anchors.verticalCenter: parent.verticalCenter
                             text: card.title
                             color: Theme.text
                             font.pixelSize: Theme.fontCaption
                             elide: Text.ElideRight
+                        }
+                    }
+
+                    // Close, at the top right while the pointer is on the card.
+                    Rectangle {
+                        visible: cardMouse.containsMouse || closeMouse.containsMouse
+                        anchors { right: parent.right; top: parent.top; margins: 6 }
+                        width: 28
+                        height: 24
+                        radius: Theme.radius
+                        color: closeMouse.containsMouse ? "#c42b1c" : "transparent"
+                        Text {
+                            anchors.centerIn: parent
+                            text: "✕"
+                            color: closeMouse.containsMouse ? "white" : Theme.text
+                            font.pixelSize: 11
+                        }
+                        MouseArea {
+                            id: closeMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            onClicked: Shell.closeSwitcherWindow(card.index)
                         }
                     }
 

@@ -636,6 +636,8 @@ static void run_command(struct vela_server *server, const char *line)
         if (active && !server->locked) {
             vela_view_set_always_on_top(active, wanted(line + 14, active->always_on_top));
         }
+    } else if (starts_with(line, "switcher-close ")) {
+        vela_switcher_close(server, atoi(line + 15));
     } else if (starts_with(line, "switcher-pick ")) {
         // A click on an Alt+Tab preview: switch to that window.
         vela_switcher_pick(server, atoi(line + 14));
