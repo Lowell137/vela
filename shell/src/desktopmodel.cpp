@@ -447,7 +447,11 @@ void DesktopModel::layout(bool notify)
     };
 
     QList<QPointF> positions(m_items.size(), QPointF(-1, -1));
-    QList<QRectF> placed; // free placements so far
+    QList<QRectF> placed; // icons placed so far
+    const auto overlaps = [&](const QPointF& p) {
+        const QRectF box = QRectF(p, QSizeF(cw, ch)).adjusted(3, 3, -3, -3);
+        return std::any_of(placed.cbegin(), placed.cend(), [&](const QRectF& other) { return other.intersects(box); });
+    };
     // Those placed by hand first, then the others in a row by columns.
     for (qsizetype i = 0; i < m_items.size(); ++i) {
         const QPointF saved = m_items.at(i).position;
@@ -463,10 +467,6 @@ void DesktopModel::layout(bool notify)
             // Free placement, but never one icon over another: the one that
             // would overlap shows in the nearest free cell (the saved position
             // stays as it was).
-            const auto overlaps = [&](const QPointF& p) {
-                const QRectF box = QRectF(p, QSizeF(cw, ch)).adjusted(8, 8, -8, -8);
-                return std::any_of(placed.cbegin(), placed.cend(), [&](const QRectF& other) { return other.intersects(box); });
-            };
             QPointF where(std::clamp(saved.x(), 0.0, std::max(0.0, m_areaWidth - cw)),
                 std::clamp(saved.y(), 0.0, std::max(0.0, m_areaHeight - ch)));
             if (overlaps(where)) {
@@ -498,7 +498,8 @@ void DesktopModel::layout(bool notify)
         if (positions[i].x() >= 0) {
             continue;
         }
-        while (used.contains(qint64(column) * 1000 + row)) {
+        // The next cell that is free and has no icon placed by hand over it.
+        while (used.contains(qint64(column) * 1000 + row) || overlaps(cellPosition(column, row))) {
             if (++row >= rowCount) {
                 row = 0;
                 ++column;
@@ -506,6 +507,7 @@ void DesktopModel::layout(bool notify)
         }
         used.insert(qint64(column) * 1000 + row);
         positions[i] = cellPosition(column, row);
+        placed.append(QRectF(positions[i], QSizeF(cw, ch)));
     }
 
     // The positions to show; the saved ones stay in m_items as a request.
