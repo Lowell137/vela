@@ -601,7 +601,8 @@ Window {
                 height: Desktop.cellHeight
                 x: cellX
                 y: cellY
-                z: selected ? 1 : 0
+                // Selected names grow downwards: the higher icon is drawn over the one below.
+                z: selected ? 2 - cellY / 100000 : 0
 
                 // Highlight: on hover, and stronger if selected.
                 Rectangle {
