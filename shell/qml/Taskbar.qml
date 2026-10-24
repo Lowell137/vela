@@ -1009,7 +1009,7 @@ Window {
             : parent.width - width - 12 - (root.floating ? root.sideMargin : 0)
         y: root.vertical ? showDesktop.y - height - 4 : 0
         readonly property bool badge: Notifications.history.count > 0 || Notifications.silenced
-        width: root.vertical ? parent.width : clockColumn.implicitWidth + 16 + (badge ? 22 : 0)
+        width: root.vertical ? parent.width : clockColumn.implicitWidth + 16 + (badge ? 24 : 0) // 8 px each side, 6 between text and badge
         height: root.vertical ? clockColumn.implicitHeight + 16 + (badge ? 22 : 0) : parent.height
 
         property date now: new Date()
@@ -1033,7 +1033,7 @@ Window {
         // (with "Do not disturb" a muted bell); below it along a vertical taskbar.
         Rectangle {
             visible: clock.badge
-            x: root.vertical ? (parent.width - width) / 2 : parent.width - width + 2
+            x: root.vertical ? (parent.width - width) / 2 : parent.width - width - 8
             y: root.vertical ? parent.height - height - 4 : (parent.height - height) / 2
             width: 18
             height: 18
