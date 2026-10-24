@@ -9,6 +9,7 @@ import Vela.Controls
 // apps get it when they start again.
 Page {
     id: page
+    maxContentWidth: 100000 // the tiles fill the window
     readonly property var themes: Prefs.cursorThemes()
     readonly property var choices: [{ name: "", text: qsTr("Automatic") }].concat(page.themes)
     readonly property int chosenIndex: {

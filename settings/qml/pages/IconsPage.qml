@@ -9,6 +9,7 @@ import Vela.Controls
 // variant ("X-dark") follows the mode.
 Page {
     id: page
+    maxContentWidth: 100000 // the tiles fill the window
     readonly property var themes: Prefs.iconThemes()
     // vela and Fluent first (if installed), then the rest.
     readonly property var choices: {
