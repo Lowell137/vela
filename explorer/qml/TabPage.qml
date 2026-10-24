@@ -188,7 +188,9 @@ Item {
     function cutSelection() { if (folder.selectionCount > 0 && writable) Ops.cut(folder.selectedPaths()) }
     function paste() { if (writable) Ops.paste(location) }
     function renameSelection() {
-        if (writable && folder.selectionCount === 1) renamingPath = folder.selectedPaths()[0]
+        if (!writable) return
+        if (folder.selectionCount === 1) renamingPath = folder.selectedPaths()[0]
+        else if (folder.selectionCount > 1) win.askRenameMany(folder.selectedPaths())
     }
     function finishRename(path, newName) {
         if (renamingPath !== path) return
@@ -320,7 +322,7 @@ Item {
         const entries = [{ iconRow: [
             { icon: "edit-cut", text: qsTr("Cut"), action: () => Ops.cut(paths) },
             { icon: "edit-copy", text: qsTr("Copy"), action: () => Ops.copy(paths) },
-            { icon: "edit-rename", text: qsTr("Rename"), enabled: single !== "", action: () => page.renamingPath = single },
+            { icon: "edit-rename", text: qsTr("Rename"), enabled: writable, action: () => single !== "" ? page.renamingPath = single : page.renameSelection() },
             { icon: "document-share", text: qsTr("Share"), enabled: files.length > 0, action: () => Ops.share(files) },
             { icon: "edit-delete", text: qsTr("Delete"), action: () => Ops.trash(paths) }
         ] }]

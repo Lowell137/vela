@@ -40,7 +40,7 @@ Item {
         ToolButton { visible: !bar.tab.isTrash; icon: "edit-cut"; tooltip: qsTr("Cut (Ctrl+X)"); usable: bar.hasSelection && bar.writable; onClicked: bar.tab.cutSelection() }
         ToolButton { visible: !bar.tab.isTrash; icon: "edit-copy"; tooltip: qsTr("Copy (Ctrl+C)"); usable: bar.hasSelection; onClicked: bar.tab.copySelection() }
         ToolButton { visible: !bar.tab.isTrash; icon: "edit-paste"; tooltip: qsTr("Paste (Ctrl+V)"); usable: Ops.canPaste && bar.writable; onClicked: bar.tab.paste() }
-        ToolButton { visible: !bar.tab.isTrash; icon: "edit-rename"; tooltip: qsTr("Rename (F2)"); usable: bar.tab.model && bar.tab.model.selectionCount === 1 && bar.writable; onClicked: bar.tab.renameSelection() }
+        ToolButton { visible: !bar.tab.isTrash; icon: "edit-rename"; tooltip: qsTr("Rename (F2)"); usable: bar.tab.model && bar.tab.model.selectionCount >= 1 && bar.writable; onClicked: bar.tab.renameSelection() }
         ToolButton {
             visible: !bar.tab.isTrash
             icon: "document-share"

@@ -55,6 +55,10 @@ public:
     Q_INVOKABLE QVariantList templates() const; // [{name, icon, path}]
     // The new name, or an error message starting with "!".
     Q_INVOKABLE QString rename(const QString& path, const QString& newName);
+    // Rename many, like Windows: "Name (1).ext", "Name (2).ext"... in the
+    // order given, each keeping its extension. Nothing changes if one name is
+    // taken. Empty on success, or an error message starting with "!".
+    Q_INVOKABLE QString renameMany(const QStringList& paths, const QString& baseName);
 
     Q_INVOKABLE void trash(const QStringList& paths);
     Q_INVOKABLE void deletePermanently(const QStringList& paths);

@@ -838,6 +838,42 @@ QString FileOps::rename(const QString& path, const QString& newName)
     return clean;
 }
 
+QString FileOps::renameMany(const QStringList& paths, const QString& baseName)
+{
+    const QString base = baseName.trimmed();
+    if (paths.isEmpty() || base.isEmpty()) {
+        return QString();
+    }
+    if (base.contains(u'/') || base == QLatin1String(".") || base == QLatin1String("..")) {
+        return QCoreApplication::translate("Files", "!A name can't contain the / character");
+    }
+    QList<QPair<QString, QString>> moves; // (new path, old path)
+    for (int i = 0; i < paths.size(); ++i) {
+        const QFileInfo info(paths.at(i));
+        const QString suffix = info.suffix().isEmpty() ? QString() : u'.' + info.suffix();
+        const QString name = QStringLiteral("%1 (%2)%3").arg(base).arg(i + 1).arg(suffix);
+        const QString target = info.absoluteDir().filePath(name);
+        // A taken name stops everything, even one of the files being renamed.
+        if (QFileInfo::exists(target)) {
+            return QCoreApplication::translate("Files", "!This folder already contains an item named \"%1\".").arg(name);
+        }
+        moves.append({ target, paths.at(i) });
+    }
+    for (int i = 0; i < moves.size(); ++i) {
+        if (!QFile::rename(moves.at(i).second, moves.at(i).first)) {
+            for (int j = 0; j < i; ++j) {
+                QFile::rename(moves.at(j).first, moves.at(j).second); // back to how it was
+            }
+            return QCoreApplication::translate("Files", "!Couldn't rename \"%1\".").arg(QFileInfo(moves.at(i).second).fileName());
+        }
+    }
+    UndoStep step;
+    step.label = QCoreApplication::translate("Files", "Rename");
+    step.moves = moves;
+    pushUndo(step);
+    return QString();
+}
+
 // --------------------------------------------------------- Recycle Bin --
 
 void FileOps::trash(const QStringList& paths)

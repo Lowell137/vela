@@ -151,6 +151,31 @@ private slots:
         delete m_dir;
     }
 
+    // Rename many: "Name (1).ext"..., nothing changes if a name is taken, Undo restores.
+    void renameMany()
+    {
+        for (const char* name : { "a.txt", "b.png", "noext" }) {
+            QFile f(path(QString::fromLatin1(name)));
+            QVERIFY(f.open(QIODevice::WriteOnly));
+        }
+        const QStringList paths { path("a.txt"), path("b.png"), path("noext") };
+        QVERIFY(m_ops->renameMany(paths, QStringLiteral("a/b")).startsWith(u'!'));
+        QFile taken(path("Trip (2).png"));
+        QVERIFY(taken.open(QIODevice::WriteOnly));
+        taken.close();
+        QVERIFY(m_ops->renameMany(paths, QStringLiteral("Trip")).startsWith(u'!'));
+        QVERIFY(QFile::exists(path("a.txt")) && QFile::exists(path("b.png"))); // untouched
+        QVERIFY(QFile::remove(path("Trip (2).png")));
+
+        QCOMPARE(m_ops->renameMany(paths, QStringLiteral("Trip")), QString());
+        QVERIFY(QFile::exists(path("Trip (1).txt")));
+        QVERIFY(QFile::exists(path("Trip (2).png")));
+        QVERIFY(QFile::exists(path("Trip (3)")));
+        QVERIFY(!QFile::exists(path("a.txt")));
+        m_ops->undo();
+        QVERIFY(QFile::exists(path("a.txt")) && QFile::exists(path("b.png")) && QFile::exists(path("noext")));
+    }
+
     // Quick access order: a pinned folder dragged before or after another.
     void movePin()
     {

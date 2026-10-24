@@ -276,6 +276,18 @@ Window {
         confirmDialog.open()
     }
 
+    // Rename several: one name for all, numbered "(1)", "(2)"...
+    property var renamePaths: []
+    function askRenameMany(paths) {
+        renamePaths = paths
+        const first = paths[0].substring(paths[0].lastIndexOf("/") + 1)
+        const dot = first.lastIndexOf(".")
+        renameName.text = dot > 0 ? first.substring(0, dot) : first
+        renameDialog.open()
+        renameName.forceActiveFocus()
+        renameName.selectAll()
+    }
+
     // Compress: the archive's name and format, like Windows' right click ›
     // "Compress". The folder never moves and taken names get " (2)".
     property var compressPaths: []
@@ -329,6 +341,34 @@ Window {
             { text: qsTr("Cancel"), value: "cancel" }
         ]
         onChosen: value => Ops.resolveConflict(value)
+    }
+    Dialog {
+        id: renameDialog
+        title: qsTr("Rename")
+        buttons: [{ text: qsTr("Rename"), accent: true, value: "rename" }, { text: qsTr("Cancel"), value: "cancel" }]
+        onChosen: value => {
+            if (value === "rename" && root.renamePaths.length > 0) {
+                const result = Ops.renameMany(root.renamePaths, renameName.text)
+                if (result.startsWith("!")) {
+                    root.showError(result.substring(1))
+                    root.renamePaths = []
+                    return
+                }
+            }
+            root.renamePaths = []
+            if (root.current) root.current.focusView()
+        }
+        content: Row {
+            spacing: 12
+            Text { anchors.verticalCenter: parent.verticalCenter; text: qsTr("Name"); color: Theme.text; font.pixelSize: Theme.fontBody }
+            // Enter renames: the text box eats Return.
+            TextBox {
+                id: renameName
+                width: 280
+                Keys.onReturnPressed: renameDialog.close("rename")
+            }
+            Text { anchors.verticalCenter: parent.verticalCenter; text: qsTr("(1), (2)..."); color: Theme.textSecondary; font.pixelSize: Theme.fontCaption }
+        }
     }
     Dialog {
         id: compressDialog
