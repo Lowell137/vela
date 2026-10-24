@@ -3,6 +3,8 @@
 
 #include "foldermodel.h"
 
+#include "tags.h"
+
 #include <QClipboard>
 #include <QCollator>
 #include <QCoreApplication>
@@ -61,6 +63,7 @@ FolderModel::Entry describe(const QFileInfo& info)
     e.isDir = info.isDir();
     e.hidden = e.name.startsWith(u'.');
     e.modified = info.lastModified();
+    e.tags = vela::tags::read(e.path).join(u',');
     if (e.isDir) {
         e.type = QCoreApplication::translate("Files", "File folder");
         e.icon = folderIcon(e.path);
@@ -145,6 +148,7 @@ QHash<int, QByteArray> FolderModel::roleNames() const
         { SelectedRole, "selected" },
         { LocationRole, "location" },
         { CutRole, "isCut" },
+        { TagsRole, "tags" },
     };
 }
 
@@ -182,6 +186,7 @@ QVariant FolderModel::data(const QModelIndex& index, int role) const
     case SelectedRole: return m_selected.contains(index.row());
     case LocationRole: return QFileInfo(e.path).absolutePath();
     case CutRole: return m_cut.contains(e.path);
+    case TagsRole: return e.tags;
     }
     return {};
 }

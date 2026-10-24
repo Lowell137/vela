@@ -57,6 +57,7 @@ public:
         SelectedRole,
         LocationRole, // the folder containing it (search results)
         CutRole, // cut (on the clipboard): shown faded
+        TagsRole, // "red,blue": the file's tags
     };
 
     struct Entry {
@@ -70,6 +71,7 @@ public:
         QString type;
         QString icon;
         bool thumbnail = false;
+        QString tags; // comma-separated
     };
 
     explicit FolderModel(QObject* parent = nullptr);

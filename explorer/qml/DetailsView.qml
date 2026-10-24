@@ -188,6 +188,7 @@ Item {
             required property bool isDir
             required property bool selected
             required property bool isCut
+            required property string tags
             required property bool isLink
             required property string iconName
             required property bool hasThumbnail
@@ -222,6 +223,12 @@ Item {
                 modified: row.modified
                 cut: row.isCut
                 link: row.isLink
+            }
+            TagDots {
+                tags: row.tags
+                x: view.columnX(0) + 30 + 6
+                y: parent.height - height - 3
+                dot: 7
             }
             Text {
                 visible: view.tab.renamingPath !== row.path

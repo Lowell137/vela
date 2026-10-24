@@ -8,6 +8,7 @@
 #include "links.h"
 #include "peek.h"
 #include "systemactions.h"
+#include "tags.h"
 
 #include <QClipboard>
 #include <QCollator>
@@ -1090,6 +1091,31 @@ void FileOps::compress(const QStringList& paths, const QString& directory,
             emit self->created(archivePath, false);
         });
     });
+}
+
+bool FileOps::hasTag(const QStringList& paths, const QString& tag) const
+{
+    return !paths.isEmpty()
+        && std::all_of(paths.cbegin(), paths.cend(), [&](const QString& p) { return vela::tags::read(p).contains(tag); });
+}
+
+void FileOps::toggleTag(const QStringList& paths, const QString& tag)
+{
+    const bool remove = hasTag(paths, tag);
+    bool failedOne = false;
+    for (const QString& path : paths) {
+        QStringList tags = vela::tags::read(path);
+        if (remove) {
+            tags.removeAll(tag);
+        } else if (!tags.contains(tag)) {
+            tags.append(tag);
+        }
+        failedOne |= !vela::tags::write(path, tags);
+    }
+    if (failedOne) {
+        emit failed(QCoreApplication::translate("Files", "This location doesn't keep tags."));
+    }
+    emit tagsChanged();
 }
 
 bool FileOps::isDiskImage(const QString& path) const

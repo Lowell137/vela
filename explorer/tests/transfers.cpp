@@ -11,6 +11,7 @@
 #include "fileops.h"
 #include "places.h"
 #include "systemactions.h"
+#include "tags.h"
 
 #include <QDateTime>
 #include <QDir>
@@ -174,6 +175,31 @@ private slots:
         QVERIFY(!QFile::exists(path("a.txt")));
         m_ops->undo();
         QVERIFY(QFile::exists(path("a.txt")) && QFile::exists(path("b.png")) && QFile::exists(path("noext")));
+    }
+
+    // Tags: the xattr user.xdg.tags; on all of them or off all of them.
+    void tagsToggle()
+    {
+        QFile a(path("a.txt")), b(path("b.txt"));
+        QVERIFY(a.open(QIODevice::WriteOnly) && b.open(QIODevice::WriteOnly));
+        a.close();
+        b.close();
+        const QStringList both { path("a.txt"), path("b.txt") };
+        QSignalSpy failed(m_ops, &FileOps::failed);
+        m_ops->toggleTag({ path("a.txt") }, QStringLiteral("red"));
+        if (!failed.isEmpty()) {
+            QSKIP("the temporary directory's file system keeps no xattr");
+        }
+        QVERIFY(m_ops->hasTag({ path("a.txt") }, QStringLiteral("red")));
+        QVERIFY(!m_ops->hasTag(both, QStringLiteral("red"))); // b has none
+        m_ops->toggleTag(both, QStringLiteral("red")); // not on all: put on all
+        QVERIFY(m_ops->hasTag(both, QStringLiteral("red")));
+        m_ops->toggleTag(both, QStringLiteral("blue"));
+        QCOMPARE(vela::tags::read(path("b.txt")), QStringList({ "red", "blue" }));
+        m_ops->toggleTag(both, QStringLiteral("red")); // on all: off all
+        QCOMPARE(vela::tags::read(path("a.txt")), QStringList({ "blue" }));
+        m_ops->toggleTag(both, QStringLiteral("blue"));
+        QVERIFY(vela::tags::read(path("a.txt")).isEmpty());
     }
 
     // Quick access order: a pinned folder dragged before or after another.

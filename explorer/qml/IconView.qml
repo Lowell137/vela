@@ -115,6 +115,7 @@ Item {
             required property string iconName
             required property bool hasThumbnail
             required property var modified
+            required property string tags
             width: view.cellWidth
             height: view.cellHeight
             readonly property bool small: view.mode === "small"
@@ -140,6 +141,11 @@ Item {
                 modified: cell.modified
                 cut: cell.isCut
                 link: cell.isLink
+            }
+            TagDots {
+                tags: cell.tags
+                x: icon.x + icon.width - width + 2
+                y: icon.y + icon.height - height + 2
             }
             Text {
                 visible: view.tab.renamingPath !== cell.path

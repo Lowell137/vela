@@ -95,6 +95,7 @@ Item {
         target: Ops
         // A file just created or pasted in this folder: it's selected (and
         // renamed).
+        function onTagsChanged() { page.refresh() }
         function onCreated(path, rename) {
             if (!page.isFolder || path.substring(0, path.lastIndexOf("/")) !== page.location) return
             if (rename) page.renameWhenAppears = path
@@ -355,6 +356,13 @@ Item {
                 ? { text: qsTr("Unpin from &Quick access"), icon: "window-unpin", action: () => Places.unpin(single) }
                 : { text: qsTr("Pin to &Quick access"), icon: "window-pin", action: () => Places.pin(single) })
             entries.push({ text: qsTr("Open in &Terminal"), icon: "utilities-terminal", action: () => System.openTerminal(single) })
+        }
+        if (!isTrash && writable) {
+            const tag = (text, value) => ({ text: text, checkable: true, checked: Ops.hasTag(paths, value), action: () => Ops.toggleTag(paths, value) })
+            entries.push({ text: qsTr("Ta&gs"), icon: "tag", children: [
+                tag(qsTr("Red"), "red"), tag(qsTr("Orange"), "orange"), tag(qsTr("Yellow"), "yellow"),
+                tag(qsTr("Green"), "green"), tag(qsTr("Blue"), "blue"), tag(qsTr("Purple"), "purple"), tag(qsTr("Gray"), "gray")
+            ] })
         }
         if (single !== "" && Ops.isDiskImage(single)) {
             entries.push({ text: qsTr("&Mount"), icon: "drive-removable-media", action: () => Ops.mountImage(single) })

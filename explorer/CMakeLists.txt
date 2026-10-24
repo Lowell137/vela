@@ -90,6 +90,7 @@ set(FILES_QML_FILES
     qml/ToolButton.qml
     qml/FileIcon.qml
     qml/RenameField.qml
+    qml/TagDots.qml
     qml/ScrollBar.qml
     qml/PreviewPane.qml
     qml/QuickPeek.qml
