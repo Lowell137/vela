@@ -553,6 +553,10 @@
         <translation>Formato</translation>
     </message>
     <message>
+        <source>7z file</source>
+        <translation>File 7z</translation>
+    </message>
+    <message>
         <source>ZIP file</source>
         <translation>File ZIP</translation>
     </message>

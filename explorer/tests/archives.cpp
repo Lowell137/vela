@@ -4,8 +4,8 @@
 // Tests of Explorer's archives, without a UI: "Extract here" (into a folder
 // named after the archive, next to it, never overwriting one that exists) and
 // "Compress" (the chosen name, several items as paths relative to the
-// folder). Extract is libarchive on a worker thread, compress runs external
-// tools (7z, zip, tar), so each test waits for the answer by signal.
+// folder). Extract and Compress are libarchive on a worker thread, so each
+// test waits for the answer by signal.
 //
 //   ctest --test-dir build -R files-archives
 
@@ -218,6 +218,55 @@ private slots:
         QTRY_VERIFY(QFile::exists(path("esiste (2).zip")));
         QCOMPARE(read(path("esiste.zip")), QByteArray("tutto"));
         QCOMPARE(read(path("esiste.txt")), QByteArray("altro"));
+    }
+
+    // 7z is written by the app itself: a folder with a file inside, listed
+    // and read back by the real 7z.
+    void compress7zAndRoundTrip()
+    {
+        write(path("f1.txt"), "uno");
+        write(path("cartella/sub/f2.txt"), "due");
+        QSignalSpy created(m_ops, &FileOps::created);
+        QSignalSpy failed(m_ops, &FileOps::failed);
+        m_ops->compress({ path("f1.txt"), path("cartella") }, path("."), QStringLiteral("pacchetto"),
+            QStringLiteral("7z"));
+        bool ok = false;
+        settle(created, failed, ok);
+        QVERIFY(ok);
+        QVERIFY(QFile::exists(path("pacchetto.7z")));
+        if (!QStandardPaths::findExecutable(QStringLiteral("7z")).isEmpty()) {
+            QString listing;
+            toolOutput(QStringLiteral("7z"), { QStringLiteral("l"), path("pacchetto.7z") }, listing);
+            QVERIFY2(listing.contains("f1.txt"), qPrintable(listing));
+            QVERIFY2(listing.contains("cartella/sub/f2.txt") || listing.contains("cartella\\sub\\f2.txt"), qPrintable(listing));
+        }
+        // And the app's own extract reads it back.
+        QDir().mkpath(path("fuori"));
+        QFile::copy(path("pacchetto.7z"), path("fuori/pacchetto.7z"));
+        QSignalSpy created2(m_ops, &FileOps::created);
+        QSignalSpy failed2(m_ops, &FileOps::failed);
+        m_ops->extractAll(path("fuori/pacchetto.7z"));
+        settle(created2, failed2, ok);
+        QVERIFY(ok);
+        QCOMPARE(read(path("fuori/pacchetto/f1.txt")), QByteArray("uno"));
+        QCOMPARE(read(path("fuori/pacchetto/cartella/sub/f2.txt")), QByteArray("due"));
+    }
+
+    // zip made by the app unpacks with the real unzip/7z (a real zip).
+    void compressZipRoundTrip()
+    {
+        write(path("cartella/f2.txt"), "due");
+        QSignalSpy created(m_ops, &FileOps::created);
+        QSignalSpy failed(m_ops, &FileOps::failed);
+        m_ops->compress({ path("cartella") }, path("."), QStringLiteral("z"), QStringLiteral("zip"));
+        bool ok = false;
+        settle(created, failed, ok);
+        QVERIFY(ok);
+        QDir().mkpath(path("out"));
+        if (makeArchive(path("."), QStringLiteral("7z"),
+                { QStringLiteral("x"), QStringLiteral("-oout"), QStringLiteral("z.zip") })) {
+            QCOMPARE(read(path("out/cartella/f2.txt")), QByteArray("due"));
+        }
     }
 
     // tar.gz goes to tar.

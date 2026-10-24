@@ -277,9 +277,7 @@ Window {
     }
 
     // Compress: the archive's name and format, like Windows' right click ›
-    // "Compress". The ZIP choice is there only when a program can make it
-    // (7z or zip); the folder never moves and taken names get " (2)".
-    readonly property bool zipOk: Ops.zipSupported()
+    // "Compress". The folder never moves and taken names get " (2)".
     property var compressPaths: []
     property string compressLocation: ""
     function askCompress(paths) {
@@ -289,8 +287,9 @@ Window {
         const first = paths[0].substring(paths[0].lastIndexOf("/") + 1)
         const dot = first.lastIndexOf(".")
         compressName.text = dot > 0 ? first.substring(0, dot) : first
-        zipRadio.checked = root.zipOk
-        tarRadio.checked = !root.zipOk
+        zipRadio.checked = true
+        sevenRadio.checked = false
+        tarRadio.checked = false
         compressDialog.open()
         compressName.forceActiveFocus()
         compressName.selectAll()
@@ -333,7 +332,7 @@ Window {
     }
     Dialog {
         id: compressDialog
-        readonly property string format: zipRadio.checked ? "zip" : "tar.gz"
+        readonly property string format: zipRadio.checked ? "zip" : sevenRadio.checked ? "7z" : "tar.gz"
         title: qsTr("Compress")
         buttons: [{ text: qsTr("Compress"), accent: true, value: "compress" }, { text: qsTr("Cancel"), value: "cancel" }]
         onChosen: value => {
@@ -359,10 +358,19 @@ Window {
                 spacing: 12
                 RadioButton {
                     id: zipRadio
-                    visible: root.zipOk
                     text: qsTr("ZIP file")
                     onClicked: {
                         checked = true
+                        sevenRadio.checked = false
+                        tarRadio.checked = false
+                    }
+                }
+                RadioButton {
+                    id: sevenRadio
+                    text: qsTr("7z file")
+                    onClicked: {
+                        checked = true
+                        zipRadio.checked = false
                         tarRadio.checked = false
                     }
                 }
@@ -372,6 +380,7 @@ Window {
                     onClicked: {
                         checked = true
                         zipRadio.checked = false
+                        sevenRadio.checked = false
                     }
                 }
             }

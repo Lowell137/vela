@@ -36,6 +36,8 @@
 
 #include <archive.h>
 #include <archive_entry.h>
+#include <cerrno>
+#include <cstring>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -918,39 +920,91 @@ void FileOps::restoreFromTrash(const QStringList& paths)
 
 namespace {
 
-// Runs an external tool and answers without waiting on the UI: `done` runs by
-// signal, with false and the tool's last stderr line when it failed. Owned by
-// `parent` ('this' FileOps, like updates.cpp's processes): if Files is closed
-// the extraction stops, and a half-extracted folder stays (Windows behaves
-// the same).
-QProcess* runTool(QObject* parent, const QString& program, const QStringList& arguments,
-    const QString& directory, const std::function<void(bool, const QString&)>& done)
+// Writes `names` (relative to `directory`, folders with everything inside)
+// into a new archive of `format` ("zip", "7z", "tar.gz") with libarchive, on a
+// worker thread. Returns an empty string when done, otherwise the reason; a
+// failed archive is removed.
+QString pack(const QString& archivePath, const QString& directory, const QStringList& names, const QString& format)
 {
-    auto* process = new QProcess(parent);
-    QObject::connect(process, &QProcess::finished, parent,
-        [process, done](int code, QProcess::ExitStatus status) {
-            QString error;
-            if (status != QProcess::NormalExit || code != 0) {
-                // The tool's stderr ends with the reason ("corrupt archive"…).
-                error = QString::fromLocal8Bit(process->readAllStandardError())
-                            .section(u'\n', -1)
-                            .trimmed();
+    archive* out = archive_write_new();
+    if (format == QLatin1String("7z")) {
+        archive_write_set_format_7zip(out);
+    } else if (format == QLatin1String("zip")) {
+        archive_write_set_format_zip(out);
+    } else {
+        archive_write_set_format_pax_restricted(out);
+        archive_write_add_filter_gzip(out);
+    }
+    archive* disk = archive_read_disk_new();
+    archive_read_disk_set_standard_lookup(disk);
+
+    QString error;
+    if (archive_write_open_filename(out, QFile::encodeName(archivePath).constData()) != ARCHIVE_OK) {
+        error = QString::fromUtf8(archive_error_string(out));
+    }
+    const QDir base(directory);
+    const auto add = [&](const QString& relative) {
+        const QByteArray source = QFile::encodeName(base.filePath(relative));
+        struct stat st;
+        if (lstat(source.constData(), &st) != 0) {
+            return QString::fromLocal8Bit(strerror(errno));
+        }
+        archive_entry* entry = archive_entry_new();
+        archive_entry_copy_sourcepath(entry, source.constData());
+        archive_entry_set_pathname(entry, QFile::encodeName(relative).constData());
+        if (archive_read_disk_entry_from_file(disk, entry, -1, &st) != ARCHIVE_OK) {
+            const QString reason = QString::fromUtf8(archive_error_string(disk));
+            archive_entry_free(entry);
+            return reason;
+        }
+        QString problem;
+        if (archive_write_header(out, entry) < ARCHIVE_WARN) {
+            problem = QString::fromUtf8(archive_error_string(out));
+        } else if (S_ISREG(st.st_mode) && archive_entry_size(entry) > 0) {
+            QFile file(base.filePath(relative));
+            if (!file.open(QIODevice::ReadOnly)) {
+                problem = file.errorString();
             }
-            done(status == QProcess::NormalExit && code == 0, error);
-            process->deleteLater();
-        });
-    process->setWorkingDirectory(directory);
-    process->start(program, arguments);
-    return process;
+            QByteArray buffer(65536, Qt::Uninitialized);
+            while (problem.isEmpty()) {
+                const qint64 n = file.read(buffer.data(), buffer.size());
+                if (n < 0) {
+                    problem = file.errorString();
+                } else if (n == 0) {
+                    break;
+                } else if (archive_write_data(out, buffer.constData(), size_t(n)) < 0) {
+                    problem = QString::fromUtf8(archive_error_string(out));
+                }
+            }
+        }
+        archive_entry_free(entry);
+        return problem;
+    };
+    for (const QString& name : names) {
+        if (!error.isEmpty()) {
+            break;
+        }
+        error = add(name);
+        if (error.isEmpty() && QFileInfo(base.filePath(name)).isDir() && !QFileInfo(base.filePath(name)).isSymLink()) {
+            QDirIterator it(base.filePath(name), QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden | QDir::System,
+                QDirIterator::Subdirectories);
+            while (error.isEmpty() && it.hasNext()) {
+                error = add(base.relativeFilePath(it.next()));
+            }
+        }
+    }
+    if (error.isEmpty() && archive_write_close(out) != ARCHIVE_OK) {
+        error = QString::fromUtf8(archive_error_string(out));
+    }
+    archive_read_free(disk);
+    archive_write_free(out);
+    if (!error.isEmpty()) {
+        QFile::remove(archivePath);
+    }
+    return error;
 }
 
 } // namespace
-
-bool FileOps::zipSupported() const
-{
-    return !QStandardPaths::findExecutable(QStringLiteral("7z")).isEmpty()
-        || !QStandardPaths::findExecutable(QStringLiteral("zip")).isEmpty();
-}
 
 void FileOps::compress(const QStringList& paths, const QString& directory,
     const QString& name, const QString& format)
@@ -967,63 +1021,37 @@ void FileOps::compress(const QStringList& paths, const QString& directory,
     if (base.isEmpty()) {
         return;
     }
-    const bool zipFormat = format.compare(QStringLiteral("tar.gz"), Qt::CaseInsensitive) != 0;
-    const QString suffix = zipFormat ? QStringLiteral(".zip") : QStringLiteral(".tar.gz");
+    const QString kind = format.compare(QStringLiteral("7z"), Qt::CaseInsensitive) == 0 ? QStringLiteral("7z")
+        : format.compare(QStringLiteral("tar.gz"), Qt::CaseInsensitive) == 0         ? QStringLiteral("tar.gz")
+                                                                                     : QStringLiteral("zip");
     // Taken names get " (2)", like "Paste here": never overwrite.
-    const QString archive = uniqueNameIn(directory, base + suffix);
+    const QString archiveName = uniqueNameIn(directory, base + u'.' + kind);
 
     // Several selected items: their paths stay relative to the folder.
     QStringList names;
     for (const QString& path : paths) {
         names.append(QFileInfo(path).fileName());
     }
-    // Absolute programs found through QStandardPaths, so what runs is what we
-    // chose: the ZIP goes to 7z (or zip), the tar.gz to tar.
-    QString program;
-    QStringList arguments;
-    if (zipFormat) {
-        const QString seven = QStandardPaths::findExecutable(QStringLiteral("7z"));
-        if (!seven.isEmpty()) {
-            program = seven;
-            // No "--" after the archive: p7zip parses it as a file name and
-            // ends with a warning (exit 1).
-            arguments = { QStringLiteral("a"), QStringLiteral("-tzip"), QStringLiteral("--"), archive };
-        } else {
-            program = QStandardPaths::findExecutable(QStringLiteral("zip"));
-            arguments = { QStringLiteral("-r"), archive, QStringLiteral("--") };
-        }
-    } else {
-        program = QStandardPaths::findExecutable(QStringLiteral("tar"));
-        if (!program.isEmpty()) {
-            arguments = { QStringLiteral("-czf"), archive, QStringLiteral("--") };
-        }
-    }
-    if (program.isEmpty()) {
-        if (zipFormat) {
-            emit failed(QCoreApplication::translate("Files",
-                "7-Zip or zip would be needed to compress, but it isn't installed."));
-        } else {
-            emit failed(QCoreApplication::translate("Files",
-                "tar would be needed to compress to tar.gz, but it isn't installed."));
-        }
-        return;
-    }
-    arguments.append(names);
-
-    const QString archivePath = QDir(directory).filePath(archive);
-    runTool(this, program, arguments, directory, [this, archivePath, archive](bool ok, const QString& error) {
-        if (!ok) {
-            emit failed(error.isEmpty()
-                    ? QCoreApplication::translate("Files", "“%1” couldn't be created.").arg(archive)
-                    : QCoreApplication::translate("Files", "Couldn't create “%1”:").arg(archive) + u' ' + error);
-            return;
-        }
-        UndoStep step;
-        step.label = QCoreApplication::translate("Files", "Compress");
-        step.created.append(archivePath);
-        pushUndo(step);
-        // Selected when it arrives, like pasted files.
-        emit created(archivePath, false);
+    const QString archivePath = QDir(directory).filePath(archiveName);
+    QPointer<FileOps> self(this);
+    QThreadPool::globalInstance()->start([self, archivePath, archiveName, directory, names, kind] {
+        const QString error = pack(archivePath, directory, names, kind);
+        QMetaObject::invokeMethod(qApp, [self, error, archivePath, archiveName] {
+            if (!self) {
+                return;
+            }
+            if (!error.isEmpty()) {
+                emit self->failed(QCoreApplication::translate("Files", "Couldn't create “%1”:").arg(archiveName)
+                    + u' ' + error);
+                return;
+            }
+            UndoStep step;
+            step.label = QCoreApplication::translate("Files", "Compress");
+            step.created.append(archivePath);
+            self->pushUndo(step);
+            // Selected when it arrives, like pasted files.
+            emit self->created(archivePath, false);
+        });
     });
 }
 
