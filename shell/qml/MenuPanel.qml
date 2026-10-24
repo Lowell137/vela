@@ -221,6 +221,11 @@ Item {
     }
 
     // --- look ---
+    Gradient {
+        id: sevenHighlight
+        GradientStop { position: 0; color: "#F3F9FF" }
+        GradientStop { position: 1; color: "#CFE3F8" }
+    }
     PanelShadow {
         target: panel
         radius: Theme.radiusOverlay
@@ -231,10 +236,19 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        radius: Theme.radiusOverlay
-        color: panel.fill
+        radius: Theme.menuSeven ? 3 : Theme.radiusOverlay
+        color: Theme.menuSeven ? "#F2F2F2" : panel.fill
         border.width: 1
-        border.color: Theme.stroke
+        border.color: Theme.menuSeven ? "#979797" : Theme.stroke
+        Rectangle { // Windows 7's gutter line between the icons and the text
+            visible: Theme.menuSeven
+            x: panel.textLeft - 8
+            y: 2
+            width: 1
+            height: parent.height - 4
+            color: "#E2E3E3"
+            Rectangle { x: 1; width: 1; height: parent.height; color: "#FFFFFF" }
+        }
     }
 
     // Clicks on the panel don't close the menu.
@@ -265,10 +279,10 @@ Item {
                 Rectangle {
                     visible: row.entry.separator === true
                     anchors.verticalCenter: parent.verticalCenter
-                    x: 0
-                    width: parent.width
+                    x: Theme.menuSeven ? panel.textLeft - 4 : 0
+                    width: parent.width - x - (Theme.menuSeven ? 4 : 0)
                     height: 1
-                    color: Theme.stroke
+                    color: Theme.menuSeven ? "#E2E3E3" : Theme.stroke
                 }
 
                 // The icon row of file menus: Cut, Copy, Rename...
@@ -296,7 +310,7 @@ Item {
                                 width: 16
                                 height: 16
                                 opacity: iconButton.usable ? 1 : 0.4
-                                source: Theme.icons + encodeURIComponent(iconButton.modelData.icon)
+                                source: (Theme.menuSeven ? Theme.iconsOnLight : Theme.icons) + encodeURIComponent(iconButton.modelData.icon)
                                 sourceSize: Qt.size(width, height)
                             }
                             MouseArea {
@@ -329,8 +343,11 @@ Item {
                         x: 4
                         width: parent.width - 8
                         height: parent.height
-                        radius: Theme.radius
+                        radius: Theme.menuSeven ? 3 : Theme.radius
                         color: rowMouse.pressed ? Theme.subtlePressed : Theme.subtleHover
+                        border.width: Theme.menuSeven ? 1 : 0
+                        border.color: "#A5C8EC"
+                        gradient: Theme.menuSeven ? sevenHighlight : null
                         opacity: row.isCurrent && row.usable ? 1 : 0
                     }
 
@@ -346,7 +363,7 @@ Item {
                             anchors.fill: parent
                             visible: row.entry.checked === undefined && !!row.entry.icon
                             source: row.entry.icon
-                                ? (row.entry.icon.indexOf(":") > 0 ? row.entry.icon : Theme.icons + encodeURIComponent(row.entry.icon))
+                                ? (row.entry.icon.indexOf(":") > 0 ? row.entry.icon : (Theme.menuSeven ? Theme.iconsOnLight : Theme.icons) + encodeURIComponent(row.entry.icon))
                                 : ""
                             sourceSize: Qt.size(width, height)
                             smooth: true
@@ -384,7 +401,7 @@ Item {
                         // opened from the keyboard.
                         textFormat: panel.keyboardMode ? Text.StyledText : Text.PlainText
                         text: panel.keyboardMode ? panel.styledText(row.entry.text) : panel.plainText(row.entry.text)
-                        color: row.usable ? Theme.text : Theme.textSecondary
+                        color: Theme.menuSeven ? (row.usable ? "#1E1E1E" : "#8D8D8D") : row.usable ? Theme.text : Theme.textSecondary
                         font.pixelSize: Theme.fontBody
                         elide: Text.ElideRight
                     }
@@ -392,7 +409,7 @@ Item {
                         id: shortcutText
                         anchors { right: parent.right; rightMargin: row.entry.children ? 36 : 16; verticalCenter: parent.verticalCenter }
                         text: row.entry.shortcut || ""
-                        color: Theme.textSecondary
+                        color: Theme.menuSeven ? "#6D6D6D" : Theme.textSecondary
                         font.pixelSize: Theme.fontCaption
                     }
                     // Submenu arrow.
@@ -403,7 +420,7 @@ Item {
                         height: 10
                         preferredRendererType: Shape.CurveRenderer
                         ShapePath {
-                            strokeColor: Theme.textSecondary
+                            strokeColor: Theme.menuSeven ? "#4D4D4D" : Theme.textSecondary
                             strokeWidth: 1.2
                             fillColor: "transparent"
                             capStyle: ShapePath.RoundCap

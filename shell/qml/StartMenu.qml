@@ -4,6 +4,7 @@
 import QtQuick
 import QtQuick.Shapes
 import QtQuick.Effects
+import QtQuick.Layouts
 import Vela.Controls
 
 // The Start menu: search at the top, all apps below, user at the bottom. It
@@ -94,9 +95,9 @@ Window {
                 seen[p.id] = true
                 out.push({ kind: "app", id: p.id, name: p.name, iconName: p.iconName })
             }
-            // A compact list: the rest of the first apps, up to eight.
+            // A compact list: the rest of the first apps, up to twelve.
             void Apps.query
-            for (let i = 0; out.length < 8 && i < Apps.count; ++i) {
+            for (let i = 0; out.length < 12 && i < Apps.count; ++i) {
                 const id = Apps.idAt(i)
                 if (seen[id]) {
                     continue
@@ -308,10 +309,17 @@ Window {
     }
 
     // An entry of the power menu.
+    Gradient {
+        id: powerHighlight
+        GradientStop { position: 0; color: "#F3F9FF" }
+        GradientStop { position: 1; color: "#CFE3F8" }
+    }
     component PowerEntry: Item {
         id: entry
         property string icon // from the theme; empty: the symbol drawn inside
         property string label
+        property color textColor: Theme.text
+        property bool light: false // Windows 7's light menu: dark glyphs, blue highlight
         default property alias glyph: glyphSlot.data
         signal activated()
         width: parent ? parent.width : 0
@@ -319,8 +327,11 @@ Window {
 
         Rectangle {
             anchors.fill: parent
-            radius: Theme.radius
+            radius: entry.light ? 3 : Theme.radius
             color: entryMouse.pressed ? Theme.subtlePressed : Theme.subtleHover
+            border.width: entry.light ? 1 : 0
+            border.color: "#A5C8EC"
+            gradient: entry.light ? powerHighlight : null
             opacity: entryMouse.containsMouse ? 1 : 0
         }
         Image {
@@ -329,7 +340,7 @@ Window {
             width: 16
             height: 16
             visible: entry.icon !== ""
-            source: entry.icon !== "" ? Theme.icons + entry.icon : ""
+            source: entry.icon !== "" ? (entry.light ? Theme.iconsOnLight : Theme.icons) + entry.icon : ""
             sourceSize: Qt.size(width, height)
         }
         Item {
@@ -343,7 +354,7 @@ Window {
             x: 36
             anchors.verticalCenter: parent.verticalCenter
             text: entry.label
-            color: Theme.text
+            color: entry.textColor
             font.pixelSize: Theme.fontBody
         }
         MouseArea {
@@ -373,6 +384,8 @@ Window {
         closeAnimation.stop()
         closing = false
         powerButton.menuOpen = false
+        sevenPowerOpen = false
+        sevenAll = false
         Apps.query = ""
         extraIndex = -1
         searchFilter = "all"
@@ -609,7 +622,8 @@ Window {
         // far side, 22 from the taskbar.
         readonly property bool side: Config.taskbarVertical
         readonly property real restY: side ? 10 : (Config.taskbarTop ? 22 : 10)
-        readonly property real restX: side && Config.taskbarLeft ? 22 : 10
+        // Windows 7's menu sits on the taskbar, at the corner: no gap at the Start button's side.
+        readonly property real restX: root.seven && !side ? 0 : side && Config.taskbarLeft ? 22 : 10
         // How far it rises while opening (falls, at the top, comes in from
         // the side next to a vertical taskbar). The part sticking out is cut
         // at the taskbar's edge.
@@ -617,26 +631,58 @@ Window {
         property real offset: 0
         x: restX + (side ? offset : 0)
         y: restY + (side ? 0 : offset)
-        width: root.width - (side ? 32 : 20)
-        height: root.height - (side ? 20 : 32) // 10 above, 22 below: 12 of gap from the taskbar
+        width: root.width - (side ? 32 : root.seven ? 10 : 20)
+        height: root.height - (side ? 20 : root.seven ? restY : 32) // 10 above, 22 below: 12 of gap from the taskbar (Windows 7: none)
         radius: Theme.startMenuRadius
-        color: Theme.startMenuSurface
+        color: root.seven ? "#E69EB6D0" : Theme.startMenuSurface // Windows 7: the Aero glass colour
         border.width: 1
-        border.color: Theme.stroke
+        border.color: root.seven ? "#B3101820" : Theme.stroke // Aero: a dark outer line...
+
+        Rectangle { // ...and a white one just inside it
+            visible: root.seven
+            anchors { fill: parent; margins: 1 }
+            radius: parent.radius - 1
+            color: "transparent"
+            border.width: 1
+            border.color: "#80FFFFFF"
+        }
+        Rectangle { // Windows 7's darkening of the glass: light at the edges, dark in the middle (AeroThemePlasma's SevenStart)
+            visible: root.seven
+            anchors { fill: parent; margins: 2 }
+            topLeftRadius: parent.radius - 2
+            topRightRadius: parent.radius - 2
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: "#26000000" }
+                GradientStop { position: 0.11; color: "#53000000" }
+                GradientStop { position: 0.2775; color: "#82000000" }
+                GradientStop { position: 0.445; color: "#99000000" }
+                GradientStop { position: 0.51; color: "#99000000" }
+                GradientStop { position: 0.84; color: "#4F000000" }
+                GradientStop { position: 1.0; color: "#00000000" }
+            }
+        }
 
         // --- search ---
         Rectangle {
             id: searchBox
             // x/y, not anchors: Windows 7's layout puts it at the bottom left.
             z: 5
-            x: root.seven ? 14 : 24
-            y: root.seven ? parent.height - height - 14 : 24
-            width: root.seven ? 220 : parent.width - 48
-            height: root.seven ? 26 : 38
+            // Windows 7: centred in the light strip at the bottom of the white column.
+            x: root.seven ? sevenRow.x + sevenLeft.x + 10 : 24
+            y: root.seven ? sevenRow.y + sevenLeft.y + sevenLeft.height - 2 - (sevenSearchStrip.height + height) / 2 : 24
+            width: root.seven ? sevenLeft.width - 20 : parent.width - 48
+            height: root.seven ? 30 : 38
             radius: root.seven ? 3 : height / 2
-            color: root.seven ? "#FFFFFF" : Theme.control
-            border.width: root.seven ? 1 : search.activeFocus ? 1 : 0
-            border.color: root.seven ? "#9DB6D3" : Theme.accent
+            color: root.seven ? "transparent" : Theme.control
+            border.width: root.seven ? 0 : search.activeFocus ? 1 : 0
+            border.color: Theme.accent
+
+            BorderImage { // Windows 7's field (AeroThemePlasma's lineedit.svg)
+                visible: root.seven
+                anchors.fill: parent
+                source: search.activeFocus ? "qrc:/seven/search-focus.png" : "qrc:/seven/search.png"
+                border { left: 6; top: 6; right: 6; bottom: 6 }
+            }
 
             Shape { // the magnifier, at the right end (Windows 7's)
                 visible: root.seven
@@ -660,7 +706,8 @@ Window {
                 visible: search.text.length === 0
                 text: root.seven ? qsTr("Search programs and files") : qsTr("Search apps, files and settings")
                 color: root.seven ? "#7C8794" : Theme.textSecondary
-                font.pixelSize: Theme.fontBody
+                font.pixelSize: root.seven ? 15 : Theme.fontBody
+                font.italic: root.seven
             }
 
             MenuTextField {
@@ -1353,317 +1400,357 @@ Window {
             visible: root.seven
             anchors.fill: parent
 
-            Rectangle { // the left column
-                id: sevenLeft
-                x: 6
-                y: 6
-                width: 238
-                height: parent.height - 12
-                radius: 4
-                color: "#F7FAFE"
-                border.width: 1
-                border.color: "#80FFFFFF"
+            RowLayout {
+                id: sevenRow
+                anchors { fill: parent; margins: 6 }
+                spacing: 4
 
-                ListView {
-                    id: sevenList
-                    anchors { left: parent.left; right: parent.right; top: parent.top
-                        bottom: allPrograms.top; margins: 4 }
-                    clip: true
-                    model: root.sevenPrograms
-                    boundsBehavior: Flickable.StopAtBounds
-                    delegate: Item {
-                        id: row
-                        required property var modelData
-                        width: sevenList.width
-                        height: 30
-                        Rectangle {
-                            anchors.fill: parent
-                            radius: 3
-                            visible: rowMouse.containsMouse
-                            border.width: 1
-                            border.color: "#B8D6F4"
+                BorderImage { // the left column: white, the search in a light strip at its bottom (AeroThemePlasma's background.svg)
+                    id: sevenLeft
+                    Layout.preferredWidth: 312
+                    Layout.fillHeight: true
+                    source: "qrc:/seven/panel.png"
+                    border { left: 6; top: 6; right: 6; bottom: 6 }
+
+                    Rectangle {
+                        id: sevenSearchStrip
+                        anchors { left: parent.left; right: parent.right; bottom: parent.bottom; margins: 2 }
+                        height: 52
+                        radius: 3
+                        color: "#F1F5FB"
+                        Rectangle { // its top edge
+                            anchors { left: parent.left; right: parent.right; top: parent.top }
+                            height: 4
                             gradient: Gradient {
-                                GradientStop { position: 0; color: "#EAF4FE" }
-                                GradientStop { position: 1; color: "#CFE4FA" }
+                                GradientStop { position: 0; color: "#CCD9EA" }
+                                GradientStop { position: 1; color: "#F0F4FA" }
                             }
                         }
-                        Image {
-                            x: 8
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: 22
-                            height: 22
-                            source: Theme.icons + encodeURIComponent(row.modelData.iconName ?? "")
-                            sourceSize: Qt.size(width, height)
-                            smooth: true
-                        }
-                        Text {
-                            anchors { left: parent.left; leftMargin: 38; right: parent.right; rightMargin: 8; verticalCenter: parent.verticalCenter }
-                            text: row.modelData.name
-                            color: "#3C3C3C"
-                            elide: Text.ElideRight
-                            font.pixelSize: 12
-                        }
-                        MouseArea {
-                            id: rowMouse
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            acceptedButtons: Qt.LeftButton | Qt.RightButton
-                            onClicked: mouse => {
-                                if (mouse.button === Qt.RightButton && row.modelData.kind === "app") {
-                                    root.openAppMenu(row, mouse.x, mouse.y, row.modelData.id, false)
-                                } else if (mouse.button === Qt.LeftButton) {
-                                    root.openResult(row.modelData)
+                    }
+
+                    ColumnLayout {
+                        anchors { fill: parent; margins: 4; bottomMargin: sevenSearchStrip.height + 4 }
+                        spacing: 4
+
+                        ListView {
+                            id: sevenList
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            clip: true
+                            model: root.sevenPrograms
+                            boundsBehavior: Flickable.StopAtBounds
+                            delegate: Item {
+                                id: row
+                                required property var modelData
+                                width: sevenList.width
+                                height: 41
+                                BorderImage {
+                                    anchors.fill: parent
+                                    visible: rowMouse.containsMouse
+                                    source: "qrc:/seven/item-hover.png"
+                                    border { left: 2; top: 2; right: 2; bottom: 2 }
+                                }
+                                Image {
+                                    x: 8
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: 32
+                                    height: 32
+                                    source: Theme.icons + encodeURIComponent(row.modelData.iconName ?? "")
+                                    sourceSize: Qt.size(width, height)
+                                    smooth: true
+                                }
+                                Text {
+                                    anchors { left: parent.left; leftMargin: 54; right: parent.right; rightMargin: 8; verticalCenter: parent.verticalCenter }
+                                    text: row.modelData.name
+                                    color: "#3C3C3C"
+                                    elide: Text.ElideRight
+                                    font.pixelSize: 15
+                                }
+                                MouseArea {
+                                    id: rowMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    acceptedButtons: Qt.LeftButton | Qt.RightButton
+                                    onClicked: mouse => {
+                                        if (mouse.button === Qt.RightButton && row.modelData.kind === "app") {
+                                            root.openAppMenu(row, mouse.x, mouse.y, row.modelData.id, false)
+                                        } else if (mouse.button === Qt.LeftButton) {
+                                            root.openResult(row.modelData)
+                                        }
+                                    }
                                 }
                             }
                         }
-                    }
-                }
 
-                Rectangle { // "All Programs" / "Back"
-                    id: allPrograms
-                    visible: !root.searching
-                    anchors { left: parent.left; right: parent.right; margins: 4
-                        bottom: parent.bottom; bottomMargin: 46 }
-                    height: visible ? 26 : 0
-                    radius: 3
-                    border.width: allMouse.containsMouse ? 1 : 0
-                    border.color: "#7DA2CE"
-                    gradient: Gradient {
-                        GradientStop { position: 0; color: allMouse.containsMouse ? "#F2F8FE" : "#00FFFFFF" }
-                        GradientStop { position: 1; color: allMouse.containsMouse ? "#CFE2F7" : "#00FFFFFF" }
-                    }
-                    Text {
-                        x: 12
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: root.sevenAll ? "\u25C2  " + qsTr("Back") : "\u25B8  " + qsTr("All Programs")
-                        color: "#3C3C3C"
-                        font.pixelSize: 12
-                    }
-                    MouseArea {
-                        id: allMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        onClicked: root.sevenAll = !root.sevenAll
-                    }
-                }
-            }
+                        Rectangle { // the line above "All Programs"
+                            visible: !root.searching
+                            Layout.fillWidth: true
+                            Layout.leftMargin: 6
+                            Layout.rightMargin: 6
+                            Layout.preferredHeight: 1
+                            color: "#D6E5F5"
+                        }
 
-            // The right column: the user, the places, Shut down.
-            Rectangle { // the glass of the right column, lighter at the top
-                x: 248
-                y: 6
-                width: parent.width - 248 - 6
-                height: parent.height - 12
-                radius: 3
-                gradient: Gradient {
-                    GradientStop { position: 0; color: "#33FFFFFF" }
-                    GradientStop { position: 1; color: "#26000000" }
-                }
-            }
-            Item {
-                id: sevenRight
-                x: 252
-                y: 6
-                width: parent.width - 252 - 8
-                height: parent.height - 12
-
-                // The user's picture (AccountsService), else a portrait drawn.
-                Rectangle {
-                    id: portrait
-                    readonly property string user: System.homeDirectory().split("/").pop()
-                    x: (parent.width - width) / 2
-                    y: 10
-                    width: 40
-                    height: 40
-                    radius: 3
-                    color: "#8AA9CC"
-                    border.width: 2
-                    border.color: "#E6F0FA"
-                    clip: true
-                    Image {
-                        id: portraitImage
-                        anchors.fill: parent
-                        anchors.margins: 1
-                        source: Shell.userPicture
-                        fillMode: Image.PreserveAspectCrop
-                        asynchronous: true
-                    }
-                    Item { // no picture: a head and shoulders
-                        anchors.fill: parent
-                        visible: portraitImage.status !== Image.Ready
-                        Rectangle { x: 15; y: 8; width: 18; height: 18; radius: 9; color: "#E6F0FA" }
-                        Rectangle { x: 7; y: 28; width: 34; height: 24; radius: 12; color: "#E6F0FA" }
-                    }
-                }
-                Text {
-                    x: 6
-                    y: 56
-                    text: Shell.userName
-                    color: "white"
-                    font.pixelSize: 12
-                }
-                Column {
-                    y: 82
-                    width: parent.width
-                    Repeater {
-                        // dir: a folder of the home; page: a Settings page; "": the home
-                        model: [
-                            { text: qsTr("Documents"), dir: "Documents" },
-                            { text: qsTr("Pictures"), dir: "Pictures" },
-                            { text: qsTr("Music"), dir: "Music" },
-                            { rule: true },
-                            { text: qsTr("Games"), dir: "Games" },
-                            { text: qsTr("Computer"), dir: "" },
-                            { rule: true },
-                            { text: qsTr("Control Panel"), page: "" },
-                            { text: qsTr("Devices and Printers"), page: "bluetooth" },
-                            { text: qsTr("Default Programs"), page: "default-apps" },
-                            { text: qsTr("Help and Support"), page: "about" }
-                        ]
-                        delegate: Item {
-                            id: place
-                            required property var modelData
-                            width: parent.width
-                            height: modelData.rule ? 8 : 24
-                            Rectangle {
-                                visible: place.modelData.rule === true
-                                x: 6
-                                y: 4
-                                width: parent.width - 12
-                                height: 1
-                                color: "#40FFFFFF"
-                            }
-                            Rectangle {
+                        Item { // "All Programs" / "Back"
+                            id: allPrograms
+                            visible: !root.searching
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: visible ? 34 : 0
+                            BorderImage {
                                 anchors.fill: parent
-                                radius: 3
-                                visible: !place.modelData.rule && placeMouse.containsMouse
-                                color: "#33FFFFFF"
-                                border.width: 1
-                                border.color: "#59FFFFFF"
+                                visible: allMouse.containsMouse
+                                source: "qrc:/seven/item-hover.png"
+                                border { left: 2; top: 2; right: 2; bottom: 2 }
                             }
                             Text {
-                                x: 8
+                                x: 12
                                 anchors.verticalCenter: parent.verticalCenter
-                                visible: !place.modelData.rule
-                                width: parent.width - 12
-                                elide: Text.ElideRight
-                                text: place.modelData.text ?? ""
-                                color: "white"
-                                font.pixelSize: 12
+                                text: root.sevenAll ? "◂  " + qsTr("Back") : "▸  " + qsTr("All Programs")
+                                color: "#3C3C3C"
+                                font.pixelSize: 15
                             }
                             MouseArea {
-                                id: placeMouse
+                                id: allMouse
                                 anchors.fill: parent
-                                enabled: !place.modelData.rule
                                 hoverEnabled: true
-                                onClicked: {
-                                    if (place.modelData.page !== undefined) {
-                                        System.openSettingsPage(place.modelData.page)
-                                    } else {
-                                        const home = System.homeDirectory()
-                                        System.openUrl(place.modelData.dir !== "" ? home + "/" + place.modelData.dir : home)
+                                onClicked: root.sevenAll = !root.sevenAll
+                            }
+                        }
+
+                    }
+                }
+
+                // The right column, straight on the panel's dark glass: the user, the places, Shut down.
+                Item {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+
+                    ColumnLayout {
+                        id: sevenRight
+                        anchors { fill: parent; margins: 6 }
+                        spacing: 0
+
+                        // The user's picture in Windows 7's frame, at the top of the column.
+                        Item {
+                            Layout.alignment: Qt.AlignHCenter
+                            Layout.topMargin: -2
+                            Layout.preferredWidth: 72
+                            Layout.preferredHeight: 72
+                            Item {
+                            anchors.fill: parent
+                            // The user's picture (AccountsService), else a portrait drawn.
+                            Rectangle {
+                                id: portrait
+                                readonly property string user: System.homeDirectory().split("/").pop()
+                                anchors { fill: parent; margins: 8 }
+                                color: "#8AA9CC"
+                                clip: true
+                                Image {
+                                    id: portraitImage
+                                    anchors.fill: parent
+                                    anchors.margins: 1
+                                    source: Shell.userPicture
+                                    fillMode: Image.PreserveAspectCrop
+                                    asynchronous: true
+                                }
+                                Item { // no picture: a head and shoulders
+                                    anchors.fill: parent
+                                    visible: portraitImage.status !== Image.Ready
+                                    Rectangle { x: 15; y: 8; width: 18; height: 18; radius: 9; color: "#E6F0FA" }
+                                    Rectangle { x: 7; y: 28; width: 34; height: 24; radius: 12; color: "#E6F0FA" }
+                                }
+                            }
+                            BorderImage { // Windows 7's frame over it (AeroThemePlasma's user.png)
+                                anchors.fill: parent
+                                source: "qrc:/seven/avatar-frame.png"
+                                border { left: 11; top: 11; right: 11; bottom: 11 }
+                            }
+                            }
+                        }
+                        Text {
+                            Layout.topMargin: 6
+                            Layout.leftMargin: 6
+                            Layout.fillWidth: true
+                            elide: Text.ElideRight
+                            text: Shell.userName
+                            color: "white"
+                            font.pixelSize: 15
+                        }
+                        ColumnLayout {
+                            Layout.topMargin: 8
+                            Layout.fillWidth: true
+                            spacing: 0
+                            Repeater {
+                                // dir: a folder of the home; page: a Settings page; "": the home
+                                model: [
+                                    { text: qsTr("Documents"), dir: "Documents" },
+                                    { text: qsTr("Pictures"), dir: "Pictures" },
+                                    { text: qsTr("Music"), dir: "Music" },
+                                    { rule: true },
+                                    { text: qsTr("Games"), dir: "Games" },
+                                    { text: qsTr("Computer"), dir: "" },
+                                    { rule: true },
+                                    { text: qsTr("Control Panel"), page: "" },
+                                    { text: qsTr("Devices and Printers"), page: "bluetooth" },
+                                    { text: qsTr("Default Programs"), page: "default-apps" },
+                                    { text: qsTr("Help and Support"), page: "about" }
+                                ]
+                                delegate: Item {
+                                    id: place
+                                    required property var modelData
+                                    Layout.fillWidth: true
+                                    Layout.preferredHeight: modelData.rule ? 14 : 32
+                                    Rectangle {
+                                        visible: place.modelData.rule === true
+                                        anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; leftMargin: 6; rightMargin: 6 }
+                                        height: 1
+                                        color: "#4DFFFFFF"
                                     }
-                                    root.close()
+                                    BorderImage { // AeroThemePlasma's sidebaritem.svg
+                                        anchors.fill: parent
+                                        visible: !place.modelData.rule && placeMouse.containsMouse
+                                        source: "qrc:/seven/place-hover.png"
+                                        border { left: 6; top: 5; right: 5; bottom: 5 }
+                                    }
+                                    Text {
+                                        anchors { left: parent.left; right: parent.right; leftMargin: 8; rightMargin: 4; verticalCenter: parent.verticalCenter }
+                                        visible: !place.modelData.rule
+                                        elide: Text.ElideRight
+                                        text: place.modelData.text ?? ""
+                                        color: "white"
+                                        font.pixelSize: 15
+                                    }
+                                    MouseArea {
+                                        id: placeMouse
+                                        anchors.fill: parent
+                                        enabled: !place.modelData.rule
+                                        hoverEnabled: true
+                                        onClicked: {
+                                            if (place.modelData.page !== undefined) {
+                                                System.openSettingsPage(place.modelData.page)
+                                            } else {
+                                                const home = System.homeDirectory()
+                                                System.openUrl(place.modelData.dir !== "" ? home + "/" + place.modelData.dir : home)
+                                            }
+                                            root.close()
+                                        }
+                                    }
                                 }
                             }
                         }
-                    }
-                }
 
-                // Shut down, with the arrow for the rest.
-                Rectangle {
-                    id: sevenShut
-                    anchors { left: parent.left; bottom: parent.bottom; bottomMargin: 8 }
-                    width: Math.min(parent.width - 4, 112)
-                    height: 24
-                    radius: 3
-                    border.width: 1
-                    border.color: "#99FFFFFF"
-                    gradient: Gradient {
-                        GradientStop { position: 0; color: "#6A8DB8" }
-                        GradientStop { position: 0.5; color: "#4F74A1" }
-                        GradientStop { position: 0.51; color: "#3F6593" }
-                        GradientStop { position: 1; color: "#587DAA" }
-                    }
-                    Text {
-                        anchors { left: parent.left; leftMargin: 14; verticalCenter: parent.verticalCenter }
-                        text: qsTr("Shut down")
-                        color: "white"
-                        font.pixelSize: 12
-                    }
-                    MouseArea {
-                        anchors { left: parent.left; top: parent.top; bottom: parent.bottom; right: arrowPart.left }
-                        onClicked: Shell.powerOff()
-                    }
-                    Rectangle {
-                        id: arrowPart
-                        anchors { right: parent.right; top: parent.top; bottom: parent.bottom }
-                        width: 26
-                        color: arrowMouse.containsMouse || root.sevenPowerOpen ? "#33FFFFFF" : "transparent"
-                        Rectangle { width: 1; height: parent.height; color: "#66FFFFFF" }
-                        Text {
-                            anchors.centerIn: parent
-                            text: "\u25B8"
-                            color: "white"
-                            font.pixelSize: Theme.fontBody
-                        }
-                        MouseArea {
-                            id: arrowMouse
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            onClicked: {
-                                root.sevenPowerOpen = !root.sevenPowerOpen
-                                if (root.sevenPowerOpen) root.updatePending = Shell.updatePending()
+                        Item { Layout.fillHeight: true } // the places above, Shut down below
+
+                        // Shut down, with the arrow for the rest.
+                        // The two buttons are AeroThemePlasma's startmenu-buttons.svg (normal/hover/pressed).
+                        Item {
+                            id: sevenShut
+                            readonly property bool hot: shutMouse.containsMouse || arrowMouse.containsMouse || root.sevenPowerOpen
+                            Layout.preferredWidth: Math.min(sevenRight.width - 4, 138)
+                            Layout.preferredHeight: 30
+                            Layout.bottomMargin: 7 // level with the search field
+                            BorderImage {
+                                anchors { left: parent.left; top: parent.top; bottom: parent.bottom; right: arrowPart.left }
+                                source: shutMouse.pressed ? "qrc:/seven/shutdown-pressed.png" : sevenShut.hot ? "qrc:/seven/shutdown-hover.png" : "qrc:/seven/shutdown.png"
+                                border { left: 3; top: 3; right: 3; bottom: 3 }
                             }
-                        }
-                    }
-                }
+                            Text {
+                                anchors { horizontalCenter: parent.horizontalCenter; horizontalCenterOffset: -arrowPart.width / 2; verticalCenter: parent.verticalCenter; verticalCenterOffset: -1 }
+                                text: qsTr("Shut down")
+                                color: "white"
+                                font.pixelSize: 15
+                            }
+                            MouseArea {
+                                id: shutMouse
+                                anchors { left: parent.left; top: parent.top; bottom: parent.bottom; right: arrowPart.left }
+                                hoverEnabled: true
+                                onClicked: Shell.powerOff()
+                            }
+                            BorderImage {
+                                id: arrowPart
+                                anchors { right: parent.right; top: parent.top; bottom: parent.bottom }
+                                width: 30
+                                source: arrowMouse.pressed ? "qrc:/seven/arrow-pressed.png" : sevenShut.hot ? "qrc:/seven/arrow-hover.png" : "qrc:/seven/arrow.png"
+                                border { left: 3; top: 3; right: 3; bottom: 3 }
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "▸"
+                                    color: "white"
+                                    font.pixelSize: 12
+                                }
+                                MouseArea {
+                                    id: arrowMouse
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    onClicked: {
+                                        root.sevenPowerOpen = !root.sevenPowerOpen
+                                        if (root.sevenPowerOpen) root.updatePending = Shell.updatePending()
+                                    }
+                                }
+                            }
 
-                Rectangle { // the menu of the arrow
-                    visible: root.sevenPowerOpen
-                    anchors { right: parent.right; bottom: sevenShut.top; bottomMargin: 4 }
-                    width: 190
-                    height: sevenPowerEntries.implicitHeight + 8
-                    radius: 4
-                    color: "#F2F7FC"
-                    border.width: 1
-                    border.color: "#99FFFFFF"
-                    Column {
-                        id: sevenPowerEntries
-                        x: 4
-                        y: 4
-                        width: parent.width - 8
-                        PowerEntry {
-                            icon: "system-suspend"
-                            label: qsTr("Sleep")
-                            visible: root.canSuspend
-                            onActivated: { root.close(); Shell.suspend() }
-                        }
-                        PowerEntry {
-                            icon: "view-refresh"
-                            label: qsTr("Restart shell")
-                            onActivated: { root.close(); Shell.restartShell() }
-                        }
-                        PowerEntry {
-                            visible: root.updatePending
-                            icon: "system-software-update"
-                            label: qsTr("Update and restart")
-                            onActivated: { root.close(); Shell.updateThen(true) }
-                        }
-                        PowerEntry {
-                            visible: root.updatePending
-                            icon: "system-software-update"
-                            label: qsTr("Update and shut down")
-                            onActivated: { root.close(); Shell.updateThen(false) }
-                        }
-                        PowerEntry {
-                            icon: "system-reboot"
-                            label: qsTr("Restart")
-                            onActivated: Shell.reboot()
-                        }
-                        PowerEntry {
-                            label: qsTr("Sign out")
-                            onActivated: Shell.logout()
+                            Rectangle { // the menu of the arrow, above the button
+                                visible: root.sevenPowerOpen
+                                anchors { right: parent.right; bottom: parent.top; bottomMargin: 4 }
+                                width: 220
+                                height: sevenPowerEntries.implicitHeight + 8
+                                radius: 3
+                                color: "#F2F2F2"
+                                border.width: 1
+                                border.color: "#979797"
+                                z: 10
+                                Column {
+                                    id: sevenPowerEntries
+                                    x: 4
+                                    y: 4
+                                    width: parent.width - 8
+                                    PowerEntry {
+                                        light: true
+                                        textColor: "#1E1E1E"
+                                        icon: "system-suspend"
+                                        label: qsTr("Sleep")
+                                        visible: root.canSuspend
+                                        onActivated: { root.close(); Shell.suspend() }
+                                    }
+                                    PowerEntry {
+                                        light: true
+                                        textColor: "#1E1E1E"
+                                        icon: "view-refresh"
+                                        label: qsTr("Restart shell")
+                                        onActivated: { root.close(); Shell.restartShell() }
+                                    }
+                                    PowerEntry {
+                                        light: true
+                                        textColor: "#1E1E1E"
+                                        visible: root.updatePending
+                                        icon: "system-software-update"
+                                        label: qsTr("Update and restart")
+                                        onActivated: { root.close(); Shell.updateThen(true) }
+                                    }
+                                    PowerEntry {
+                                        light: true
+                                        textColor: "#1E1E1E"
+                                        visible: root.updatePending
+                                        icon: "system-software-update"
+                                        label: qsTr("Update and shut down")
+                                        onActivated: { root.close(); Shell.updateThen(false) }
+                                    }
+                                    PowerEntry {
+                                        light: true
+                                        textColor: "#1E1E1E"
+                                        icon: "system-reboot"
+                                        label: qsTr("Restart")
+                                        onActivated: Shell.reboot()
+                                    }
+                                    PowerEntry {
+                                        light: true
+                                        textColor: "#1E1E1E"
+                                        icon: "system-log-out"
+                                        label: qsTr("Sign out")
+                                        onActivated: Shell.logout()
+                                    }
+                                }
+                            }
                         }
                     }
                 }

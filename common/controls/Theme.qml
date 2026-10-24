@@ -115,6 +115,8 @@ QtObject {
     // Icons of the theme matching the mode ("image://icon/l/<name>"; the
     // prefix reloads them when the mode changes). Always white on the accent.
     readonly property string icons: "image://icon/" + Style.iconMode
+    // Dark glyphs whatever the mode: for a surface that is always light (Windows 7's menus).
+    readonly property string iconsOnLight: "image://icon/k/" + Style.iconMode.slice(2)
     readonly property string iconsOnAccent: Style.iconMode.startsWith("l/") ? "image://icon/w/" + Style.iconMode.slice(2) : icons
 
     // --- shapes and type ---
@@ -188,6 +190,7 @@ QtObject {
     readonly property int startMenuHeight: themed("startmenu-height", 732) // at most
     readonly property int startMenuRadius: themed("startmenu-radius", radiusOverlay)
     readonly property bool startMenuSeven: themed("startmenu-layout", 0) === 1 // Windows 7's two columns
+    readonly property bool menuSeven: themed("menu-layout", 0) === 1 // Windows 7's right-click menus: light, grey frame, blue highlight
     readonly property int startMenuColumns: themed("startmenu-columns", 6)
     readonly property int startMenuCellHeight: themed("startmenu-cell-height", 96)
     readonly property bool startMenuFooter: themed("startmenu-footer", 1) !== 0

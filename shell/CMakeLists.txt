@@ -94,6 +94,16 @@ qt_add_resources(vela-shell "data"
     BASE ${CMAKE_CURRENT_SOURCE_DIR}/data
     FILES data/emoji.tsv)
 
+# Windows 7's Start menu frames, from AeroThemePlasma's SevenStart (GPL-3.0): ":/seven/*.png".
+qt_add_resources(vela-shell "seven"
+    PREFIX "/seven"
+    BASE ${CMAKE_CURRENT_SOURCE_DIR}/data/seven
+    FILES
+        data/seven/arrow.png data/seven/arrow-hover.png data/seven/arrow-pressed.png
+        data/seven/avatar-frame.png data/seven/item-hover.png data/seven/panel.png
+        data/seven/place-hover.png data/seven/search.png data/seven/search-focus.png
+        data/seven/shutdown.png data/seven/shutdown-hover.png data/seven/shutdown-pressed.png)
+
 # The list of open windows, published by the compositor.
 qt_generate_wayland_protocol_client_sources(vela-shell
     FILES ${PROJECT_SOURCE_DIR}/protocols/wlr-foreign-toplevel-management-unstable-v1.xml)

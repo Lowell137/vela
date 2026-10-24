@@ -132,7 +132,8 @@ inline void applyIconTheme(bool light)
 //
 // A prefix before the name: "l/" and "d/" say for which mode (light or dark)
 // the icon is asked, so changing mode changes the address and QML reloads
-// it; "w/" wants it white (on the accent). It can be followed by "~N/" (N
+// it; "w/" wants it white (on the accent); "k/" wants a white (monochrome)
+// glyph drawn dark, for a surface that is always light. It can be followed by "~N/" (N
 // changes with the icon theme, for the same reason).
 class IconProvider : public QQuickImageProvider {
 public:
@@ -149,8 +150,10 @@ public:
             : 64;
         QString name = QUrl::fromPercentEncoding(id.toUtf8());
         bool white = false;
-        if (id.size() > 2 && id[1] == u'/' && (id[0] == u'l' || id[0] == u'd' || id[0] == u'w')) {
+        bool dark = false;
+        if (id.size() > 2 && id[1] == u'/' && (id[0] == u'l' || id[0] == u'd' || id[0] == u'w' || id[0] == u'k')) {
             white = id[0] == u'w';
+            dark = id[0] == u'k';
             QString rest = id.mid(2);
             // "~N/": the icon theme's generation (Appearance::iconMode).
             if (rest.startsWith(u'~') && rest.indexOf(u'/') > 0) {
@@ -166,7 +169,7 @@ public:
             QPixmap pixmap = QIcon(own).pixmap(QSize(extent, extent), 1.0);
             QPainter painter(&pixmap);
             painter.setCompositionMode(QPainter::CompositionMode_SourceIn);
-            painter.fillRect(pixmap.rect(), id[0] == u'l' ? QColor(0x1b, 0x1b, 0x1b)
+            painter.fillRect(pixmap.rect(), id[0] == u'l' || id[0] == u'k' ? QColor(0x1b, 0x1b, 0x1b)
                 : id[0] == u'd' ? QColor(0xf3, 0xf3, 0xf6) : QColor(Qt::white));
             if (size) {
                 *size = pixmap.size();
@@ -189,6 +192,29 @@ public:
                          .scaled(extent, extent, Qt::KeepAspectRatio, Qt::SmoothTransformation);
         } else {
             pixmap = icon.pixmap(QSize(extent, extent), 1.0);
+        }
+        if (dark && !pixmap.isNull()) {
+            // Only the theme's white monochrome glyphs: colored icons stay as they are.
+            const QImage image = pixmap.toImage().convertToFormat(QImage::Format_ARGB32);
+            int opaque = 0, whitish = 0;
+            for (int y = 0; y < image.height(); ++y) {
+                const QRgb* line = reinterpret_cast<const QRgb*>(image.constScanLine(y));
+                for (int x = 0; x < image.width(); ++x) {
+                    if (qAlpha(line[x]) > 128) {
+                        ++opaque;
+                        const int hi = std::max({ qRed(line[x]), qGreen(line[x]), qBlue(line[x]) });
+                        const int lo = std::min({ qRed(line[x]), qGreen(line[x]), qBlue(line[x]) });
+                        if (lo > 200 && hi - lo < 30) {
+                            ++whitish;
+                        }
+                    }
+                }
+            }
+            if (opaque > 0 && whitish * 10 >= opaque * 9) {
+                QPainter painter(&pixmap);
+                painter.setCompositionMode(QPainter::CompositionMode_SourceIn);
+                painter.fillRect(pixmap.rect(), QColor(0x1b, 0x1b, 0x1b));
+            }
         }
         if (white && !pixmap.isNull()) {
             QPainter painter(&pixmap);
