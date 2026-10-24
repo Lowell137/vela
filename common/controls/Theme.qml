@@ -162,6 +162,8 @@ QtObject {
     readonly property string taskbarOrbPressed: themed("taskbar-orb-pressed", taskbarOrb)
     readonly property string taskbarTileImage: themed("taskbar-tile-image", "")
     readonly property string taskbarTileImageActive: themed("taskbar-tile-image-active", taskbarTileImage)
+    readonly property string taskbarTileImageHover: themed("taskbar-tile-image-hover", taskbarTileImage)
+    readonly property string taskbarTileImageIdleHover: themed("taskbar-tile-image-idle-hover", "") // under the pointer, app not open
     readonly property string taskbarReflection: themed("taskbar-reflection", "")
     readonly property real taskbarReflectionOpacity: themed("taskbar-reflection-opacity", 0.5)
     // taskbar-desktop-image: a strip picture for the show desktop corner (Windows 7's),

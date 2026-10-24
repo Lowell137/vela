@@ -39,11 +39,15 @@ Item {
     width: Theme.taskbarButtonWidth
     height: Config.dock ? 48 : Theme.taskbarButtonHeight
 
-    // taskbar-tile-image: the theme's picture under each open app.
+    // taskbar-tile-image: the theme's pictures, with them the button is not
+    // drawn the Fluent way (no hover plate, no dash under the icon).
+    readonly property bool pictured: Theme.taskbarTileImage !== ""
     BorderImage {
         anchors.fill: parent
-        visible: root.running && source != ""
-        source: root.active ? Theme.taskbarTileImageActive : Theme.taskbarTileImage
+        source: root.running
+            ? (root.active ? Theme.taskbarTileImageActive : root.hovered ? Theme.taskbarTileImageHover : Theme.taskbarTileImage)
+            : (root.hovered ? Theme.taskbarTileImageIdleHover : "")
+        visible: source != ""
         border { left: 3; right: 3; top: 3; bottom: 3 }
     }
 
@@ -69,6 +73,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
+        visible: !root.pictured
         radius: Theme.taskbarButtonRadius
         color: mouse.pressed ? Theme.subtlePressed : Theme.subtleHover
         opacity: mouse.containsMouse || root.active ? 1 : 0
@@ -93,6 +98,7 @@ Item {
     // Indicator under the icon (at the screen's edge side along a vertical
     // taskbar): app open / active (or Start menu open)
     Rectangle {
+        visible: !root.pictured
         property real length: root.progress >= 0 ? 24 : root.active ? 16 : root.running ? 6 : 0
         // x/y, not anchors: anchors switched to undefined at run time keep
         // their old edge when the taskbar's position changes live.
