@@ -17,7 +17,7 @@ These packages are for **building Vela from source**, not the much smaller requi
 
 ```sh
 sudo pacman -S --needed base-devel git cmake ninja pkgconf wlroots0.20 wayland wayland-protocols \
-    libxkbcommon pixman libinput qt6-base qt6-declarative qt6-svg qt6-wayland qt6-tools layer-shell-qt \
+    libxkbcommon pixman libinput qt6-base qt6-declarative qt6-svg qt6-wayland qt6-tools layer-shell-qt libarchive \
     vulkan-headers vulkan-icd-loader shaderc mesa libdrm freetype2 harfbuzz fontconfig cairo \
     pam polkit librsvg zlib gtest python python-numpy python-pillow hicolor-icon-theme shared-mime-info xorg-xwayland \
     pipewire wireplumber
@@ -46,7 +46,7 @@ sudo dnf install git cmake ninja-build gcc gcc-c++ pkgconf-pkg-config \
 ```sh
 sudo zypper install cmake ninja gcc-c++ wlroots-devel wayland-protocols-devel \
     libxkbcommon-devel pixman-devel libinput-devel qt6-declarative-devel qt6-linguist-devel \
-    qt6-svg-devel qt6-waylandclient-devel layer-shell-qt6-devel \
+    libarchive-devel qt6-svg-devel qt6-waylandclient-devel layer-shell-qt6-devel \
     vulkan-headers vulkan-devel shaderc libgbm-devel libdrm-devel \
     freetype2-devel harfbuzz-devel fontconfig-devel pam-devel librsvg-devel \
     zlib-devel gtest python3

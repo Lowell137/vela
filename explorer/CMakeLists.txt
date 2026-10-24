@@ -6,6 +6,8 @@
 # service menus, system actions and the right-click menu component
 # (MenuPanel.qml).
 find_package(Qt6 6.5 REQUIRED COMPONENTS DBus Gui GuiPrivate Network Qml Quick QuickControls2 Svg)
+# Extracts zip, 7z, rar and tar.* without external programs.
+find_package(LibArchive REQUIRED)
 
 qt_standard_project_setup(REQUIRES 6.5)
 
@@ -52,6 +54,7 @@ if(FILES_HAVE_MEDIA)
 endif()
 target_link_libraries(vela-files-core PUBLIC
     vela-imageformats
+    LibArchive::LibArchive
     Qt6::DBus
     Qt6::Gui
     Qt6::Network

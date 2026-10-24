@@ -34,6 +34,8 @@
 #include <QUrl>
 #include <QVariantMap>
 
+#include <archive.h>
+#include <archive_entry.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -133,17 +135,6 @@ void sendToShell(const QByteArray& command)
         socket.write(command + '\n');
         socket.waitForBytesWritten(300);
     }
-}
-
-bool isTarFamily(const QString& fileName)
-{
-    for (const QString& s : { QStringLiteral(".tar"), QStringLiteral(".tar.gz"), QStringLiteral(".tgz"),
-             QStringLiteral(".tar.bz2"), QStringLiteral(".tar.xz"), QStringLiteral(".tar.zst") }) {
-        if (fileName.endsWith(s, Qt::CaseInsensitive)) {
-            return true;
-        }
-    }
-    return false;
 }
 
 } // namespace
@@ -1045,6 +1036,80 @@ bool FileOps::isArchive(const QString& path) const
         [&](const QString& s) { return path.endsWith(s, Qt::CaseInsensitive); });
 }
 
+namespace {
+
+// Unpacks zip, 7z, rar, tar.* (whatever libarchive reads) into `target`,
+// without any external program. Runs on a worker thread. Returns an empty
+// string when done, otherwise the reason.
+QString unpack(const QString& archivePath, const QString& target)
+{
+    archive* in = archive_read_new();
+    archive_read_support_filter_all(in);
+    archive_read_support_format_all(in);
+    archive* out = archive_write_disk_new();
+    // Nothing leaves `target`: leading "/" is stripped below, no "..", no links out.
+    archive_write_disk_set_options(out,
+        ARCHIVE_EXTRACT_TIME | ARCHIVE_EXTRACT_PERM | ARCHIVE_EXTRACT_SECURE_NODOTDOT
+            | ARCHIVE_EXTRACT_SECURE_SYMLINKS);
+    archive_write_disk_set_standard_lookup(out);
+
+    QString error;
+    if (archive_read_open_filename(in, QFile::encodeName(archivePath).constData(), 65536) != ARCHIVE_OK) {
+        error = QString::fromUtf8(archive_error_string(in));
+    }
+    const QByteArray prefix = QFile::encodeName(target) + '/';
+    archive_entry* entry = nullptr;
+    while (error.isEmpty()) {
+        const int status = archive_read_next_header(in, &entry);
+        if (status == ARCHIVE_EOF) {
+            break;
+        }
+        if (status < ARCHIVE_WARN) {
+            error = QString::fromUtf8(archive_error_string(in));
+            break;
+        }
+        const auto inside = [&prefix](const char* name) {
+            QByteArray path(name);
+            while (path.startsWith('/')) {
+                path.remove(0, 1);
+            }
+            return prefix + path;
+        };
+        archive_entry_set_pathname(entry, inside(archive_entry_pathname(entry)).constData());
+        if (const char* hard = archive_entry_hardlink(entry)) {
+            archive_entry_set_hardlink(entry, inside(hard).constData());
+        }
+        if (archive_write_header(out, entry) < ARCHIVE_WARN) {
+            error = QString::fromUtf8(archive_error_string(out));
+            break;
+        }
+        if (archive_entry_size(entry) > 0) {
+            const void* block;
+            size_t size;
+            la_int64_t offset;
+            int result;
+            while ((result = archive_read_data_block(in, &block, &size, &offset)) == ARCHIVE_OK) {
+                if (archive_write_data_block(out, block, size, offset) < ARCHIVE_WARN) {
+                    error = QString::fromUtf8(archive_error_string(out));
+                    break;
+                }
+            }
+            if (error.isEmpty() && result != ARCHIVE_EOF) {
+                error = QString::fromUtf8(archive_error_string(in));
+            }
+            if (!error.isEmpty()) {
+                break;
+            }
+        }
+        archive_write_finish_entry(out);
+    }
+    archive_read_free(in);
+    archive_write_free(out);
+    return error;
+}
+
+} // namespace
+
 QString FileOps::extractAll(const QString& path)
 {
     const QFileInfo info(path);
@@ -1063,50 +1128,30 @@ QString FileOps::extractAll(const QString& path)
     }
     const QString target = QDir(info.absolutePath()).filePath(uniqueNameIn(info.absolutePath(), base));
 
-    // tar unpacks the tar.* archives; the rest goes to 7z, or to unzip for
-    // .zip when 7z is missing. Absolute paths (QStandardPaths), so only the
-    // chosen programs ever run.
-    const QString fileName = info.fileName();
-    const QString tar = QStandardPaths::findExecutable(QStringLiteral("tar"));
-    const QString seven = QStandardPaths::findExecutable(QStringLiteral("7z"));
-    const QString unzip = QStandardPaths::findExecutable(QStringLiteral("unzip"));
-    QString program;
-    QStringList arguments;
-    if (isTarFamily(fileName) && !tar.isEmpty()) {
-        program = tar;
-        arguments = { QStringLiteral("-xf"), info.absoluteFilePath(), QStringLiteral("-C"), target };
-    } else if (!seven.isEmpty()) {
-        // zip, 7z, rar: everything but tar.*, which GNU tar can't read.
-        program = seven;
-        arguments = { QStringLiteral("x"), QStringLiteral("-y"), QStringLiteral("-o") + target,
-            QStringLiteral("--"), info.absoluteFilePath() };
-    } else if (fileName.endsWith(QStringLiteral(".zip"), Qt::CaseInsensitive) && !unzip.isEmpty()) {
-        program = unzip;
-        arguments = { info.absoluteFilePath(), QStringLiteral("-d"), target };
-    } else {
-        emit failed(QCoreApplication::translate("Files", "No program to extract “%1”.")
-                        .arg(info.fileName()));
-        return {};
-    }
     // The folder exists from the start: the double click navigates into it
     // and the files appear as the tool writes them (the view watches the
-    // folder). Without a program nothing is created.
+    // folder).
     QDir().mkpath(target);
     UndoStep step;
     step.label = QCoreApplication::translate("Files", "Extract");
     step.created.append(target);
     pushUndo(step);
-    runTool(this, program, arguments, info.absolutePath(), [this, target, info](bool ok, const QString& error) {
-        if (!ok) {
-            emit failed(error.isEmpty()
-                    ? QCoreApplication::translate("Files", "“%1” couldn't be extracted.")
-                          .arg(info.fileName())
-                    : QCoreApplication::translate("Files", "Couldn't extract “%1”:")
-                          .arg(info.fileName()) + u' ' + error);
-            return;
-        }
-        // Selected when it arrives, like pasted files.
-        emit created(target, false);
+    const QString archivePath = info.absoluteFilePath();
+    QPointer<FileOps> self(this);
+    QThreadPool::globalInstance()->start([self, archivePath, target, info] {
+        const QString error = unpack(archivePath, target);
+        QMetaObject::invokeMethod(qApp, [self, error, target, info] {
+            if (!self) {
+                return;
+            }
+            if (!error.isEmpty()) {
+                emit self->failed(QCoreApplication::translate("Files", "Couldn't extract “%1”:")
+                                      .arg(info.fileName()) + u' ' + error);
+                return;
+            }
+            // Selected when it arrives, like pasted files.
+            emit self->created(target, false);
+        });
     });
     return target;
 }

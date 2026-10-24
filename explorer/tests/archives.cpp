@@ -4,8 +4,8 @@
 // Tests of Explorer's archives, without a UI: "Extract here" (into a folder
 // named after the archive, next to it, never overwriting one that exists) and
 // "Compress" (the chosen name, several items as paths relative to the
-// folder). The work is external (tar, 7z, unzip, zip), so each test waits for
-// the tool's answer by signal.
+// folder). Extract is libarchive on a worker thread, compress runs external
+// tools (7z, zip, tar), so each test waits for the answer by signal.
 //
 //   ctest --test-dir build -R files-archives
 
@@ -118,6 +118,46 @@ private slots:
         QVERIFY(ok);
         QVERIFY(QFile::exists(path("foto/sorgente/foto.txt")));
         QCOMPARE(read(path("foto/sorgente/foto.txt")), QByteArray("anno 2026"));
+    }
+    // zip and 7z are read by the app itself (libarchive), and an entry like
+    // "../x" can't leave the folder it extracts into.
+    void extractZipAnd7zEmbedded_data()
+    {
+        QTest::addColumn<QString>("name");
+        QTest::addColumn<QString>("type");
+        QTest::newRow("zip") << "doc.zip" << "-tzip";
+        QTest::newRow("7z") << "doc.7z" << "-t7z";
+    }
+    void extractZipAnd7zEmbedded()
+    {
+        QFETCH(QString, name);
+        QFETCH(QString, type);
+        write(path("src/sub/a.txt"), "ciao");
+        if (!makeArchive(path("src"), QStringLiteral("7z"),
+                { QStringLiteral("a"), type, QStringLiteral("../") + name, QStringLiteral("sub") })) {
+            QSKIP("7z isn't installed");
+        }
+        QSignalSpy created(m_ops, &FileOps::created);
+        QSignalSpy failed(m_ops, &FileOps::failed);
+        m_ops->extractAll(path(name));
+        bool ok = false;
+        settle(created, failed, ok);
+        QVERIFY(ok);
+        QCOMPARE(read(path(QFileInfo(name).completeBaseName() + QStringLiteral("/sub/a.txt"))), QByteArray("ciao"));
+    }
+    void extractStaysInsideTheFolder()
+    {
+        if (!makeArchive(path("."), QStringLiteral("python3"),
+                { QStringLiteral("-c"),
+                    QStringLiteral("import zipfile; z=zipfile.ZipFile('evil.zip','w'); "
+                                   "z.writestr('../escape.txt','x'); z.writestr('ok.txt','y'); z.close()") })) {
+            QSKIP("python3 isn't installed");
+        }
+        QSignalSpy created(m_ops, &FileOps::created);
+        QSignalSpy failed(m_ops, &FileOps::failed);
+        m_ops->extractAll(path("evil.zip"));
+        QTRY_VERIFY_WITH_TIMEOUT(created.size() > 0 || failed.size() > 0, 30000);
+        QVERIFY(!QFile::exists(path("escape.txt")));
     }
     // "Paste here" numbering: the folder that exists isn't overwritten, the
     // second extract takes " (2)".
