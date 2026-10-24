@@ -245,12 +245,13 @@ QQuickWindow* loadPanel(QQmlApplicationEngine& engine, const Panel& panel)
 }
 
 // With the taskbar aligned left, Start opens at the bottom left.
-void placeStartMenu(QQuickWindow* window, const QString& alignment, bool vertical, ShellController& shell)
+void placeStartMenu(QQuickWindow* window, const QString& alignment, bool vertical, ShellController& shell, bool themeLeft)
 {
     LayerWindow* layer = LayerWindow::get(window);
-    const bool left = alignment == QLatin1String("left") && !vertical;
+    // A theme with its Start button at the left (Windows 7's) opens it flush at the corner.
+    const bool left = (alignment == QLatin1String("left") || themeLeft) && !vertical;
     layer->setAnchors(left ? bottomLeft : bottom);
-    layer->setMargins(QMargins(left ? 12 : 0, 0, 0, 0));
+    layer->setMargins(QMargins(left ? (themeLeft ? 0 : 12) : 0, 0, 0, 0));
     shell.followTaskbar(window, ShellController::FollowKind::Start); // the edge it was just put back from
 }
 
@@ -505,9 +506,13 @@ int main(int argc, char* argv[])
             shell.followTaskbar(window, beside ? ShellController::FollowKind::Beside : ShellController::FollowKind::Panel);
         }
     }
-    placeStartMenu(startMenu, config.taskbarAlignment(), config.taskbarVertical(), shell);
-    QObject::connect(&config, &Config::taskbarChanged, startMenu, [&config, startMenu, &shell] {
-        placeStartMenu(startMenu, config.taskbarAlignment(), config.taskbarVertical(), shell);
+    const auto themeLeft = [appearance] { return appearance->theme().value(QStringLiteral("taskbar-align-left")).toDouble() != 0; };
+    placeStartMenu(startMenu, config.taskbarAlignment(), config.taskbarVertical(), shell, themeLeft());
+    QObject::connect(&config, &Config::taskbarChanged, startMenu, [&config, startMenu, &shell, themeLeft] {
+        placeStartMenu(startMenu, config.taskbarAlignment(), config.taskbarVertical(), shell, themeLeft());
+    });
+    QObject::connect(appearance, &Appearance::changed, startMenu, [&config, startMenu, &shell, themeLeft] {
+        placeStartMenu(startMenu, config.taskbarAlignment(), config.taskbarVertical(), shell, themeLeft());
     });
     // Wallpapers on every output; the taskbar too, like in Windows (or only on
     // the main one, if the user wants that).

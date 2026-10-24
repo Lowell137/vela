@@ -89,8 +89,20 @@ Window {
                 out.push({ kind: "app", id: id, name: e.name, iconName: e.iconName })
             }
         } else {
+            const seen = {}
             for (const p of pinned) {
+                seen[p.id] = true
                 out.push({ kind: "app", id: p.id, name: p.name, iconName: p.iconName })
+            }
+            // Windows 7 shows ten programs: the rest are the first apps.
+            void Apps.query
+            for (let i = 0; out.length < 10 && i < Apps.count; ++i) {
+                const id = Apps.idAt(i)
+                if (seen[id]) {
+                    continue
+                }
+                const e = Apps.entry(id)
+                out.push({ kind: "app", id: id, name: e.name, iconName: e.iconName })
             }
         }
         return out
@@ -625,6 +637,23 @@ Window {
             border.width: root.seven ? 1 : search.activeFocus ? 1 : 0
             border.color: root.seven ? "#9DB6D3" : Theme.accent
 
+            Shape { // the magnifier, at the right end (Windows 7's)
+                visible: root.seven
+                x: parent.width - 22
+                y: (parent.height - 14) / 2
+                width: 14
+                height: 14
+                preferredRendererType: Shape.CurveRenderer
+                ShapePath {
+                    strokeColor: "#4A78AE"
+                    strokeWidth: 1.6
+                    fillColor: "transparent"
+                    capStyle: ShapePath.RoundCap
+                    PathAngleArc { centerX: 5.5; centerY: 5.5; radiusX: 4.2; radiusY: 4.2; startAngle: 0; sweepAngle: 360 }
+                    PathMove { x: 8.6; y: 8.6 }
+                    PathLine { x: 12.5; y: 12.5 }
+                }
+            }
             Text {
                 anchors { left: parent.left; leftMargin: root.seven ? 8 : 18; verticalCenter: parent.verticalCenter }
                 visible: search.text.length === 0
@@ -636,7 +665,7 @@ Window {
             MenuTextField {
                 id: search
                 color: root.seven ? "#1B2B40" : Theme.text
-                anchors { left: parent.left; right: parent.right; leftMargin: root.seven ? 8 : 18; rightMargin: root.seven ? 8 : 18; verticalCenter: parent.verticalCenter }
+                anchors { left: parent.left; right: parent.right; leftMargin: root.seven ? 8 : 18; rightMargin: root.seven ? 26 : 18; verticalCenter: parent.verticalCenter }
                 mapToScreen: (x, y) => root.screenPoint(search, x, y)
 
                 onTextChanged: {
@@ -1327,7 +1356,7 @@ Window {
                         id: row
                         required property var modelData
                         width: sevenList.width
-                        height: 38
+                        height: 34
                         Rectangle {
                             anchors.fill: parent
                             radius: 3
@@ -1342,18 +1371,18 @@ Window {
                         Image {
                             x: 8
                             anchors.verticalCenter: parent.verticalCenter
-                            width: 28
-                            height: 28
+                            width: 24
+                            height: 24
                             source: Theme.icons + encodeURIComponent(row.modelData.iconName ?? "")
                             sourceSize: Qt.size(width, height)
                             smooth: true
                         }
                         Text {
-                            anchors { left: parent.left; leftMargin: 44; right: parent.right; rightMargin: 8; verticalCenter: parent.verticalCenter }
+                            anchors { left: parent.left; leftMargin: 40; right: parent.right; rightMargin: 8; verticalCenter: parent.verticalCenter }
                             text: row.modelData.name
-                            color: "#1B2B40"
+                            color: "#3C3C3C"
                             elide: Text.ElideRight
-                            font.pixelSize: Theme.fontBody
+                            font.pixelSize: 13
                         }
                         MouseArea {
                             id: rowMouse
@@ -1379,15 +1408,17 @@ Window {
                     height: visible ? 30 : 0
                     radius: 3
                     border.width: allMouse.containsMouse ? 1 : 0
-                    border.color: "#B8D6F4"
-                    color: allMouse.containsMouse ? "#DCEBFA" : "transparent"
+                    border.color: "#7DA2CE"
+                    gradient: Gradient {
+                        GradientStop { position: 0; color: allMouse.containsMouse ? "#F2F8FE" : "#00FFFFFF" }
+                        GradientStop { position: 1; color: allMouse.containsMouse ? "#CFE2F7" : "#00FFFFFF" }
+                    }
                     Text {
                         x: 12
                         anchors.verticalCenter: parent.verticalCenter
                         text: root.sevenAll ? "\u25C2  " + qsTr("Back") : "\u25B8  " + qsTr("All Programs")
-                        color: "#1B2B40"
-                        font.pixelSize: Theme.fontBody
-                        font.weight: Font.DemiBold
+                        color: "#3C3C3C"
+                        font.pixelSize: 13
                     }
                     MouseArea {
                         id: allMouse
@@ -1399,6 +1430,17 @@ Window {
             }
 
             // The right column: the user, the places, Shut down.
+            Rectangle { // the glass of the right column, lighter at the top
+                x: 260
+                y: 6
+                width: parent.width - 260 - 6
+                height: parent.height - 12
+                radius: 3
+                gradient: Gradient {
+                    GradientStop { position: 0; color: "#33FFFFFF" }
+                    GradientStop { position: 1; color: "#26000000" }
+                }
+            }
             Item {
                 id: sevenRight
                 x: 266
@@ -1406,66 +1448,92 @@ Window {
                 width: parent.width - 266 - 8
                 height: parent.height - 12
 
+                // The user's picture (AccountsService), else a portrait drawn.
                 Rectangle {
-                    x: 0
-                    y: 0
-                    width: 52
-                    height: 52
-                    radius: 4
-                    color: Theme.accent
+                    id: portrait
+                    readonly property string user: System.homeDirectory().split("/").pop()
+                    x: (parent.width - width) / 2
+                    y: 2
+                    width: 48
+                    height: 48
+                    radius: 3
+                    color: "#8AA9CC"
                     border.width: 2
-                    border.color: "#CCFFFFFF"
-                    Text {
-                        anchors.centerIn: parent
-                        text: Shell.userInitial
-                        color: "white"
-                        font.pixelSize: 24
-                        font.weight: Font.DemiBold
+                    border.color: "#E6F0FA"
+                    clip: true
+                    Image {
+                        id: portraitImage
+                        anchors.fill: parent
+                        anchors.margins: 1
+                        source: "file:///var/lib/AccountsService/icons/" + portrait.user
+                        fillMode: Image.PreserveAspectCrop
+                        asynchronous: true
+                    }
+                    Item { // no picture: a head and shoulders
+                        anchors.fill: parent
+                        visible: portraitImage.status !== Image.Ready
+                        Rectangle { x: 15; y: 8; width: 18; height: 18; radius: 9; color: "#E6F0FA" }
+                        Rectangle { x: 7; y: 28; width: 34; height: 24; radius: 12; color: "#E6F0FA" }
                     }
                 }
                 Text {
-                    x: 0
-                    y: 62
+                    x: 8
+                    y: 58
                     text: Shell.userName
                     color: "white"
-                    font.pixelSize: Theme.fontBody
-                    font.weight: Font.DemiBold
+                    font.pixelSize: 13
                 }
                 Column {
-                    y: 92
+                    y: 86
                     width: parent.width
                     Repeater {
+                        // dir: a folder of the home; page: a Settings page; "": the home
                         model: [
                             { text: qsTr("Documents"), dir: "Documents" },
                             { text: qsTr("Pictures"), dir: "Pictures" },
                             { text: qsTr("Music"), dir: "Music" },
-                            { text: qsTr("Downloads"), dir: "Downloads" },
+                            { rule: true },
+                            { text: qsTr("Games"), dir: "Games" },
                             { text: qsTr("Computer"), dir: "" },
-                            { text: qsTr("Settings"), page: "" }
+                            { rule: true },
+                            { text: qsTr("Control Panel"), page: "" },
+                            { text: qsTr("Devices and Printers"), page: "bluetooth" },
+                            { text: qsTr("Default Programs"), page: "default-apps" },
+                            { text: qsTr("Help and Support"), page: "about" }
                         ]
                         delegate: Item {
                             id: place
                             required property var modelData
                             width: parent.width
-                            height: 30
+                            height: modelData.rule ? 9 : 27
+                            Rectangle {
+                                visible: place.modelData.rule === true
+                                x: 6
+                                y: 4
+                                width: parent.width - 12
+                                height: 1
+                                color: "#40FFFFFF"
+                            }
                             Rectangle {
                                 anchors.fill: parent
                                 radius: 3
-                                visible: placeMouse.containsMouse
-                                color: "#40FFFFFF"
+                                visible: !place.modelData.rule && placeMouse.containsMouse
+                                color: "#33FFFFFF"
                                 border.width: 1
-                                border.color: "#66FFFFFF"
+                                border.color: "#59FFFFFF"
                             }
                             Text {
                                 x: 8
                                 anchors.verticalCenter: parent.verticalCenter
-                                text: place.modelData.text
+                                visible: !place.modelData.rule
+                                text: place.modelData.text ?? ""
                                 color: "white"
-                                font.pixelSize: Theme.fontBody
+                                font.pixelSize: 13
                             }
                             MouseArea {
                                 id: placeMouse
                                 anchors.fill: parent
+                                enabled: !place.modelData.rule
                                 hoverEnabled: true
                                 onClicked: {
                                     if (place.modelData.page !== undefined) {
