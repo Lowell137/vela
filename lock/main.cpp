@@ -24,6 +24,7 @@
 #include <QCoreApplication>
 #include <QAbstractEventDispatcher>
 #include <QDateTime>
+#include <QDir>
 #include <QFileInfo>
 #include <QFont>
 #include <QFontMetricsF>
@@ -98,6 +99,24 @@ bool unlocked = false;
 
 QString userName;
 QString displayName;
+QImage userPicture; // the account's picture, a square, or null: then the initial is drawn
+
+// The account's picture, like Settings and the shell show it: AccountsService's
+// (GNOME's and KDE's settings write it), else ~/.face. Cropped to a square.
+QImage loadUserPicture(const QString& login)
+{
+    for (const QString& path : { QStringLiteral("/var/lib/AccountsService/icons/") + login, QDir::homePath() + QStringLiteral("/.face") }) {
+        const QImage image(path);
+        if (image.isNull()) {
+            continue;
+        }
+        const int side = std::min(image.width(), image.height());
+        return image.copy((image.width() - side) / 2, (image.height() - side) / 2, side, side)
+            .scaled(512, 512, Qt::KeepAspectRatio, Qt::SmoothTransformation)
+            .convertToFormat(QImage::Format_ARGB32_Premultiplied);
+    }
+    return {};
+}
 
 void redrawAll();
 
@@ -235,15 +254,26 @@ void draw(Screen& screen)
             const double avatar = 150;
             QPainterPath circle;
             circle.addEllipse(QPointF(cx, top + avatar / 2), avatar / 2, avatar / 2);
-            p.fillPath(circle, QColor(91, 140, 255));
-            font.setPixelSize(64);
+            if (!userPicture.isNull()) {
+                p.save();
+                p.setRenderHint(QPainter::Antialiasing);
+                p.setRenderHint(QPainter::SmoothPixmapTransform);
+                p.setClipPath(circle);
+                p.drawImage(QRectF(cx - avatar / 2, top, avatar, avatar), userPicture);
+                p.restore();
+            } else {
+                p.fillPath(circle, QColor(91, 140, 255));
+                font.setPixelSize(64);
+                font.setWeight(QFont::DemiBold);
+                p.setFont(font);
+                p.setPen(Qt::white);
+                p.drawText(QRectF(cx - avatar / 2, top, avatar, avatar), Qt::AlignCenter, displayName.left(1).toUpper());
+            }
+
+            font.setPixelSize(28);
             font.setWeight(QFont::DemiBold);
             p.setFont(font);
             p.setPen(Qt::white);
-            p.drawText(QRectF(cx - avatar / 2, top, avatar, avatar), Qt::AlignCenter, displayName.left(1).toUpper());
-
-            font.setPixelSize(28);
-            p.setFont(font);
             const double nameY = top + avatar + 20;
             p.drawText(QRectF(0, nameY, lw, 40), Qt::AlignHCenter | Qt::AlignTop, displayName);
 
@@ -625,6 +655,7 @@ int main(int argc, char* argv[])
         if (displayName.isEmpty()) {
             displayName = userName;
         }
+        userPicture = loadUserPicture(userName);
     }
 
     display = wl_display_connect(nullptr);
