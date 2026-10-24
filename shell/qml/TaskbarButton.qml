@@ -46,9 +46,20 @@ Item {
         anchors.fill: parent
         source: root.running
             ? (root.active ? Theme.taskbarTileImageActive : root.hovered ? Theme.taskbarTileImageHover : Theme.taskbarTileImage)
-            : (root.hovered ? Theme.taskbarTileImageIdleHover : "")
+            : ""
         visible: source != ""
         border { left: 3; right: 3; top: 3; bottom: 3 }
+    }
+    // An app that is not open, under the pointer: a soft glow, without the
+    // picture's side lines.
+    Rectangle {
+        anchors.fill: parent
+        visible: root.pictured && !root.running && root.hovered
+        radius: Theme.taskbarButtonRadius
+        gradient: Gradient {
+            GradientStop { position: 0; color: "#00FFFFFF" }
+            GradientStop { position: 1; color: "#40FFFFFF" }
+        }
     }
 
     // A tile under each open app (Windows 7's glass buttons), if the theme has one.
