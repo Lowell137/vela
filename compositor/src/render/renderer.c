@@ -239,12 +239,18 @@ static void destroy(struct vela_renderer *r)
     VkDevice device = r->vk->device;
     if (device) {
         vkDeviceWaitIdle(device);
+        // Waiting for the GPU does not submit pending SHM uploads. Discard
+        // every recorded command before their referenced images are freed.
+        // The renderer is closing, so none of these commands may run again.
+        if (r->pool) {
+            vkResetCommandPool(device, r->pool, 0);
+            r->upload = VK_NULL_HANDLE;
+        }
     }
     vela_renderer_collect(r);
 
-    // Buffers still alive (such as the outputs'): we detach from all of them.
-    // (The renderer is destroyed only with VELA_VULKAN_VALIDATION: see
-    // vela_server_destroy.)
+    // Detach any lingering targets before releasing renderer resources.
+    // The backend outputs and their buffer listeners are already destroyed.
     struct vela_target *target, *target_tmp;
     wl_list_for_each_safe (target, target_tmp, &r->targets, link) {
         destroy_target(target);
@@ -256,6 +262,33 @@ static void destroy(struct vela_renderer *r)
         vela_texture_release(texture);
     }
     vela_renderer_collect(r);
+
+    // Shutdown is different from ordinary retirement: there will be no
+    // further submissions to advance the timeline. In particular, an
+    // unsubmitted SHM upload may have put images at last_point + 1, which
+    // collect() cannot reach even after vkDeviceWaitIdle(). All GPU work is
+    // idle now, so destroy any remaining deferred Vulkan objects directly.
+    if (r->retired_count || r->used_semaphore_count) {
+        wlr_log(WLR_INFO, "Renderer shutdown: releasing %d deferred image(s), %d semaphore(s)",
+            r->retired_count, r->used_semaphore_count);
+    }
+    for (int i = 0; i < r->retired_count; ++i) {
+        const struct retired_image *retired = &r->retired[i];
+        if (retired->view) {
+            vkDestroyImageView(device, retired->view, NULL);
+        }
+        if (retired->image) {
+            vkDestroyImage(device, retired->image, NULL);
+        }
+        if (retired->memory) {
+            vkFreeMemory(device, retired->memory, NULL);
+        }
+    }
+    r->retired_count = 0;
+    for (int i = 0; i < r->used_semaphore_count; ++i) {
+        vkDestroySemaphore(device, r->used_semaphores[i].semaphore, NULL);
+    }
+    r->used_semaphore_count = 0;
 
     for (int i = 0; i < r->staging_count; ++i) {
         vkDestroyBuffer(device, r->staging[i].buffer, NULL);
