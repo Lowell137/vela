@@ -634,7 +634,10 @@ Window {
         width: root.width - (side ? 32 : root.seven ? 10 : 20)
         height: root.height - (side ? 20 : root.seven ? restY : 32) // 10 above, 22 below: 12 of gap from the taskbar (Windows 7: none)
         radius: Theme.startMenuRadius
-        color: root.seven ? "#E69EB6D0" : Theme.startMenuSurface // Windows 7: the Aero glass colour
+        // Windows 7: the Aero glass colour. Else the theme's tint, made more
+        // solid by Settings > Taskbar > Start menu background.
+        color: root.seven ? "#E69EB6D0" : Qt.rgba(Theme.startMenuSurface.r, Theme.startMenuSurface.g, Theme.startMenuSurface.b,
+            Theme.startMenuSurface.a + (1 - Theme.startMenuSurface.a) * Config.startSolid / 100)
         border.width: 1
         border.color: root.seven ? "#B3101820" : Theme.stroke // Aero: a dark outer line...
 

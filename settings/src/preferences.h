@@ -101,6 +101,8 @@ class Preferences : public QObject {
     // taskbar-/quicksettings- blur (50-300) and opacity (0-200) in percent of the theme's.
     Q_PROPERTY(QVariantMap panelLook READ panelLook NOTIFY windowBlurChanged)
     Q_PROPERTY(bool showDesktopCorner READ showDesktopCorner WRITE setShowDesktopCorner NOTIFY taskbarChanged)
+    // start/solid (0-100): the Start menu's background, more solid than the theme.
+    Q_PROPERTY(int startSolid READ startSolid WRITE setStartSolid NOTIFY taskbarChanged)
     // --- Notifications ---
     Q_PROPERTY(bool doNotDisturb READ doNotDisturb WRITE setDoNotDisturb NOTIFY doNotDisturbChanged)
     // --- Power ---
@@ -305,6 +307,8 @@ public:
     Q_INVOKABLE void pickWindow();
     bool showDesktopCorner() const { return m_showDesktopCorner; }
     void setShowDesktopCorner(bool on);
+    int startSolid() const { return m_startSolid; }
+    void setStartSolid(int percent);
 
     bool doNotDisturb() const { return m_doNotDisturb; }
     void setDoNotDisturb(bool on);
@@ -536,6 +540,7 @@ private:
     QVariantList m_windowBlurApps;
     QMap<QString, int> m_panelLook;
     bool m_showDesktopCorner = true;
+    int m_startSolid = 0;
     bool m_doNotDisturb = false;
     int m_screenOffMinutes = 10;
     bool m_lockOnIdle = true;

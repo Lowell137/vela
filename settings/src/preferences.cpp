@@ -252,6 +252,7 @@ void Preferences::reload()
         ? QStringLiteral("f")
         : QStringLiteral("c");
     m_showDesktopCorner = settings.value(QStringLiteral("taskbar/showDesktopCorner"), true).toBool();
+    m_startSolid = std::clamp(settings.value(QStringLiteral("start/solid"), 0).toInt(), 0, 100);
     emit taskbarChanged();
     m_doNotDisturb = settings.value(QStringLiteral("notifications/doNotDisturb"), false).toBool();
     emit doNotDisturbChanged();
@@ -1235,6 +1236,16 @@ void Preferences::setShowDesktopCorner(bool on)
     if (on != m_showDesktopCorner) {
         m_showDesktopCorner = on;
         setShell(QStringLiteral("taskbar/showDesktopCorner"), on);
+        emit taskbarChanged();
+    }
+}
+
+void Preferences::setStartSolid(int percent)
+{
+    percent = std::clamp(percent, 0, 100);
+    if (percent != m_startSolid) {
+        m_startSolid = percent;
+        setShell(QStringLiteral("start/solid"), percent);
         emit taskbarChanged();
     }
 }

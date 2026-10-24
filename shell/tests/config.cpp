@@ -30,6 +30,15 @@ private Q_SLOTS:
         QCOMPARE(config.taskbarPosition(), QStringLiteral("bottom"));
         QVERIFY(!config.taskbarTop());
     }
+    void startSolid()
+    {
+        QSettings().clear();
+        QCOMPARE(Config().startSolid(), 0);
+        QSettings().setValue(QStringLiteral("start/solid"), 60);
+        QCOMPARE(Config().startSolid(), 60);
+        QSettings().setValue(QStringLiteral("start/solid"), 500);
+        QCOMPARE(Config().startSolid(), 100); // out of range: the limit
+    }
     void values()
     {
         {

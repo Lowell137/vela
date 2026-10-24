@@ -92,6 +92,11 @@ void Config::reload()
     m_weatherLon = weatherLon;
     m_weatherUnit = weatherUnit;
     const bool showDesktopCorner = settings.value(QStringLiteral("taskbar/showDesktopCorner"), true).toBool();
+    const int startSolid = std::clamp(settings.value(QStringLiteral("start/solid"), 0).toInt(), 0, 100);
+    if (startSolid != m_startSolid) {
+        m_startSolid = startSolid;
+        emit taskbarChanged();
+    }
     if (weatherChanged || autoHide != m_taskbarAutoHide || combine != m_taskbarCombine || alignment != m_taskbarAlignment || position != m_taskbarPosition || style != m_taskbarStyle || endTask != m_endTask || taskView != m_taskView
         || trayOverflow != m_trayOverflow || allScreens != m_taskbarAllScreens || showDesktopCorner != m_showDesktopCorner) {
         m_taskbarAutoHide = autoHide;
