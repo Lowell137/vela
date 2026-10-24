@@ -447,6 +447,7 @@ void DesktopModel::layout(bool notify)
     };
 
     QList<QPointF> positions(m_items.size(), QPointF(-1, -1));
+    QList<QRectF> placed; // free placements so far
     // Those placed by hand first, then the others in a row by columns.
     for (qsizetype i = 0; i < m_items.size(); ++i) {
         const QPointF saved = m_items.at(i).position;
@@ -459,10 +460,36 @@ void DesktopModel::layout(bool notify)
             used.insert(qint64(fc) * 1000 + fr);
             positions[i] = cellPosition(fc, fr);
         } else {
-            const auto [c, r] = cellOf(saved);
-            used.insert(qint64(c) * 1000 + r);
-            positions[i] = QPointF(std::clamp(saved.x(), 0.0, std::max(0.0, m_areaWidth - cw)),
+            // Free placement, but never one icon over another: the one that
+            // would overlap shows in the nearest free cell (the saved position
+            // stays as it was).
+            const auto overlaps = [&](const QPointF& p) {
+                const QRectF box = QRectF(p, QSizeF(cw, ch)).adjusted(8, 8, -8, -8);
+                return std::any_of(placed.cbegin(), placed.cend(), [&](const QRectF& other) { return other.intersects(box); });
+            };
+            QPointF where(std::clamp(saved.x(), 0.0, std::max(0.0, m_areaWidth - cw)),
                 std::clamp(saved.y(), 0.0, std::max(0.0, m_areaHeight - ch)));
+            if (overlaps(where)) {
+                const auto [c, r] = cellOf(saved);
+                bool found = false;
+                for (int radius = 0; radius < 200 && !found; ++radius) {
+                    for (int dc = -radius; dc <= radius && !found; ++dc) {
+                        for (int dr = -radius; dr <= radius && !found; ++dr) {
+                            const int fc = c + dc;
+                            const int fr = r + dr;
+                            if (std::max(std::abs(dc), std::abs(dr)) == radius && fc >= 0 && fr >= 0 && fr < rowCount
+                                && !overlaps(cellPosition(fc, fr))) {
+                                where = cellPosition(fc, fr);
+                                found = true;
+                            }
+                        }
+                    }
+                }
+            }
+            const auto [c, r] = cellOf(where);
+            used.insert(qint64(c) * 1000 + r);
+            placed.append(QRectF(where, QSizeF(cw, ch)));
+            positions[i] = where;
         }
     }
     int column = 0;
