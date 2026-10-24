@@ -120,10 +120,17 @@ static float blur_look_scale = 1.0f;
 
 // The look of the blur (a theme's blur-saturation / blur-strength, sent by the
 // shell: Window Glass's vivid acrylic). Defaults: Windows 11's.
-void vela_blur_set_look(float saturation, float strength)
+// A theme's own luminosity and tint opacity of the acrylic (Aero's clear glass
+// wants neither); negative: the mode's.
+static float blur_look_luminosity = -1.0f;
+static float blur_look_tint = -1.0f;
+
+void vela_blur_set_look(float saturation, float strength, float luminosity, float tint)
 {
     blur_look_saturation = vela_clampf(saturation, 1.0f, 3.0f);
     blur_look_scale = vela_clampf(strength, 0.25f, 3.0f);
+    blur_look_luminosity = luminosity < 0.0f ? -1.0f : vela_clampf(luminosity, 0.0f, 1.0f);
+    blur_look_tint = tint < 0.0f ? -1.0f : vela_clampf(tint, 0.0f, 1.0f);
 }
 
 static float blur_strength(double scale)
@@ -706,8 +713,13 @@ void vela_draw_elements(struct vela_scene *scene, struct vela_pass *pass, const 
                 struct vela_texture_draw panel = draw;
                 panel.clip = NULL;
                 panel.alpha = e->blur_opacity; // the blur as strong as if the window were opaque
-                add_blur_pieces(pass, &panel, &region, clip, blur_strength(e->scale_x), &scene->acrylic_tint,
-                    !wlr_box_empty(&e->blur_forced), blur_look_saturation, scene->acrylic_luminosity);
+                struct wlr_render_color tint = scene->acrylic_tint;
+                if (blur_look_tint >= 0.0f) {
+                    tint.a = blur_look_tint;
+                }
+                add_blur_pieces(pass, &panel, &region, clip, blur_strength(e->scale_x), &tint,
+                    !wlr_box_empty(&e->blur_forced), blur_look_saturation,
+                    blur_look_luminosity >= 0.0f ? blur_look_luminosity : scene->acrylic_luminosity);
             }
             pixman_region32_fini(&region);
         }

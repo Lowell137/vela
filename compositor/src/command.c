@@ -537,8 +537,10 @@ static void run_command(struct vela_server *server, const char *line)
     } else if (starts_with(line, "blur-look ")) {
         float saturation = 1.0f;
         float strength = 1.0f;
-        if (sscanf(line + 10, "%f %f", &saturation, &strength) == 2) {
-            vela_blur_set_look(saturation, strength);
+        float luminosity = -1.0f;
+        float tint = -1.0f;
+        if (sscanf(line + 10, "%f %f %f %f", &saturation, &strength, &luminosity, &tint) >= 2) {
+            vela_blur_set_look(saturation, strength, luminosity, tint);
             struct vela_output *output;
             wl_list_for_each (output, &server->outputs, link) {
                 vela_output_frame_damage_whole(output->frame);

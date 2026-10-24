@@ -206,6 +206,6 @@ void vela_output_frame_surface_committed(struct vela_output_frame *frame, struct
 void vela_output_frame_surface_destroyed(struct vela_output_frame *frame, struct wlr_surface *surface);
 
 // A theme's look for the live blur (docs/renderer.md §8.3).
-void vela_blur_set_look(float saturation, float strength);
+void vela_blur_set_look(float saturation, float strength, float luminosity, float tint);
 
 #endif
