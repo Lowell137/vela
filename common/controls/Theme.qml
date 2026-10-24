@@ -153,6 +153,15 @@ QtObject {
     // taskbar-start-glyph: 0 Vela's sail, 1 a glass orb with the four-color flag
     // (Windows 7). taskbar-weather=0 hides the weather widget.
     readonly property int taskbarStartGlyph: themed("taskbar-start-glyph", 0)
+    // Pictures of a theme (taskbar-orb=asset:aero/orbNormal.png ...): the Start
+    // orb, the tile under an open app (stretched, with a 3 px border), and a
+    // reflection over the bar. Empty without them: the drawn look.
+    readonly property string taskbarOrb: themed("taskbar-orb", "")
+    readonly property string taskbarOrbPressed: themed("taskbar-orb-pressed", taskbarOrb)
+    readonly property string taskbarTileImage: themed("taskbar-tile-image", "")
+    readonly property string taskbarTileImageActive: themed("taskbar-tile-image-active", taskbarTileImage)
+    readonly property string taskbarReflection: themed("taskbar-reflection", "")
+    readonly property real taskbarReflectionOpacity: themed("taskbar-reflection-opacity", 0.5)
     readonly property bool taskbarWeather: themed("taskbar-weather", 1) !== 0
     // The tile under an open app: taskbar-button-fill (open) and -fill-active
     // (the focused one) are the tile's lower color, a glossy gradient up to

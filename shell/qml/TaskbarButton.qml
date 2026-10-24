@@ -39,11 +39,19 @@ Item {
     width: Theme.taskbarButtonWidth
     height: Config.dock ? 48 : Theme.taskbarButtonHeight
 
+    // taskbar-tile-image: the theme's picture under each open app.
+    BorderImage {
+        anchors.fill: parent
+        visible: root.running && source != ""
+        source: root.active ? Theme.taskbarTileImageActive : Theme.taskbarTileImage
+        border { left: 3; right: 3; top: 3; bottom: 3 }
+    }
+
     // A tile under each open app (Windows 7's glass buttons), if the theme has one.
     Rectangle {
         id: tile
         anchors.fill: parent
-        visible: root.running && (Theme.taskbarButtonFill.a > 0 || Theme.taskbarButtonStroke.a > 0)
+        visible: root.running && Theme.taskbarTileImage === "" && (Theme.taskbarButtonFill.a > 0 || Theme.taskbarButtonStroke.a > 0)
         radius: Theme.taskbarButtonRadius
         readonly property color low: root.active ? Theme.taskbarButtonFillActive : Theme.taskbarButtonFill
         color: Theme.taskbarButtonGloss ? "transparent" : low

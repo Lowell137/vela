@@ -405,6 +405,16 @@ Window {
             border.color: Theme.taskbarStroke
         }
 
+        // taskbar-reflection: Aero's streaks of light over the glass.
+        Image {
+            anchors.fill: parent
+            visible: source != "" && !root.islands && !root.dock && !root.floating
+            source: Theme.taskbarReflection
+            fillMode: Image.PreserveAspectCrop
+            opacity: Theme.taskbarReflectionOpacity
+            asynchronous: true
+        }
+
         // Empty space: Task Manager and taskbar settings.
         MouseArea {
             id: emptyArea

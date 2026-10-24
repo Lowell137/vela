@@ -13,6 +13,7 @@
 #include <QProcess>
 #include <QSettings>
 #include <QStandardPaths>
+#include <QUrl>
 
 static QStringList themeFilePaths();
 
@@ -110,7 +111,8 @@ static QStringList themeFilePaths()
 }
 
 // key=value lines, # comments. A value that is a color becomes a QColor
-// (#RRGGBB or #AARRGGBB), a number a double; anything else is ignored.
+// (#RRGGBB or #AARRGGBB), a number a double, "asset:<file>" the URL of a picture
+// of themes/assets/; anything else is ignored.
 static void loadThemeFile(const QString& path, QVariantMap& map)
 {
     QFile file(path);
@@ -131,6 +133,20 @@ static void loadThemeFile(const QString& path, QVariantMap& map)
             map.insert(key, d);
         } else if (QColor color(value); color.isValid()) {
             map.insert(key, color);
+        } else if (value.startsWith(QLatin1String("asset:"))) {
+            // A picture of a theme (themes/assets/<name>): its URL, if it is installed.
+            const QString name = value.mid(6).trimmed();
+            if (name.isEmpty() || name.startsWith(u'/') || name.contains(QLatin1String(".."))) {
+                continue;
+            }
+            const QString relative = QStringLiteral("vela/themes/assets/") + name;
+            QString file = QStandardPaths::locate(QStandardPaths::GenericConfigLocation, relative);
+            if (file.isEmpty()) {
+                file = QStandardPaths::locate(QStandardPaths::GenericDataLocation, relative);
+            }
+            if (!file.isEmpty()) {
+                map.insert(key, QUrl::fromLocalFile(file).toString());
+            }
         }
     }
 }

@@ -11,9 +11,19 @@ Item {
     width: 22
     height: 22
 
+    // taskbar-orb: the theme's picture of the orb, over the drawn one.
+    Image {
+        anchors.centerIn: parent
+        width: 54
+        height: 54
+        visible: source != "" && Theme.taskbarStartGlyph === 1
+        source: Shell.startMenuOpen ? Theme.taskbarOrbPressed : Theme.taskbarOrb
+        smooth: true
+    }
+
     // taskbar-start-glyph=1: Windows 7's orb, drawn: a glass ball and the flag.
     Item {
-        visible: Theme.taskbarStartGlyph === 1
+        visible: Theme.taskbarStartGlyph === 1 && Theme.taskbarOrb === ""
         anchors.centerIn: parent
         width: 34
         height: 34
