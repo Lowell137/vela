@@ -157,6 +157,8 @@ QtObject {
     // orb, the tile under an open app (stretched, with a 3 px border), and a
     // reflection over the bar. Empty without them: the drawn look.
     readonly property string taskbarOrb: themed("taskbar-orb", "")
+    // taskbar-bounce=0: the icons do not shrink while pressed (Windows 7 had no such motion).
+    readonly property bool taskbarBounce: themed("taskbar-bounce", 1) !== 0
     readonly property string taskbarOrbPressed: themed("taskbar-orb-pressed", taskbarOrb)
     readonly property string taskbarTileImage: themed("taskbar-tile-image", "")
     readonly property string taskbarTileImageActive: themed("taskbar-tile-image-active", taskbarTileImage)

@@ -83,7 +83,7 @@ Item {
         anchors.centerIn: parent
         width: Theme.taskbarIconSize
         height: Theme.taskbarIconSize
-        scale: (mouse.pressed ? 0.84 : 1) * root.zoom
+        scale: (mouse.pressed && Theme.taskbarBounce ? 0.84 : 1) * root.zoom
 
         Behavior on scale {
             NumberAnimation { duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
