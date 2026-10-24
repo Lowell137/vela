@@ -164,6 +164,11 @@ QtObject {
     readonly property string taskbarTileImageActive: themed("taskbar-tile-image-active", taskbarTileImage)
     readonly property string taskbarReflection: themed("taskbar-reflection", "")
     readonly property real taskbarReflectionOpacity: themed("taskbar-reflection-opacity", 0.5)
+    // taskbar-desktop-image: a strip picture for the show desktop corner (Windows 7's),
+    // taskbar-task-view=0 hides the Task view button (Windows 7 had none).
+    readonly property string taskbarDesktopImage: themed("taskbar-desktop-image", "")
+    readonly property string taskbarDesktopImageHover: themed("taskbar-desktop-image-hover", taskbarDesktopImage)
+    readonly property bool taskbarTaskView: themed("taskbar-task-view", 1) !== 0
     readonly property bool taskbarWeather: themed("taskbar-weather", 1) !== 0
     // The tile under an open app: taskbar-button-fill (open) and -fill-active
     // (the focused one) are the tile's lower color, a glossy gradient up to

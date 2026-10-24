@@ -324,7 +324,7 @@ Window {
     }
     // Task View: two overlapping windows, like the Windows 11 icon.
     component TaskViewBtn: TaskbarButton {
-        visible: Config.taskView
+        visible: Config.taskView && Theme.taskbarTaskView
         tooltip: qsTr("Task view")
         onClicked: { root.fromHere(); Shell.taskViewRequested() }
         Item {
@@ -552,7 +552,7 @@ Window {
             visible: !root.islands
         }
         TaskViewBtn {
-            visible: Config.taskView && !root.islands
+            visible: Config.taskView && Theme.taskbarTaskView && !root.islands
         }
 
         Repeater {
@@ -1102,16 +1102,24 @@ Window {
     // the thin line lights up on hover.
     Item {
         id: showDesktop
-        visible: Config.showDesktopCorner && !root.dock // on every taskbar, like upstream
+        visible: (Config.showDesktopCorner || Theme.taskbarDesktopImage !== "") && !root.dock // on every taskbar, like upstream
         x: root.vertical ? 0 : parent.width - width
         y: root.vertical ? parent.height - height : 0
         // Invisible at rest and over the clock's margin: it takes no room. Only
-        // under the pointer a short line shows, like Windows.
-        width: root.vertical ? parent.width : (visible ? 8 : 0)
+        // under the pointer a short line shows, like Windows. With a picture
+        // (Windows 7's) it is a visible strip.
+        width: root.vertical ? parent.width : (visible ? (Theme.taskbarDesktopImage !== "" ? 15 : 8) : 0)
         height: root.vertical ? (visible ? 8 : 0) : parent.height
 
+        Image {
+            anchors.fill: parent
+            visible: source != "" && !root.vertical
+            source: showDesktopMouse.containsMouse ? Theme.taskbarDesktopImageHover : Theme.taskbarDesktopImage
+            fillMode: Image.Stretch
+        }
         // A short, 2 px line, only while hovered.
         Rectangle {
+            visible: Theme.taskbarDesktopImage === ""
             x: root.vertical ? (parent.width - width) / 2 : parent.width - width - 2
             y: root.vertical ? parent.height - height - 2 : (parent.height - height) / 2
             width: root.vertical ? 18 : 2
