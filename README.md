@@ -25,7 +25,7 @@ Paint and Photos, and many shell and file manager features. `main` is the branch
 
 <br>
 
-<img src="docs/screenshots/fork-hero.webp" alt="Files, Settings and Calculator snapped on the Vela desktop" width="100%">
+<img src="docs/screenshots/fork-desktop.webp" alt="The Vela desktop with the taskbar, weather widget and tray" width="100%">
 
 </div>
 
