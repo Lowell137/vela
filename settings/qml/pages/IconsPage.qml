@@ -40,7 +40,11 @@ Page {
                 : qsTr("Taskbar, Start, Settings and title bars. A theme's dark version follows the mode")
             contentItem: Flow {
                 id: grid
-                width: parent ? parent.width - 32 : 0
+                // As many columns as fit, the tiles stretched to fill the row.
+                readonly property real avail: parent ? parent.width : 0
+                readonly property int columns: Math.max(1, Math.floor((avail + spacing) / (172 + spacing)))
+                readonly property real tileWidth: (avail - (columns - 1) * spacing) / columns
+                width: avail
                 spacing: 12
                 Repeater {
                     model: page.choices
@@ -50,7 +54,7 @@ Page {
                         required property int index
                         readonly property bool chosen: index === page.chosenIndex
                         readonly property string previewTheme: modelData.name === "" ? page.automaticTheme : modelData.name
-                        width: 172
+                        width: grid.tileWidth
                         height: 142
                         Rectangle {
                             id: plate
