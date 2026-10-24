@@ -20,6 +20,7 @@
 #include "defaultapps.h"
 #include "displays.h"
 #include "iconprovider.h"
+#include "iconthemepreview.h"
 #include "keyboardlayouts.h"
 #include "language.h"
 #include "levelmeter.h"
@@ -207,6 +208,7 @@ int main(int argc, char* argv[])
     // Vela.Controls.
     vela::controls::install(engine, Appearance::Mode::Apps)->watch();
     engine.addImageProvider(QStringLiteral("fileicon"), new IconProvider(32));
+    engine.addImageProvider(QStringLiteral("themeicon"), new IconThemePreviewProvider);
     QQmlContext* context = engine.rootContext();
     context->setContextProperty(QStringLiteral("Router"), &router);
     context->setContextProperty(QStringLiteral("Apps"), &apps);
