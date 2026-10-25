@@ -247,6 +247,8 @@ void Preferences::reload()
         : QStringLiteral("always");
     const QString weather = settings.value(QStringLiteral("taskbar/weather")).toString().toLower();
     m_weather = weather.isEmpty() || weather == QLatin1String("on") || weather == QLatin1String("true") || weather == QLatin1String("1");
+    const QString weatherSystem = settings.value(QStringLiteral("taskbar/weather-system")).toString().toLower();
+    m_weatherSystemInfo = weatherSystem.isEmpty() || weatherSystem == QLatin1String("on") || weatherSystem == QLatin1String("true") || weatherSystem == QLatin1String("1");
     m_weatherCity = settings.value(QStringLiteral("taskbar/weather-city")).toString();
     m_weatherUnit = settings.value(QStringLiteral("taskbar/weather-unit")).toString().toLower() == QLatin1String("f")
         ? QStringLiteral("f")
@@ -1282,6 +1284,15 @@ void Preferences::setWeather(bool on)
     if (on != m_weather) {
         m_weather = on;
         setShell(QStringLiteral("taskbar/weather"), on ? QStringLiteral("on") : QStringLiteral("off"));
+        emit taskbarChanged();
+    }
+}
+
+void Preferences::setWeatherSystemInfo(bool on)
+{
+    if (on != m_weatherSystemInfo) {
+        m_weatherSystemInfo = on;
+        setShell(QStringLiteral("taskbar/weather-system"), on ? QStringLiteral("on") : QStringLiteral("off"));
         emit taskbarChanged();
     }
 }

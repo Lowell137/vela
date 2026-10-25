@@ -89,6 +89,15 @@ Page {
             }
         }
         Card {
+            icon: "utilities-system-monitor"
+            title: qsTr("Show system info in the weather panel")
+            description: qsTr("The graphics card, processor, memory and disk cards beside the forecast")
+            trailing: Toggle {
+                checked: Prefs.weatherSystemInfo
+                onToggled: on => Prefs.weatherSystemInfo = on
+            }
+        }
+        Card {
             icon: "weather-clear"
             title: qsTr("Temperature unit")
             trailing: Choice {

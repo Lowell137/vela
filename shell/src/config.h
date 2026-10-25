@@ -43,6 +43,8 @@ class Config : public QObject {
     Q_PROPERTY(bool showDesktopCorner READ showDesktopCorner NOTIFY taskbarChanged)
     // 0-100: how much more solid than the theme the Start menu's background is.
     Q_PROPERTY(int startSolid READ startSolid NOTIFY taskbarChanged)
+    // The weather flyout's system cards (graphics card, processor, memory, disk).
+    Q_PROPERTY(bool weatherSystemInfo READ weatherSystemInfo NOTIFY taskbarChanged)
     // Clipboard history (Win+V).
     Q_PROPERTY(bool clipboardHistory READ clipboardHistory NOTIFY clipboardChanged)
     // "Choose your mode": "dark" or "light", for the shell (taskbar, menus,
@@ -75,6 +77,7 @@ public:
     QString weatherLat() const { return m_weatherLat; }
     QString weatherLon() const { return m_weatherLon; }
     QString weatherUnit() const { return m_weatherUnit; }
+    bool weatherSystemInfo() const { return m_weatherSystemInfo; }
     bool showDesktopCorner() const { return m_showDesktopCorner; }
     int startSolid() const { return m_startSolid; }
     bool clipboardHistory() const { return m_clipboardHistory; }
@@ -107,6 +110,7 @@ private:
     bool m_taskbarAutoHide = false;
     QString m_taskbarCombine = QStringLiteral("always");
     bool m_weather = true;
+    bool m_weatherSystemInfo = true;
     QString m_weatherCity, m_weatherLat, m_weatherLon;
     QString m_weatherUnit = QStringLiteral("c");
     bool m_showDesktopCorner = true;

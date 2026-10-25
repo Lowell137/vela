@@ -78,12 +78,16 @@ void Config::reload()
     // weather=on|off ("true"/"false" too: a QSettings bool would read "off" as true).
     const QString weatherValue = settings.value(QStringLiteral("taskbar/weather")).toString().toLower();
     const bool weather = weatherValue.isEmpty() || weatherValue == QLatin1String("on") || weatherValue == QLatin1String("true") || weatherValue == QLatin1String("1");
+    const QString systemInfoValue = settings.value(QStringLiteral("taskbar/weather-system")).toString().toLower();
+    const bool weatherSystemInfo = systemInfoValue.isEmpty() || systemInfoValue == QLatin1String("on") || systemInfoValue == QLatin1String("true") || systemInfoValue == QLatin1String("1");
     const QString weatherCity = settings.value(QStringLiteral("taskbar/weather-city")).toString();
     const QString weatherLat = settings.value(QStringLiteral("taskbar/weather-lat")).toString();
     const QString weatherLon = settings.value(QStringLiteral("taskbar/weather-lon")).toString();
     const QString weatherUnit = settings.value(QStringLiteral("taskbar/weather-unit")).toString().toLower() == QLatin1String("f")
         ? QStringLiteral("f")
         : QStringLiteral("c");
+    const bool systemInfoChanged = weatherSystemInfo != m_weatherSystemInfo;
+    m_weatherSystemInfo = weatherSystemInfo;
     const bool weatherChanged = weather != m_weather || weatherCity != m_weatherCity || weatherLat != m_weatherLat
         || weatherLon != m_weatherLon || weatherUnit != m_weatherUnit;
     m_weather = weather;
@@ -97,7 +101,7 @@ void Config::reload()
         m_startSolid = startSolid;
         emit taskbarChanged();
     }
-    if (weatherChanged || autoHide != m_taskbarAutoHide || combine != m_taskbarCombine || alignment != m_taskbarAlignment || position != m_taskbarPosition || style != m_taskbarStyle || endTask != m_endTask || taskView != m_taskView
+    if (weatherChanged || systemInfoChanged || autoHide != m_taskbarAutoHide || combine != m_taskbarCombine || alignment != m_taskbarAlignment || position != m_taskbarPosition || style != m_taskbarStyle || endTask != m_endTask || taskView != m_taskView
         || trayOverflow != m_trayOverflow || allScreens != m_taskbarAllScreens || showDesktopCorner != m_showDesktopCorner) {
         m_taskbarAutoHide = autoHide;
         m_taskbarCombine = combine;

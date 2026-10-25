@@ -61,6 +61,8 @@ class Preferences : public QObject {
     Q_PROPERTY(bool weather READ weather WRITE setWeather NOTIFY taskbarChanged)
     Q_PROPERTY(QString weatherCity READ weatherCity NOTIFY taskbarChanged)
     Q_PROPERTY(QString weatherUnit READ weatherUnit WRITE setWeatherUnit NOTIFY taskbarChanged)
+    // taskbar/weather-system: the weather flyout's system cards (graphics card, processor, memory, disk).
+    Q_PROPERTY(bool weatherSystemInfo READ weatherSystemInfo WRITE setWeatherSystemInfo NOTIFY taskbarChanged)
     // icon-theme= in vela.conf: an icon theme's directory name, "" for the
     // automatic one (Breeze). The apps apply it themselves (applyIconTheme).
     Q_PROPERTY(QString iconTheme READ iconTheme WRITE setIconTheme NOTIFY iconThemeChanged)
@@ -238,6 +240,8 @@ public:
     QString weatherCity() const { return m_weatherCity; }
     QString weatherUnit() const { return m_weatherUnit; }
     void setWeatherUnit(const QString& unit);
+    bool weatherSystemInfo() const { return m_weatherSystemInfo; }
+    void setWeatherSystemInfo(bool on);
     Q_INVOKABLE void setWeatherPlace(const QString& city, const QString& lat, const QString& lon);
 
     QString iconTheme() const { return m_iconTheme; }
@@ -520,6 +524,7 @@ private:
     bool m_weather = true;
     QString m_weatherCity;
     QString m_weatherUnit = QStringLiteral("c");
+    bool m_weatherSystemInfo = true;
     QString m_iconTheme;
     QString m_visualTheme;
     QVariantMap m_surfaceStyles;
