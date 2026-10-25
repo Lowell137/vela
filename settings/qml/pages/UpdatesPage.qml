@@ -16,6 +16,8 @@ Page {
     component JobStatus: Column {
         id: job
         property string name
+        // False where the page already shows its own Show terminal.
+        property bool showTerminal: true
         readonly property var info: Updates.jobs[name] || ({ state: "idle", message: "" })
         width: parent ? parent.width : 0
         visible: info.state !== "idle"
@@ -30,6 +32,7 @@ Page {
             wrapMode: Text.Wrap
         }
         Button {
+            visible: job.showTerminal
             subtle: true
             text: qsTr("Show terminal")
             onClicked: Updates.showJob(job.name)
@@ -209,7 +212,7 @@ Page {
                     wrapMode: Text.Wrap
                 }
 
-                JobStatus { name: "vela" }
+                JobStatus { name: "vela"; showTerminal: Updates.status !== "updating" }
 
                 // What's new: the commits the update brings (or brought, when
                 // it was installed since the last look).
