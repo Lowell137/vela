@@ -4,11 +4,15 @@
 #pragma once
 
 #include <QColor>
+#include <QImage>
 #include <QObject>
 #include <QPoint>
+#include <QSizeF>
 
 #include <deque>
 #include <vector>
+
+#include "graphics.h"
 
 extern "C" {
 #include <vterm.h>
@@ -45,6 +49,17 @@ public:
     bool altScreen() const { return m_altScreen; }
     int mouse() const { return m_mouse; } // 0: the program doesn't ask for it
 
+    // A picture shown with the kitty graphics protocol: where it is, as lines are counted above.
+    struct Picture {
+        QImage image;
+        int line = 0;
+        int column = 0;
+        int columns = 0;
+        int rows = 0;
+    };
+    const QList<Picture>& pictures() const { return m_pictures; }
+    void setCellSize(QSizeF size);
+
     void key(VTermKey key, VTermModifier modifiers);
     void character(uint32_t character, VTermModifier modifiers);
     void paste(const QString& text);
@@ -66,6 +81,7 @@ private:
     static int onPush(int columns, const VTermScreenCell* cells, void* user);
     static int onPop(int columns, VTermScreenCell* cells, void* user);
     static int onClear(void* user);
+    void place(const QHash<QByteArray, QByteArray>& keys, const QByteArray& payload);
 
     VTerm* m_vt = nullptr;
     VTermScreen* m_screen = nullptr;
@@ -78,4 +94,7 @@ private:
     bool m_altScreen = false;
     int m_mouse = 0;
     QByteArray m_title;
+    Graphics m_graphics;
+    QList<Picture> m_pictures; // front: the first placed
+    QSizeF m_cell{8, 16};
 };

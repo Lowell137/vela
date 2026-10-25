@@ -129,6 +129,7 @@ void Terminal::measure()
     m_cellWidth = qMax(1.0, std::ceil(metrics.horizontalAdvance(QLatin1Char('M'))));
     m_cellHeight = qMax(1.0, std::ceil(metrics.lineSpacing()));
     m_ascent = std::ceil(metrics.ascent());
+    m_vt->setCellSize(QSizeF(m_cellWidth, m_cellHeight));
     fit();
     update();
 }
@@ -449,6 +450,18 @@ void Terminal::paint(QPainter* painter)
             } else {
                 painter->fillRect(QRectF(cell.left(), cell.top(), 2, cell.height()), m_cursorColor);
             }
+        }
+    }
+
+    // Drawn last, over the text. The rows above leave Source mode on, which would replace what's under
+    // the picture, not blend with it, so it's set back. A line drawn again gets its fill first.
+    painter->setRenderHint(QPainter::SmoothPixmapTransform);
+    for (const Vt::Picture& picture : m_vt->pictures()) {
+        const QRectF target(kPadding + picture.column * m_cellWidth, kPadding + (picture.line + m_scroll) * m_cellHeight,
+            picture.columns * m_cellWidth, picture.rows * m_cellHeight);
+        if (target.intersects(clip)) {
+            painter->setCompositionMode(QPainter::CompositionMode_SourceOver);
+            painter->drawImage(target, picture.image);
         }
     }
 }

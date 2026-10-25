@@ -3,6 +3,8 @@
 
 #include "vt.h"
 
+#include <cmath>
+
 namespace {
 constexpr size_t kHistoryLines = 10000;
 
@@ -62,8 +64,46 @@ void Vt::resize(int rows, int columns)
 
 void Vt::input(const QByteArray& bytes)
 {
-    vterm_input_write(m_vt, bytes.constData(), size_t(bytes.size()));
+    for (const Graphics::Piece& piece : m_graphics.split(bytes)) {
+        if (piece.command) {
+            place(piece.keys, piece.payload);
+        } else {
+            vterm_input_write(m_vt, piece.text.constData(), size_t(piece.text.size()));
+        }
+    }
     vterm_screen_flush_damage(m_screen);
+}
+
+void Vt::setCellSize(QSizeF size)
+{
+    m_cell = size;
+}
+
+void Vt::place(const QHash<QByteArray, QByteArray>& keys, const QByteArray& payload)
+{
+    // Only a=T (transmit and show) is handled; the rest are read and dropped.
+    if (keys.value("a") != "T") {
+        return;
+    }
+    const QImage image = Graphics::decode(keys, payload);
+    if (image.isNull()) {
+        return;
+    }
+    Picture picture;
+    picture.image = image;
+    picture.line = m_cursor.y();
+    picture.column = m_cursor.x();
+    picture.columns = keys.value("c").toInt() > 0 ? keys.value("c").toInt() : int(std::ceil(image.width() / m_cell.width()));
+    picture.rows = keys.value("r").toInt() > 0 ? keys.value("r").toInt() : int(std::ceil(image.height() / m_cell.height()));
+    m_pictures.append(picture);
+    emit damaged(0, m_rows - 1);
+
+    // The cursor goes to the line after it, unless the program asks it not to (C=1).
+    // Added after the picture, so the lines that scroll away move it too.
+    if (keys.value("C") != "1") {
+        const QByteArray newlines = "\r" + QByteArray(picture.rows, '\n');
+        vterm_input_write(m_vt, newlines.constData(), size_t(newlines.size()));
+    }
 }
 
 void Vt::setColors(const QColor& foreground, const QColor& background, const QList<QColor>& ansi)
@@ -205,6 +245,9 @@ int Vt::onProperty(VTermProp property, VTermValue* value, void* user)
         break;
     case VTERM_PROP_ALTSCREEN:
         self->m_altScreen = value->boolean;
+        // shortcut: pictures are dropped on a screen switch, not kept per screen
+        self->m_pictures.clear();
+        emit self->damaged(0, self->m_rows - 1);
         break;
     case VTERM_PROP_MOUSE:
         self->m_mouse = value->number;
@@ -238,6 +281,13 @@ int Vt::onPush(int columns, const VTermScreenCell* cells, void* user)
     if (self->m_history.size() > kHistoryLines) {
         self->m_history.pop_back();
     }
+    for (Picture& picture : self->m_pictures) {
+        picture.line--;
+    }
+    // A picture that has gone past the kept history is gone.
+    self->m_pictures.removeIf([self](const Picture& picture) {
+        return picture.line + picture.rows <= -int(self->m_history.size());
+    });
     emit self->pushed();
     return 1;
 }
@@ -268,6 +318,7 @@ int Vt::onClear(void* user)
 {
     auto* self = static_cast<Vt*>(user);
     self->m_history.clear();
+    self->m_pictures.clear();
     emit self->damaged(0, self->m_rows - 1);
     return 1;
 }

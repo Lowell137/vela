@@ -12,6 +12,8 @@ qt_standard_project_setup(REQUIRES 6.7)
 
 # What a program shows and the lines it leaves behind, shared with the tests.
 add_library(vela-terminal-core OBJECT
+    src/graphics.cpp
+    src/graphics.h
     src/terminal.cpp
     src/terminal.h
     src/vt.cpp
@@ -72,6 +74,11 @@ if(VELA_BUILD_TOOLS)
     target_compile_options(vela-terminal-keys PRIVATE -Wall -Wextra)
     target_link_libraries(vela-terminal-keys PRIVATE vela-terminal-core Qt6::Test)
     add_test(NAME terminal-keys COMMAND vela-terminal-keys)
+    # The kitty graphics protocol: commands are split out of the text, pictures placed.
+    qt_add_executable(vela-terminal-graphics tests/graphics.cpp)
+    target_compile_options(vela-terminal-graphics PRIVATE -Wall -Wextra)
+    target_link_libraries(vela-terminal-graphics PRIVATE vela-terminal-core Qt6::Test)
+    add_test(NAME terminal-graphics COMMAND vela-terminal-graphics)
 endif()
 
 install(TARGETS vela-terminal RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
