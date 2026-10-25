@@ -113,7 +113,24 @@ Item {
     }
 
     width: Math.max(minWidth, Math.min(480, Math.ceil(contentWidth)))
-    height: contentHeight
+    // A menu longer than the area scrolls: the rows move under the panel's edges.
+    readonly property real maxHeight: Math.min(420, Math.max(160, areaHeight - 16))
+    height: Math.min(contentHeight, maxHeight)
+    property real scrollY: 0
+    readonly property real maxScroll: Math.max(0, contentHeight - height)
+    function scrollTo(y) {
+        scrollY = Math.max(0, Math.min(maxScroll, y))
+    }
+    // Brings a row into view, for the keyboard.
+    function ensureVisible(index) {
+        const top = rowY(index)
+        const bottom = top + rowHeightOf(entries[index])
+        if (top - scrollY < padding) {
+            scrollTo(top - padding)
+        } else if (bottom - scrollY > height - padding) {
+            scrollTo(bottom - height + padding)
+        }
+    }
     x: {
         const margin = 8
         let left = centered ? anchorX - width / 2 : anchorX
@@ -129,6 +146,18 @@ Item {
             top = level > 0 ? areaHeight - height - margin : anchorY - height
         }
         return Math.round(Math.max(margin, Math.min(areaHeight - height - margin, top)))
+    }
+
+    clip: true
+    Rectangle {
+        visible: panel.maxScroll > 0
+        x: panel.width - width - 3
+        y: panel.padding + (panel.height - 2 * panel.padding) * panel.scrollY / panel.contentHeight
+        width: 3
+        height: (panel.height - 2 * panel.padding) * panel.height / panel.contentHeight
+        radius: 1.5
+        color: Theme.textSecondary
+        opacity: 0.7
     }
 
     // It comes in fading and sliding slightly from the side it starts from.
@@ -150,6 +179,7 @@ Item {
             const next = ((start + step * i) % count + count) % count
             if (selectable(entries[next])) {
                 currentIndex = next
+                ensureVisible(next)
                 return
             }
         }
@@ -252,14 +282,16 @@ Item {
     }
 
     // Clicks on the panel don't close the menu.
+    // It covers the panel, so the wheel comes here; it scrolls the list.
     MouseArea {
         anchors.fill: parent
         acceptedButtons: Qt.AllButtons
+        onWheel: wheel => panel.scrollTo(panel.scrollY - wheel.angleDelta.y / 120 * 48)
     }
 
     Column {
         x: 0
-        y: panel.padding
+        y: panel.padding - panel.scrollY
         width: panel.width
 
         Repeater {
@@ -440,7 +472,7 @@ Item {
                     acceptedButtons: Qt.LeftButton | Qt.RightButton
                     onEntered: {
                         panel.currentIndex = row.usable ? row.index : -1
-                        panel.hovered(row.index, row.y + panel.padding)
+                        panel.hovered(row.index, row.y + panel.padding - panel.scrollY)
                     }
                     onExited: {
                         if (panel.currentIndex === row.index && !row.entry.children) {
