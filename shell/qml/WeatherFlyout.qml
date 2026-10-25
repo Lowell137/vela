@@ -7,7 +7,7 @@ import Vela.Controls
 // The weather flyout, like the hidden icons one (TrayOverflow.qml): a panel
 // next to the taskbar button with the place, the current conditions, the next
 // twelve hours and five days, and beside it the widgets board's other cards:
-// the month's calendar and the system status. A click outside, Esc or the button close it.
+// the graphics card and the system status. A click outside, Esc or the button close it.
 // Opened with Menus.weather.
 Window {
     id: root
@@ -48,7 +48,6 @@ Window {
         appear.restart()
         content.forceActiveFocus()
         Weather.refresh()
-        board.today()
         SysStats.active = true
         root.updateBlur()
     }
@@ -253,7 +252,7 @@ Window {
             }
         }
 
-        // The other cards: the calendar and the system status.
+        // The other cards: the graphics card and the system status.
         Column {
             id: board
             x: 16 + 400 - 32 + 16
@@ -261,86 +260,83 @@ Window {
             width: 340 - 0 - 16
             spacing: 12
 
-            property date shown: new Date()
-            function today() { shown = new Date() }
-            function step(months) { shown = new Date(shown.getFullYear(), shown.getMonth() + months, 1) }
-            readonly property date now: new Date()
-
             Rectangle {
+                visible: SysStats.gpu
                 width: parent.width
-                height: calendarColumn.implicitHeight + 24
+                height: gpuColumn.implicitHeight + 24
                 radius: Theme.radius
                 color: Theme.subtleHover
 
                 Column {
-                    id: calendarColumn
+                    id: gpuColumn
                     x: 12
                     y: 12
                     width: parent.width - 24
-                    spacing: 6
+                    spacing: 10
 
-                    Row {
+                    Item {
                         width: parent.width
+                        height: gpuTitle.implicitHeight
+                        Text { id: gpuTitle; text: qsTr("Graphics"); color: Theme.text; font.pixelSize: Theme.fontBody; font.weight: Font.DemiBold }
                         Text {
-                            width: parent.width - 56
-                            text: Qt.locale().standaloneMonthName(board.shown.getMonth()) + " " + board.shown.getFullYear()
+                            anchors { right: parent.right; verticalCenter: parent.verticalCenter }
+                            visible: SysStats.gpuTemperature >= 0
+                            text: qsTr("%1 °C").arg(SysStats.gpuTemperature)
                             color: Theme.text
-                            font.pixelSize: Theme.fontBody
-                            font.weight: Font.DemiBold
+                            font.pixelSize: Theme.fontCaption
                         }
-                        Repeater {
-                            model: [{ glyph: "‹", months: -1 }, { glyph: "›", months: 1 }]
-                            delegate: Item {
-                                required property var modelData
-                                width: 28
-                                height: 22
-                                Text { anchors.centerIn: parent; text: modelData.glyph; color: Theme.text; font.pixelSize: Theme.fontSubtitle }
-                                MouseArea { anchors.fill: parent; onClicked: board.step(modelData.months) }
+                    }
+                    Text {
+                        width: parent.width
+                        text: SysStats.gpuName
+                        elide: Text.ElideRight
+                        color: Theme.textSecondary
+                        font.pixelSize: Theme.fontCaption
+                    }
+                    Repeater {
+                        model: [
+                            { label: qsTr("Load"), value: SysStats.gpuLoad, text: SysStats.gpuLoad + "%" },
+                            { label: qsTr("Video memory"), value: SysStats.gpuMemory, text: SysStats.gpuMemoryText }
+                        ]
+                        delegate: Column {
+                            required property var modelData
+                            width: gpuColumn.width
+                            spacing: 3
+                            Item {
+                                width: parent.width
+                                height: gpuLabel.implicitHeight
+                                Text { id: gpuLabel; text: modelData.label; color: Theme.textSecondary; font.pixelSize: Theme.fontCaption }
+                                Text { anchors.right: parent.right; text: modelData.text; color: Theme.text; font.pixelSize: Theme.fontCaption }
+                            }
+                            Rectangle {
+                                width: parent.width
+                                height: 4
+                                radius: 2
+                                color: Theme.divider
+                                Rectangle { width: parent.width * Math.min(100, modelData.value) / 100; height: parent.height; radius: 2; color: Theme.accent }
                             }
                         }
                     }
-                    Grid {
-                        columns: 7
+                    // Who uses the video memory, most first.
+                    Column {
+                        visible: SysStats.gpuApps.length > 0
                         width: parent.width
-                        readonly property real cell: width / 7
-                        readonly property int offset: (new Date(board.shown.getFullYear(), board.shown.getMonth(), 1).getDay() + 6) % 7 // Monday first
-                        readonly property int days: new Date(board.shown.getFullYear(), board.shown.getMonth() + 1, 0).getDate()
-
+                        spacing: 4
                         Repeater {
-                            model: 7
-                            delegate: Text {
-                                required property int index
-                                width: parent.cell
-                                horizontalAlignment: Text.AlignHCenter
-                                text: Qt.locale().dayName((index + 1) % 7, Locale.NarrowFormat)
-                                color: Theme.textSecondary
-                                font.pixelSize: Theme.fontCaption
-                            }
-                        }
-                        Repeater {
-                            model: parent.offset + parent.days
+                            model: SysStats.gpuApps
                             delegate: Item {
-                                required property int index
-                                readonly property int day: index - parent.offset + 1
-                                readonly property bool isToday: day === board.now.getDate()
-                                    && board.shown.getMonth() === board.now.getMonth()
-                                    && board.shown.getFullYear() === board.now.getFullYear()
-                                width: parent.cell
-                                height: 28
-                                Rectangle {
-                                    anchors.centerIn: parent
-                                    width: 26
-                                    height: 26
-                                    radius: 13
-                                    color: Theme.accent
-                                    visible: parent.isToday
-                                }
+                                required property var modelData
+                                width: gpuColumn.width
+                                height: appName.implicitHeight
                                 Text {
-                                    anchors.centerIn: parent
-                                    text: parent.day > 0 ? parent.day : ""
-                                    color: parent.isToday ? Theme.accentText : Theme.text
-                                    font.pixelSize: Theme.fontCaption + 1
+                                    id: appName
+                                    width: parent.width - appMemory.implicitWidth - 8
+                                    text: modelData.name
+                                    elide: Text.ElideMiddle
+                                    color: Theme.textSecondary
+                                    font.pixelSize: Theme.fontCaption
                                 }
+                                Text { id: appMemory; anchors.right: parent.right; text: modelData.text; color: Theme.text; font.pixelSize: Theme.fontCaption }
                             }
                         }
                     }
