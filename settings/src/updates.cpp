@@ -18,9 +18,27 @@ QString updaterPath()
     return QStandardPaths::findExecutable(QStringLiteral("vela-update"));
 }
 
-QString terminalPath()
+// Vela's own terminal if it is installed, else one of the common ones. The
+// argument that runs a command: -e for all but GNOME's.
+struct Terminal {
+    QString path;
+    QString runArgument;
+};
+
+Terminal findTerminal()
 {
-    return QStandardPaths::findExecutable(QStringLiteral("vela-terminal"));
+    static const QStringList names = {
+        QStringLiteral("vela-terminal"), QStringLiteral("kitty"), QStringLiteral("foot"),
+        QStringLiteral("alacritty"), QStringLiteral("konsole"), QStringLiteral("gnome-terminal"),
+        QStringLiteral("xterm")
+    };
+    for (const QString& name : names) {
+        const QString path = QStandardPaths::findExecutable(name);
+        if (!path.isEmpty()) {
+            return { path, name == QStringLiteral("gnome-terminal") ? QStringLiteral("--") : QStringLiteral("-e") };
+        }
+    }
+    return {};
 }
 
 // Where the updater remembers where the updates come from.
@@ -96,6 +114,15 @@ void Updates::check()
     m_changes.clear();
     setStatus(QStringLiteral("checking"));
     m_process = new QProcess(this);
+    // finished() is not emitted when the script can't be started at all.
+    connect(m_process, &QProcess::errorOccurred, this, [this](QProcess::ProcessError error) {
+        if (error != QProcess::FailedToStart) {
+            return;
+        }
+        m_process->deleteLater();
+        m_process = nullptr;
+        setStatus(QStringLiteral("error"), tr("The vela-update script could not be started."));
+    });
     connect(m_process, &QProcess::finished, this, [this](int code, QProcess::ExitStatus) {
         const QString output = QString::fromUtf8(m_process->readAllStandardOutput());
         const QString errors = QString::fromUtf8(m_process->readAllStandardError());
@@ -103,12 +130,11 @@ void Updates::check()
         m_process = nullptr;
         parseOutput(output);
         if (m_status == QStringLiteral("checking")) {
-            // The updater exits with 0 when there is an update, 1 when there
-            // is none.
+            // The updater exits with 0 when there is an update. "Up to date"
+            // is reported by its output (parseOutput): any other exit, 1
+            // included, is an error.
             if (code == 0) {
                 setStatus(QStringLiteral("available"));
-            } else if (code == 1) {
-                setStatus(QStringLiteral("up-to-date"));
             } else {
                 const QStringList lines = errors.split(QLatin1Char('\n'), Qt::SkipEmptyParts);
                 const QString last = lines.isEmpty() ? QString() : lines.last().trimmed();
@@ -137,13 +163,17 @@ void Updates::parseOutput(const QString& output)
                 continue;
             }
         }
-        if (line.startsWith(QStringLiteral(":: Checking for updates in "))) {
-            m_source = line.mid(28).trimmed();
+        static const QString checkingPrefix = QStringLiteral(":: Checking for updates in ");
+        if (line.startsWith(checkingPrefix)) {
+            m_source = line.mid(checkingPrefix.size()).trimmed();
         } else if (line.startsWith(QStringLiteral(":: Selected revision: "))) {
             // "default branch (the commit)"
             const int open = line.lastIndexOf(QLatin1Char('('));
             if (open > 0) {
                 m_newRevision = line.mid(open + 1).trimmed();
+                if (m_newRevision.endsWith(QLatin1Char(')'))) {
+                    m_newRevision.chop(1);
+                }
             }
         } else if (line.startsWith(QStringLiteral(":: Vela is up to date"))) {
             // ":: Vela is up to date (0.1.0.r400.g56d5634-1)."
@@ -181,14 +211,14 @@ void Updates::parseOutput(const QString& output)
 
 void Updates::install()
 {
-    const QString terminal = terminalPath();
-    if (terminal.isEmpty()) {
-        setStatus(QStringLiteral("error"), tr("The terminal is not installed."));
+    const Terminal terminal = findTerminal();
+    if (terminal.path.isEmpty()) {
+        setStatus(QStringLiteral("error"), tr("No terminal is installed."));
         return;
     }
     // The update is installed from a terminal: the package manager asks for
     // the password there, and the user sees the build.
-    if (!QProcess::startDetached(terminal, { QStringLiteral("-e"), QStringLiteral("vela-update") })) {
+    if (!QProcess::startDetached(terminal.path, { terminal.runArgument, QStringLiteral("vela-update") })) {
         setStatus(QStringLiteral("error"), tr("The terminal could not be started."));
         return;
     }

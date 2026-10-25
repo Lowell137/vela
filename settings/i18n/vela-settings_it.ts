@@ -2680,8 +2680,12 @@ Specifiche sistema
         <translation>Vela non è installato come pacchetto: l&apos;aggiornamento lo installerà.</translation>
     </message>
     <message>
-        <source>The terminal is not installed.</source>
-        <translation>Il terminale non è installato.</translation>
+        <source>No terminal is installed.</source>
+        <translation>Nessun terminale è installato.</translation>
+    </message>
+    <message>
+        <source>The vela-update script could not be started.</source>
+        <translation>Non è stato possibile avviare lo script vela-update.</translation>
     </message>
     <message>
         <source>The terminal could not be started.</source>
