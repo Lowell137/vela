@@ -216,7 +216,7 @@ QtObject {
     readonly property int notificationsRadius: themed("notifications-radius", radiusOverlay)
     readonly property int notificationsCardRadius: themed("notifications-card-radius", radius)
     // The calendar card: a big clock with seconds on top, weekdays on a strip,
-    // today's shape, a focus timer at the bottom (WindowGlass).
+    // today's shape (WindowGlass).
     readonly property bool notificationsClock: themed("notifications-clock", 0) !== 0
     readonly property bool notificationsWeekStrip: themed("notifications-week-strip", 0) !== 0
     readonly property int notificationsTodayRadius: themed("notifications-today-radius", 16)
@@ -225,7 +225,8 @@ QtObject {
     readonly property bool notificationsGlass: themed("notifications-glass", 0) !== 0
     readonly property string notificationsReflection: themed("notifications-reflection", "")
     readonly property real notificationsReflectionOpacity: themed("notifications-reflection-opacity", 0.3)
-    readonly property bool notificationsFocus: themed("notifications-focus", 0) !== 0
+    // The focus timer is on by default; a theme can turn it off with notifications-focus=0.
+    readonly property bool notificationsFocus: themed("notifications-focus", 1) !== 0
     readonly property int fontCaption: 12
     readonly property int fontBody: 14
     readonly property int fontBodyLarge: 18
