@@ -10,6 +10,7 @@
 #include <QFontDatabase>
 #include <QObject>
 #include <QProcess>
+#include <QStandardPaths>
 #include <QVariantList>
 
 // What the window asks the machine: the shells there are, the fonts a
@@ -19,6 +20,8 @@ class Host : public QObject {
     Q_PROPERTY(QString command MEMBER m_command CONSTANT) // after -e: instead of the shell
     Q_PROPERTY(QString directory MEMBER m_directory CONSTANT)
     Q_PROPERTY(QString defaultFont READ defaultFont CONSTANT)
+    Q_PROPERTY(QString userName READ userName CONSTANT) // the name in the settings' preview
+    Q_PROPERTY(QString configPath READ configPath CONSTANT) // settings.json, read at start
 
 public:
     Host(const QString& command, const QString& directory)
@@ -28,6 +31,34 @@ public:
     }
 
     QString defaultFont() const { return QFontDatabase::systemFont(QFontDatabase::FixedFont).family(); }
+    QString userName() const { return qEnvironmentVariable("USER"); }
+    QString configPath() const { return QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + QStringLiteral("/vela-terminal/settings.json"); }
+    // Color schemes as JSON files: ~/.config/vela-terminal/schemes (see scripts/terminal-import.py).
+    QString schemesPath() const { return QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + QStringLiteral("/vela-terminal/schemes"); }
+    // Turns a Terminal.app profile into a scheme (the built-in scripts/terminal-import.py, with python3);
+    // returns the file it wrote, empty when that fails.
+    Q_INVOKABLE QString importTerminal(const QString& path) const
+    {
+        QFile script(QStringLiteral(":/scripts/terminal-import.py"));
+        if (!script.open(QIODevice::ReadOnly)) {
+            return {};
+        }
+        QProcess process;
+        process.start(QStringLiteral("python3"), { QStringLiteral("-"), path });
+        process.write(script.readAll());
+        process.closeWriteChannel();
+        if (!process.waitForFinished(10000) || process.exitCode() != 0) {
+            return {};
+        }
+        return QString::fromUtf8(process.readAllStandardOutput()).trimmed();
+    }
+    Q_INVOKABLE QStringList schemeFiles() const { return QDir(schemesPath()).entryList({ QStringLiteral("*.json") }, QDir::Files, QDir::Name); }
+    // The text of a file, empty when there is none.
+    Q_INVOKABLE QString readFile(const QString& path) const
+    {
+        QFile file(path);
+        return file.open(QIODevice::ReadOnly) ? QString::fromUtf8(file.readAll()) : QString();
+    }
 
     // The shells of /etc/shells that are installed, the user's first:
     // [{ name, command, directory }].

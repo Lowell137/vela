@@ -33,12 +33,51 @@ Window {
         property real backgroundOpacity: 1
         property string profiles: "" // JSON; empty: the machine's shells
         property int defaultProfile: 0
+        property string customScheme: "" // JSON: the colors the user picked
     }
     property alias fontFamily: settings.fontFamily
     property alias fontSize: settings.fontSize
     property alias schemeName: settings.scheme
     property alias backgroundOpacity: settings.backgroundOpacity
     property alias defaultProfile: settings.defaultProfile
+
+    // The user's own scheme: what's in the settings, or the Dark one's colors.
+    readonly property var custom: {
+        const base = { foreground: "#e6e6e6", background: "#181818", colors: oneHalfDark }
+        try {
+            const c = JSON.parse(settings.customScheme)
+            if (c && c.colors && c.colors.length === 16) return c
+        } catch (e) {}
+        return base
+    }
+    // Picking a color makes the scheme the user's own.
+    function setCustomColor(key, index, value) {
+        const c = JSON.parse(JSON.stringify(custom))
+        if (index >= 0) c.colors[index] = value
+        else c[key] = value
+        settings.customScheme = JSON.stringify(c)
+        settings.scheme = "Custom"
+    }
+
+    // ~/.config/vela-terminal/settings.json, read when the window opens. What it
+    // holds is what the settings start with; a missing or broken file changes nothing.
+    readonly property var configFile: {
+        try {
+            return JSON.parse(Host.readFile(Host.configPath))
+        } catch (e) {
+            return {}
+        }
+    }
+    function applyConfig(f) {
+        if (!f) return
+        if (typeof f.font === "string") settings.fontFamily = f.font
+        if (typeof f.fontSize === "number") settings.fontSize = f.fontSize
+        if (typeof f.colorScheme === "string") settings.scheme = f.colorScheme
+        if (typeof f.opacity === "number") settings.backgroundOpacity = f.opacity
+        if (typeof f.defaultProfile === "number") settings.defaultProfile = f.defaultProfile
+        if (Array.isArray(f.profiles) && f.profiles.length > 0) settings.profiles = JSON.stringify(f.profiles)
+        if (f.customScheme && f.customScheme.colors && f.customScheme.colors.length === 16) settings.customScheme = JSON.stringify(f.customScheme)
+    }
 
     readonly property var profiles: {
         try {
@@ -61,14 +100,34 @@ Window {
         "#4f525d", "#df6c75", "#98c379", "#e4c07a", "#61afef", "#c577dd", "#56b5c1", "#ffffff"]
     readonly property var solarized: ["#002b36", "#dc322f", "#859900", "#b58900", "#268bd2", "#d33682", "#2aa198", "#eee8d5",
         "#073642", "#cb4b16", "#586e75", "#657b83", "#839496", "#6c71c4", "#93a1a1", "#fdf6e3"]
-    readonly property var schemes: ({
+    readonly property var builtin: ({
         "Vela": Theme.light ? { foreground: "#383a42", background: "#fafafa", colors: oneHalfLight }
                             : { foreground: "#e6e6e6", background: "#181818", colors: oneHalfDark },
         "Campbell": { foreground: "#cccccc", background: "#0c0c0c", colors: campbell },
         "One Half Dark": { foreground: "#dcdfe4", background: "#282c34", colors: oneHalfDark },
         "One Half Light": { foreground: "#383a42", background: "#fafafa", colors: oneHalfLight },
-        "Solarized Dark": { foreground: "#839496", background: "#002b36", colors: solarized }
+        "Solarized Dark": { foreground: "#839496", background: "#002b36", colors: solarized },
+        "Custom": custom
     })
+    // The schemes in ~/.config/vela-terminal/schemes, by file name.
+    property int schemesVersion: 0 // bumped when a scheme file is written
+    readonly property var imported: {
+        schemesVersion
+        const out = {}
+        for (const file of Host.schemeFiles()) {
+            try {
+                const s = JSON.parse(Host.readFile(Host.schemesPath + "/" + file))
+                if (s.colors && s.colors.length === 16) out[file.replace(/\.json$/, "")] = { foreground: s.foreground, background: s.background, colors: s.colors }
+            } catch (e) {}
+        }
+        return out
+    }
+    readonly property var schemes: Object.assign({}, builtin, imported)
+    // The strip above the tabs: a shade off the scheme's background, so the open tab shows as the pane.
+    readonly property color stripColor: {
+        const c = Qt.color(schemes[settings.scheme] ? schemes[settings.scheme].background : "#181818")
+        return (c.r + c.g + c.b) / 3 < 0.5 ? Qt.lighter(c, 1.4) : Qt.darker(c, 1.05)
+    }
     readonly property var scheme: {
         const s = schemes[settings.scheme] || schemes["Vela"]
         const a = Theme.accentFill
@@ -132,7 +191,7 @@ Window {
     }
     // The pane typed in makes room for another, which starts in its folder.
     function split(stacked) {
-        if (!current || !current.active || settingsLoader.active) return
+        if (!current || !current.active) return
         const pane = current.active
         const parent = pane.parent
         const holder = splitComponent.createObject(parent, { stacked: stacked })
@@ -148,6 +207,7 @@ Window {
         if (current && current.active) split(current.active.height > current.active.width)
     }
     function closePane(pane) {
+        if (!pane) return
         const page = pane.page
         const parent = pane.parent
         if (!parent.isSplit) {
@@ -167,6 +227,7 @@ Window {
     }
     // The nearest pane on that side.
     function focusToward(dx, dy) {
+        if (!current || !current.active) return
         const from = current.active
         const c = from.mapToItem(pages, from.width / 2, from.height / 2)
         let best = null
@@ -185,7 +246,40 @@ Window {
     }
     readonly property bool hasPanes: current !== null && current.content !== null && current.content.isSplit
 
-    Component.onCompleted: newTab(null, Host.command, Host.directory)
+    // A file chosen in the settings: a color scheme, or a settings file like settings.json.
+    function importJson(url) {
+        const path = decodeURIComponent(url.replace(/^file:\/\//, ""))
+        if (path.endsWith(".terminal")) {
+            const written = Host.importTerminal(path)
+            if (written === "") return
+            schemesVersion++
+            settings.scheme = written.split("/").pop().replace(/\.json$/, "")
+            return
+        }
+        let data = null
+        try {
+            data = JSON.parse(Host.readFile(path))
+        } catch (e) {
+            return
+        }
+        // Some schemes name their colors ("black", "brightRed", "purple"): the order of ANSI.
+        if (data && data.black && data.background) {
+            const names = ["black", "red", "green", "yellow", "blue", "purple", "cyan", "white"]
+            const bright = names.map(n => "bright" + n.charAt(0).toUpperCase() + n.slice(1))
+            data = { foreground: data.foreground, background: data.background, colors: names.concat(bright).map(n => data[n]) }
+        }
+        if (data && data.colors && data.colors.length === 16) {
+            settings.customScheme = JSON.stringify({ foreground: data.foreground, background: data.background, colors: data.colors })
+            settings.scheme = "Custom"
+        } else {
+            applyConfig(data)
+        }
+    }
+
+    Component.onCompleted: {
+        applyConfig(configFile)
+        newTab(null, Host.command, Host.directory)
+    }
 
     Component {
         id: tabComponent
@@ -231,7 +325,17 @@ Window {
         const p = button.mapToItem(null, 0, button.height + 2)
         openMenu(entries, p.x, p.y)
     }
-    function openSettings() { settingsLoader.active = true }
+    function openSettings() {
+        const open = tabs.find(tab => tab.isSettings)
+        if (open) {
+            currentIndex = tabs.indexOf(open)
+            return
+        }
+        const page = settingsTabComponent.createObject(pages)
+        tabs = tabs.concat([page])
+        currentIndex = tabs.length - 1
+        page.focusView()
+    }
 
     Shortcut { sequence: "Ctrl+Shift+T"; onActivated: root.newTab() }
     Shortcut { sequence: "Ctrl+Shift+W"; onActivated: if (root.current) root.closePane(root.current.active) }
@@ -265,7 +369,7 @@ Window {
         anchors { left: parent.left; right: parent.right; top: parent.top }
         height: root.visibility === Window.FullScreen ? 0 : 40
         visible: height > 0
-        color: Theme.background
+        color: Qt.alpha(root.stripColor, root.backgroundOpacity)
 
         DragHandler {
             target: null
@@ -296,12 +400,15 @@ Window {
                     topLeftRadius: Theme.radiusOverlay
                     topRightRadius: Theme.radiusOverlay
                     color: active ? root.scheme.background : hovered ? Theme.subtleHover : "transparent"
+                    // A new tab fades in rather than appearing all at once.
+                    opacity: 0
+                    NumberAnimation on opacity { to: 1; duration: Theme.fast; easing.type: Easing.OutCubic }
                     Image {
                         x: 10
                         anchors.verticalCenter: parent.verticalCenter
                         width: 16
                         height: 16
-                        source: "image://appicon/utilities-terminal"
+                        source: tabButton.modelData.isSettings ? Theme.icons + "configure" : "image://appicon/utilities-terminal"
                         sourceSize: Qt.size(width, height)
                     }
                     Text {
@@ -369,20 +476,25 @@ Window {
         anchors { left: parent.left; right: parent.right; top: strip.bottom; bottom: parent.bottom }
     }
 
-    // Settings, over the tab; loaded when first opened.
-    Loader {
-        id: settingsLoader
-        anchors.fill: pages
-        z: 50
-        active: false
-        source: "SettingsPage.qml"
-        onLoaded: {
-            item.win = root
-            item.forceActiveFocus()
-            item.closed.connect(() => {
-                active = false
-                if (root.current) root.current.focusView()
-            })
+    // Settings, in a tab of their own, like Windows Terminal's.
+    Component {
+        id: settingsTabComponent
+        Item {
+            id: settingsTab
+            readonly property bool isSettings: true
+            readonly property bool isSplit: false
+            readonly property var active: null
+            readonly property var content: null
+            readonly property string title: qsTr("Settings")
+            anchors.fill: parent
+            visible: root.current === settingsTab
+            function focusView() { settingsPage.forceActiveFocus() }
+            SettingsPage {
+                id: settingsPage
+                anchors.fill: parent
+                win: root
+                onClosed: root.removeTab(root.tabs.indexOf(settingsTab))
+            }
         }
     }
 
@@ -390,7 +502,7 @@ Window {
         id: menuLayer
         anchors.fill: parent
         z: 100
-        onIsOpenChanged: if (!isOpen && root.current && !settingsLoader.active) root.current.focusView()
+        onIsOpenChanged: if (!isOpen && root.current) root.current.focusView()
     }
 
     ResizeEdges {}

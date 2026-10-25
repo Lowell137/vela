@@ -52,6 +52,8 @@ qt_add_qml_module(vela-terminal
 # The command icons: Fluent's, before the theme's (common/fluent).
 file(GLOB FLUENT_ICONS CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/common/fluent/*.svg)
 qt_add_resources(vela-terminal "fluent" PREFIX /fluent BASE ${PROJECT_SOURCE_DIR}/common/fluent FILES ${FLUENT_ICONS})
+# The importer for Terminal.app profiles, run by the settings' file chooser.
+qt_add_resources(vela-terminal "scripts" PREFIX /scripts BASE ${CMAKE_CURRENT_SOURCE_DIR}/scripts FILES scripts/terminal-import.py)
 
 target_compile_options(vela-terminal PRIVATE -Wall -Wextra)
 target_link_libraries(vela-terminal PRIVATE
