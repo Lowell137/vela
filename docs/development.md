@@ -62,7 +62,8 @@ sudo apt install --no-install-recommends \
     qt6-svg-dev qt6-wayland-dev qt6-tools-dev qt6-tools-dev-tools \
     qt6-l10n-tools liblayershellqtinterface-dev \
     libpipewire-0.3-dev libwireplumber-0.5-dev \
-    python3 python3-numpy python3-pil dbus
+    python3 python3-numpy python3-pil dbus \
+    libarchive-dev libmpv-dev libvterm-dev qt6-multimedia-dev
 cmake -S . -B build -G Ninja \
     -DCMAKE_BUILD_TYPE=RelWithDebInfo \
     -DVELA_BUILD_COMPOSITOR=ON -DVELA_BUILD_SHELL=ON \
