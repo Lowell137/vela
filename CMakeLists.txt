@@ -114,6 +114,17 @@ if(VELA_PACKAGE_DEB)
     endif()
     set(CPACK_GENERATOR "DEB")
     set(CPACK_PACKAGE_NAME "vela-git")
+    # Embed the selected revision in Debian Version for reliable updater comparisons.
+    # Unstamped local/CI preview builds retain the ordinary project version.
+    set(VELA_PACKAGE_COMMIT "" CACHE STRING "Short Git commit for the DEB version")
+    if(NOT VELA_PACKAGE_COMMIT STREQUAL "")
+        string(LENGTH "${VELA_PACKAGE_COMMIT}" VELA_PACKAGE_COMMIT_LENGTH)
+        if(NOT VELA_PACKAGE_COMMIT MATCHES "^[0-9a-f]+$" OR
+           VELA_PACKAGE_COMMIT_LENGTH LESS 7 OR VELA_PACKAGE_COMMIT_LENGTH GREATER 40)
+            message(FATAL_ERROR "VELA_PACKAGE_COMMIT must be a hexadecimal Git commit abbreviation")
+        endif()
+        set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}+git${VELA_PACKAGE_COMMIT}")
+    endif()
     set(CPACK_PACKAGE_VENDOR "Vela Desktop")
     set(CPACK_PACKAGE_CONTACT "Vela contributors <dev@velade.org>")
     set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "${PROJECT_DESCRIPTION}")
@@ -121,10 +132,16 @@ if(VELA_PACKAGE_DEB)
     set(CPACK_DEBIAN_PACKAGE_MAINTAINER "${CPACK_PACKAGE_CONTACT}")
     set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
     set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
-    # Executables and launch scripts require these at runtime even though
-    # they are not all linked as ELF libraries (shlibdeps handles the rest).
+    # Executables, icon themes and launch scripts require these at runtime
+    # even when not linked as ELF libraries (shlibdeps handles the rest).
+    # Vela uses Breeze by default; Qt needs the SVG icon engine to render it.
     set(CPACK_DEBIAN_PACKAGE_DEPENDS
-        "xwayland, pipewire, wireplumber, polkitd, dbus-user-session, python3, python3-numpy, python3-pil, qml6-module-qtquick, qml6-module-qtquick-controls, qml6-module-qtquick-layouts, qml6-module-qtqml-workerscript")
+        "git, apt, dpkg, sudo, util-linux, breeze-icon-theme, qt6-svg-plugins, qt6-wayland, layer-shell-qt, xwayland, pipewire, wireplumber, polkitd, dbus-user-session, python3, python3-numpy, python3-pil, qml6-module-qtquick, qml6-module-qtquick-controls, qml6-module-qtquick-layouts, qml6-module-qtqml-workerscript")
+    # Unlike the native Arch/Fedora specs, CPack installs these explicitly.
+    install(PROGRAMS "${PROJECT_SOURCE_DIR}/packaging/vela-update"
+        DESTINATION "${CMAKE_INSTALL_BINDIR}")
+    install(FILES "${PROJECT_SOURCE_DIR}/packaging/verify-attestation.py"
+        DESTINATION "${CMAKE_INSTALL_LIBEXECDIR}")
     set(CPACK_PACKAGING_INSTALL_PREFIX "/usr")
     include(CPack)
 endif()
