@@ -451,6 +451,8 @@ Window {
             id: pageLoader
             anchors { top: header.bottom; topMargin: 20; left: parent.left; right: parent.right; bottom: parent.bottom }
             source: Qt.resolvedUrl(root.pages[root.current].file)
+            // The page builds while the pill moves (a page built at once makes it stutter).
+            asynchronous: true
             clip: true
             // Fluent-Qt's page transition (StackContentHost.cpp): the new page
             // slides in by 0.28 of the width, from the left, from the right
@@ -468,7 +470,7 @@ Window {
                 target: slide
                 property: "x"
                 to: 0
-                duration: Theme.normal
+                duration: Math.round(Theme.normal * 1.35) // 1.35 times slower than Fluent-Qt's
                 easing.type: Easing.BezierSpline
                 easing.bezierCurve: Theme.decelerate
             }

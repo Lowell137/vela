@@ -16,11 +16,11 @@ Item {
     property bool animated: true
 
     // Windows' measured values (a 144 fps recording of its settings sidebar)
-    readonly property int stretchTime: 200 // the old pill reaching toward the row, linear
+    readonly property int stretchTime: 270 // the old pill reaching toward the row, linear
     readonly property real stretchLength: 11
-    readonly property int closeTime: 20
+    readonly property int closeTime: 27
     readonly property real openExtra: 10 // the new pill's extra length, taken away over settleTime
-    readonly property int settleTime: 300
+    readonly property int settleTime: 405
 
     // Where the pill goes for a row. `goal` reads the row's y in the binding,
     // so a moving row is followed.
