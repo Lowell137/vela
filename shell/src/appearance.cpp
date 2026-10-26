@@ -226,6 +226,7 @@ void Appearance::reload()
             }
             flagLine(line, "taskbar-backdrop");
             flagLine(line, "quicksettings-slider-press-zoom");
+            flagLine(line, "taskbar-launch-hop");
         }
     }
     if (light == m_light && accent == m_accent && mica == m_mica && micaInactive == m_micaInactive

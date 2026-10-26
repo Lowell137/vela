@@ -126,6 +126,15 @@ Page {
                 onToggled: on => Prefs.sliderPressZoom = on
             }
         }
+        Card {
+            icon: "preferences-desktop-panel"
+            title: qsTr("Hop when an app starts")
+            description: qsTr("The taskbar button of an app that is opening hops up until its window is there")
+            trailing: Toggle {
+                checked: Prefs.launchHop
+                onToggled: on => Prefs.launchHop = on
+            }
+        }
     }
 
     CardGroup {

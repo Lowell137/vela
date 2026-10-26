@@ -342,6 +342,7 @@ void Preferences::reloadCompositor()
     m_visualTheme = value(QStringLiteral("theme"), {});
     m_taskbarBackdrop = flag(QStringLiteral("taskbar-backdrop"), false);
     m_sliderPressZoom = flag(QStringLiteral("quicksettings-slider-press-zoom"), true);
+    m_launchHop = flag(QStringLiteral("taskbar-launch-hop"), true);
     m_themeSchedule = flag(QStringLiteral("theme-schedule"), false);
     m_themeLightFrom = value(QStringLiteral("theme-light-from"), QStringLiteral("07:00"));
     m_themeDarkFrom = value(QStringLiteral("theme-dark-from"), QStringLiteral("19:00"));
@@ -697,6 +698,16 @@ void Preferences::setSliderPressZoom(bool on)
     emit visualThemeChanged();
 }
 
+void Preferences::setLaunchHop(bool on)
+{
+    if (on == m_launchHop) {
+        return;
+    }
+    m_launchHop = on;
+    saveCompositor({ { QStringLiteral("taskbar-launch-hop"), on ? QStringLiteral("yes") : QStringLiteral("no") } });
+    emit visualThemeChanged();
+}
+
 void Preferences::resetAppearance()
 {
     setVisualTheme({});
@@ -706,6 +717,7 @@ void Preferences::resetAppearance()
     setAccent(vela::defaults::accent());
     setTaskbarBackdrop(false);
     setSliderPressZoom(true);
+    setLaunchHop(true);
     setThemeSchedule(false);
 }
 

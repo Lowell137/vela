@@ -15,6 +15,12 @@ Item {
     readonly property bool hovered: mouse.containsMouse
     property bool active: false
     property bool running: false
+    // An app's button (launchHop): clicked while the app is not open, it hops up
+    // until the app's window is there (at most launchWait), then sets down.
+    property bool launchHop: false
+    property bool launching: false
+    property real hop: 0 // px away from the screen's edge
+    readonly property int launchWait: 6000
     // The app's progress (0..1, -1: none): the indicator under the icon becomes
     // a small bar that fills, like the Windows taskbar.
     property real progress: -1
@@ -23,6 +29,26 @@ Item {
     default property alias content: holder.data
 
     signal clicked()
+    onRunningChanged: if (running) launching = false
+    onLaunchingChanged: {
+        rise.stop()
+        fall.stop()
+        if (launching) {
+            rise.restart()
+            launchTimer.restart()
+        } else {
+            fall.restart()
+            launchTimer.stop()
+        }
+    }
+    Timer { id: launchTimer; interval: root.launchWait; onTriggered: root.launching = false }
+    // Windows 11's, measured: up 3 px in 150 ms, decelerating; down in 100 ms, a pixel under the rest, then 220 ms back.
+    NumberAnimation { id: rise; target: root; property: "hop"; to: 3; duration: 150; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+    SequentialAnimation {
+        id: fall
+        NumberAnimation { target: root; property: "hop"; to: -1; duration: 100; easing.type: Easing.InQuad }
+        NumberAnimation { target: root; property: "hop"; to: 0; duration: 220; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+    }
     signal middleClicked()
     signal rightClicked(bool shift) // Shift+right click: the window menu
     signal dropped(real dx)
@@ -95,6 +121,8 @@ Item {
     Item {
         id: holder
         anchors.centerIn: parent
+        anchors.verticalCenterOffset: root.vertical ? 0 : -root.hop
+        anchors.horizontalCenterOffset: root.vertical ? (Config.taskbarLeft ? root.hop : -root.hop) : 0
         width: Theme.taskbarIconSize
         height: Theme.taskbarIconSize
         scale: (mouse.pressed && Theme.taskbarBounce ? 0.84 : 1) * root.zoom
@@ -180,6 +208,7 @@ Item {
             } else if (mouse.button === Qt.RightButton) {
                 root.rightClicked(mouse.modifiers & Qt.ShiftModifier)
             } else {
+                if (root.launchHop && Theme.taskbarLaunchHop && !root.running) root.launching = true
                 root.clicked()
             }
         }

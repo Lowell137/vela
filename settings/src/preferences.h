@@ -76,6 +76,8 @@ class Preferences : public QObject {
     // quicksettings-slider-press-zoom= in vela.conf: a slider's knob zooms a
     // little, with a bounce, while it's held.
     Q_PROPERTY(bool sliderPressZoom READ sliderPressZoom WRITE setSliderPressZoom NOTIFY visualThemeChanged)
+    // taskbar-launch-hop= in vela.conf: the button of an app that is starting hops up.
+    Q_PROPERTY(bool launchHop READ launchHop WRITE setLaunchHop NOTIFY visualThemeChanged)
     // Light by day, dark by night: the hours ("07:00", "19:00") the shell's
     // timer applies by running `vela-settings --apply-theme-schedule`.
     Q_PROPERTY(bool themeSchedule READ themeSchedule WRITE setThemeSchedule NOTIFY themeScheduleChanged)
@@ -252,6 +254,8 @@ public:
     void setTaskbarBackdrop(bool on);
     bool sliderPressZoom() const { return m_sliderPressZoom; }
     void setSliderPressZoom(bool on);
+    bool launchHop() const { return m_launchHop; }
+    void setLaunchHop(bool on);
     bool themeSchedule() const { return m_themeSchedule; }
     void setThemeSchedule(bool on);
     QString themeLightFrom() const { return m_themeLightFrom; }
@@ -530,6 +534,7 @@ private:
     QVariantMap m_surfaceStyles;
     bool m_taskbarBackdrop = false;
     bool m_sliderPressZoom = true;
+    bool m_launchHop = true;
     bool m_themeSchedule = false;
     QString m_themeLightFrom = QStringLiteral("07:00");
     QString m_themeDarkFrom = QStringLiteral("19:00");

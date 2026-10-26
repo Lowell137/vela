@@ -562,6 +562,7 @@ Window {
             TaskbarButton {
                 id: task
                 draggable: true
+                launchHop: true
                 // Dropped further away: it moves by as many places as buttons
                 // it passed.
                 onDropped: dx => {

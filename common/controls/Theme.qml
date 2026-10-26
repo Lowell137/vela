@@ -166,6 +166,9 @@ QtObject {
     readonly property string taskbarOrb: themed("taskbar-orb", "")
     // taskbar-bounce=0: the icons do not shrink while pressed (Windows 7 had no such motion).
     readonly property bool taskbarBounce: themed("taskbar-bounce", 1) !== 0
+    // A button of an app that is not open hops up (Windows 11) while it starts, and sets down when its window is there.
+    // taskbar-launch-hop=0 turns it off; by default it follows taskbar-bounce.
+    readonly property bool taskbarLaunchHop: themed("taskbar-launch-hop", taskbarBounce ? 1 : 0) !== 0
     readonly property string taskbarOrbPressed: themed("taskbar-orb-pressed", taskbarOrb)
     readonly property string taskbarTileImage: themed("taskbar-tile-image", "")
     readonly property string taskbarTileImageActive: themed("taskbar-tile-image-active", taskbarTileImage)
