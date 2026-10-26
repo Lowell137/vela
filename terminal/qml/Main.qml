@@ -34,6 +34,7 @@ Window {
         property string profiles: "" // JSON; empty: the machine's shells
         property int defaultProfile: 0
         property string customScheme: "" // JSON: the colors the user picked
+        property string appliedConfig: "" // the settings file as it was last applied
     }
     property alias fontFamily: settings.fontFamily
     property alias fontSize: settings.fontSize
@@ -116,7 +117,7 @@ Window {
         const out = {}
         for (const file of Host.schemeFiles()) {
             try {
-                const s = JSON.parse(Host.readFile(Host.schemesPath + "/" + file))
+                const s = JSON.parse(Host.readFile(Host.schemesPath() + "/" + file))
                 if (s.colors && s.colors.length === 16) out[file.replace(/\.json$/, "")] = { foreground: s.foreground, background: s.background, colors: s.colors }
             } catch (e) {}
         }
@@ -277,7 +278,12 @@ Window {
     }
 
     Component.onCompleted: {
-        applyConfig(configFile)
+        // The settings file is applied when it changes; what's changed in the settings is kept until then.
+        const text = Host.readFile(Host.configPath)
+        if (text !== settings.appliedConfig) {
+            applyConfig(configFile)
+            settings.appliedConfig = text
+        }
         newTab(null, Host.command, Host.directory)
     }
 
