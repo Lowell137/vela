@@ -434,10 +434,10 @@ cmake --build build
 ctest --test-dir build --output-on-failure
 ```
 
-The GPU-dependent functional and sharpness suites use Vela's real Vulkan renderer. They
-are run regularly on the primary development machine — an AMD Radeon RX 9070 XT with
-Mesa/RADV — and currently pass in full. GitHub-hosted CI runs the CPU-only tests and
-skips GPU suites because hosted runners do not expose a usable DRM/Vulkan device.
+The GPU-dependent functional and sharpness suites use Vela's real Vulkan renderer
+on self-hosted hardware; GitHub-hosted CI cannot run them. See the
+[GPU CI policy](docs/ci-quality.md#gpu-ci-policy) for when AMD and NVIDIA
+results are required and how the candidate revision is verified.
 
 For the full workflow, test harness, command socket, debug switches and project layout,
 see the documentation below.
