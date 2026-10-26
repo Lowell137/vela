@@ -104,11 +104,48 @@ static void kde_keymap(struct keymap_names *names)
     *names = found;
 }
 
+// Debian and Ubuntu keep it in /etc/default/keyboard: XKBLAYOUT="us".
+static void default_keyboard_keymap(struct keymap_names *names)
+{
+    FILE *file = fopen("/etc/default/keyboard", "re");
+    if (!file) {
+        return;
+    }
+    char line[1024];
+    while (fgets(line, sizeof(line), file)) {
+        char *eq = strchr(line, '=');
+        if (!eq || line[0] == '#') {
+            continue;
+        }
+        *eq = '\0';
+        char *value = eq + 1;
+        value[strcspn(value, "\r\n")] = '\0';
+        if (*value == '"' || *value == '\'') {
+            char quote = *value++;
+            char *end = strchr(value, quote);
+            if (end) {
+                *end = '\0';
+            }
+        }
+        if (strcmp(line, "XKBLAYOUT") == 0) {
+            copy(names->layout, sizeof(names->layout), value);
+        } else if (strcmp(line, "XKBVARIANT") == 0) {
+            copy(names->variant, sizeof(names->variant), value);
+        } else if (strcmp(line, "XKBMODEL") == 0) {
+            copy(names->model, sizeof(names->model), value);
+        } else if (strcmp(line, "XKBOPTIONS") == 0) {
+            copy(names->options, sizeof(names->options), value);
+        }
+    }
+    fclose(file);
+}
+
 // From systemd-localed: Option "XkbLayout" "us".
 static void localed_keymap(struct keymap_names *names)
 {
     FILE *file = fopen("/etc/X11/xorg.conf.d/00-keyboard.conf", "re");
     if (!file) {
+        default_keyboard_keymap(names);
         return;
     }
     char line[1024];
