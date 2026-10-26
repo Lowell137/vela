@@ -79,10 +79,17 @@ double vela_curve_eval(const struct vela_curve *curve, double x)
     return sample(ay, solve_t(ax, x));
 }
 
+static double motion_scale = 1.0;
+
+void vela_motion_set_scale(double scale)
+{
+    motion_scale = scale < 0.0 ? 0.0 : scale;
+}
+
 void vela_tween_start(struct vela_tween *tween, double duration_ms, const struct vela_curve *curve)
 {
     tween->start_ms = -1.0;
-    tween->duration_ms = duration_ms;
+    tween->duration_ms = duration_ms * motion_scale;
     tween->curve = curve;
 }
 
@@ -91,7 +98,7 @@ double vela_tween_progress(struct vela_tween *tween, double now_ms)
     if (tween->start_ms < 0.0) {
         tween->start_ms = now_ms;
     }
-    double x = vela_clampd((now_ms - tween->start_ms) / tween->duration_ms, 0.0, 1.0);
+    double x = tween->duration_ms > 0.0 ? vela_clampd((now_ms - tween->start_ms) / tween->duration_ms, 0.0, 1.0) : 1.0;
     return tween->curve ? vela_curve_eval(tween->curve, x) : x;
 }
 

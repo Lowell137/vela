@@ -58,6 +58,8 @@
 //                            the pointer holds the title bar, so the window
 //                            reaching the top is enough
 //   snap-drag-trigger-width=160  how far beside the panel they open (px, 0-960)
+//   animations=yes           no: no animation at all (Settings > Animations)
+//   animation-speed=100      their speed in percent (50-200: 200 is twice as fast)
 //   snap-drag-peek=yes       while a window is dragged, the panel's lower edge
 //                            shows at the top before they open
 //   snap-drag-scale=100      their size (percent, 60-200; at most 90% of the

@@ -28,6 +28,9 @@ struct vela_tween {
 };
 
 void vela_tween_start(struct vela_tween *tween, double duration_ms, const struct vela_curve *curve);
+// Settings > Personalization > Animations: the durations of every tween times
+// `scale` (1: as designed, 0.5: twice as fast, 0: no animation).
+void vela_motion_set_scale(double scale);
 double vela_tween_progress(struct vela_tween *tween, double now_ms);
 bool vela_tween_finished(const struct vela_tween *tween, double now_ms);
 

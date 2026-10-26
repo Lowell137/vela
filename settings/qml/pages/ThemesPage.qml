@@ -117,24 +117,6 @@ Page {
                 onToggled: on => Prefs.taskbarBackdrop = on
             }
         }
-        Card {
-            icon: "preferences-desktop-theme"
-            title: qsTr("Zoom on press")
-            description: qsTr("Quick settings' sliders: the knob zooms a little, with a bounce, while it's held")
-            trailing: Toggle {
-                checked: Prefs.sliderPressZoom
-                onToggled: on => Prefs.sliderPressZoom = on
-            }
-        }
-        Card {
-            icon: "preferences-desktop-panel"
-            title: qsTr("Hop when an app starts")
-            description: qsTr("The taskbar button of an app that is opening hops up until its window is there")
-            trailing: Toggle {
-                checked: Prefs.launchHop
-                onToggled: on => Prefs.launchHop = on
-            }
-        }
     }
 
     CardGroup {

@@ -29,6 +29,12 @@ Page {
             onClicked: root.navigate("themes")
         }
         LinkCard {
+            icon: "preferences-desktop-effects"
+            title: qsTr("Animations")
+            description: qsTr("Turn animations off, their speed, each one")
+            onClicked: root.navigate("animations")
+        }
+        LinkCard {
             icon: "preferences-desktop-icons"
             title: qsTr("Icons")
             description: qsTr("Icon theme")

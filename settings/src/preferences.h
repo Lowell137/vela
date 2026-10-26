@@ -78,6 +78,13 @@ class Preferences : public QObject {
     Q_PROPERTY(bool sliderPressZoom READ sliderPressZoom WRITE setSliderPressZoom NOTIFY visualThemeChanged)
     // taskbar-launch-hop= in vela.conf: the button of an app that is starting hops up.
     Q_PROPERTY(bool launchHop READ launchHop WRITE setLaunchHop NOTIFY visualThemeChanged)
+    // Personalization > Animations (animations=, animation-speed= in percent, nav-pill-animation=,
+    // files-pill-animation=, snap-drag-peek= in vela.conf).
+    Q_PROPERTY(bool animations READ animations WRITE setAnimations NOTIFY animationsChanged)
+    Q_PROPERTY(int animationSpeed READ animationSpeed WRITE setAnimationSpeed NOTIFY animationsChanged)
+    Q_PROPERTY(bool navPillAnimation READ navPillAnimation WRITE setNavPillAnimation NOTIFY animationsChanged)
+    Q_PROPERTY(bool filesPillAnimation READ filesPillAnimation WRITE setFilesPillAnimation NOTIFY animationsChanged)
+    Q_PROPERTY(bool snapDragPeek READ snapDragPeek WRITE setSnapDragPeek NOTIFY animationsChanged)
     // Light by day, dark by night: the hours ("07:00", "19:00") the shell's
     // timer applies by running `vela-settings --apply-theme-schedule`.
     Q_PROPERTY(bool themeSchedule READ themeSchedule WRITE setThemeSchedule NOTIFY themeScheduleChanged)
@@ -256,6 +263,17 @@ public:
     void setSliderPressZoom(bool on);
     bool launchHop() const { return m_launchHop; }
     void setLaunchHop(bool on);
+    bool animations() const { return m_animations; }
+    void setAnimations(bool on);
+    int animationSpeed() const { return m_animationSpeed; }
+    void setAnimationSpeed(int percent);
+    bool navPillAnimation() const { return m_navPillAnimation; }
+    void setNavPillAnimation(bool on);
+    bool filesPillAnimation() const { return m_filesPillAnimation; }
+    void setFilesPillAnimation(bool on);
+    bool snapDragPeek() const { return m_snapDragPeek; }
+    void setSnapDragPeek(bool on);
+    Q_INVOKABLE void resetAnimations();
     bool themeSchedule() const { return m_themeSchedule; }
     void setThemeSchedule(bool on);
     QString themeLightFrom() const { return m_themeLightFrom; }
@@ -478,6 +496,7 @@ signals:
     void taskbarChanged();
     void iconThemeChanged();
     void visualThemeChanged();
+    void animationsChanged();
     void themeScheduleChanged();
     void cursorChanged();
     void windowBlurChanged();
@@ -535,6 +554,11 @@ private:
     bool m_taskbarBackdrop = false;
     bool m_sliderPressZoom = true;
     bool m_launchHop = true;
+    bool m_animations = true;
+    int m_animationSpeed = 100;
+    bool m_navPillAnimation = true;
+    bool m_filesPillAnimation = false;
+    bool m_snapDragPeek = true;
     bool m_themeSchedule = false;
     QString m_themeLightFrom = QStringLiteral("07:00");
     QString m_themeDarkFrom = QStringLiteral("19:00");

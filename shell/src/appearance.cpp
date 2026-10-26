@@ -8,6 +8,7 @@
 #include "mica.h"
 
 #include <QDir>
+#include <algorithm>
 #include <QFile>
 #include <QFileInfo>
 #include <QProcess>
@@ -227,6 +228,13 @@ void Appearance::reload()
             flagLine(line, "taskbar-backdrop");
             flagLine(line, "quicksettings-slider-press-zoom");
             flagLine(line, "taskbar-launch-hop");
+            // Settings > Personalization > Animations.
+            flagLine(line, "animations");
+            flagLine(line, "nav-pill-animation");
+            flagLine(line, "files-pill-animation");
+            if (line.startsWith("animation-speed=")) {
+                theme.insert(QStringLiteral("animation-speed"), std::clamp(line.mid(16).toInt(), 50, 200) / 100.0);
+            }
         }
     }
     if (light == m_light && accent == m_accent && mica == m_mica && micaInactive == m_micaInactive

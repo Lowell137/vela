@@ -168,7 +168,7 @@ QtObject {
     readonly property bool taskbarBounce: themed("taskbar-bounce", 1) !== 0
     // A button of an app that is not open hops up (Windows 11) while it starts, and sets down when its window is there.
     // taskbar-launch-hop=0 turns it off; by default it follows taskbar-bounce.
-    readonly property bool taskbarLaunchHop: themed("taskbar-launch-hop", taskbarBounce ? 1 : 0) !== 0
+    readonly property bool taskbarLaunchHop: animationsOn && themed("taskbar-launch-hop", taskbarBounce ? 1 : 0) !== 0
     readonly property string taskbarOrbPressed: themed("taskbar-orb-pressed", taskbarOrb)
     readonly property string taskbarTileImage: themed("taskbar-tile-image", "")
     readonly property string taskbarTileImageActive: themed("taskbar-tile-image-active", taskbarTileImage)
@@ -238,10 +238,19 @@ QtObject {
 
     // --- motion: Fluent-Qt's tokens (src/design/Animation.h, MIT): durations
     // and curves, the cubic ones as their CSS bezier equivalents ---
-    readonly property int fast: 150 // instant feedback: clicks, small toggles
-    readonly property int normal: 250 // expand/collapse, simple enter/exit
-    readonly property int slow: 400 // page, popup, layout changes
-    readonly property int verySlow: 700
+    // Settings > Personalization > Animations: all of them off, or faster
+    // (speed 2: half the time) or slower. Every duration goes through motion().
+    readonly property bool animationsOn: themed("animations", 1) !== 0
+    readonly property real animationSpeed: Math.max(0.5, Math.min(2, themed("animation-speed", 1)))
+    readonly property real motionScale: animationsOn ? 1 / animationSpeed : 0
+    function motion(ms) { return Math.round(ms * motionScale) }
+    readonly property int fast: motion(150) // instant feedback: clicks, small toggles
+    readonly property int normal: motion(250) // expand/collapse, simple enter/exit
+    readonly property int slow: motion(400) // page, popup, layout changes
+    readonly property int verySlow: motion(700)
+    // The selection pill of side menus (NavIndicator); the one of Files is off unless asked for.
+    readonly property bool navPillAnimation: animationsOn && themed("nav-pill-animation", 1) !== 0
+    readonly property bool filesPillAnimation: navPillAnimation && themed("files-pill-animation", 0) !== 0
     readonly property var decelerate: [0.33, 1.0, 0.68, 1.0, 1.0, 1.0] // OutCubic
     readonly property var accelerate: [0.32, 0.0, 0.67, 0.0, 1.0, 1.0] // InCubic
     readonly property var standard: [0.37, 0.0, 0.63, 1.0, 1.0, 1.0] // InOutSine

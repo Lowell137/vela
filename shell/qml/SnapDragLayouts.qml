@@ -118,7 +118,7 @@ Window {
         id: appear
         target: panel; property: "y"; to: root.targetY
         // Windows 11's, from a recording: the strip in ~100 ms, the panel from it in ~230 ms
-        duration: root.peeking ? 120 : 230
+        duration: Theme.motion(root.peeking ? 120 : 230)
         easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate
     }
     SequentialAnimation {

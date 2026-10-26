@@ -5,6 +5,7 @@
 
 #include "config.h"
 #include "lock.h"
+#include "motion.h"
 #include "process.h"
 #include "server.h"
 #include "shell.h"
@@ -239,6 +240,9 @@ void vela_shortcuts_load(void)
     snap_drag.width = vela_clamp(atoi(vela_config_get(&config, "snap-drag-trigger-width", "160")), 0, 960);
     snap_drag.scale = vela_clamp(atoi(vela_config_get(&config, "snap-drag-scale", "100")), 60, 200);
     snap_drag.peek = vela_config_flag(&config, "snap-drag-peek", true);
+    // animations=no: no animation at all; animation-speed= in percent (50-200).
+    const int animation_speed = vela_clamp(atoi(vela_config_get(&config, "animation-speed", "100")), 50, 200);
+    vela_motion_set_scale(vela_config_flag(&config, "animations", true) ? 100.0 / animation_speed : 0.0);
     vela_config_finish(&config);
     load_app_shortcuts();
     wlr_log(WLR_INFO, "Shortcuts: %d from vela.conf", shortcut_count);

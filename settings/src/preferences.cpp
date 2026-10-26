@@ -343,6 +343,11 @@ void Preferences::reloadCompositor()
     m_taskbarBackdrop = flag(QStringLiteral("taskbar-backdrop"), false);
     m_sliderPressZoom = flag(QStringLiteral("quicksettings-slider-press-zoom"), true);
     m_launchHop = flag(QStringLiteral("taskbar-launch-hop"), true);
+    m_animations = flag(QStringLiteral("animations"), true);
+    m_animationSpeed = std::clamp(value(QStringLiteral("animation-speed"), QStringLiteral("100")).toInt(), 50, 200);
+    m_navPillAnimation = flag(QStringLiteral("nav-pill-animation"), true);
+    m_filesPillAnimation = flag(QStringLiteral("files-pill-animation"), false);
+    m_snapDragPeek = flag(QStringLiteral("snap-drag-peek"), true);
     m_themeSchedule = flag(QStringLiteral("theme-schedule"), false);
     m_themeLightFrom = value(QStringLiteral("theme-light-from"), QStringLiteral("07:00"));
     m_themeDarkFrom = value(QStringLiteral("theme-dark-from"), QStringLiteral("19:00"));
@@ -708,6 +713,65 @@ void Preferences::setLaunchHop(bool on)
     emit visualThemeChanged();
 }
 
+void Preferences::setAnimations(bool on)
+{
+    if (on != m_animations) {
+        m_animations = on;
+        saveCompositor({ { QStringLiteral("animations"), (on ? QStringLiteral("yes") : QStringLiteral("no")) } });
+        emit animationsChanged();
+    }
+}
+
+void Preferences::setAnimationSpeed(int percent)
+{
+    percent = std::clamp(percent, 50, 200);
+    if (percent != m_animationSpeed) {
+        m_animationSpeed = percent;
+        saveCompositor({ { QStringLiteral("animation-speed"), QString::number(percent) } });
+        emit animationsChanged();
+    }
+}
+
+void Preferences::setNavPillAnimation(bool on)
+{
+    if (on != m_navPillAnimation) {
+        m_navPillAnimation = on;
+        saveCompositor({ { QStringLiteral("nav-pill-animation"), (on ? QStringLiteral("yes") : QStringLiteral("no")) } });
+        emit animationsChanged();
+    }
+}
+
+void Preferences::setFilesPillAnimation(bool on)
+{
+    if (on != m_filesPillAnimation) {
+        m_filesPillAnimation = on;
+        saveCompositor({ { QStringLiteral("files-pill-animation"), (on ? QStringLiteral("yes") : QStringLiteral("no")) } });
+        emit animationsChanged();
+    }
+}
+
+void Preferences::setSnapDragPeek(bool on)
+{
+    if (on != m_snapDragPeek) {
+        m_snapDragPeek = on;
+        saveCompositor({ { QStringLiteral("snap-drag-peek"), (on ? QStringLiteral("yes") : QStringLiteral("no")) } });
+        emit animationsChanged();
+    }
+}
+
+// All of them as shipped: everything on, normal speed, the pill of Files off.
+void Preferences::resetAnimations()
+{
+    setAnimations(true);
+    setAnimationSpeed(100);
+    setNavPillAnimation(true);
+    setFilesPillAnimation(false);
+    setSnapDragPeek(true);
+    setLaunchHop(true);
+    setSliderPressZoom(true);
+    setHotCornerAnimation(true);
+}
+
 void Preferences::resetAppearance()
 {
     setVisualTheme({});
@@ -716,8 +780,6 @@ void Preferences::resetAppearance()
     }
     setAccent(vela::defaults::accent());
     setTaskbarBackdrop(false);
-    setSliderPressZoom(true);
-    setLaunchHop(true);
     setThemeSchedule(false);
 }
 

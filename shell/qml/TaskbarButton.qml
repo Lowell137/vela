@@ -43,11 +43,11 @@ Item {
     }
     Timer { id: launchTimer; interval: root.launchWait; onTriggered: root.launching = false }
     // Windows 11's, measured: up 3 px in 150 ms, decelerating; down in 100 ms, a pixel under the rest, then 220 ms back.
-    NumberAnimation { id: rise; target: root; property: "hop"; to: 3; duration: 150; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+    NumberAnimation { id: rise; target: root; property: "hop"; to: 3; duration: Theme.motion(150); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
     SequentialAnimation {
         id: fall
-        NumberAnimation { target: root; property: "hop"; to: -1; duration: 100; easing.type: Easing.InQuad }
-        NumberAnimation { target: root; property: "hop"; to: 0; duration: 220; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+        NumberAnimation { target: root; property: "hop"; to: -1; duration: Theme.motion(100); easing.type: Easing.InQuad }
+        NumberAnimation { target: root; property: "hop"; to: 0; duration: Theme.motion(220); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
     }
     signal middleClicked()
     signal rightClicked(bool shift) // Shift+right click: the window menu
