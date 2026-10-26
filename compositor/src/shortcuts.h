@@ -39,13 +39,13 @@ bool vela_hot_corner_animation_enabled(void);
 // Dragging a window to the top of an output opens the snap layouts (snap.c):
 // "snap-drag-layouts=no" turns it off; how close to the top (px) and how far
 // to the sides of the panel (px) the pointer opens them, and their size (%).
-// Farther from the top (peek), the panel's lower edge shows first.
+// Until then (peek) the panel's lower edge shows, from the moment a window is grabbed.
 struct vela_snap_drag_config {
     bool enabled;
     int distance; // snap-drag-trigger-distance, 4-200
     int width; // snap-drag-trigger-width, 0-960
     int scale; // snap-drag-scale, 60-200
-    int peek; // snap-drag-peek-distance, 0-400: from how far the edge shows; 0: never
+    bool peek; // snap-drag-peek
 };
 const struct vela_snap_drag_config *vela_snap_drag_config(void);
 

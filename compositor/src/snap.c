@@ -388,13 +388,9 @@ static struct vela_snap drag_layouts_update(struct vela_server *server, struct v
         if (allowed && !snapping->drag_dismissed && (at_top || (around && snapping->drag_output == output))) {
             open = output;
         }
-        // Farther up than that, the panel's lower edge shows (it stays a bit
-        // farther once shown).
-        if (!open && allowed && !snapping->drag_dismissed && config->peek > config->distance) {
-            double reach = box.y + config->peek + (snapping->drag_peek == output ? DRAG_KEEP : 0);
-            if (x >= panel.x - config->width && x < panel.x + width + config->width && y < reach) {
-                peek = output;
-            }
+        // Not yet near the top: the panel's lower edge shows, from the grab on.
+        if (!open && allowed && !snapping->drag_dismissed && config->peek) {
+            peek = output;
         }
     }
     if (open != snapping->drag_output || (!open && peek != snapping->drag_peek)) {

@@ -24,6 +24,15 @@ Window {
     // Farther from the top only the lower edge shows ("snap-drag peek"), as in
     // Windows; nearer ("show") the panel slides down in full.
     property bool peeking: false
+    property bool appearPending: false
+    Connections {
+        target: root
+        enabled: root.appearPending
+        function onFrameSwapped() {
+            root.appearPending = false
+            appear.restart()
+        }
+    }
     readonly property real peekY: -panel.height + 12 * s
     readonly property real targetY: peeking ? peekY : geometry.y
 
@@ -46,9 +55,12 @@ Window {
         }
     }
     property string geometryJson: ""
+    property string placedOutput: ""
     function show(output, json, asPeek) {
-        const screen = Qt.application.screens.find(s => s.name === output)
-        if (screen && screen !== root.screen) {
+        // On another output than the last time (not "than root.screen": that
+        // is never the same object as the screen of the list).
+        const screen = output !== placedOutput ? Qt.application.screens.find(s => s.name === output) : null
+        if (screen) {
             // Only while hidden: hiding and showing again at once breaks the
             // layer surface's configure handshake ("wrong configure serial").
             if (root.visible) {
@@ -57,6 +69,7 @@ Window {
                 return
             }
             Shell.placeOnScreen(root, screen.name)
+            placedOutput = output
         }
         // Only when it changes: new layouts rebuild the cards, which the Row
         // places a frame later (a pill drawn half empty).
@@ -71,12 +84,14 @@ Window {
         peeking = asPeek
         disappear.stop()
         if (!visible) {
-            // Slides down from just above where it stops, fading in.
-            panel.opacity = 0
-            panel.y = root.targetY - 8 * root.s
+            // Slides down from above the output, once the window is on screen:
+            // the first frames of a layer surface come late, the slide would
+            // be half over.
+            panel.y = -panel.height
+            appearPending = true
         }
         visible = true
-        if (!wasShown || panel.opacity < 1 || panel.y !== root.targetY) {
+        if (visible && !appearPending && (!wasShown || panel.y !== root.targetY)) {
             appear.restart() // from wherever it is: half gone, it comes back
         }
         updateBlur()
@@ -86,28 +101,29 @@ Window {
             return
         }
         shown = false
+        appearPending = false
         appear.stop()
         disappear.restart()
     }
     function updateBlur() {
         if (visible) {
-            // The peek's strip: the part of the panel on the output
-            const rect = peeking ? Qt.rect(panel.x, 0, panel.width, 12 * s) : Qt.rect(panel.x, geometry.y, panel.width, panel.height)
-            Effects.setBlur(root, [rect], panel.radius)
+            // Where the panel is now, the part on the output: the blur goes down with it
+            const top = Math.max(0, panel.y)
+            const height = panel.y + panel.height - top
+            Effects.setBlur(root, height > 0 ? [Qt.rect(panel.x, top, panel.width, height)] : [], panel.radius)
         }
     }
 
-    ParallelAnimation {
+    NumberAnimation {
         id: appear
-        NumberAnimation { target: panel; property: "opacity"; to: 1; duration: Theme.normal }
-        NumberAnimation { target: panel; property: "y"; to: root.targetY; duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+        target: panel; property: "y"; to: root.targetY
+        // Windows 11's, from a recording: the strip in ~100 ms, the panel from it in ~230 ms
+        duration: root.peeking ? 120 : 230
+        easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate
     }
     SequentialAnimation {
         id: disappear
-        ParallelAnimation {
-            NumberAnimation { target: panel; property: "opacity"; to: 0; duration: Theme.normal }
-            NumberAnimation { target: panel; property: "y"; to: root.targetY - 8 * root.s; duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.accelerate }
-        }
+        NumberAnimation { target: panel; property: "y"; to: -panel.height; duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.accelerate }
         ScriptAction { script: if (!root.shown) root.visible = false }
     }
 
@@ -120,6 +136,7 @@ Window {
         width: (count * root.geometry.card[0] + Math.max(count - 1, 0) * root.geometry.gap + 2 * root.geometry.pad[0]) * root.s
         height: (root.geometry.card[1] + 2 * root.geometry.pad[1]) * root.s
         onXChanged: root.updateBlur()
+        onYChanged: root.updateBlur()
         onWidthChanged: root.updateBlur()
         onHeightChanged: root.updateBlur()
         radius: Theme.radiusOverlay * root.s
