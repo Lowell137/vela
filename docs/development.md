@@ -41,7 +41,7 @@ sudo dnf install git cmake ninja-build gcc gcc-c++ pkgconf-pkg-config \
 </details>
 
 <details>
-<summary><b>Ubuntu 26.10 (experimental; CI build validation only)</b></summary>
+<summary><b>Ubuntu 26.10 (experimental native DEB updater and CI validation)</b></summary>
 
 Use Ubuntu 26.10 (Stonking Stingray) with the `universe` repository enabled.
 The CI uses the official `ubuntu:26.10` container and compiles the compositor,
@@ -73,9 +73,9 @@ ctest --test-dir build -N -LE 'gpu|distro-packaging'
 ctest --test-dir build --output-on-failure -LE 'gpu|distro-packaging'
 ```
 
-Build success alone does not imply Ubuntu runtime support. Validate a real
-Wayland session, portals, audio, polkit, and GPU-specific behavior separately
-before declaring the distribution supported.
+Ubuntu 26.10 also has an [experimental DEB updater](installation.md#ubuntu-2610-experimental-native-deb-updater).
+Build success alone does not prove Ubuntu graphical session functionality:
+validate Wayland, portals, audio, polkit and GPU-specific behavior on real hardware.
 
 </details>
 
@@ -483,7 +483,10 @@ Run the complete suite with:
 ctest --test-dir build --output-on-failure
 ```
 
-The GPU-dependent functional and sharpness suites are part of CTest as well. They are run regularly on Vela's primary development machine with an AMD Radeon RX 9070 XT and Mesa/RADV, where they currently pass in full. GitHub-hosted CI skips those suites because it does not expose a usable DRM/Vulkan device.
+The GPU-dependent functional and sharpness suites are part of CTest.
+Hosted runners skip them for lack of a usable DRM/Vulkan device; the
+[GPU CI policy](ci-quality.md#gpu-ci-policy) defines required real-hardware
+testing and per-release verification.
 
 See [testing.md](testing.md) for individual suites, GPU requirements and the headless harness.
 
