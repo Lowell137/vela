@@ -145,17 +145,17 @@ class Interaction(unittest.TestCase):
                         "move", grab_x + 50, grab_y + 50, "sleep", "50", "move", 960, top, "sleep", "100", *then)
 
     def drag_messages(self):
-        """The "snap-drag" lines, the "show" one as (output, its JSON)."""
+        """The "snap-drag" lines, "show" and "peek" as (verb, output, its JSON)."""
         out = []
         for line in self.shell.received("snap-drag"):
-            if line.startswith("snap-drag show "):
-                _, _, output, data = line.split(" ", 3)
-                line = ("show", output, json.loads(data))
+            if line.startswith(("snap-drag show ", "snap-drag peek ")):
+                _, verb, output, data = line.split(" ", 3)
+                line = (verb, output, json.loads(data))
             out.append(line)
         return out
 
-    def check_show(self, message, x, y, scale):
-        self.assertEqual(message[:2], ("show", "HEADLESS-1"))
+    def check_show(self, message, x, y, scale, verb="show"):
+        self.assertEqual(message[:2], (verb, "HEADLESS-1"))
         data = message[2]
         self.assertEqual((data["x"], data["y"], data["scale"]), (x, y, scale))
         self.assertEqual(len(data["layouts"]), 8)
@@ -170,8 +170,10 @@ class Interaction(unittest.TestCase):
         self.drag_to_top(window, ["move", 924, 36, "sleep", "100", "up"])
         self.vela.wait_for(lambda s: s.window(window)["snap"] == [4, 0, 8, 12], what="snapped in the middle")
         messages = self.drag_messages()
-        self.check_show(messages[0], 660, 8, 1)
-        self.assertEqual(messages[1:], ["snap-drag hover 3 1", f"snap-drag drop {window} 3"])
+        # The edge shows from the grab on, the panel when it gets to the top.
+        self.check_show(messages[0], 660, 8, 1, "peek")
+        self.check_show(messages[1], 660, 8, 1)
+        self.assertEqual(messages[2:], ["snap-drag hover 3 1", f"snap-drag drop {window} 3"])
         self.shell.wait_for("snap-assist ")
 
     def test_drag_layouts_trigger_distance_and_scale(self):
@@ -185,8 +187,9 @@ class Interaction(unittest.TestCase):
         self.drag_to_top(window, ["move", 906, 54, "sleep", "100", "up"], top=90)
         self.vela.wait_for(lambda s: s.window(window)["snap"] == [4, 0, 8, 12], what="snapped in the middle")
         messages = self.drag_messages()
-        self.check_show(messages[0], 510, 12, 1.5)
-        self.assertEqual(messages[1:], ["snap-drag hover 3 1", f"snap-drag drop {window} 3"])
+        self.check_show(messages[0], 510, 12, 1.5, "peek")
+        self.check_show(messages[1], 510, 12, 1.5)
+        self.assertEqual(messages[2:], ["snap-drag hover 3 1", f"snap-drag drop {window} 3"])
 
     def test_drag_layouts_esc_and_setting(self):
         window = self.vela.open_window(300, 200, decorated=True)
@@ -195,8 +198,9 @@ class Interaction(unittest.TestCase):
         self.drag_to_top(window, ["key", "escape", "sleep", "60", "move", 961, 3, "sleep", "100", "up"])
         self.vela.wait_for(lambda s: s.window(window)["maximized"], what="maximized")
         messages = self.drag_messages()
-        self.check_show(messages[0], 660, 8, 1)
-        self.assertEqual(messages[1:], ["snap-drag hide"])
+        self.check_show(messages[0], 660, 8, 1, "peek")
+        self.check_show(messages[1], 660, 8, 1)
+        self.assertEqual(messages[2:], ["snap-drag hide"])
         os.makedirs(os.path.dirname(self.vela.config_path()), exist_ok=True)
         with open(self.vela.config_path(), "w") as f:
             f.write("snap-drag-layouts=no\n")
