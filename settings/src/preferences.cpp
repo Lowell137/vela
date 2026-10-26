@@ -343,6 +343,7 @@ void Preferences::reloadCompositor()
     m_taskbarBackdrop = flag(QStringLiteral("taskbar-backdrop"), false);
     m_sliderPressZoom = flag(QStringLiteral("quicksettings-slider-press-zoom"), true);
     m_launchHop = flag(QStringLiteral("taskbar-launch-hop"), true);
+    m_activateHop = flag(QStringLiteral("taskbar-activate-hop"), true);
     m_animations = flag(QStringLiteral("animations"), true);
     m_animationSpeed = std::clamp(value(QStringLiteral("animation-speed"), QStringLiteral("100")).toInt(), 50, 200);
     m_navPillAnimation = flag(QStringLiteral("nav-pill-animation"), true);
@@ -713,6 +714,16 @@ void Preferences::setLaunchHop(bool on)
     emit visualThemeChanged();
 }
 
+void Preferences::setActivateHop(bool on)
+{
+    if (on == m_activateHop) {
+        return;
+    }
+    m_activateHop = on;
+    saveCompositor({ { QStringLiteral("taskbar-activate-hop"), on ? QStringLiteral("yes") : QStringLiteral("no") } });
+    emit visualThemeChanged();
+}
+
 void Preferences::setAnimations(bool on)
 {
     if (on != m_animations) {
@@ -768,6 +779,7 @@ void Preferences::resetAnimations()
     setFilesPillAnimation(false);
     setSnapDragPeek(true);
     setLaunchHop(true);
+    setActivateHop(true);
     setSliderPressZoom(true);
     setHotCornerAnimation(true);
 }

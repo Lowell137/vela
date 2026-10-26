@@ -168,6 +168,8 @@ QtObject {
     readonly property bool taskbarBounce: themed("taskbar-bounce", 1) !== 0
     // A button of an app that is not open hops up (Windows 11) while it starts, and sets down when its window is there.
     // taskbar-launch-hop=0 turns it off; by default it follows taskbar-bounce.
+    // The same hop, short, when the app is open already (a click brings its window).
+    readonly property bool taskbarActivateHop: animationsOn && themed("taskbar-activate-hop", taskbarBounce ? 1 : 0) !== 0
     readonly property bool taskbarLaunchHop: animationsOn && themed("taskbar-launch-hop", taskbarBounce ? 1 : 0) !== 0
     readonly property string taskbarOrbPressed: themed("taskbar-orb-pressed", taskbarOrb)
     readonly property string taskbarTileImage: themed("taskbar-tile-image", "")

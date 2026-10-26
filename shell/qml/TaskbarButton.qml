@@ -49,6 +49,13 @@ Item {
         NumberAnimation { target: root; property: "hop"; to: -1; duration: Theme.motion(100); easing.type: Easing.InQuad }
         NumberAnimation { target: root; property: "hop"; to: 0; duration: Theme.motion(220); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
     }
+    // The click of an open app: up and down at once, without waiting for a window.
+    SequentialAnimation {
+        id: quick
+        NumberAnimation { target: root; property: "hop"; to: 3; duration: Theme.motion(150); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+        NumberAnimation { target: root; property: "hop"; to: -1; duration: Theme.motion(100); easing.type: Easing.InQuad }
+        NumberAnimation { target: root; property: "hop"; to: 0; duration: Theme.motion(220); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+    }
     signal middleClicked()
     signal rightClicked(bool shift) // Shift+right click: the window menu
     signal dropped(real dx)
@@ -120,7 +127,9 @@ Item {
 
     Item {
         id: holder
-        anchors.centerIn: parent
+        // Not centerIn: it ignores the offsets, and the hop moves the icon by them.
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.verticalCenter: parent.verticalCenter
         anchors.verticalCenterOffset: root.vertical ? 0 : -root.hop
         anchors.horizontalCenterOffset: root.vertical ? (Config.taskbarLeft ? root.hop : -root.hop) : 0
         width: Theme.taskbarIconSize
@@ -208,7 +217,13 @@ Item {
             } else if (mouse.button === Qt.RightButton) {
                 root.rightClicked(mouse.modifiers & Qt.ShiftModifier)
             } else {
-                if (root.launchHop && Theme.taskbarLaunchHop && !root.running) root.launching = true
+                if (root.launchHop && Theme.taskbarLaunchHop && !root.running) {
+                    root.launching = true
+                } else if (root.launchHop && Theme.taskbarActivateHop && root.running && !root.launching) {
+                    rise.stop()
+                    fall.stop()
+                    quick.restart()
+                }
                 root.clicked()
             }
         }

@@ -50,6 +50,15 @@ Page {
             }
         }
         Card {
+            icon: "preferences-desktop-panel"
+            title: qsTr("Hop when switching to an open app")
+            description: qsTr("A click on the taskbar button of an app that is open hops it once")
+            trailing: Toggle {
+                checked: Prefs.activateHop
+                onToggled: on => Prefs.activateHop = on
+            }
+        }
+        Card {
             icon: "preferences-desktop-theme"
             title: qsTr("Zoom on press")
             description: qsTr("Quick settings' sliders: the knob zooms a little, with a bounce, while it's held")
