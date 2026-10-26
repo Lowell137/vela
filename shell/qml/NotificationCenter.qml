@@ -95,22 +95,28 @@ Window {
         property string label
         property string icon
         property bool checked: false
+        property bool boxed: true // a box at rest (with a stroke), like Windows' notification center
+        property color labelColor: Theme.text
+        property int labelSize: Theme.fontCaption
         signal clicked()
         width: icon !== "" ? 32 : buttonText.implicitWidth + 20
         height: 28
         Rectangle {
             anchors.fill: parent
             radius: Theme.radius
-            color: smallButton.checked ? Theme.accent : Theme.subtleHover
-            opacity: smallButton.checked || buttonMouse.containsMouse ? 1 : 0
+            color: smallButton.checked ? Theme.accent
+                : smallButton.boxed && !buttonMouse.containsMouse ? Theme.control : Theme.subtleHover
+            border.width: smallButton.boxed && !smallButton.checked ? 1 : 0
+            border.color: Theme.stroke
+            opacity: smallButton.boxed || smallButton.checked || buttonMouse.containsMouse ? 1 : 0
         }
         Text {
             id: buttonText
             visible: smallButton.label !== ""
             anchors.centerIn: parent
             text: smallButton.label
-            color: Theme.text
-            font.pixelSize: Theme.fontCaption
+            color: smallButton.labelColor
+            font.pixelSize: smallButton.labelSize
         }
         Image {
             visible: smallButton.icon !== ""
@@ -335,6 +341,7 @@ Window {
                         anchors { right: parent.right; top: parent.top; margins: 6 }
                         visible: itemHover.hovered
                         icon: "window-close"
+                        boxed: false
                         onClicked: Notifications.dismissFromHistory(item.notificationId)
                     }
                 }
@@ -403,27 +410,35 @@ Window {
                     }
                     SmallButton {
                         anchors { right: parent.right; verticalCenter: parent.verticalCenter }
-                        icon: root.monthFolded ? "go-up" : "go-down"
+                        icon: root.monthFolded ? "pan-up" : "pan-down"
+                        onClicked: root.monthFolded = !root.monthFolded
+                    }
+                }
+                // Today, in full ("Saturday, October 4"), like Windows, with the button that folds the month away.
+                Item {
+                    visible: !Theme.notificationsClock
+                    width: parent.width
+                    height: visible ? 28 : 0
+                    Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: {
+                            const s = Qt.locale().toString(new Date(), "dddd d MMMM")
+                            return s.charAt(0).toUpperCase() + s.slice(1)
+                        }
+                        color: Theme.text
+                        font.pixelSize: Theme.fontBody
+                    }
+                    SmallButton {
+                        anchors { right: parent.right; verticalCenter: parent.verticalCenter }
+                        icon: root.monthFolded ? "pan-up" : "pan-down"
                         onClicked: root.monthFolded = !root.monthFolded
                     }
                 }
                 Rectangle {
-                    visible: Theme.notificationsClock && !root.monthFolded
+                    visible: !root.monthFolded
                     width: parent.width
                     height: 1
                     color: Theme.stroke
-                }
-
-                // Today, in full ("Saturday, October 4"), like Windows.
-                Text {
-                    visible: !Theme.notificationsClock
-                    text: {
-                        const s = Qt.locale().toString(new Date(), "dddd d MMMM")
-                        return s.charAt(0).toUpperCase() + s.slice(1)
-                    }
-                    color: Theme.text
-                    font.pixelSize: Theme.fontBody
-                    font.weight: Font.DemiBold
                 }
 
                 Item {
@@ -432,9 +447,9 @@ Window {
                     height: 28
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
-                        font.weight: Theme.notificationsClock ? Font.DemiBold : Font.Normal
+                        font.weight: Font.DemiBold
                         text: {
-                            const s = Qt.locale().toString(root.month, "MMMM yyyy")
+                            const s = Qt.locale().toString(root.month, "MMMM, yyyy")
                             return s.charAt(0).toUpperCase() + s.slice(1)
                         }
                         color: Theme.text
@@ -444,11 +459,17 @@ Window {
                         anchors { right: parent.right; verticalCenter: parent.verticalCenter }
                         spacing: 4
                         SmallButton {
-                            icon: "go-up"
+                            label: "\u25B2"
+                            boxed: false
+                            labelColor: Theme.textSecondary
+                            labelSize: 10
                             onClicked: root.month = new Date(root.month.getFullYear(), root.month.getMonth() - 1, 1)
                         }
                         SmallButton {
-                            icon: "go-down"
+                            label: "\u25BC"
+                            boxed: false
+                            labelColor: Theme.textSecondary
+                            labelSize: 10
                             onClicked: root.month = new Date(root.month.getFullYear(), root.month.getMonth() + 1, 1)
                         }
                     }
@@ -464,17 +485,18 @@ Window {
                     readonly property int length: new Date(root.month.getFullYear(), root.month.getMonth() + 1, 0).getDate()
 
                     Repeater {
-                        model: ["lu", "ma", "me", "gi", "ve", "sa", "do"]
+                        model: 7
                         delegate: Text {
-                            required property string modelData
                             required property int index
                             width: days.cell
                             height: 28
-                            // On the strip: the locale's names, upper case, bold.
-                            text: Theme.notificationsWeekStrip
-                                ? Qt.locale().dayName((index + 1) % 7, Locale.ShortFormat).slice(0, 2).toUpperCase() : modelData
-                            color: Theme.notificationsWeekStrip ? Theme.text : Theme.textSecondary
-                            font.weight: Theme.notificationsWeekStrip ? Font.DemiBold : Font.Normal
+                            // The locale's names, two letters, bold; upper case on the strip.
+                            text: {
+                                const n = Qt.locale().dayName((index + 1) % 7, Locale.ShortFormat).slice(0, 2)
+                                return Theme.notificationsWeekStrip ? n.toUpperCase() : n.charAt(0).toUpperCase() + n.slice(1)
+                            }
+                            color: Theme.text
+                            font.weight: Font.DemiBold
                             font.pixelSize: Theme.fontCaption
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
