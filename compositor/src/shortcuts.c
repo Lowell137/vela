@@ -68,7 +68,7 @@ static bool overridden[ACTION_COUNT]; // the user has a "shortcut-<action>" line
 static bool hot_corner = true; // "hot-corner=no" in vela.conf turns it off
 static bool hot_corner_glow = true; // "hot-corner-glow=no": no glow while near
 static bool hot_corner_animation = true; // "hot-corner-animation=no": no ripples
-static struct vela_snap_drag_config snap_drag = { true, 64, 160, 100 }; // "snap-drag-*" in vela.conf
+static struct vela_snap_drag_config snap_drag = { true, 64, 160, 100, 160 }; // "snap-drag-*" in vela.conf
 
 bool vela_shortcut_parse(const char *text, uint32_t *modifiers, uint32_t *sym)
 {
@@ -238,6 +238,7 @@ void vela_shortcuts_load(void)
     snap_drag.distance = vela_clamp(atoi(vela_config_get(&config, "snap-drag-trigger-distance", "64")), 4, 200);
     snap_drag.width = vela_clamp(atoi(vela_config_get(&config, "snap-drag-trigger-width", "160")), 0, 960);
     snap_drag.scale = vela_clamp(atoi(vela_config_get(&config, "snap-drag-scale", "100")), 60, 200);
+    snap_drag.peek = vela_clamp(atoi(vela_config_get(&config, "snap-drag-peek-distance", "160")), 0, 400);
     vela_config_finish(&config);
     load_app_shortcuts();
     wlr_log(WLR_INFO, "Shortcuts: %d from vela.conf", shortcut_count);

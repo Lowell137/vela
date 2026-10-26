@@ -94,6 +94,7 @@ struct vela_snapping {
     // Snap layouts while dragging to the top: the output they're open on
     // (NULL: closed), the zone under the cursor (-1: none), closed with Esc.
     struct vela_output *drag_output;
+    struct vela_output *drag_peek; // only the panel's lower edge shows on this output
     int drag_layout, drag_zone;
     bool drag_dismissed;
     uint32_t next_group;

@@ -332,14 +332,14 @@ static bool drag_zone_at(double x, double y, int *layout, int *zone)
 }
 
 // "snap-drag show": all the shell needs to draw what drag_zone_at hits.
-static void drag_send_show(struct vela_server *server, struct vela_output *output, struct drag_panel panel)
+static void drag_send_show(struct vela_server *server, const char *verb, struct vela_output *output, struct drag_panel panel)
 {
     struct wlr_box box = vela_output_box(output);
     struct vela_buffer line = { 0 };
     vela_buffer_appendf(&line,
-        "snap-drag show %s {\"x\":%.2f,\"y\":%.2f,\"scale\":%.3f,\"card\":[%d,%d],\"gap\":%d,\"pad\":[%d,%d],"
+        "snap-drag %s %s {\"x\":%.2f,\"y\":%.2f,\"scale\":%.3f,\"card\":[%d,%d],\"gap\":%d,\"pad\":[%d,%d],"
         "\"inset\":%d,\"layouts\":[",
-        output->wlr->name, panel.x - box.x, panel.y - box.y, panel.scale, DRAG_CARD_W, DRAG_CARD_H, DRAG_GAP,
+        verb, output->wlr->name, panel.x - box.x, panel.y - box.y, panel.scale, DRAG_CARD_W, DRAG_CARD_H, DRAG_GAP,
         DRAG_PAD_X, DRAG_PAD_Y, DRAG_INSET);
     for (int l = 0; l < DRAG_COUNT; ++l) {
         vela_buffer_appendf(&line, "%s[", l ? "," : "");
@@ -367,6 +367,7 @@ static struct vela_snap drag_layouts_update(struct vela_server *server, struct v
     bool allowed = output && grabbed && server->cursor_mode == VELA_CURSOR_MOVE && !server->interaction->keyboard.view
         && !grabbed->fullscreen && view_id(grabbed) && config->enabled;
     struct vela_output *open = NULL;
+    struct vela_output *peek = NULL;
     struct drag_panel panel = { 0 };
     if (output) {
         struct wlr_box box = vela_output_box(output);
@@ -387,14 +388,25 @@ static struct vela_snap drag_layouts_update(struct vela_server *server, struct v
         if (allowed && !snapping->drag_dismissed && (at_top || (around && snapping->drag_output == output))) {
             open = output;
         }
+        // Farther up than that, the panel's lower edge shows (it stays a bit
+        // farther once shown).
+        if (!open && allowed && !snapping->drag_dismissed && config->peek > config->distance) {
+            double reach = box.y + config->peek + (snapping->drag_peek == output ? DRAG_KEEP : 0);
+            if (x >= panel.x - config->width && x < panel.x + width + config->width && y < reach) {
+                peek = output;
+            }
+        }
     }
-    if (open != snapping->drag_output) {
+    if (open != snapping->drag_output || (!open && peek != snapping->drag_peek)) {
         if (open) {
-            drag_send_show(server, open, panel);
+            drag_send_show(server, "show", open, panel);
+        } else if (peek) {
+            drag_send_show(server, "peek", peek, panel);
         } else {
             vela_shell_send(server, "snap-drag hide");
         }
         snapping->drag_output = open;
+        snapping->drag_peek = peek;
         snapping->drag_layout = snapping->drag_zone = -1;
     }
     int layout = -1;
@@ -505,7 +517,7 @@ void vela_snap_end_zone(struct vela_server *server, bool apply)
     snapping->zone = VELA_SNAP_ZONE_NONE;
     snapping->tile = vela_snap_none;
     snapping->output = NULL;
-    if (snapping->drag_output) {
+    if (snapping->drag_output || snapping->drag_peek) {
         // Dropped on a zone: the shell learns the layout before Snap Assist.
         char line[256];
         bool drop = apply && grabbed && snapping->drag_layout >= 0 && zone == VELA_SNAP_ZONE_TILE;
@@ -514,6 +526,7 @@ void vela_snap_end_zone(struct vela_server *server, bool apply)
         }
         vela_shell_send(server, drop ? line : "snap-drag hide");
         snapping->drag_output = NULL;
+        snapping->drag_peek = NULL;
         snapping->drag_layout = snapping->drag_zone = -1;
     }
     snapping->drag_dismissed = false;

@@ -21,12 +21,17 @@ Window {
     property int hoverLayout: -1
     property int hoverZone: -1
     property bool shown: false // false while it slides away
+    // Farther from the top only the lower edge shows ("snap-drag peek"), as in
+    // Windows; nearer ("show") the panel slides down in full.
+    property bool peeking: false
+    readonly property real peekY: -panel.height + 12 * s
+    readonly property real targetY: peeking ? peekY : geometry.y
 
     Connections {
         target: Shell
         function onSnapDragChanged(state, name, a, b, json) {
-            if (state === "show") {
-                root.show(name, json)
+            if (state === "show" || state === "peek") {
+                root.show(name, json, state === "peek")
             } else if (state === "hover") {
                 root.hoverLayout = a
                 root.hoverZone = b
@@ -41,14 +46,14 @@ Window {
         }
     }
     property string geometryJson: ""
-    function show(output, json) {
+    function show(output, json, asPeek) {
         const screen = Qt.application.screens.find(s => s.name === output)
         if (screen && screen !== root.screen) {
             // Only while hidden: hiding and showing again at once breaks the
             // layer surface's configure handshake ("wrong configure serial").
             if (root.visible) {
                 root.visible = false
-                Qt.callLater(root.show, output, json)
+                Qt.callLater(root.show, output, json, asPeek)
                 return
             }
             Shell.placeOnScreen(root, screen.name)
@@ -63,14 +68,15 @@ Window {
         hoverZone = -1
         const wasShown = shown
         shown = true
+        peeking = asPeek
         disappear.stop()
         if (!visible) {
             // Slides down from just above where it stops, fading in.
             panel.opacity = 0
-            panel.y = root.geometry.y - 8 * root.s
+            panel.y = root.targetY - 8 * root.s
         }
         visible = true
-        if (!wasShown || panel.opacity < 1 || panel.y !== root.geometry.y) {
+        if (!wasShown || panel.opacity < 1 || panel.y !== root.targetY) {
             appear.restart() // from wherever it is: half gone, it comes back
         }
         updateBlur()
@@ -85,20 +91,22 @@ Window {
     }
     function updateBlur() {
         if (visible) {
-            Effects.setBlur(root, [Qt.rect(panel.x, root.geometry.y, panel.width, panel.height)], panel.radius)
+            // The peek's strip: the part of the panel on the output
+            const rect = peeking ? Qt.rect(panel.x, 0, panel.width, 12 * s) : Qt.rect(panel.x, geometry.y, panel.width, panel.height)
+            Effects.setBlur(root, [rect], panel.radius)
         }
     }
 
     ParallelAnimation {
         id: appear
         NumberAnimation { target: panel; property: "opacity"; to: 1; duration: Theme.normal }
-        NumberAnimation { target: panel; property: "y"; to: root.geometry.y; duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+        NumberAnimation { target: panel; property: "y"; to: root.targetY; duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
     }
     SequentialAnimation {
         id: disappear
         ParallelAnimation {
             NumberAnimation { target: panel; property: "opacity"; to: 0; duration: Theme.normal }
-            NumberAnimation { target: panel; property: "y"; to: root.geometry.y - 8 * root.s; duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.accelerate }
+            NumberAnimation { target: panel; property: "y"; to: root.targetY - 8 * root.s; duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.accelerate }
         }
         ScriptAction { script: if (!root.shown) root.visible = false }
     }

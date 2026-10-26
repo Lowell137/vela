@@ -58,6 +58,8 @@
 //                            the pointer holds the title bar, so the window
 //                            reaching the top is enough
 //   snap-drag-trigger-width=160  how far beside the panel they open (px, 0-960)
+//   snap-drag-peek-distance=160  from how close to the top the panel's lower edge
+//                            shows, before they open (px, 0-400; 0: no peek)
 //   snap-drag-scale=100      their size (percent, 60-200; at most 90% of the
 //                            output's width)
 //   language=                it, en, or empty (like the system)
