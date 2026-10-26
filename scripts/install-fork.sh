@@ -6,7 +6,8 @@
 # On Arch, CachyOS or EndeavourOS: downloads the PKGBUILD, builds the package from the
 # fork's branch and installs it with pacman.
 # On Ubuntu 26.10 or newer (and Debian with wlroots 0.20): installs the packages with apt,
-# builds the fork from source and installs it under /usr. Run the script again to update.
+# builds the fork from source into a .deb (the packaging of the upstream Ubuntu CI) and installs
+# it with apt. Run the script again to update; remove it with: sudo apt remove vela-git.
 # The Ubuntu path is only built and unit-tested, not run on real hardware yet.
 #
 #   sh -c "$(curl -fsSL https://raw.githubusercontent.com/Lowell137/vela/main/scripts/install-fork.sh)"
@@ -34,7 +35,7 @@ install_ubuntu() {
     sudo apt-get update
     # The upstream CI list plus what this fork adds (archives, video, terminal, multimedia).
     sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-        ca-certificates git curl build-essential cmake ninja-build pkgconf \
+        ca-certificates git curl build-essential cmake ninja-build pkgconf dpkg-dev file \
         libwlroots-0.20-dev libwayland-dev wayland-protocols libxkbcommon-dev \
         libpixman-1-dev libinput-dev libgbm-dev libdrm-dev \
         libvulkan-dev glslc libfreetype-dev libharfbuzz-dev libfontconfig-dev \
@@ -47,19 +48,16 @@ install_ubuntu() {
         python3 python3-numpy python3-pil dbus \
         libarchive-dev libmpv-dev libvterm-dev qt6-multimedia-dev
 
-    # What Vela needs to run (the QML modules are separate packages on Debian) and the
-    # optional extras. A missing name is reported and skipped, not fatal: the names
-    # are not checked against every release.
+    # The .deb below declares what Vela needs to run (Xwayland, QML modules, polkit, ...).
+    # These are the optional extras. A missing name is reported and skipped, not fatal:
+    # the names are not checked against every release.
     missing=""
-    for pkg in xwayland polkitd pipewire wireplumber \
-        qml6-module-qtcore qml6-module-qtqml qml6-module-qtqml-workerscript \
-        qml6-module-qtquick qml6-module-qtquick-window qml6-module-qtquick-layouts \
-        qml6-module-qtquick-controls qml6-module-qtquick-templates qml6-module-qtquick-dialogs \
-        qml6-module-qtquick-shapes qml6-module-qtquick-effects qml6-module-qtquick-pdf \
-        qml6-module-qtmultimedia qt6-wayland xdg-desktop-portal xdg-desktop-portal-wlr \
-        xdg-desktop-portal-gtk xdg-utils sound-theme-freedesktop breeze-icon-theme \
-        network-manager bluez power-profiles-daemon udisks2 ffmpeg imagemagick \
-        qt6-image-formats-plugins pulseaudio-utils tesseract-ocr; do
+    for pkg in qml6-module-qtquick-window qml6-module-qtquick-dialogs qml6-module-qtquick-shapes \
+        qml6-module-qtquick-effects qml6-module-qtquick-templates qml6-module-qtquick-pdf \
+        qml6-module-qtmultimedia qml6-module-qtcore qml6-module-qtqml qt6-wayland \
+        xdg-desktop-portal xdg-desktop-portal-wlr xdg-desktop-portal-gtk xdg-utils \
+        sound-theme-freedesktop breeze-icon-theme network-manager bluez power-profiles-daemon \
+        udisks2 ffmpeg imagemagick qt6-image-formats-plugins pulseaudio-utils tesseract-ocr; do
         if apt-cache show "$pkg" >/dev/null 2>&1; then
             sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "$pkg" \
                 || missing="$missing $pkg"
@@ -78,14 +76,15 @@ install_ubuntu() {
         git clone --depth 1 --branch "$BRANCH" "${VELA_GIT_URL:-$REPO.git}" "$src"
     fi
 
-    # Same options as the Arch package. libexec in lib/vela, because the compositor
-    # looks for its helpers there.
+    # Same options as the Arch package, and as the Ubuntu CI. The compositor looks for its
+    # helpers in libexec/vela.
     cmake -S "$src" -B "$src/build" -G Ninja \
         -DCMAKE_BUILD_TYPE=RelWithDebInfo \
         -DCMAKE_INSTALL_PREFIX=/usr \
-        -DCMAKE_INSTALL_LIBEXECDIR=lib/vela \
+        -DCMAKE_INSTALL_LIBEXECDIR=libexec/vela \
         -DVELA_BUILD_TOOLS=OFF \
         -DVELA_BUILD_STEAM_PROGRESS=ON \
+        -DVELA_PACKAGE_DEB=ON \
         -Wno-dev
     # The compiler needs about 2 GB per job: fewer jobs on a small machine.
     jobs=$(nproc)
@@ -95,14 +94,14 @@ install_ubuntu() {
     echo ":: Building with $jobs jobs (a few minutes)"
     cmake --build "$src/build" --parallel "$jobs"
 
-    echo ":: Installing under /usr"
-    sudo cmake --install "$src/build"
-    # To uninstall: xargs -a ~/.local/share/vela/install_manifest.txt sudo rm -f
-    mkdir -p "$HOME/.local/share/vela"
-    cp "$src/build/install_manifest.txt" "$HOME/.local/share/vela/install_manifest.txt"
-
+    echo ":: Packing and installing the .deb (apt resolves the runtime dependencies)"
+    rm -rf "$src/build/packages"
+    cpack --config "$src/build/CPackConfig.cmake" -G DEB -B "$src/build/packages"
+    sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y "$src"/build/packages/vela-git_*.deb
+    # To uninstall: sudo apt remove vela-git
     echo ":: Done. Log out and choose Vela with the gear on the login screen."
-    echo "   To update, run this script again. Settings > Updates does not support Ubuntu yet."
+    echo "   To update, run this script again. To remove: sudo apt remove vela-git."
+    echo "   Settings > Updates does not support Ubuntu yet."
 }
 
 if command -v apt-get >/dev/null 2>&1; then
