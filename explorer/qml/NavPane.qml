@@ -205,5 +205,5 @@ Flickable {
     }
 
     // The open location's pill: it slides between entries.
-    NavIndicator { id: navIndicator }
+    NavIndicator { id: navIndicator; animated: false }
 }
