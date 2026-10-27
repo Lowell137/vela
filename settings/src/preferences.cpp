@@ -342,7 +342,6 @@ void Preferences::reloadCompositor()
     m_visualTheme = value(QStringLiteral("theme"), {});
     m_taskbarBackdrop = flag(QStringLiteral("taskbar-backdrop"), false);
     m_sliderPressZoom = flag(QStringLiteral("quicksettings-slider-press-zoom"), true);
-    m_launchHop = flag(QStringLiteral("taskbar-launch-hop"), true);
     m_activateHop = flag(QStringLiteral("taskbar-activate-hop"), true);
     m_animations = flag(QStringLiteral("animations"), true);
     m_animationSpeed = std::clamp(value(QStringLiteral("animation-speed"), QStringLiteral("100")).toInt(), 50, 200);
@@ -704,16 +703,6 @@ void Preferences::setSliderPressZoom(bool on)
     emit visualThemeChanged();
 }
 
-void Preferences::setLaunchHop(bool on)
-{
-    if (on == m_launchHop) {
-        return;
-    }
-    m_launchHop = on;
-    saveCompositor({ { QStringLiteral("taskbar-launch-hop"), on ? QStringLiteral("yes") : QStringLiteral("no") } });
-    emit visualThemeChanged();
-}
-
 void Preferences::setActivateHop(bool on)
 {
     if (on == m_activateHop) {
@@ -778,7 +767,6 @@ void Preferences::resetAnimations()
     setNavPillAnimation(true);
     setFilesPillAnimation(false);
     setSnapDragPeek(true);
-    setLaunchHop(true);
     setActivateHop(true);
     setSliderPressZoom(true);
     setHotCornerAnimation(true);
@@ -2086,6 +2074,7 @@ const ShortcutAction kShortcutActions[] = {
     { "sound-output", QT_TRANSLATE_NOOP("Preferences", "Sound output and volume mixer"), "Super+Ctrl+V" },
     { "snip", QT_TRANSLATE_NOOP("Preferences", "Snipping tool"), "Super+Shift+S" },
     { "snip-text", QT_TRANSLATE_NOOP("Preferences", "Copy text from the screen"), "Super+Shift+T" },
+    { "snip-lens", QT_TRANSLATE_NOOP("Preferences", "Search the screen with Google Lens"), "Super+Shift+G" },
 };
 
 struct FixedShortcut {

@@ -15,12 +15,9 @@ Item {
     readonly property bool hovered: mouse.containsMouse
     property bool active: false
     property bool running: false
-    // An app's button (launchHop): clicked while the app is not open, it hops up
-    // until the app's window is there (at most launchWait), then sets down.
-    property bool launchHop: false
-    property bool launching: false
+    // An app's button (hops): clicked while the app is open, it hops once.
+    property bool hops: false
     property real hop: 0 // px away from the screen's edge
-    readonly property int launchWait: 6000
     // The app's progress (0..1, -1: none): the indicator under the icon becomes
     // a small bar that fills, like the Windows taskbar.
     property real progress: -1
@@ -29,32 +26,25 @@ Item {
     default property alias content: holder.data
 
     signal clicked()
-    onRunningChanged: if (running) launching = false
-    onLaunchingChanged: {
-        rise.stop()
-        fall.stop()
-        if (launching) {
-            rise.restart()
-            launchTimer.restart()
-        } else {
-            fall.restart()
-            launchTimer.stop()
-        }
-    }
-    Timer { id: launchTimer; interval: root.launchWait; onTriggered: root.launching = false }
-    // Windows 11's, measured: up 3 px in 150 ms, decelerating; down in 100 ms, a pixel under the rest, then 220 ms back.
-    NumberAnimation { id: rise; target: root; property: "hop"; to: 3; duration: Theme.motion(150); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
-    SequentialAnimation {
-        id: fall
-        NumberAnimation { target: root; property: "hop"; to: -1; duration: Theme.motion(100); easing.type: Easing.InQuad }
-        NumberAnimation { target: root; property: "hop"; to: 0; duration: Theme.motion(220); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
-    }
-    // The click of an open app: up and down at once, without waiting for a window.
+    // Windows 11's, measured at 30 fps. A window coming back: its button goes up 3 px
+    // just after the window starts to grow, stays a moment, comes down. Every move
+    // slows down into its end (a quick fast move of 3 px looks like a jump).
     SequentialAnimation {
         id: quick
+        PauseAnimation { duration: Theme.motion(60) }
         NumberAnimation { target: root; property: "hop"; to: 3; duration: Theme.motion(150); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
-        NumberAnimation { target: root; property: "hop"; to: -1; duration: Theme.motion(100); easing.type: Easing.InQuad }
-        NumberAnimation { target: root; property: "hop"; to: 0; duration: Theme.motion(220); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+        PauseAnimation { duration: Theme.motion(90) }
+        NumberAnimation { target: root; property: "hop"; to: 0; duration: Theme.motion(200); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+    }
+    // A window going away (the click of the active app): the button dips 3 px as the window
+    // reaches it, stays, comes back a pixel high, and settles.
+    SequentialAnimation {
+        id: dip
+        PauseAnimation { duration: Theme.motion(70) }
+        NumberAnimation { target: root; property: "hop"; to: -3; duration: Theme.motion(140); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+        PauseAnimation { duration: Theme.motion(70) }
+        NumberAnimation { target: root; property: "hop"; to: 1; duration: Theme.motion(130); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+        NumberAnimation { target: root; property: "hop"; to: 0; duration: Theme.motion(100); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
     }
     signal middleClicked()
     signal rightClicked(bool shift) // Shift+right click: the window menu
@@ -217,12 +207,16 @@ Item {
             } else if (mouse.button === Qt.RightButton) {
                 root.rightClicked(mouse.modifiers & Qt.ShiftModifier)
             } else {
-                if (root.launchHop && Theme.taskbarLaunchHop && !root.running) {
-                    root.launching = true
-                } else if (root.launchHop && Theme.taskbarActivateHop && root.running && !root.launching) {
-                    rise.stop()
-                    fall.stop()
-                    quick.restart()
+                if (root.hops && Theme.taskbarActivateHop && root.running) {
+                    quick.stop()
+                    dip.stop()
+                    root.hop = 0
+                    // The active app's button minimizes it; any other brings its window.
+                    if (root.active) {
+                        dip.restart()
+                    } else {
+                        quick.restart()
+                    }
                 }
                 root.clicked()
             }

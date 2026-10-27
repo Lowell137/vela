@@ -227,7 +227,6 @@ void Appearance::reload()
             }
             flagLine(line, "taskbar-backdrop");
             flagLine(line, "quicksettings-slider-press-zoom");
-            flagLine(line, "taskbar-launch-hop");
             flagLine(line, "taskbar-activate-hop");
             // Settings > Personalization > Animations.
             flagLine(line, "animations");

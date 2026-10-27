@@ -570,12 +570,12 @@ Window {
         id: openAnimation
         NumberAnimation {
             target: panel; property: "offset"; to: 0
-            duration: Theme.slow
+            duration: Theme.motion(190) // Windows 11's: about 170 ms, slowing down
             easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate
         }
         NumberAnimation {
             target: panel; property: "opacity"; to: 1
-            duration: Theme.normal
+            duration: Theme.motion(60) // it does not fade in on Windows, only comes up
             easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate
         }
     }
@@ -627,7 +627,8 @@ Window {
         // How far it rises while opening (falls, at the top, comes in from
         // the side next to a vertical taskbar). The part sticking out is cut
         // at the taskbar's edge.
-        readonly property real slide: side ? (Config.taskbarLeft ? -140 : 140) : (Config.taskbarTop ? -140 : 140)
+        // Windows 11's, measured: it rises about 370 px, out of the taskbar's edge.
+        readonly property real slide: side ? (Config.taskbarLeft ? -140 : 140) : (Config.taskbarTop ? -1 : 1) * Math.min(370, height)
         property real offset: 0
         x: restX + (side ? offset : 0)
         y: restY + (side ? 0 : offset)

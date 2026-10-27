@@ -12,13 +12,21 @@ Window {
     id: root
     visible: false
     width: Theme.notificationsWidth
-    height: column.height + 24
+    // The window keeps the height it has with the month open while it folds: resizing it every
+    // frame stutters. The column sits at its bottom, and only the column takes clicks.
+    height: column.height + 24 + (monthInner.height + 12) * (1 - fold)
     color: "transparent"
 
     readonly property var history: Notifications.history
     property date month: new Date() // the month the calendar shows
     property var collapsed: ({}) // app name -> its group is folded
     property bool monthFolded: false // notifications-clock: only the clock
+    // How much of the month shows (1 open, 0 folded): the card shortens, the month is cut
+    // away from below without fading, and what is above it slides down (Windows 11's, measured).
+    property real fold: monthFolded ? 0 : 1
+    Behavior on fold {
+        NumberAnimation { duration: Theme.motion(root.monthFolded ? 180 : 150); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+    }
     property date now: new Date()
     Timer {
         interval: 1000
@@ -46,7 +54,13 @@ Window {
     }
     readonly property var counts: { history.count; return history.appCounts() }
 
+    // It comes in from the side of the screen about this far (Windows 11's, measured), and
+    // when the quick settings were open it waits for them to go (they leave in 150 ms).
+    readonly property real slideDistance: 190
+    property int lead: 0
+
     function open() {
+        lead = Menus.quickSettingsOpen ? 100 : 0
         Menus.quickSettingsOpen = false
         Notifications.collectPopups()
         month = new Date()
@@ -57,10 +71,11 @@ Window {
         visible = true
         Menus.notificationCenterOpen = true
         column.opacity = 0
-        slide.x = Config.taskbarLeft ? -24 : 24
+        slide.x = Config.taskbarLeft ? -slideDistance : slideDistance
         appear.restart()
         column.forceActiveFocus()
         updateBlur()
+        updateInput()
     }
     function close() {
         visible = false
@@ -80,14 +95,28 @@ Window {
     }
 
     function updateBlur() {
-        Effects.setBlur(root, [Qt.rect(column.x, column.y + notifications.y, column.width, notifications.height),
-            Qt.rect(column.x, column.y + calendar.y, column.width, calendar.height)], Theme.notificationsRadius)
+        // The blur follows the slide.
+        Effects.setBlur(root, [Qt.rect(column.x + slide.x, column.y + notifications.y, column.width, notifications.height),
+            Qt.rect(column.x + slide.x, column.y + calendar.y, column.width, calendar.height)], Theme.notificationsRadius)
+    }
+    Connections {
+        target: slide
+        function onXChanged() { root.updateBlur() }
+    }
+    // Only the column takes clicks: the empty part above it (the month folded) lets them through.
+    function updateInput() {
+        Effects.setInputRegion(root, [Qt.rect(column.x, column.y, column.width, column.height)])
     }
 
-    ParallelAnimation {
+    // Windows 11's, measured: in from the side in about 130 ms, slowing down hard,
+    // solid after two frames.
+    SequentialAnimation {
         id: appear
-        NumberAnimation { target: column; property: "opacity"; to: 1; duration: Theme.fast; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
-        NumberAnimation { target: slide; property: "x"; to: 0; duration: Theme.slow; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+        PauseAnimation { duration: Theme.motion(root.lead) }
+        ParallelAnimation {
+            NumberAnimation { target: column; property: "opacity"; to: 1; duration: Theme.motion(60) }
+            NumberAnimation { target: slide; property: "x"; to: 0; duration: Theme.motion(150); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+        }
     }
 
     component SmallButton: Item {
@@ -137,13 +166,14 @@ Window {
     Column {
         id: column
         x: 12
-        y: 12
+        y: root.height - 12 - height
         width: root.width - 24
         spacing: 12
         transform: Translate { id: slide }
         focus: true
         Keys.onEscapePressed: root.close()
-        onHeightChanged: root.updateBlur()
+        onHeightChanged: { root.updateBlur(); root.updateInput() }
+        onYChanged: { root.updateBlur(); root.updateInput() }
 
         // --- notifications ---
         Rectangle {
@@ -360,23 +390,13 @@ Window {
         Rectangle {
             id: calendar
             width: parent.width
-            height: calendarContent.height + 32
+            // The column's spacing before the month stays while it is folded: not counted.
+            height: calendarContent.height + 32 - 12 * (1 - root.fold)
             radius: Theme.notificationsRadius
             color: Theme.notificationsSurface
             border.width: 1
             border.color: Theme.notificationsGlass ? "#B3101820" : Theme.stroke
             AeroGlass { z: 1; radius: parent.radius }
-
-            // notifications-week-strip: the weekdays on a rounded band.
-            Rectangle {
-                visible: Theme.notificationsWeekStrip && days.visible
-                x: calendarContent.x
-                y: calendarContent.y + days.y
-                width: calendarContent.width
-                height: 28
-                radius: 8
-                color: Theme.control
-            }
 
             Column {
                 id: calendarContent
@@ -434,15 +454,35 @@ Window {
                         onClicked: root.monthFolded = !root.monthFolded
                     }
                 }
+                // The month: cut away from below while it folds.
+                Item {
+                    id: monthPart
+                    width: parent.width
+                    height: monthInner.height * root.fold
+                    clip: true
+
+                    // notifications-week-strip: the weekdays on a rounded band.
+                    Rectangle {
+                        visible: Theme.notificationsWeekStrip
+                        y: days.y
+                        width: parent.width
+                        height: 28
+                        radius: 8
+                        color: Theme.control
+                    }
+
+                    Column {
+                        id: monthInner
+                        width: parent.width
+                        spacing: 12
+
                 Rectangle {
-                    visible: !root.monthFolded
                     width: parent.width
                     height: 1
                     color: Theme.stroke
                 }
 
                 Item {
-                    visible: !root.monthFolded
                     width: parent.width
                     height: 28
                     Text {
@@ -478,7 +518,6 @@ Window {
                 // The grid: the week starts on Monday.
                 Grid {
                     id: days
-                    visible: !root.monthFolded
                     columns: 7
                     readonly property real cell: (parent.width) / 7
                     readonly property int offset: (new Date(root.month.getFullYear(), root.month.getMonth(), 1).getDay() + 6) % 7
@@ -536,6 +575,8 @@ Window {
                                 hoverEnabled: true
                             }
                         }
+                    }
+                }
                     }
                 }
 

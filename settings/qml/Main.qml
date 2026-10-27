@@ -456,25 +456,28 @@ Window {
             // The page builds while the pill moves (a page built at once makes it stutter).
             asynchronous: true
             clip: true
-            // Fluent-Qt's page transition (StackContentHost.cpp): the new page
-            // slides in by 0.28 of the width, from the left, from the right
-            // going back up; position only, 250 ms OutCubic.
-            property int depth: 0
+            // Windows 11 Settings' page change, measured: after a short beat the
+            // new page comes up from 60 px below, fading in, slowing down; about 270 ms.
             onLoaded: {
-                const back = root.crumbs.length < depth
-                depth = root.crumbs.length
-                slide.x = (back ? 0.28 : -0.28) * width
+                opacity = 0
+                slide.y = 60
                 enter.restart()
             }
             transform: Translate { id: slide }
-            NumberAnimation {
+            SequentialAnimation {
                 id: enter
-                target: slide
-                property: "x"
-                to: 0
-                duration: Math.round(Theme.normal * 1.35) // 1.35 times slower than Fluent-Qt's
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: Theme.decelerate
+                PauseAnimation { duration: Theme.motion(60) }
+                ParallelAnimation {
+                    NumberAnimation {
+                        target: slide
+                        property: "y"
+                        to: 0
+                        duration: Theme.motion(210)
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: Theme.decelerate
+                    }
+                    NumberAnimation { target: pageLoader; property: "opacity"; to: 1; duration: Theme.motion(130) }
+                }
             }
         }
     }

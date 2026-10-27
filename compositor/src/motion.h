@@ -40,9 +40,10 @@ bool vela_tween_finished(const struct vela_tween *tween, double now_ms);
 // frames and the animation is no longer visible.
 extern const struct vela_curve vela_decelerate;
 
-// Window open: fade plus rise. Same duration as Theme.slow.
-#define VELA_WINDOW_OPEN_MS 250.0
-#define VELA_WINDOW_OPEN_RISE 36
+// Window open: Windows 11's, measured at 30 fps (File Explorer): it shows in place,
+// at its size, after a quick two-frame fade. No rise.
+#define VELA_WINDOW_OPEN_MS 90.0
+#define VELA_WINDOW_OPEN_RISE 0
 
 // Close: the window shrinks a little and disappears. The deceleration curve
 // here too: with one that starts slowly the window would seem to ignore the
@@ -51,8 +52,8 @@ extern const struct vela_curve vela_decelerate;
 #define VELA_WINDOW_CLOSE_SCALE 0.94
 
 // Minimize and restore: the window flies to its taskbar button (and back),
-// shrinking and fading.
-#define VELA_WINDOW_MINIMIZE_MS 250.0
+// shrinking and fading. Windows 11's flight, measured at 30 fps: about 160 ms.
+#define VELA_WINDOW_MINIMIZE_MS 160.0
 #define VELA_WINDOW_MINIMIZE_SCALE 0.3
 
 // Maximize and restore: the old content morphs into the new frame and fades

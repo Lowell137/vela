@@ -76,8 +76,7 @@ class Preferences : public QObject {
     // quicksettings-slider-press-zoom= in vela.conf: a slider's knob zooms a
     // little, with a bounce, while it's held.
     Q_PROPERTY(bool sliderPressZoom READ sliderPressZoom WRITE setSliderPressZoom NOTIFY visualThemeChanged)
-    // taskbar-launch-hop= in vela.conf: the button of an app that is starting hops up.
-    Q_PROPERTY(bool launchHop READ launchHop WRITE setLaunchHop NOTIFY visualThemeChanged)
+    // taskbar-activate-hop= in vela.conf: the button of an open app hops when it is clicked.
     Q_PROPERTY(bool activateHop READ activateHop WRITE setActivateHop NOTIFY visualThemeChanged)
     // Personalization > Animations (animations=, animation-speed= in percent, nav-pill-animation=,
     // files-pill-animation=, snap-drag-peek= in vela.conf).
@@ -262,8 +261,6 @@ public:
     void setTaskbarBackdrop(bool on);
     bool sliderPressZoom() const { return m_sliderPressZoom; }
     void setSliderPressZoom(bool on);
-    bool launchHop() const { return m_launchHop; }
-    void setLaunchHop(bool on);
     bool activateHop() const { return m_activateHop; }
     void setActivateHop(bool on);
     bool animations() const { return m_animations; }
@@ -556,7 +553,6 @@ private:
     QVariantMap m_surfaceStyles;
     bool m_taskbarBackdrop = false;
     bool m_sliderPressZoom = true;
-    bool m_launchHop = true;
     bool m_activateHop = true;
     bool m_animations = true;
     int m_animationSpeed = 100;

@@ -24,6 +24,10 @@ Window {
     // "" the quick settings; "wifi", "sound" and "accessibility" their pages.
     property string page: ""
 
+    // It slides in from the taskbar's edge about this far (Windows 11's, measured).
+    readonly property real slideDistance: 145
+    property bool closing: false
+
     function open() {
         Menus.notificationCenterOpen = false
         page = ""
@@ -31,18 +35,26 @@ Window {
             Qt.callLater(root.open)
             return
         }
+        disappear.stop()
+        closing = false
         visible = true
         Menus.quickSettingsOpen = true
         panel.opacity = 0
-        slide.y = Config.taskbarVertical ? 0 : (Config.taskbarTop || Config.dock ? -12 : 12)
-        slide.x = Config.taskbarLeft ? -12 : (Config.taskbarRight ? 12 : 0)
+        content.opacity = 0
+        footer.opacity = 0
+        slide.y = Config.taskbarVertical ? 0 : (Config.taskbarTop || Config.dock ? -slideDistance : slideDistance)
+        slide.x = Config.taskbarLeft ? -slideDistance : (Config.taskbarRight ? slideDistance : 0)
         appear.restart()
         panel.forceActiveFocus()
         updateBlur()
     }
     function close() {
-        visible = false
-        Menus.quickSettingsOpen = false
+        if (!visible || closing) {
+            return
+        }
+        closing = true // quickSettingsOpen stays true until it has left (the notification center reads it)
+        appear.stop()
+        disappear.restart()
     }
     function toggle() {
         if (visible) {
@@ -153,18 +165,43 @@ Window {
     }
 
     function updateBlur() {
-        const rects = [Qt.rect(panel.x, panel.y, panel.width, panel.height)]
+        // The blur follows the slide: the panel and the media card move with it.
+        const rects = [Qt.rect(panel.x + slide.x, panel.y + slide.y, panel.width, panel.height)]
         if (mediaApart) {
-            rects.push(Qt.rect(mediaCard.x, mediaCard.y, mediaCard.width, mediaCard.height))
+            rects.push(Qt.rect(mediaCard.x + slide.x, mediaCard.y + slide.y, mediaCard.width, mediaCard.height))
         }
         Effects.setBlur(root, rects, Theme.quickSettingsRadius)
     }
+    Connections {
+        target: slide
+        function onXChanged() { root.updateBlur() }
+        function onYChanged() { root.updateBlur() }
+    }
 
+    // Windows 11's, measured: the panel comes up in about 200 ms, slowing down, already
+    // solid; its tiles and slider fade in once it has nearly arrived.
     ParallelAnimation {
         id: appear
-        NumberAnimation { target: panel; property: "opacity"; to: 1; duration: Theme.fast; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
-        NumberAnimation { target: slide; property: "y"; to: 0; duration: Theme.slow; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
-        NumberAnimation { target: slide; property: "x"; to: 0; duration: Theme.slow; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+        NumberAnimation { target: panel; property: "opacity"; to: 1; duration: Theme.motion(50) }
+        NumberAnimation { target: slide; property: "y"; to: 0; duration: Theme.motion(200); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+        NumberAnimation { target: slide; property: "x"; to: 0; duration: Theme.motion(200); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+        SequentialAnimation {
+            PauseAnimation { duration: Theme.motion(120) }
+            ParallelAnimation {
+                NumberAnimation { target: content; property: "opacity"; to: 1; duration: Theme.motion(200) }
+                NumberAnimation { target: footer; property: "opacity"; to: 1; duration: Theme.motion(200) }
+            }
+        }
+    }
+    // The way out: back down and away, speeding up, about 150 ms.
+    SequentialAnimation {
+        id: disappear
+        ParallelAnimation {
+            NumberAnimation { target: panel; property: "opacity"; to: 0; duration: Theme.motion(150); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.accelerate }
+            NumberAnimation { target: slide; property: "y"; to: Config.taskbarVertical ? 0 : (Config.taskbarTop || Config.dock ? -root.slideDistance : root.slideDistance); duration: Theme.motion(150); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.accelerate }
+            NumberAnimation { target: slide; property: "x"; to: Config.taskbarLeft ? -root.slideDistance : (Config.taskbarRight ? root.slideDistance : 0); duration: Theme.motion(150); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.accelerate }
+        }
+        ScriptAction { script: { root.visible = false; root.closing = false; Menus.quickSettingsOpen = false } }
     }
     // A page comes in from the right (back: like the others, it's short).
     ParallelAnimation {

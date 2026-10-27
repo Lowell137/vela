@@ -42,17 +42,8 @@ Page {
         opacity: enabled ? 1 : 0.45
         Card {
             icon: "preferences-desktop-panel"
-            title: qsTr("Hop when an app starts")
-            description: qsTr("The taskbar button of an app that is opening hops up until its window is there")
-            trailing: Toggle {
-                checked: Prefs.launchHop
-                onToggled: on => Prefs.launchHop = on
-            }
-        }
-        Card {
-            icon: "preferences-desktop-panel"
-            title: qsTr("Hop when switching to an open app")
-            description: qsTr("A click on the taskbar button of an app that is open hops it once")
+            title: qsTr("Taskbar button hop")
+            description: qsTr("The button of an open app hops up when its window comes back and dips when it is minimized")
             trailing: Toggle {
                 checked: Prefs.activateHop
                 onToggled: on => Prefs.activateHop = on
