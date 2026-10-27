@@ -209,6 +209,7 @@ signals:
     void clipboardRequested(const QString& tab, int x, int y);
     void snipRequested(); // Win+Shift+S, Print
     void snipTextRequested(); // Win+Shift+T
+    void snipLensRequested(); // Win+Shift+G
     void clipboardClearRequested(); // from Settings
     // The keyboard's volume keys: "up", "down", "mute", "mic-mute".
     void volumeKeyPressed(const QString& key);

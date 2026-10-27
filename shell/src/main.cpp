@@ -489,6 +489,7 @@ int main(int argc, char* argv[])
     engine.addImageProvider(QStringLiteral("snip"), new SnipImageProvider(&snip));
     QObject::connect(&shell, &ShellController::snipRequested, &snip, &Snip::start);
     QObject::connect(&shell, &ShellController::snipTextRequested, &snip, &Snip::startText);
+    QObject::connect(&shell, &ShellController::snipLensRequested, &snip, &Snip::startLens);
     engine.rootContext()->setContextProperty(QStringLiteral("Apps"), &apps);
     engine.rootContext()->setContextProperty(QStringLiteral("Shell"), &shell);
     engine.rootContext()->setContextProperty(QStringLiteral("Config"), &config);

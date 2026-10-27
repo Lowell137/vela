@@ -12,7 +12,7 @@
 //   shortcut-custom-1=Super+T|foot  runs a command (/bin/sh -c)
 //
 // Actions: close, terminal, lock, always-on-top (no default key), start, winx, run, show-desktop,
-// quick-settings, notification-center, settings, files, task-view, snip, snip-text,
+// quick-settings, notification-center, settings, files, task-view, snip, snip-text, snip-lens,
 // clipboard, emoji, sound-output.
 //
 // A combination is modifiers and a key joined with "+": Super (Win, Meta),

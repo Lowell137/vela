@@ -46,14 +46,15 @@ private slots:
     void recordArgs()
     {
         const QRect area(1, 2, 30, 40);
-        QCOMPARE(SnipExtras::recordArgs("a.mp4", "", area, false, false),
+        QCOMPARE(SnipExtras::recordArgs("a.mp4", "", area, "", false),
             (QStringList { "-f", "a.mp4", "-g", "1,2 30x40", "-c", "libx264" }));
-        QCOMPARE(SnipExtras::recordArgs("a.mp4", "DP-1", area, true, false),
+        QCOMPARE(SnipExtras::recordArgs("a.mp4", "DP-1", area, SnipExtras::kDefaultInput, false),
             (QStringList { "-f", "a.mp4", "-o", "DP-1", "--audio", "-c", "libx264" }));
-        QCOMPARE(SnipExtras::recordArgs("a.webm", "", area, true, true),
+        QCOMPARE(SnipExtras::recordArgs("a.webm", "", area, SnipExtras::kDefaultInput, true),
             (QStringList { "-f", "a.webm", "-g", "1,2 30x40", "--audio", "-c", "libvpx", "-C", "libopus" }));
-        QVERIFY(SnipExtras::nextAudio(false));
-        QVERIFY(!SnipExtras::nextAudio(true));
+        // System sound: the monitor of an output.
+        QCOMPARE(SnipExtras::recordArgs("a.mp4", "", area, "speaker.monitor", false),
+            (QStringList { "-f", "a.mp4", "-g", "1,2 30x40", "--audio=speaker.monitor", "-c", "libx264" }));
     }
 };
 

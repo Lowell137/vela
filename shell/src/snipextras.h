@@ -43,16 +43,15 @@ inline QString recordFileName(const QDateTime& when, bool webm)
         + (webm ? QStringLiteral(".webm") : QStringLiteral(".mp4"));
 }
 
-// The next sound source in the cycle off -> microphone (system sound: later).
-inline bool nextAudio(bool microphone)
-{
-    return !microphone;
-}
+// The sound source wf-recorder takes (it takes one): "" none, kDefaultInput the
+// default microphone, else the name of a PipeWire/PulseAudio source (the
+// monitor of an output records what that output plays).
+inline const QString kDefaultInput = QStringLiteral("-");
 
 // The wf-recorder arguments. `output` set: that whole output (-o); else the
 // rectangle `area` (global layout coordinates). mp4 is H.264; webm is the
 // fallback when there is no libx264 (VP8 + Opus, as mp4's AAC doesn't fit).
-inline QStringList recordArgs(const QString& file, const QString& output, const QRect& area, bool microphone, bool webm)
+inline QStringList recordArgs(const QString& file, const QString& output, const QRect& area, const QString& audio, bool webm)
 {
     QStringList args { QStringLiteral("-f"), file };
     if (!output.isEmpty()) {
@@ -60,12 +59,14 @@ inline QStringList recordArgs(const QString& file, const QString& output, const 
     } else {
         args << QStringLiteral("-g") << recordGeometry(area);
     }
-    if (microphone) {
+    if (audio == kDefaultInput) {
         args << QStringLiteral("--audio");
+    } else if (!audio.isEmpty()) {
+        args << QStringLiteral("--audio=") + audio;
     }
     if (webm) {
         args << QStringLiteral("-c") << QStringLiteral("libvpx");
-        if (microphone) {
+        if (!audio.isEmpty()) {
             args << QStringLiteral("-C") << QStringLiteral("libopus");
         }
     } else {

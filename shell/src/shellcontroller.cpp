@@ -382,6 +382,8 @@ void ShellController::handleCommand(const QByteArray& command)
         emit snipRequested();
     } else if (command == "snip-text") {
         emit snipTextRequested();
+    } else if (command == "snip-lens") {
+        emit snipLensRequested();
     } else if (command == "clipboard-clear") {
         emit clipboardClearRequested();
     } else if (parts.first() == "volume" && parts.size() == 2) {

@@ -1,6 +1,11 @@
 // SPDX-FileCopyrightText: 2026 Brando Giuffrida
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <QBuffer>
+#include <QHttpMultiPart>
+#include <QNetworkReply>
+#include <QPainter>
+#include <QPainterPath>
 #include "snip.h"
 #include "snipcrop.h"
 #include "../../common/privatefile.h"
@@ -20,9 +25,11 @@
 #include <QFileInfo>
 #include <QGuiApplication>
 #include <QJsonArray>
+#include <QJsonObject>
 #include <QJsonDocument>
 #include <QLocalSocket>
 #include <QProcess>
+#include <QSettings>
 #include <QQmlEngine>
 #include <QQuickWindow>
 #include <QScreen>
@@ -32,6 +39,8 @@
 #include <QTimer>
 #include <QUrl>
 
+#include <cmath>
+#include <iterator>
 #include <csignal>
 #include <signal.h>
 
@@ -103,7 +112,7 @@ Snip::Snip(QQmlEngine* engine, WindowCapture* capture, Clipboard* clipboard, Not
     connect(m_notifications, &NotificationServer::ActionInvoked, this, [this](uint id, const QString&) {
         const QString path = m_saved.take(id);
         if (!path.isEmpty()) {
-            QDesktopServices::openUrl(QUrl::fromLocalFile(path));
+            QDesktopServices::openUrl(path.startsWith(QLatin1String("https://")) ? QUrl(path) : QUrl::fromLocalFile(path));
         }
     });
 }
@@ -251,6 +260,25 @@ void Snip::startText()
     setMode(QStringLiteral("text"));
 }
 
+void Snip::startLens()
+{
+    start();
+    setMode(QStringLiteral("lens"));
+}
+
+bool Snip::markup() const
+{
+    return QSettings().value(QStringLiteral("snip/markup"), false).toBool();
+}
+
+void Snip::setMarkup(bool on)
+{
+    if (on != markup()) {
+        QSettings().setValue(QStringLiteral("snip/markup"), on);
+        emit markupChanged();
+    }
+}
+
 void Snip::showOverlays()
 {
     m_captureTimeout.stop();
@@ -380,7 +408,219 @@ void Snip::finishNow(const QString& screenName, qreal x, qreal y, qreal width, q
         return;
     }
 
+    if (m_mode == QLatin1String("lens")) {
+        searchLens(cut);
+        return;
+    }
     keep(cut);
+}
+
+void Snip::finishMarkup(const QString& screenName, qreal x, qreal y, qreal width, qreal height, const QVariantList& strokes, const QString& action)
+{
+    const QImage full = m_capture->fullImage(screenName);
+    QScreen* screen = nullptr;
+    for (QScreen* candidate : QGuiApplication::screens()) {
+        if (candidate->name() == screenName) {
+            screen = candidate;
+        }
+    }
+    if (full.isNull() || !screen || width < 1 || height < 1) {
+        cancel();
+        return;
+    }
+    QImage cut = vela::cropSnipImage(full, screen->geometry().size(), QRectF(x, y, width, height));
+    m_captureTimeout.stop();
+    closeOverlays();
+    m_capture->clearFull();
+    m_active = false;
+    m_idle.start(30000);
+    emit activeChanged();
+    if (cut.isNull()) {
+        return;
+    }
+    // Strokes are in logical units of the overlay; the picture is in pixels.
+    const qreal scale = cut.width() / width;
+    QPainter painter(&cut);
+    painter.setRenderHint(QPainter::Antialiasing);
+    for (const QVariant& item : strokes) {
+        const QVariantMap stroke = item.toMap();
+        const QString kind = stroke.value(QStringLiteral("kind")).toString();
+        const QVariantList flat = stroke.value(QStringLiteral("points")).toList();
+        QList<QPointF> points;
+        for (qsizetype i = 0; i + 1 < flat.size(); i += 2) {
+            points << QPointF((flat[i].toDouble() - x) * scale, (flat[i + 1].toDouble() - y) * scale);
+        }
+        if (points.isEmpty()) {
+            continue;
+        }
+        QColor color(stroke.value(QStringLiteral("color")).toString());
+        color.setAlphaF(stroke.value(QStringLiteral("alpha")).toDouble());
+        const qreal width = stroke.value(QStringLiteral("width")).toDouble() * scale;
+        const QRectF box = QRectF(points.first(), points.last()).normalized();
+        if (kind == QLatin1String("box")) {
+            painter.fillRect(box, color);
+        } else if (kind == QLatin1String("blur") || kind == QLatin1String("pixel")) {
+            // The picture under the box is redrawn from a smaller copy of itself.
+            const QRect area = box.toAlignedRect().intersected(cut.rect());
+            if (area.width() < 2 || area.height() < 2) {
+                continue;
+            }
+            QImage part = cut.copy(area);
+            if (kind == QLatin1String("pixel")) {
+                const int block = qMax(2, qRound(12 * scale));
+                part = part.scaled(qMax(1, area.width() / block), qMax(1, area.height() / block), Qt::IgnoreAspectRatio, Qt::SmoothTransformation)
+                           .scaled(area.size(), Qt::IgnoreAspectRatio, Qt::FastTransformation);
+            } else {
+                QImage small = part;
+                for (int i = 0; i < 4; ++i) {
+                    small = small.scaled(qMax(1, small.width() / 2), qMax(1, small.height() / 2), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+                }
+                part = small.scaled(area.size(), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+            }
+            painter.drawImage(area.topLeft(), part);
+        } else if (kind == QLatin1String("text")) {
+            QFont font = painter.font();
+            font.setPixelSize(qMax(1, qRound(width)));
+            painter.setFont(font);
+            painter.setPen(color);
+            painter.drawText(QRectF(points.first(), QSizeF(cut.width(), cut.height())),
+                Qt::AlignLeft | Qt::AlignTop | Qt::TextDontClip, stroke.value(QStringLiteral("text")).toString());
+        } else if (kind == QLatin1String("rect") || kind == QLatin1String("ellipse")) {
+            painter.setPen(QPen(color, width, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+            painter.setBrush(Qt::NoBrush);
+            kind == QLatin1String("rect") ? painter.drawRect(box) : painter.drawEllipse(box);
+        } else if (kind == QLatin1String("line") || kind == QLatin1String("arrow")) {
+            painter.setPen(QPen(color, width, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+            painter.drawLine(points.first(), points.last());
+            if (kind == QLatin1String("arrow")) {
+                const QPointF from = points.first(), to = points.last();
+                const qreal angle = std::atan2(to.y() - from.y(), to.x() - from.x());
+                const qreal head = qMax(10 * scale, width * 4);
+                for (const qreal turn : { 0.5, -0.5 }) {
+                    painter.drawLine(to - QPointF(head * std::cos(angle - turn), head * std::sin(angle - turn)), to);
+                }
+            }
+        } else if (points.size() >= 2) { // the pen and the highlighter
+            QPainterPath path;
+            path.moveTo(points.first());
+            path.lineTo(points.first() + QPointF(0.01, 0)); // a tap leaves a dot
+            for (qsizetype i = 1; i < points.size(); ++i) {
+                path.lineTo(points.at(i));
+            }
+            painter.setPen(QPen(color, width, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+            painter.setBrush(Qt::NoBrush);
+            painter.drawPath(path);
+        }
+    }
+    painter.end();
+    const QString tr_title = QCoreApplication::translate("Snip", "Snipping Tool");
+    if (action == QLatin1String("lens")) {
+        searchLens(cut);
+        return;
+    }
+    keep(cut);
+    if (action == QLatin1String("share")) {
+        upload(cut, [this, tr_title](const QString& link) {
+            if (link.isEmpty()) {
+                m_notifications->Notify(tr_title, 0, QStringLiteral("dialog-error"),
+                    QCoreApplication::translate("Snip", "Couldn't upload the picture"), QString(), QStringList(), QVariantMap(), 5000);
+                return;
+            }
+            m_clipboard->copyText(link);
+            const uint id = m_notifications->Notify(tr_title, 0, QStringLiteral("emblem-shared"),
+                QCoreApplication::translate("Snip", "Link copied to clipboard"),
+                link + QStringLiteral("\n") + QCoreApplication::translate("Snip", "The link expires in a few hours. Click to open it."),
+                QStringList { QStringLiteral("default"), QCoreApplication::translate("Snip", "Open") }, QVariantMap(), 8000);
+            m_saved.insert(id, link);
+        });
+    }
+}
+
+void Snip::searchLens(const QImage& picture)
+{
+    const QString title = QCoreApplication::translate("Snip", "Snipping Tool");
+    m_notifications->Notify(title, 0, QStringLiteral("accessories-screenshot"),
+        QCoreApplication::translate("Snip", "Opening Google Lens…"), QString(), QStringList(), QVariantMap(), 3000);
+    upload(picture, [this, title](const QString& link) {
+        if (link.isEmpty()) {
+            m_notifications->Notify(title, 0, QStringLiteral("dialog-error"),
+                QCoreApplication::translate("Snip", "Couldn't upload the picture"), QString(), QStringList(), QVariantMap(), 5000);
+            return;
+        }
+        QDesktopServices::openUrl(QUrl(QStringLiteral("https://lens.google.com/uploadbyurl?url=") + QString::fromUtf8(QUrl::toPercentEncoding(link))));
+    });
+}
+
+// Temporary public hosts, tried in this order; a link stops working after a few hours.
+namespace {
+struct UploadHost {
+    const char* url;
+    const char* field; // the file's form field
+    const char* extra; // "name=value" of one more field, or ""
+    bool json; // the answer is JSON ({"data": {"url"}}), else the link itself
+};
+const UploadHost kHosts[] = {
+    { "https://uguu.se/upload?output=text", "files[]", "", false },
+    { "https://tmpfiles.org/api/v1/upload", "file", "", true },
+    { "https://x0.at", "file", "", false },
+    { "https://litterbox.catbox.moe/resources/internals/api.php", "fileToUpload", "reqtype=fileupload", false },
+};
+}
+
+void Snip::upload(const QImage& picture, std::function<void(const QString&)> done)
+{
+    QByteArray bytes;
+    QBuffer buffer(&bytes);
+    buffer.open(QIODevice::WriteOnly);
+    picture.save(&buffer, "PNG");
+    uploadTo(bytes, 0, std::move(done));
+}
+
+void Snip::uploadTo(const QByteArray& png, int host, std::function<void(const QString&)> done)
+{
+    if (host >= int(std::size(kHosts))) {
+        done(QString());
+        return;
+    }
+    const UploadHost& target = kHosts[host];
+    auto* parts = new QHttpMultiPart(QHttpMultiPart::FormDataType);
+    if (*target.extra) {
+        const QString extra = QString::fromLatin1(target.extra);
+        QHttpPart part;
+        part.setHeader(QNetworkRequest::ContentDispositionHeader, QStringLiteral("form-data; name=\"%1\"").arg(extra.section(u'=', 0, 0)));
+        part.setBody(extra.section(u'=', 1).toUtf8());
+        parts->append(part);
+        if (host == 3) { // Litterbox also wants how long to keep it
+            QHttpPart time;
+            time.setHeader(QNetworkRequest::ContentDispositionHeader, QStringLiteral("form-data; name=\"time\""));
+            time.setBody("1h");
+            parts->append(time);
+        }
+    }
+    QHttpPart file;
+    file.setHeader(QNetworkRequest::ContentDispositionHeader,
+        QStringLiteral("form-data; name=\"%1\"; filename=\"screenshot.png\"").arg(QString::fromLatin1(target.field)));
+    file.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("image/png"));
+    file.setBody(png);
+    parts->append(file);
+    QNetworkRequest request { QUrl(QString::fromLatin1(target.url)) };
+    request.setTransferTimeout(20000);
+    QNetworkReply* reply = m_network.post(request, parts);
+    parts->setParent(reply);
+    connect(reply, &QNetworkReply::finished, this, [this, reply, png, host, done, json = target.json] {
+        const QByteArray body = reply->readAll();
+        QString link = json ? QJsonDocument::fromJson(body).object().value(QStringLiteral("data")).toObject().value(QStringLiteral("url")).toString()
+                            : QString::fromUtf8(body).trimmed();
+        reply->deleteLater();
+        if (host == 1) { // tmpfiles: the page's address; /dl/ is the file itself
+            link.replace(QStringLiteral("tmpfiles.org/"), QStringLiteral("tmpfiles.org/dl/"));
+        }
+        if (reply->error() == QNetworkReply::NoError && link.startsWith(QLatin1String("https://")) && !link.contains(u'\n')) {
+            done(link);
+        } else {
+            uploadTo(png, host + 1, done);
+        }
+    });
 }
 
 // The picture is saved in Pictures/Screenshot, goes to the clipboard (as an
@@ -517,10 +757,17 @@ void Snip::copyText(const QString& text)
     cancel();
 }
 
-void Snip::toggleMicrophone()
+// The sound of a recording is what the screen plays: the monitor of the default output
+// (wf-recorder takes one source). "" if no sound server answers: the recording is silent.
+QString Snip::audioSource() const
 {
-    m_microphone = SnipExtras::nextAudio(m_microphone);
-    emit microphoneChanged();
+    QProcess process;
+    process.start(QStringLiteral("pactl"), { QStringLiteral("get-default-sink") });
+    if (!process.waitForFinished(2000) || process.exitCode() != 0) {
+        return QString();
+    }
+    const QString sink = QString::fromUtf8(process.readAllStandardOutput()).trimmed();
+    return sink.isEmpty() ? QString() : sink + QStringLiteral(".monitor");
 }
 
 static void notifyRecording(NotificationServer* n, const QString& title, const QString& body, const QStringList& actions,
@@ -576,7 +823,7 @@ void Snip::launchRecorder(bool webm)
         }
     });
     m_recorder->start(QStringLiteral("wf-recorder"),
-        SnipExtras::recordArgs(m_recordFile, m_recordOutput, m_recordArea, m_microphone, webm));
+        SnipExtras::recordArgs(m_recordFile, m_recordOutput, m_recordArea, audioSource(), webm));
     m_recordSeconds = 0;
     m_recordClock.start();
     emit recordingChanged();

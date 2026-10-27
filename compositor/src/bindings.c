@@ -219,6 +219,10 @@ bool vela_bindings_handle(struct vela_server *server, uint32_t modifiers, uint32
     if (super && shift && xkb_keysym_to_lower(sym) == XKB_KEY_t && vela_shortcuts_default_enabled("snip-text")) {
         return shell(server, "snip-text");
     }
+    // Win+Shift+G: the Snipping Tool in its Google Lens mode (search a region).
+    if (super && shift && xkb_keysym_to_lower(sym) == XKB_KEY_g && vela_shortcuts_default_enabled("snip-lens")) {
+        return shell(server, "snip-lens");
+    }
     if (((super && shift && xkb_keysym_to_lower(sym) == XKB_KEY_s) || sym == XKB_KEY_Print) && vela_shortcuts_default_enabled("snip")) {
         return shell(server, "snip");
     }

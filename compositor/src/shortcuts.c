@@ -47,6 +47,7 @@ static const struct action {
     { "task-view", KIND_SHELL, "task-view" },
     { "snip", KIND_SHELL, "snip" },
     { "snip-text", KIND_SHELL, "snip-text" },
+    { "snip-lens", KIND_SHELL, "snip-lens" },
     { "clipboard", KIND_SHELL, "clipboard" },
     { "emoji", KIND_SHELL, "emoji" },
     { "sound-output", KIND_SHELL, "sound-output" },
