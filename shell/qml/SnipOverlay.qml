@@ -780,7 +780,7 @@ Window {
                     { act: "share", tip: qsTr("Upload and copy the link"),
                       d: "M12 15V4 M8 8l4-4 4 4 M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" },
                     { act: "lens", tip: qsTr("Search with Google Lens"),
-                      d: "M4 8V6a2 2 0 0 1 2-2h2 M16 4h2a2 2 0 0 1 2 2v2 M20 16v2a2 2 0 0 1-2 2h-2 M8 20H6a2 2 0 0 1-2-2v-2 M12 9a3 3 0 1 0 .01 0z" },
+                      d: "M4 8V7a3 3 0 0 1 3-3h1 M16 4h1a3 3 0 0 1 3 3v1 M20 16v1a3 3 0 0 1-3 3h-1 M8 20H7a3 3 0 0 1-3-3v-1 M12 8.8a3.2 3.2 0 1 0 0 6.4a3.2 3.2 0 1 0 0-6.4z" },
                     { act: "text", tip: qsTr("Text actions"),
                       d: "M3.5 8V6.5A2.5 2.5 0 0 1 6 4H8 M16 4h2a2.5 2.5 0 0 1 2.5 2.5V8 M3.5 16v1.5A2.5 2.5 0 0 0 6 20h2 M16 20h2a2.5 2.5 0 0 0 2.5-2.5V16 M7.5 9h9 M7.5 12h9 M7.5 15h5" }
                 ]
@@ -1287,7 +1287,7 @@ Window {
                     Glyph {
                         visible: tool.modelData.mode === "lens"
                         anchors.centerIn: parent
-                        d: "M4 8V6a2 2 0 0 1 2-2h2 M16 4h2a2 2 0 0 1 2 2v2 M20 16v2a2 2 0 0 1-2 2h-2 M8 20H6a2 2 0 0 1-2-2v-2 M12 9a3 3 0 1 0 .01 0z"
+                        d: "M4 8V7a3 3 0 0 1 3-3h1 M16 4h1a3 3 0 0 1 3 3v1 M20 16v1a3 3 0 0 1-3 3h-1 M8 20H7a3 3 0 0 1-3-3v-1 M12 8.8a3.2 3.2 0 1 0 0 6.4a3.2 3.2 0 1 0 0-6.4z"
                     }
                     // Windows 11's text actions icon: four corners round three lines of text.
                     Shape {
