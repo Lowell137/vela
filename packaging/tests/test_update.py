@@ -81,12 +81,20 @@ def record(**extra):
     with open(os.environ["TEST_CALLS"], "a") as log:
         log.write(json.dumps(dict(tool=name, args=args, **extra)) + "\n")
 if name == "pacman":
+    # A vela-git installation is not an installed 'vela' Beta package.
+    if args == ["-Q", "vela"]:
+        if os.environ.get("TEST_BETA_INSTALLED") == "1":
+            print("vela 0.1.0-1")
+            sys.exit(0)
+        sys.exit(1)
     if args == ["-Qq", "base-devel"]:
         sys.exit(0 if os.environ.get("TEST_BASE_DEVEL", "1") == "1" else 1)
     if not os.environ.get("TEST_INSTALLED"):
         sys.exit(1)
     print("vela-git 0.1.0.r1.g" + os.environ["TEST_INSTALLED"] + "-1")
 elif name == "rpm":
+    if args == ["-q", "vela"]:
+        sys.exit(0 if os.environ.get("TEST_BETA_INSTALLED") == "1" else 1)
     if args[:2] == ["--eval", "%{?fedora}"]:
         print(os.environ.get("TEST_FEDORA_RELEASE", "44"))
         sys.exit(0)
@@ -170,6 +178,12 @@ while True:
         dest.mkdir(parents=True, exist_ok=True)
         (dest / ("vela-git-0.1.0.r1.g" + sha[:7] + "-1-x86_64.pkg.tar.zst")).touch()
         sys.exit(1)
+    if "--install" not in args:
+        # Channel transitions build without installing, then let the updater
+        # use a single pacman conflict-replacement transaction.
+        dest = pathlib.Path(os.environ["PKGDEST"])
+        dest.mkdir(parents=True, exist_ok=True)
+        (dest / ("vela-git-0.1.0.r1.g" + sha[:7] + "-1-x86_64.pkg.tar.zst")).touch()
 elif name == "cosign":
     record()
     if args[:1] != ["verify-blob-attestation"]:
@@ -327,6 +341,10 @@ class UpdateFixture(unittest.TestCase):
         # explicit bootstrap test below runs the updater from a Git checkout.
         self.update_script = bin_dir / "vela-update-under-test"
         shutil.copyfile(UPDATER, self.update_script)
+        # The installed Beta helper must be selected before Experimental parsing.
+        helper = bin_dir / "vela-update-beta"
+        helper.write_text('#!/bin/sh\necho beta-dispatched\n')
+        helper.chmod(0o755)
         # Use a disposable fixture identity, never a production override of
         # /etc/os-release. This also lets Arch tests run on Ubuntu CI hosts.
         self.os_release = self.directory / "os-release"
@@ -374,6 +392,8 @@ class UpdateFixture(unittest.TestCase):
         self.git("checkout", "--quiet", "main")
         self.env.update(TEST_INSTALLED=self.base[:7],
                         TEST_CI_RUN="", TEST_DOWNLOAD_SHA="", TEST_FAIL_DOWNLOAD="")
+
+
 
     def git(self, *args):
         return subprocess.check_output(["git", "-C", str(self.source), *args],
@@ -438,6 +458,28 @@ class UpdateFixture(unittest.TestCase):
 
 
 class UpdateRevision(UpdateFixture):
+    def test_explicit_arch_beta_to_experimental_is_single_transaction(self):
+        if not self.os_release.read_text().startswith("ID=arch"):
+            self.skipTest("Arch-only native package transition")
+        self.env["TEST_BETA_INSTALLED"] = "1"
+        self.env["TEST_INSTALLED"] = ""
+        self.run_update("--channel", "experimental", "--build")
+        install_calls = [call for call in self.calls("sudo")
+                         if call["args"][:1] == ["pacman"]]
+        self.assertEqual(len(install_calls), 1)
+        self.assertEqual(install_calls[0]["args"][:4],
+                         ["pacman", "--noconfirm", "--ask=4", "-U"])
+
+    def test_installed_beta_defaults_to_beta_helper(self):
+        self.env["TEST_BETA_INSTALLED"] = "1"
+        result = self.run_update("--check", source=False)
+        self.assertIn("beta-dispatched", result.stdout)
+        self.assertEqual(self.calls("makepkg"), [])
+        self.os_release.write_text("ID=fedora\nVERSION_ID=44\n")
+        result = self.run_update("--check", source=False)
+        self.assertIn("beta-dispatched", result.stdout)
+
+
     def test_missing_base_devel_installed_for_local_build(self):
         """An unattended local build installs base-devel without a prompt."""
         self.env["TEST_BASE_DEVEL"] = "0"
