@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <QFile>
 #include <QFileInfo>
+#include <QGuiApplication>
 #include <QProcess>
 #include <QSettings>
 #include <QStandardPaths>
@@ -201,6 +202,7 @@ void Appearance::reload()
     const QColor micaInactive = micaFromTint(tint, false, light);
     const QString iconTheme = configuredIconTheme();
     QVariantMap theme;
+    QString fontFamily;
     for (const QString& themeFile : themeFilePaths()) {
         loadThemeFile(themeFile, theme);
         if (m_watching && !m_watcher.files().contains(themeFile)) {
@@ -225,6 +227,9 @@ void Appearance::reload()
             if (line.startsWith("taskbar-opacity=")) {
                 theme.insert(QStringLiteral("user-taskbar-opacity"), line.mid(16).toInt() / 100.0);
             }
+            if (line.startsWith("font-family=")) {
+                fontFamily = QString::fromUtf8(line.mid(12)).trimmed();
+            }
             flagLine(line, "taskbar-backdrop");
             flagLine(line, "quicksettings-slider-press-zoom");
             flagLine(line, "taskbar-activate-hop");
@@ -236,6 +241,16 @@ void Appearance::reload()
                 theme.insert(QStringLiteral("animation-speed"), std::clamp(line.mid(16).toInt(), 50, 200) / 100.0);
             }
         }
+    }
+    // font-family= (Settings > Personalization > Fonts): the text font of every
+    // Vela app; the default one when automatic. Applied here, so it follows the file.
+    static const QFont defaultFont = QGuiApplication::font();
+    QFont font = defaultFont;
+    if (!fontFamily.isEmpty()) {
+        font.setFamily(fontFamily);
+    }
+    if (font != QGuiApplication::font()) {
+        QGuiApplication::setFont(font);
     }
     if (light == m_light && accent == m_accent && mica == m_mica && micaInactive == m_micaInactive
         && iconTheme == m_iconTheme && theme == m_theme) {

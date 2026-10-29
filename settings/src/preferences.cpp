@@ -359,6 +359,8 @@ void Preferences::reloadCompositor()
     m_cursorTheme = value(QStringLiteral("cursor-theme"), {});
     m_cursorSize = value(QStringLiteral("cursor-size"), qEnvironmentVariable("XCURSOR_SIZE", QStringLiteral("24"))).toInt();
     emit cursorChanged();
+    m_fontFamily = value(QStringLiteral("font-family"), {});
+    emit fontChanged();
     m_windowBlur = flag(QStringLiteral("window-blur"), false);
     m_windowBlurAll = flag(QStringLiteral("window-blur-all"), false);
     m_windowBlurInclude = cleanAppIds(value(QStringLiteral("window-blur-include"), {}).split(u','));
@@ -917,6 +919,16 @@ void Preferences::setCursorSize(int size)
     m_cursorSize = size;
     saveCompositor({ { QStringLiteral("cursor-size"), QString::number(size) } });
     emit cursorChanged();
+}
+
+void Preferences::setFontFamily(const QString& family)
+{
+    if (family == m_fontFamily) {
+        return;
+    }
+    m_fontFamily = family;
+    saveCompositor({ { QStringLiteral("font-family"), family.isEmpty() ? QString() : family } });
+    emit fontChanged();
 }
 
 void Preferences::setWindowBlur(bool on)

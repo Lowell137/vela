@@ -95,6 +95,8 @@ class Preferences : public QObject {
     // them and passes them on to the apps it starts.
     Q_PROPERTY(QString cursorTheme READ cursorTheme WRITE setCursorTheme NOTIFY cursorChanged)
     Q_PROPERTY(int cursorSize READ cursorSize WRITE setCursorSize NOTIFY cursorChanged)
+    // font-family= in vela.conf: the text font of the apps ("": Vela's own).
+    Q_PROPERTY(QString fontFamily READ fontFamily WRITE setFontFamily NOTIFY fontChanged)
     // window-blur*= in vela.conf: blur behind windows that don't ask for it,
     // for all of them or only the included app ids; the excluded ones never.
     Q_PROPERTY(bool windowBlur READ windowBlur WRITE setWindowBlur NOTIFY windowBlurChanged)
@@ -301,6 +303,8 @@ public:
     void setCursorTheme(const QString& theme);
     int cursorSize() const { return m_cursorSize; }
     void setCursorSize(int size);
+    QString fontFamily() const { return m_fontFamily; }
+    void setFontFamily(const QString& family);
     // The installed cursor themes (with a cursors/ directory): [{name, text}].
     Q_INVOKABLE QVariantList cursorThemes() const;
     // The theme's arrow at about `size` pixels as a data: URL, "" if unreadable.
@@ -499,6 +503,7 @@ signals:
     void animationsChanged();
     void themeScheduleChanged();
     void cursorChanged();
+    void fontChanged();
     void windowBlurChanged();
     void windowRulesChanged();
     void windowPicked(const QString& appId, const QString& title);
@@ -564,6 +569,7 @@ private:
     QString m_themeDarkFrom = QStringLiteral("19:00");
     QString m_cursorTheme;
     int m_cursorSize = 24;
+    QString m_fontFamily;
     bool m_windowBlur = false;
     bool m_windowBlurAll = false;
     QStringList m_windowBlurInclude;

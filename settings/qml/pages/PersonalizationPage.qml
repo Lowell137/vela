@@ -41,6 +41,12 @@ Page {
             onClicked: root.navigate("icons")
         }
         LinkCard {
+            icon: "preferences-desktop-font"
+            title: qsTr("Fonts")
+            description: qsTr("Text font of the shell and the apps")
+            onClicked: root.navigate("fonts")
+        }
+        LinkCard {
             icon: "preferences-desktop-effects"
             title: qsTr("Window blur")
             description: qsTr("Blur behind see-through windows")
