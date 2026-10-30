@@ -44,6 +44,12 @@ Item {
         bounceAnim.start()
     }
     NumberAnimation { id: pressAnim; target: root; property: "press"; easing.type: Easing.OutCubic }
+    function animatePress(down) {
+        pressAnim.stop()
+        pressAnim.to = down ? 0.8 : 1
+        pressAnim.duration = Theme.motion(down ? 40 : 200)
+        pressAnim.start()
+    }
     // A press during a bounce ends it where it is, without a jump.
     ParallelAnimation {
         id: settleAnim
@@ -78,7 +84,25 @@ Item {
     readonly property bool vertical: Config.taskbarVertical
     // The dock style: bigger icons, bigger still under the pointer.
     readonly property real zoom: Config.dock ? (hovered ? 1.35 : 1.2) : 1
-    transform: Translate { x: !root.vertical && mouse.dragging ? mouse.dragX : 0; y: root.vertical && mouse.dragging ? mouse.dragX : 0 }
+    // How far the drag may take it, and where the others make room for it.
+    property real dragLow: -Infinity
+    property real dragHigh: Infinity
+    readonly property real dragOffset: Math.max(dragLow, Math.min(dragHigh, mouse.dragX))
+    property real slide: 0
+    property bool slideAnimated: true
+    Behavior on slide {
+        enabled: root.slideAnimated
+        NumberAnimation { duration: Theme.motion(180); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+    }
+    // Dropped: from where the pointer left it to its place.
+    property real dropOffset: 0
+    NumberAnimation { id: dropAnim; target: root; property: "dropOffset"; to: 0; duration: Theme.motion(180); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+    function settle(from) {
+        dropOffset = from
+        dropAnim.restart()
+    }
+    readonly property real along: (mouse.dragging ? dragOffset : 0) + slide + dropOffset
+    transform: Translate { x: root.vertical ? 0 : root.along; y: root.vertical ? root.along : 0 }
 
     width: Theme.taskbarButtonWidth
     height: Config.dock ? 48 : Theme.taskbarButtonHeight
@@ -207,11 +231,10 @@ Item {
                 bounceAnim.stop()
                 settleAnim.start()
             }
-            pressAnim.stop()
-            pressAnim.to = pressed ? 0.8 : 1
-            pressAnim.duration = Theme.motion(pressed ? 40 : 200)
-            pressAnim.start()
+            root.animatePress(pressed)
         }
+        // Dragged, it keeps its size.
+        onDraggingChanged: if (root.clickMotion && dragging) root.animatePress(false)
         // In window coordinates: the button moves with the mouse, they don't.
         onPressed: mouse => {
             pressX = root.vertical ? mapToItem(null, mouse.x, mouse.y).y : mapToItem(null, mouse.x, mouse.y).x

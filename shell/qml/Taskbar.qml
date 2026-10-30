@@ -542,6 +542,7 @@ Window {
             }
         }
         move: Transition {
+            enabled: !taskRepeater.dropping
             NumberAnimation {
                 properties: "x,y"; duration: Theme.normal
                 easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate
@@ -556,9 +557,20 @@ Window {
             visible: Config.taskView && Theme.taskbarTaskView && !root.islands
         }
 
+        // The buttons are already where the drop puts them.
+        Timer { id: dropDone; interval: 100; onTriggered: taskRepeater.dropping = false }
+
         Repeater {
             id: taskRepeater
             model: Tasks
+            // The drag in progress: the button dragged from dragFrom, the place it
+            // would take (dragTo), within its group (pinned or not).
+            property int dragFrom: -1
+            property int dragTo: -1
+            property int dragMin: 0
+            property int dragMax: 0
+            property bool dropping: false
+            onCountChanged: dragFrom = -1
 
             TaskbarButton {
                 id: task
@@ -573,16 +585,51 @@ Window {
                 Component.onCompleted: if (windowBounce && windowCount > 0 && Date.now() - root.startedAt > 3000) bounce(false)
                 // Dropped further away: it moves by as many places as buttons
                 // it passed.
-                onDropped: dx => {
-                    const to = Math.max(0, Math.min(taskRepeater.count - 1, index + Math.round(dx / ((root.vertical ? height : width) + buttons.spacing))))
-                    if (to !== index) Tasks.move(index, to)
+                readonly property real step: (root.vertical ? height : width) + buttons.spacing
+                dragLow: dragging ? (taskRepeater.dragMin - index) * step : -Infinity
+                dragHigh: dragging ? (taskRepeater.dragMax - index) * step : Infinity
+                onDragOffsetChanged: if (dragging && taskRepeater.dragFrom === index) taskRepeater.dragTo = index + Math.round(dragOffset / step)
+                slideAnimated: !taskRepeater.dropping
+                slide: {
+                    const from = taskRepeater.dragFrom
+                    const to = taskRepeater.dragTo
+                    if (from < 0 || index === from) return 0
+                    if (index > from && index <= to) return -step
+                    if (index < from && index >= to) return step
+                    return 0
                 }
-                onDraggingChanged: if (dragging) Menus.preview = null
+                onDropped: dx => {
+                    const from = taskRepeater.dragFrom
+                    const to = taskRepeater.dragTo
+                    const offset = Math.max(dragLow, Math.min(dragHigh, dx))
+                    taskRepeater.dropping = true
+                    taskRepeater.dragFrom = -1
+                    dropDone.restart()
+                    if (from !== index) {
+                        settle(offset)
+                        return
+                    }
+                    if (to !== index) Tasks.move(index, to)
+                    settle(offset - (to - from) * step)
+                }
+                onDraggingChanged: {
+                    if (!dragging) return
+                    Menus.preview = null
+                    let first = index
+                    let last = index
+                    while (first > 0 && taskRepeater.itemAt(first - 1).pinned === pinned) --first
+                    while (last < taskRepeater.count - 1 && taskRepeater.itemAt(last + 1).pinned === pinned) ++last
+                    taskRepeater.dragMin = first
+                    taskRepeater.dragMax = last
+                    taskRepeater.dragTo = index
+                    taskRepeater.dragFrom = index
+                }
                 required property int index
                 required property string key
                 required property string name
                 required property string iconName
                 required property int windowCount
+                required property bool pinned
                 required property bool windowActive
                 required property string desktopId
 

@@ -230,12 +230,13 @@ void TaskbarModel::rebuild()
             m_items[i] = items[i];
             continue;
         }
-        if (keyAt(m_items, items[i].key) > i) {
-            // Order changed (such as newly pinned apps): start over.
-            beginResetModel();
-            m_items = std::move(items);
-            endResetModel();
-            return;
+        if (const qsizetype from = keyAt(m_items, items[i].key); from > i) {
+            // Order changed: moved, so that the buttons stay (and keep their state).
+            beginMoveRows({}, int(from), int(from), {}, int(i));
+            m_items.move(from, i);
+            endMoveRows();
+            m_items[i] = items[i];
+            continue;
         }
         beginInsertRows({}, int(i), int(i));
         m_items.insert(i, items[i]);
