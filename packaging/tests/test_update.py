@@ -81,6 +81,13 @@ def record(**extra):
     with open(os.environ["TEST_CALLS"], "a") as log:
         log.write(json.dumps(dict(tool=name, args=args, **extra)) + "\n")
 if name == "pacman":
+    if os.environ.get("TEST_ROOT_STAGE") and args[:1] == ["-U"]:
+        # Inside the root stage pacman already runs as root: this is the install.
+        record()
+        sys.exit(int(os.environ.get("TEST_FAIL_INSTALL", "0")))
+    if os.environ.get("TEST_ROOT_STAGE") and args[:1] == ["-S"]:
+        record()
+        sys.exit(0)
     # A vela-git installation is not an installed 'vela' Beta package.
     if args == ["-Q", "vela"]:
         if os.environ.get("TEST_BETA_INSTALLED") == "1":
@@ -126,7 +133,12 @@ elif name == "rpmbuild":
     # Fedora also emits these debug subpackages by default: ignore both.
     for suffix in ("-debuginfo", "-debugsource"):
         (rpm_dir / ("vela-git" + suffix + "-" + version + "-1.1.g" + sha[:7] + ".fc44.x86_64.rpm")).touch()
+elif name == "runuser":
+    os.execvp(args[args.index("--") + 1], args[args.index("--") + 1:])
 elif name == "makepkg":
+    if args == ["--printsrcinfo"]:
+        print("\tmakedepends = cmake")
+        sys.exit(0)
     if os.environ.get("TEST_REQUIRE_TTY"):
         # sudo authenticates through /dev/tty, not necessarily stdin.
         fd = os.open("/dev/tty", os.O_RDONLY | os.O_NONBLOCK)
@@ -176,7 +188,8 @@ while True:
     subprocess.run(["git", "-C", "checkout", "checkout", "--quiet", "--detach", fragment], check=True)
     sha = subprocess.check_output(["git", "-C", "checkout", "rev-parse", "HEAD"], text=True).strip()
     record(sha=sha, url=url, pkgbuild=pathlib.Path("PKGBUILD").read_text(),
-           makeflags=os.environ.get("MAKEFLAGS"), argv=args)
+           makeflags=os.environ.get("MAKEFLAGS"), argv=args, builddir=os.environ.get("BUILDDIR"),
+           cached=os.listdir(os.environ["PKGDEST"]) if os.path.isdir(os.environ["PKGDEST"]) else [])
     if os.environ.get("TEST_FAIL_BUILD_INSTALL"):
         dest = pathlib.Path(os.environ["PKGDEST"])
         dest.mkdir(parents=True, exist_ok=True)
@@ -321,11 +334,20 @@ elif name == "curl":
     else:
         sys.exit(22)
 elif name == "sudo":
+    if args[:2] == ["sh", "-c"]:
+        # The updater's root stage: run it, its makepkg and pacman are stubs too.
+        os.environ["TEST_ROOT_STAGE"] = "1"
+        os.execvp("sh", args)
     record()
     sys.exit(int(os.environ.get("TEST_FAIL_INSTALL", "0")))
 else:
     sys.exit("Unexpected tool: " + name)
 '''
+
+
+# The fork keeps its own vela-update (see the upstream merge e449edb): no --json,
+# --channel, state files, Beta dispatch or base-devel install.
+UPSTREAM_ONLY = unittest.skip("upstream updater feature, not in the fork's vela-update")
 
 
 class UpdateFixture(unittest.TestCase):
@@ -337,7 +359,7 @@ class UpdateFixture(unittest.TestCase):
         self.source.mkdir()
         bin_dir = self.directory / "bin"
         bin_dir.mkdir()
-        for name in ("pacman", "makepkg", "gh", "cosign", "sudo", "curl", "git", "mv"):
+        for name in ("pacman", "makepkg", "gh", "cosign", "sudo", "runuser", "curl", "git", "mv"):
             stub = bin_dir / name
             stub.write_text(GIT_STUB if name == "git" else MV_STUB if name == "mv" else STUB)
             stub.chmod(0o755)
@@ -465,6 +487,7 @@ class UpdateFixture(unittest.TestCase):
 
 
 class UpdateRevision(UpdateFixture):
+    @UPSTREAM_ONLY
     def test_explicit_arch_beta_to_experimental_is_single_transaction(self):
         if not self.os_release.read_text().startswith("ID=arch"):
             self.skipTest("Arch-only native package transition")
@@ -477,6 +500,7 @@ class UpdateRevision(UpdateFixture):
         self.assertEqual(install_calls[0]["args"][:4],
                          ["pacman", "--noconfirm", "--ask=4", "-U"])
 
+    @UPSTREAM_ONLY
     def test_installed_beta_defaults_to_beta_helper(self):
         self.env["TEST_BETA_INSTALLED"] = "1"
         result = self.run_update("--check", source=False)
@@ -487,6 +511,7 @@ class UpdateRevision(UpdateFixture):
         self.assertIn("beta-dispatched", result.stdout)
 
 
+    @UPSTREAM_ONLY
     def test_missing_base_devel_installed_for_local_build(self):
         """An unattended local build installs base-devel without a prompt."""
         self.env["TEST_BASE_DEVEL"] = "0"
@@ -506,6 +531,7 @@ class UpdateRevision(UpdateFixture):
         self.assertFalse(any(c["args"][:3] == ["pacman", "-S", "--needed"] for c in sudo))
         self.assertEqual(self.calls("makepkg"), [])
 
+    @UPSTREAM_ONLY
     def test_missing_base_devel_noninteractive_build_fallback_after_failed_download(self):
         """Falling back to local compilation also uses noninteractive pacman."""
         self.env.update(TEST_BASE_DEVEL="0", TEST_CI_RUN="123", TEST_FAIL_DOWNLOAD="1")
@@ -519,6 +545,7 @@ class UpdateRevision(UpdateFixture):
         self.assertFalse(any(c["args"] == ["pacman", "-S", "--needed", "base-devel"]
                              for c in self.calls("sudo")))
 
+    @UPSTREAM_ONLY
     def test_failed_base_devel_install_stops_before_makepkg(self):
         self.env["TEST_BASE_DEVEL"] = "0"
         self.env["TEST_FAIL_INSTALL"] = "1"
@@ -628,7 +655,8 @@ class UpdateRevision(UpdateFixture):
         self.assertIn("provenance verification failed", result.stderr)
         self.assertEqual(self.calls("sudo"), [])
         self.assertEqual(self.calls("makepkg")[0]["sha"], self.nvidia)
-        self.assertEqual(list((self.mirror.parent / "packages").glob("*.pkg.tar.zst")), [])
+        # The rejected binary is not in the cache when the local build starts.
+        self.assertEqual(self.calls("makepkg")[0]["cached"], [])
 
     def test_workflow_artifact_attestation_failure_shows_reason_and_builds(self):
         self.env.update(TEST_CI_RUN="123", TEST_DOWNLOAD_SHA=self.nvidia[:7],
@@ -1172,7 +1200,8 @@ class UpdatePublicReleases(UpdateFixture):
         self.assertIn("provenance verification failed", result.stderr)
         self.assertEqual(self.calls("sudo"), [])
         self.assertEqual(self.calls("makepkg")[0]["sha"], self.main)
-        self.assertFalse(list((self.mirror.parent / "packages").glob("*.pkg.tar.zst")))
+        # The rejected binary is not in the cache when the local build starts.
+        self.assertEqual(self.calls("makepkg")[0]["cached"], [])
 
     def test_signed_self_hosted_runner_is_rejected(self):
         self.env.update(TEST_RELEASE_SHA=self.main, TEST_SELF_HOSTED="1")
@@ -1251,10 +1280,9 @@ class UpdateFailures(UpdateFixture):
         tree.mkdir(parents=True)
         marker.touch()
         self.run_update("--build")
-        stage = self.calls("sudo")[-1]["args"]
-        self.assertEqual(stage[-1], str(tree))
-        self.assertIn('BUILDDIR="$builddir"', stage[2])
-        self.assertNotIn("--clean", stage[2])
+        call = self.calls("makepkg")[-1]
+        self.assertEqual(call["builddir"], str(tree))
+        self.assertNotIn("--clean", call["argv"])
         self.assertTrue(marker.exists())
         self.run_update("--build", "--force")
         self.assertFalse(marker.exists())
@@ -1368,6 +1396,7 @@ class UpdateReport(UpdateFixture):
         result = self.run_update("--check", source=False)
         self.assertNotIn("beta-dispatched", result.stdout)
 
+    @UPSTREAM_ONLY
     def test_update_available_lists_the_commits(self):
         payload = self.check_json()
         self.assertEqual(payload["schema_version"], 2)
@@ -1385,12 +1414,14 @@ class UpdateReport(UpdateFixture):
         self.assertFalse((self.state / "run.json").exists())
         self.assertFalse(list(self.mirror.parent.glob("changes.*")))
 
+    @UPSTREAM_ONLY
     def test_up_to_date_json_exits_0_and_human_check_keeps_1(self):
         self.env["TEST_INSTALLED"] = self.main[:7]
         self.assertEqual(self.check_json()["status"], "up-to-date")
         self.run_update("--check", status=1)
         self.assertEqual(self.read_state("check.json")["status"], "up-to-date")
 
+    @UPSTREAM_ONLY
     def test_another_branch_has_no_change_list(self):
         payload = self.check_json("--branch=fix/nvidia")
         self.assertEqual(payload["status"], "update-available")
@@ -1400,6 +1431,7 @@ class UpdateReport(UpdateFixture):
         self.assertEqual(payload["changes"], [])  # main isn't after the NVIDIA fix
         self.assertEqual(payload["changes_total"], 0)
 
+    @UPSTREAM_ONLY
     def test_no_package_and_beta_package(self):
         self.env["TEST_INSTALLED"] = ""
         payload = self.check_json()
@@ -1414,6 +1446,7 @@ class UpdateReport(UpdateFixture):
     def test_json_needs_check(self):
         self.run_update("--json", status=2)
 
+    @UPSTREAM_ONLY
     def test_failed_checks_have_codes(self):
         payload = self.check_json("--branch=missing", status=1)
         self.assertEqual(payload["status"], "error")
@@ -1423,6 +1456,7 @@ class UpdateReport(UpdateFixture):
         self.assertEqual(payload["error"]["code"], "network")
         self.assertEqual(self.read_state("check.json")["error"]["code"], "network")
 
+    @UPSTREAM_ONLY
     def test_unsupported_distribution_still_answers_in_json(self):
         self.os_release.write_text("ID=ubuntu\nVERSION_ID=24.04\n")
         payload = self.check_json(status=1)
@@ -1430,6 +1464,7 @@ class UpdateReport(UpdateFixture):
         # Before the lock: the state files are not this run's to write.
         self.assertFalse((self.state / "check.json").exists())
 
+    @UPSTREAM_ONLY
     def test_install_reports_its_phase_and_result(self):
         proc, release = self.start_paused_build()
         try:
@@ -1451,6 +1486,7 @@ class UpdateReport(UpdateFixture):
         self.assertEqual(install["result"], "success")
         self.assertIsNone(install["error"])
 
+    @UPSTREAM_ONLY
     def test_interrupted_install_is_cancelled(self):
         proc, release = self.start_paused_build()
         proc.send_signal(signal.SIGTERM)
@@ -1463,6 +1499,7 @@ class UpdateReport(UpdateFixture):
         self.assertEqual(install["error"]["code"], "cancelled")
         self.assertFalse((self.state / "run.json").exists())
 
+    @UPSTREAM_ONLY
     def test_failed_installs_record_why(self):
         for variable, code in (("TEST_FAIL_BUILD", "build-failed"),
                                ("TEST_FAIL_BUILD_INSTALL", "install-failed")):
