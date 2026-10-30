@@ -75,6 +75,7 @@ Window {
             { separator: true },
             { text: qsTr("S&leep"), icon: "system-suspend", enabled: Shell.canSuspend(), action: () => Shell.suspend() },
             { text: qsTr("&Restart"), icon: "system-reboot", action: () => Shell.reboot() },
+            ...(Config.restartToWindows && Shell.canRebootToWindows() ? [{ text: qsTr("Restart to &Windows"), icon: "system-reboot", action: () => Shell.rebootToWindows() }] : []),
             { text: qsTr("Sh&ut down"), icon: "system-shutdown", action: () => Shell.powerOff() },
             { separator: true },
             { text: qsTr("Sign &out"), icon: "system-log-out", action: () => Shell.logout() }

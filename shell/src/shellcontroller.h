@@ -156,6 +156,9 @@ public:
     Q_INVOKABLE void reboot();
     Q_INVOKABLE void powerOff();
     Q_INVOKABLE bool canSuspend() const;
+    // Is Windows among the firmware's boot entries?
+    Q_INVOKABLE bool canRebootToWindows() const;
+    Q_INVOKABLE void rebootToWindows();
 
 signals:
     void toggleStartRequested();

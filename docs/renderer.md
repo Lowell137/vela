@@ -1099,7 +1099,7 @@ Right click on the Start button or Win+X, with Windows 11's groups:
 - ---
 - "Task Manager", "Settings", "File Explorer", "Search", "Run"
 - ---
-- "Shut down or sign out" › "Sign out", "Sleep", "Shut down", "Restart"
+- "Shut down or sign out" › "Sign out", "Sleep", "Shut down", "Restart", "Restart to Windows" (when turned on in Settings > Power and the firmware has a Windows entry)
 - "Desktop"
 
 Win+X followed by the underlined letter opens the item directly.

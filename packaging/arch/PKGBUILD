@@ -38,6 +38,7 @@ depends=(
 )
 makedepends=('cmake' 'shaderc' 'vulkan-headers' 'wayland-protocols>=1.37' 'qt6-tools' 'qt6-multimedia')
 optdepends=(
+    'efibootmgr: Restart to Windows in the power menus, on dual boot systems'
     'cosign: verify downloaded prebuilt package attestations without gh'
     'wf-recorder: screen recording in the snipping tool'
     'fluent-icon-theme-git: Fluent-style app and file type icons (AUR; the vela theme inherits it)'

@@ -101,6 +101,11 @@ void Config::reload()
     m_weatherLon = weatherLon;
     m_weatherUnit = weatherUnit;
     const bool showDesktopCorner = settings.value(QStringLiteral("taskbar/showDesktopCorner"), true).toBool();
+    const bool restartToWindows = settings.value(QStringLiteral("power/restartToWindows"), false).toBool();
+    if (restartToWindows != m_restartToWindows) {
+        m_restartToWindows = restartToWindows;
+        emit taskbarChanged();
+    }
     const int startSolid = std::clamp(settings.value(QStringLiteral("start/solid"), 0).toInt(), 0, 100);
     if (startSolid != m_startSolid) {
         m_startSolid = startSolid;

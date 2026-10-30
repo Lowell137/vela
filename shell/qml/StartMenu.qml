@@ -26,6 +26,7 @@ Window {
     property string shortcutError: ""
     // Asked of logind only once: can the computer suspend?
     readonly property bool canSuspend: Shell.canSuspend()
+    readonly property bool canRebootToWindows: Config.restartToWindows && Shell.canRebootToWindows()
 
     // The apps pinned to Start, installed, without duplicates (the same app as
     // a package and as a Flatpak).
@@ -308,7 +309,29 @@ Window {
         Menus.open(appMenu(id, pinnedTile), p.x, p.y, { screen: root.screen ? root.screen.name : Shell.primaryScreen })
     }
 
-    // An entry of the power menu.
+    // A menu of its own, so the compositor blurs behind it like every other.
+    function openPowerMenu() {
+        const p = screenPoint(powerButton, powerButton.width - 200, -8) // flush with the button's right edge
+        const updates = Shell.updatePending() ? [
+            // Like Windows' "Update and shut down": installed first, then off (only if it worked).
+            { text: qsTr("Update and restart"), icon: "system-software-update", action: () => { root.close(); Shell.updateThen(true) } },
+            { text: qsTr("Update and shut down"), icon: "system-software-update", action: () => { root.close(); Shell.updateThen(false) } }
+        ] : []
+        const windows = canRebootToWindows ? [
+            { text: qsTr("Restart to &Windows"), icon: "system-reboot", action: () => { root.close(); Shell.rebootToWindows() } }
+        ] : []
+        Menus.open([
+            ...(canSuspend ? [{ text: qsTr("S&leep"), icon: "system-suspend", action: () => { root.close(); Shell.suspend() } }] : []),
+            { text: qsTr("Sign &out"), icon: "system-log-out", action: () => Shell.logout() },
+            { text: qsTr("Restart s&hell"), icon: "view-refresh", action: () => { root.close(); Shell.restartShell() } },
+            ...updates,
+            { text: qsTr("&Restart"), icon: "system-reboot", action: () => Shell.reboot() },
+            ...windows,
+            { text: qsTr("Sh&ut down"), icon: "system-shutdown", action: () => Shell.powerOff() }
+        ], p.x, p.y, { above: true, minWidth: 200, screen: root.screen ? root.screen.name : Shell.primaryScreen })
+    }
+
+    // An entry of the Windows 7 power menu.
     Gradient {
         id: powerHighlight
         GradientStop { position: 0; color: "#F3F9FF" }
@@ -383,7 +406,6 @@ Window {
         // The old animation must not finish by hiding the reopened window.
         closeAnimation.stop()
         closing = false
-        powerButton.menuOpen = false
         sevenPowerOpen = false
         sevenAll = false
         Apps.query = ""
@@ -1256,14 +1278,12 @@ Window {
                 anchors { right: parent.right; rightMargin: 24; verticalCenter: parent.verticalCenter }
                 width: 40
                 height: 40
-                property bool menuOpen: false
-                onMenuOpenChanged: if (menuOpen) root.updatePending = Shell.updatePending()
 
                 Rectangle {
                     anchors.fill: parent
                     radius: Theme.radius
                     color: powerMouse.pressed ? Theme.subtlePressed : Theme.subtleHover
-                    opacity: powerMouse.containsMouse || powerButton.menuOpen ? 1 : 0
+                    opacity: powerMouse.containsMouse ? 1 : 0
                     Behavior on opacity {
                         NumberAnimation { duration: Theme.fast; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
                     }
@@ -1300,99 +1320,7 @@ Window {
                     id: powerMouse
                     anchors.fill: parent
                     hoverEnabled: true
-                    onClicked: powerButton.menuOpen = !powerButton.menuOpen
-                }
-
-                Rectangle {
-                    id: powerMenu
-                    anchors { right: parent.right; bottom: parent.top; bottomMargin: 8 }
-                    width: 200
-                    height: powerEntries.implicitHeight + 8
-                    radius: Theme.radiusOverlay
-                    color: Theme.popup
-                    border.width: 1
-                    border.color: Theme.stroke
-                    opacity: powerButton.menuOpen ? 1 : 0
-                    visible: opacity > 0
-                    Behavior on opacity {
-                        NumberAnimation { duration: Theme.fast; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
-                    }
-
-                    Column {
-                        id: powerEntries
-                        x: 4
-                        y: 4
-                        width: parent.width - 8
-
-                        PowerEntry {
-                            icon: "system-suspend"
-                            label: qsTr("Sleep")
-                            visible: root.canSuspend
-                            onActivated: { root.close(); Shell.suspend() }
-                        }
-                        PowerEntry {
-                            label: qsTr("Sign out")
-                            onActivated: Shell.logout()
-
-                            // An open door and an arrow going out.
-                            Shape {
-                                anchors.fill: parent
-                                preferredRendererType: Shape.CurveRenderer
-                                ShapePath {
-                                    strokeColor: Theme.text
-                                    strokeWidth: 1.2
-                                    fillColor: "transparent"
-                                    capStyle: ShapePath.RoundCap
-                                    joinStyle: ShapePath.RoundJoin
-                                    startX: 8.5; startY: 2.5
-                                    PathLine { x: 3; y: 2.5 }
-                                    PathLine { x: 3; y: 13.5 }
-                                    PathLine { x: 8.5; y: 13.5 }
-                                }
-                                ShapePath {
-                                    strokeColor: Theme.text
-                                    strokeWidth: 1.2
-                                    fillColor: "transparent"
-                                    capStyle: ShapePath.RoundCap
-                                    joinStyle: ShapePath.RoundJoin
-                                    startX: 6.5; startY: 8
-                                    PathLine { x: 13.5; y: 8 }
-                                    PathMove { x: 10.8; y: 5.3 }
-                                    PathLine { x: 13.5; y: 8 }
-                                    PathLine { x: 10.8; y: 10.7 }
-                                }
-                            }
-                        }
-                        PowerEntry {
-                            icon: "view-refresh"
-                            label: qsTr("Restart shell")
-                            onActivated: { root.close(); Shell.restartShell() }
-                        }
-                        // A Vela update waiting, like Windows' "Update and
-                        // shut down": installed first, then off (only if it worked).
-                        PowerEntry {
-                            visible: root.updatePending
-                            icon: "system-software-update"
-                            label: qsTr("Update and restart")
-                            onActivated: { root.close(); Shell.updateThen(true) }
-                        }
-                        PowerEntry {
-                            visible: root.updatePending
-                            icon: "system-software-update"
-                            label: qsTr("Update and shut down")
-                            onActivated: { root.close(); Shell.updateThen(false) }
-                        }
-                        PowerEntry {
-                            icon: "system-reboot"
-                            label: qsTr("Restart")
-                            onActivated: Shell.reboot()
-                        }
-                        PowerEntry {
-                            icon: "system-shutdown"
-                            label: qsTr("Shut down")
-                            onActivated: Shell.powerOff()
-                        }
-                    }
+                    onClicked: root.openPowerMenu()
                 }
             }
         }
@@ -1745,6 +1673,14 @@ Window {
                                         icon: "system-reboot"
                                         label: qsTr("Restart")
                                         onActivated: Shell.reboot()
+                                    }
+                                    PowerEntry {
+                                        light: true
+                                        textColor: "#1E1E1E"
+                                        icon: "system-reboot"
+                                        label: qsTr("Restart to Windows")
+                                        visible: root.canRebootToWindows
+                                        onActivated: { root.close(); Shell.rebootToWindows() }
                                     }
                                     PowerEntry {
                                         light: true

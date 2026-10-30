@@ -57,5 +57,14 @@ Page {
                 onChosen: index => Status.powerProfile = page.profiles[index]
             }
         }
+        Card {
+            icon: "system-reboot"
+            title: qsTr("Restart to Windows")
+            description: qsTr("Add it to the power menus, on a computer that also has Windows")
+            trailing: Switch {
+                checked: Prefs.restartToWindows
+                onToggled: Prefs.restartToWindows = checked
+            }
+        }
     }
 }

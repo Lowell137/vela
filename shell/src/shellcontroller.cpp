@@ -27,6 +27,7 @@
 #include <QElapsedTimer>
 #include <QLocalSocket>
 #include <QProcess>
+#include <QRegularExpression>
 #include <QTimer>
 #include <QProcess>
 #include <QFile>
@@ -246,7 +247,40 @@ void callLogin1(const char* method)
     manager.asyncCall(QLatin1String(method), true);
 }
 
+// The firmware's boot entry for Windows ("0001"), empty when there is none.
+const QString& windowsBootEntry()
+{
+    static const QString entry = [] {
+        QProcess efibootmgr;
+        efibootmgr.start(QStringLiteral("efibootmgr"), QStringList());
+        if (!efibootmgr.waitForFinished(1000))
+            return QString();
+        static const QRegularExpression line(QStringLiteral("^Boot([0-9a-f]{4})\\*?\\s.*(Windows Boot Manager|bootmgfw\\.efi)"),
+            QRegularExpression::CaseInsensitiveOption | QRegularExpression::MultilineOption);
+        return line.match(QString::fromLocal8Bit(efibootmgr.readAllStandardOutput())).captured(1);
+    }();
+    return entry;
+}
+
 } // namespace
+
+bool ShellController::canRebootToWindows() const
+{
+    return !windowsBootEntry().isEmpty();
+}
+
+// BootNext is the firmware's: it skips GRUB or Limine alike, for one boot only.
+void ShellController::rebootToWindows()
+{
+    auto* process = new QProcess(this);
+    connect(process, &QProcess::finished, this, [process](int code, QProcess::ExitStatus status) {
+        process->deleteLater();
+        // Anything else is a dismissed password: stay in the session.
+        if (status == QProcess::NormalExit && code == 0)
+            callLogin1("Reboot");
+    });
+    process->start(QStringLiteral("pkexec"), { QStringLiteral("efibootmgr"), QStringLiteral("--bootnext"), windowsBootEntry() });
+}
 
 void ShellController::suspend()
 {

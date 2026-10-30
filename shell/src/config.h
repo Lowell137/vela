@@ -45,6 +45,7 @@ class Config : public QObject {
     Q_PROPERTY(QString primaryOutput READ primaryOutput NOTIFY primaryOutputChanged)
     // Clickable right-hand taskbar corner that toggles the desktop.
     Q_PROPERTY(bool showDesktopCorner READ showDesktopCorner NOTIFY taskbarChanged)
+    Q_PROPERTY(bool restartToWindows READ restartToWindows NOTIFY taskbarChanged)
     // 0-100: how much more solid than the theme the Start menu's background is.
     Q_PROPERTY(int startSolid READ startSolid NOTIFY taskbarChanged)
     // The weather flyout's system cards (graphics card, processor, memory, disk).
@@ -86,6 +87,7 @@ public:
     bool weatherSystemInfo() const { return m_weatherSystemInfo; }
     QString primaryOutput() const { return m_primaryOutput; }
     bool showDesktopCorner() const { return m_showDesktopCorner; }
+    bool restartToWindows() const { return m_restartToWindows; }
     int startSolid() const { return m_startSolid; }
     bool clipboardHistory() const { return m_clipboardHistory; }
     bool doNotDisturb() const { return m_doNotDisturb; }
@@ -125,6 +127,7 @@ private:
     QString m_weatherCity, m_weatherLat, m_weatherLon;
     QString m_weatherUnit = QStringLiteral("c");
     bool m_showDesktopCorner = true;
+    bool m_restartToWindows = false;
     int m_startSolid = 0;
     bool m_clipboardHistory = false;
     bool m_doNotDisturb = false;

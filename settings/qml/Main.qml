@@ -187,6 +187,7 @@ Window {
         { page: "power", text: qsTr("Power"), keys: qsTr("screen off sleep idle battery energy saver lock") },
         { page: "power", text: qsTr("Turn off the screen after"), keys: qsTr("idle timeout") },
         { page: "power", text: qsTr("Power mode"), keys: qsTr("profile performance balanced") },
+        { page: "power", text: qsTr("Restart to Windows"), keys: qsTr("dual boot reboot") },
         { page: "storage", text: qsTr("Storage"), keys: qsTr("disk space free used cache trash cleanup drive") },
         { page: "about", text: qsTr("About"), keys: qsTr("specifications processor ram memory pc name rename version kernel graphics card") },
         { page: "about", text: qsTr("Rename this PC"), keys: qsTr("device name hostname") },
