@@ -31,6 +31,7 @@ class Config : public QObject {
     Q_PROPERTY(bool endTask READ endTask NOTIFY taskbarChanged)
     // The Task View button on the taskbar.
     Q_PROPERTY(bool taskView READ taskView NOTIFY taskbarChanged)
+    Q_PROPERTY(bool taskbarWindowBounce READ taskbarWindowBounce NOTIFY taskbarChanged)
     // The apps' tray icons behind the "^" button, in a flyout, like Windows 11.
     Q_PROPERTY(bool trayOverflow READ trayOverflow NOTIFY taskbarChanged)
     // The taskbar on all outputs (like Windows) or only on the main one.
@@ -66,6 +67,7 @@ public:
     bool taskbarVertical() const { return taskbarLeft() || taskbarRight(); }
     bool endTask() const { return m_endTask; }
     bool taskView() const { return m_taskView; }
+    bool taskbarWindowBounce() const { return m_taskbarWindowBounce; }
     bool trayOverflow() const { return m_trayOverflow; }
     bool taskbarAllScreens() const { return m_taskbarAllScreens; }
     bool taskbarAutoHide() const { return m_taskbarAutoHide; }
@@ -105,6 +107,7 @@ private:
     QString m_taskbarPosition = QStringLiteral("bottom");
     bool m_endTask = true;
     bool m_taskView = true;
+    bool m_taskbarWindowBounce = false;
     bool m_trayOverflow = true;
     bool m_taskbarAllScreens = true;
     bool m_taskbarAutoHide = false;

@@ -48,6 +48,7 @@ class Preferences : public QObject {
     Q_PROPERTY(bool endTask READ endTask WRITE setEndTask NOTIFY taskbarChanged)
     Q_PROPERTY(bool portalAutofix READ portalAutofix WRITE setPortalAutofix NOTIFY taskbarChanged)
     Q_PROPERTY(bool taskView READ taskView WRITE setTaskView NOTIFY taskbarChanged)
+    Q_PROPERTY(bool taskbarWindowBounce READ taskbarWindowBounce WRITE setTaskbarWindowBounce NOTIFY taskbarChanged)
     // The apps' tray icons behind the "^" button (taskbar/trayOverflow).
     Q_PROPERTY(bool trayOverflow READ trayOverflow WRITE setTrayOverflow NOTIFY taskbarChanged)
     Q_PROPERTY(bool taskbarAllDesktops READ taskbarAllDesktops WRITE setTaskbarAllDesktops NOTIFY taskbarChanged)
@@ -233,6 +234,8 @@ public:
     void setEndTask(bool on);
     bool taskView() const { return m_taskView; }
     void setTaskView(bool on);
+    bool taskbarWindowBounce() const { return m_taskbarWindowBounce; }
+    void setTaskbarWindowBounce(bool on);
     bool portalAutofix() const { return m_portalAutofix; }
     void setPortalAutofix(bool on);
     bool trayOverflow() const { return m_trayOverflow; }
@@ -543,6 +546,7 @@ private:
     QString m_taskbarPosition = QStringLiteral("bottom");
     bool m_endTask = true;
     bool m_taskView = true;
+    bool m_taskbarWindowBounce = false;
     bool m_portalAutofix = true;
     bool m_trayOverflow = true;
     bool m_taskbarAllScreens = true;

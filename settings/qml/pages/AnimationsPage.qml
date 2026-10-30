@@ -50,6 +50,15 @@ Page {
             }
         }
         Card {
+            icon: "preferences-desktop-panel"
+            title: qsTr("Bounce icons when windows open and close")
+            description: qsTr("Also without a click on the taskbar button; needs the hop above")
+            trailing: Toggle {
+                checked: Prefs.taskbarWindowBounce
+                onToggled: on => Prefs.taskbarWindowBounce = on
+            }
+        }
+        Card {
             icon: "preferences-desktop-theme"
             title: qsTr("Zoom on press")
             description: qsTr("Quick settings' sliders: the knob zooms a little, with a bounce, while it's held")

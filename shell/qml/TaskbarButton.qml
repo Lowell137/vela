@@ -15,7 +15,7 @@ Item {
     readonly property bool hovered: mouse.containsMouse
     property bool active: false
     property bool running: false
-    // An app's button (hops): clicked while the app is open, it hops once.
+    // An app's button (hops): clicked while the app is open, it bounces.
     property bool hops: false
     property real hop: 0 // px away from the screen's edge
     // The app's progress (0..1, -1: none): the indicator under the icon becomes
@@ -26,25 +26,46 @@ Item {
     default property alias content: holder.data
 
     signal clicked()
-    // Windows 11's, measured at 30 fps. A window coming back: its button goes up 3 px
-    // just after the window starts to grow, stays a moment, comes down. Every move
-    // slows down into its end (a quick fast move of 3 px looks like a jump).
-    SequentialAnimation {
-        id: quick
-        PauseAnimation { duration: Theme.motion(60) }
-        NumberAnimation { target: root; property: "hop"; to: 3; duration: Theme.motion(150); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
-        PauseAnimation { duration: Theme.motion(90) }
-        NumberAnimation { target: root; property: "hop"; to: 0; duration: Theme.motion(200); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+    // Windows 11's click, measured frame by frame from a recording: pressed, the
+    // icon shrinks at once to 0.8 and grows back in ~200 ms on release. Meanwhile
+    // it lifts 3 px (2.5 px down for a window going away) in 100 ms, holds 100 ms,
+    // crosses without stopping to 1 px the other way, a little bigger, and settles
+    // at ~460 ms.
+    readonly property bool clickMotion: hops && Theme.taskbarActivateHop
+    // After a click that hides the window the hover highlight stays off until
+    // the pointer leaves.
+    property bool quiet: false
+    property real press: 1
+    property real pulse: 1
+    function bounce(down) {
+        settleAnim.stop()
+        bounceAnim.stop()
+        bounceAnim.dir = down ? -1 : 1
+        bounceAnim.start()
     }
-    // A window going away (the click of the active app): the button dips 3 px as the window
-    // reaches it, stays, comes back a pixel high, and settles.
-    SequentialAnimation {
-        id: dip
-        PauseAnimation { duration: Theme.motion(70) }
-        NumberAnimation { target: root; property: "hop"; to: -3; duration: Theme.motion(140); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
-        PauseAnimation { duration: Theme.motion(70) }
-        NumberAnimation { target: root; property: "hop"; to: 1; duration: Theme.motion(130); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
-        NumberAnimation { target: root; property: "hop"; to: 0; duration: Theme.motion(100); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+    NumberAnimation { id: pressAnim; target: root; property: "press"; easing.type: Easing.OutCubic }
+    // A press during a bounce ends it where it is, without a jump.
+    ParallelAnimation {
+        id: settleAnim
+        NumberAnimation { target: root; property: "hop"; to: 0; duration: Theme.motion(120); easing.type: Easing.InOutQuad }
+        NumberAnimation { target: root; property: "pulse"; to: 1; duration: Theme.motion(120); easing.type: Easing.InOutQuad }
+    }
+    ParallelAnimation {
+        id: bounceAnim
+        property int dir: 1
+        SequentialAnimation {
+            NumberAnimation { target: root; property: "hop"; to: (bounceAnim.dir < 0 ? 2.5 : 3) * bounceAnim.dir; duration: Theme.motion(100); easing.type: Easing.OutQuad }
+            PauseAnimation { duration: Theme.motion(100) }
+            NumberAnimation { target: root; property: "hop"; to: -bounceAnim.dir; duration: Theme.motion(100); easing.type: Easing.InOutQuad }
+            PauseAnimation { duration: Theme.motion(60) }
+            NumberAnimation { target: root; property: "hop"; to: 0; duration: Theme.motion(100); easing.type: Easing.OutQuad }
+        }
+        SequentialAnimation {
+            PauseAnimation { duration: Theme.motion(200) }
+            NumberAnimation { target: root; property: "pulse"; to: 1.03; duration: Theme.motion(100); easing.type: Easing.InOutQuad }
+            PauseAnimation { duration: Theme.motion(60) }
+            NumberAnimation { target: root; property: "pulse"; to: 1; duration: Theme.motion(100); easing.type: Easing.OutQuad }
+        }
     }
     signal middleClicked()
     signal rightClicked(bool shift) // Shift+right click: the window menu
@@ -108,7 +129,7 @@ Item {
         visible: !root.pictured
         radius: Theme.taskbarButtonRadius
         color: mouse.pressed ? Theme.subtlePressed : Theme.subtleHover
-        opacity: mouse.containsMouse || root.active ? 1 : 0
+        opacity: (mouse.containsMouse && !root.quiet) || root.active ? 1 : 0
 
         Behavior on opacity {
             NumberAnimation { duration: Theme.fast; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
@@ -117,14 +138,15 @@ Item {
 
     Item {
         id: holder
-        // Not centerIn: it ignores the offsets, and the hop moves the icon by them.
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.verticalCenter: parent.verticalCenter
-        anchors.verticalCenterOffset: root.vertical ? 0 : -root.hop
-        anchors.horizontalCenterOffset: root.vertical ? (Config.taskbarLeft ? root.hop : -root.hop) : 0
+        anchors.centerIn: parent
         width: Theme.taskbarIconSize
         height: Theme.taskbarIconSize
-        scale: (mouse.pressed && Theme.taskbarBounce ? 0.84 : 1) * root.zoom
+        scale: (mouse.pressed && Theme.taskbarBounce && !root.clickMotion ? 0.84 : 1) * root.zoom
+        // Transforms, not anchors: centered anchors round to whole pixels.
+        transform: [
+            Scale { origin.x: holder.width / 2; origin.y: holder.height / 2; xScale: root.press * root.pulse; yScale: root.press * root.pulse },
+            Translate { x: root.vertical ? (Config.taskbarLeft ? root.hop : -root.hop) : 0; y: root.vertical ? 0 : -root.hop }
+        ]
 
         Behavior on scale {
             NumberAnimation { duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
@@ -178,6 +200,18 @@ Item {
         property real dragX: 0
         property bool dragging: false
         property bool dragged: false // releasing a drag isn't a click
+        onContainsMouseChanged: if (!containsMouse) root.quiet = false
+        onPressedChanged: {
+            if (!root.clickMotion) return
+            if (pressed && bounceAnim.running) {
+                bounceAnim.stop()
+                settleAnim.start()
+            }
+            pressAnim.stop()
+            pressAnim.to = pressed ? 0.8 : 1
+            pressAnim.duration = Theme.motion(pressed ? 40 : 200)
+            pressAnim.start()
+        }
         // In window coordinates: the button moves with the mouse, they don't.
         onPressed: mouse => {
             pressX = root.vertical ? mapToItem(null, mouse.x, mouse.y).y : mapToItem(null, mouse.x, mouse.y).x
@@ -207,16 +241,10 @@ Item {
             } else if (mouse.button === Qt.RightButton) {
                 root.rightClicked(mouse.modifiers & Qt.ShiftModifier)
             } else {
-                if (root.hops && Theme.taskbarActivateHop && root.running) {
-                    quick.stop()
-                    dip.stop()
-                    root.hop = 0
+                if (root.clickMotion && root.running) {
                     // The active app's button minimizes it; any other brings its window.
-                    if (root.active) {
-                        dip.restart()
-                    } else {
-                        quick.restart()
-                    }
+                    root.bounce(root.active)
+                    root.quiet = root.active
                 }
                 root.clicked()
             }

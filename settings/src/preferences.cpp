@@ -238,6 +238,7 @@ void Preferences::reload()
     }
     m_endTask = settings.value(QStringLiteral("taskbar/endTask"), true).toBool();
     m_taskView = settings.value(QStringLiteral("taskbar/taskView"), true).toBool();
+    m_taskbarWindowBounce = settings.value(QStringLiteral("taskbar/windowBounce"), false).toBool();
     m_portalAutofix = settings.value(QStringLiteral("sharing/portalAutofix"), true).toBool();
     m_trayOverflow = settings.value(QStringLiteral("taskbar/trayOverflow"), true).toBool();
     m_taskbarAllScreens = settings.value(QStringLiteral("taskbar/allScreens"), true).toBool();
@@ -770,6 +771,7 @@ void Preferences::resetAnimations()
     setFilesPillAnimation(false);
     setSnapDragPeek(true);
     setActivateHop(true);
+    setTaskbarWindowBounce(false);
     setSliderPressZoom(true);
     setHotCornerAnimation(true);
 }
@@ -1343,6 +1345,15 @@ void Preferences::setPortalAutofix(bool on)
     if (on != m_portalAutofix) {
         m_portalAutofix = on;
         setShell(QStringLiteral("sharing/portalAutofix"), on);
+        emit taskbarChanged();
+    }
+}
+
+void Preferences::setTaskbarWindowBounce(bool on)
+{
+    if (on != m_taskbarWindowBounce) {
+        m_taskbarWindowBounce = on;
+        setShell(QStringLiteral("taskbar/windowBounce"), on);
         emit taskbarChanged();
     }
 }

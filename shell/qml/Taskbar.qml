@@ -20,6 +20,7 @@ Window {
     visible: false
     // The compositor decides the length (anchored to the sides).
     readonly property bool vertical: Config.taskbarVertical
+    readonly property real startedAt: Date.now()
     // taskbar/style=islands: three floating surfaces instead of one bar. Along
     // a vertical taskbar it falls back to the classic one.
     readonly property bool islands: Config.taskbarStyle === "islands" && !vertical
@@ -563,6 +564,13 @@ Window {
                 id: task
                 draggable: true
                 hops: true
+                // With the setting on, opening a window lifts the icon and
+                // closing its last one drops it.
+                readonly property bool windowBounce: Config.taskbarWindowBounce && Theme.taskbarActivateHop
+                property int lastCount: windowCount
+                // An app that isn't pinned gets its button with its first
+                // window; not at the shell's start, for those already open.
+                Component.onCompleted: if (windowBounce && windowCount > 0 && Date.now() - root.startedAt > 3000) bounce(false)
                 // Dropped further away: it moves by as many places as buttons
                 // it passed.
                 onDropped: dx => {
@@ -649,7 +657,11 @@ Window {
                 }
                 onXChanged: reportGeometry()
                 onYChanged: reportGeometry()
-                onWindowCountChanged: reportGeometry()
+                onWindowCountChanged: {
+                    reportGeometry()
+                    if (windowBounce && (windowCount > 0) !== (lastCount > 0)) bounce(windowCount === 0)
+                    lastCount = windowCount
+                }
                 Connections {
                     target: buttons
                     function onXChanged() { task.reportGeometry() }
