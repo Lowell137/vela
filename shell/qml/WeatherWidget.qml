@@ -16,6 +16,12 @@ Item {
     readonly property string summary: Weather.city + ": " + Weather.temperature + "°, " + Weather.text
         + (Weather.stale ? " (" + qsTr("out of date") + ")" : "")
 
+    function toggle() {
+        if (Menus.tooltip && Menus.tooltip.owner === "weather") Menus.tooltip = null
+        const p = root.mapToItem(null, root.width / 2, root.height / 2)
+        Menus.weather = root.open ? null : { center: p.x, centerY: p.y, screen: root.screenName }
+    }
+
     visible: Weather.shown
     width: !visible ? 0 : vertical ? parent.width : row.implicitWidth + 16
     height: !visible ? 0 : vertical ? row.implicitHeight + 16 : parent.height
@@ -52,6 +58,12 @@ Item {
         }
     }
 
+    // Win+W: the same as a click.
+    Connections {
+        target: Shell
+        function onWidgetsRequested() { if (root.visible) root.toggle() }
+    }
+
     MouseArea {
         id: mouse
         anchors.fill: parent
@@ -65,10 +77,6 @@ Item {
         onExited: {
             if (Menus.tooltip && Menus.tooltip.owner === "weather") Menus.tooltip = null
         }
-        onClicked: {
-            if (Menus.tooltip && Menus.tooltip.owner === "weather") Menus.tooltip = null
-            const p = root.mapToItem(null, root.width / 2, root.height / 2)
-            Menus.weather = root.open ? null : { center: p.x, centerY: p.y, screen: root.screenName }
-        }
+        onClicked: root.toggle()
     }
 }

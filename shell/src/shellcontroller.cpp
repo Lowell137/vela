@@ -374,6 +374,8 @@ void ShellController::handleCommand(const QByteArray& command)
         emit soundOutputRequested();
     } else if (command == "notification-center") {
         emit notificationCenterRequested();
+    } else if (command == "widgets") {
+        emit widgetsRequested();
     } else if (command == "settings") {
         emit settingsRequested();
     } else if (command == "files") {

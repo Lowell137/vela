@@ -254,7 +254,7 @@ bool vela_bindings_handle(struct vela_server *server, uint32_t modifiers, uint32
         return shell(server, "toggle-start");
     }
     // Win+X: the Start button menu; Win+R: Run; Win+D: the desktop; Win+A:
-    // quick settings; Win+N: notification center and calendar; Win+I:
+    // quick settings; Win+N: notification center and calendar; Win+W: widgets; Win+I:
     // Settings; Win+E: File Explorer. Inside KDE with Alt.
     static const struct {
         xkb_keysym_t key;
@@ -265,6 +265,7 @@ bool vela_bindings_handle(struct vela_server *server, uint32_t modifiers, uint32
         { XKB_KEY_d, "show-desktop" },
         { XKB_KEY_a, "quick-settings" },
         { XKB_KEY_n, "notification-center" },
+        { XKB_KEY_w, "widgets" },
         { XKB_KEY_i, "settings" },
         { XKB_KEY_e, "files" },
     };

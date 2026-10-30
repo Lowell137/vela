@@ -180,6 +180,7 @@ signals:
     void quickSettingsRequested(); // Win+A
     void soundOutputRequested(); // Win+Ctrl+V: quick settings' sound page
     void notificationCenterRequested(); // Win+N
+    void widgetsRequested(); // Win+W
     void settingsRequested(); // Win+I
     void filesRequested(); // Win+E
     void taskViewRequested(); // Win+Tab

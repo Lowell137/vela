@@ -2146,6 +2146,7 @@ const ShortcutAction kShortcutActions[] = {
     { "winx", QT_TRANSLATE_NOOP("Preferences", "Power-user menu"), "Super+X" },
     { "quick-settings", QT_TRANSLATE_NOOP("Preferences", "Quick settings"), "Super+A" },
     { "notification-center", QT_TRANSLATE_NOOP("Preferences", "Notification center"), "Super+N" },
+    { "widgets", QT_TRANSLATE_NOOP("Preferences", "Widgets"), "Super+W" },
     { "clipboard", QT_TRANSLATE_NOOP("Preferences", "Clipboard history"), "Super+V" },
     { "emoji", QT_TRANSLATE_NOOP("Preferences", "Emoji and more"), "Super+." },
     { "sound-output", QT_TRANSLATE_NOOP("Preferences", "Sound output and volume mixer"), "Super+Ctrl+V" },

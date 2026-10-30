@@ -42,6 +42,7 @@ static const struct action {
     { "show-desktop", KIND_SHELL, "show-desktop" },
     { "quick-settings", KIND_SHELL, "quick-settings" },
     { "notification-center", KIND_SHELL, "notification-center" },
+    { "widgets", KIND_SHELL, "widgets" },
     { "settings", KIND_SHELL, "settings" },
     { "files", KIND_SHELL, "files" },
     { "task-view", KIND_SHELL, "task-view" },

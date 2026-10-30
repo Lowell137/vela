@@ -95,8 +95,8 @@ Window {
         id: panel
         x: root.panelX + (Config.taskbarVertical ? root.offset : 0)
         y: root.panelY + (Config.taskbarVertical ? 0 : root.offset)
-        width: Config.weatherSystemInfo ? 400 + 340 : 400
-        height: Math.max(column.implicitHeight, Config.weatherSystemInfo ? board.implicitHeight : 0) + 32
+        width: 400
+        height: column.implicitHeight + (Config.weatherSystemInfo ? 14 + board.implicitHeight : 0) + 32
         radius: Theme.radiusOverlay
         color: Theme.popup
         border.width: 1
@@ -252,13 +252,13 @@ Window {
             }
         }
 
-        // The other cards: the graphics card and the system status.
+        // The other cards, below the forecast: the graphics card and the system status.
         Column {
             id: board
             visible: Config.weatherSystemInfo
-            x: 16 + 400 - 32 + 16
-            y: 16
-            width: 340 - 0 - 16
+            x: 16
+            y: 16 + column.implicitHeight + 14
+            width: 400 - 32
             spacing: 12
 
             Rectangle {
