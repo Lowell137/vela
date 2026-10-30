@@ -1245,6 +1245,25 @@ class UpdateFailures(UpdateFixture):
         self.assertIn("the update failed", result.stderr)
         self.assertEqual(self.calls("sudo"), [])
 
+    def test_build_tree_is_kept_until_force_or_failure(self):
+        tree = self.mirror.parent / "build"
+        marker = tree / "object"
+        tree.mkdir(parents=True)
+        marker.touch()
+        self.run_update("--build")
+        stage = self.calls("sudo")[-1]["args"]
+        self.assertEqual(stage[-1], str(tree))
+        self.assertIn('BUILDDIR="$builddir"', stage[2])
+        self.assertNotIn("--clean", stage[2])
+        self.assertTrue(marker.exists())
+        self.run_update("--build", "--force")
+        self.assertFalse(marker.exists())
+        tree.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+        self.env["TEST_FAIL_INSTALL"] = "1"
+        self.run_update("--build", "--force", status=1)
+        self.assertFalse(tree.exists())
+
     def test_built_package_with_failed_install_is_kept_for_retry(self):
         self.env["TEST_FAIL_BUILD_INSTALL"] = "1"
         result = self.run_update("--build", status=1)

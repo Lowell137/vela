@@ -753,6 +753,8 @@ if [ -n "$ciRun" ]; then
 fi
 
 # Build exactly the selected commit with the distribution's native tooling.
+# Arch keeps its objects in $CACHE/build, so only what changed is compiled.
+[ "$force" = 0 ] || rm -rf -- "$CACHE/build"
 WORK=$(mktemp -d "$CACHE/build.XXXXXXXX")
 if [ "$backend" = arch ]; then
     if ! git -C "$MIRROR" show "$latestFull:packaging/arch/PKGBUILD" > "$WORK/PKGBUILD"; then
@@ -805,24 +807,24 @@ if [ "$backend" = arch ]; then
     # finishes the build in the background; upgrade if that matters.
     ROOT_STAGE='
         set -e
-        user=$1 home=$2 work=$3 pkgdest=$4 srcdest=$5 noconfirm=$6 flags=$7 url=$8 rev=$9
+        user=$1 home=$2 work=$3 pkgdest=$4 srcdest=$5 noconfirm=$6 flags=$7 url=$8 rev=$9 builddir=${10}
         run() { runuser -u "$user" -- env HOME="$home" PATH="$PATH" MAKEFLAGS="$flags" VELA_GIT_URL="$url" \
-            BUILDDIR="$work" PKGDEST="$pkgdest" SRCDEST="$srcdest" "$@"; }
+            BUILDDIR="$builddir" PKGDEST="$pkgdest" SRCDEST="$srcdest" "$@"; }
         deps=$(cd "$work" && run makepkg --printsrcinfo |
             sed -En "s/^[[:space:]]*(make|check)?depends = ([^<>=[:space:]]+).*/\2/p" | sort -u)
         # shellcheck disable=SC2086
         [ -z "$deps" ] || pacman -S --needed --asdeps $noconfirm $deps
-        cd "$work" && run makepkg --clean --force
+        cd "$work" && run makepkg --force
         pkg=$(ls -t "$pkgdest"/vela-git-*."g$rev"-*.pkg.tar.* | head -n 1)
         pacman -U $noconfirm "$pkg"
     '
     if [ -t 0 ]; then
         $AUTH sh -c "$ROOT_STAGE" sh "$(id -un)" "$HOME" "$WORK" "$PACKAGES" "$CACHE/sources" \
-            "$NOCONFIRM" "${MAKEFLAGS:-}" "${VELA_GIT_URL:-}" "$latest" <&0 9>&- &
+            "$NOCONFIRM" "${MAKEFLAGS:-}" "${VELA_GIT_URL:-}" "$latest" "$CACHE/build" <&0 9>&- &
         build_isolated=0
     else
         setsid --wait $AUTH sh -c "$ROOT_STAGE" sh "$(id -un)" "$HOME" "$WORK" "$PACKAGES" "$CACHE/sources" \
-            "$NOCONFIRM" "${MAKEFLAGS:-}" "${VELA_GIT_URL:-}" "$latest" <&0 9>&- &
+            "$NOCONFIRM" "${MAKEFLAGS:-}" "${VELA_GIT_URL:-}" "$latest" "$CACHE/build" <&0 9>&- &
         build_isolated=1
     fi
 elif [ -t 0 ]; then
@@ -862,6 +864,8 @@ if [ "$build_ok" = 0 ]; then
         echo "   $(packageLabel) $built" >&2
         exit 1
     fi
+    # A stale tree must not fail every later update: the next one starts clean.
+    rm -rf -- "$CACHE/build"
     echo "vela-update: the update failed (see the messages above)." >&2
     echo "If the compiler crashed (\"internal compiler error\"), try again" >&2
     echo "with fewer parallel jobs: vela-update --jobs 2" >&2
