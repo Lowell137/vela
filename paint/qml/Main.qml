@@ -540,8 +540,8 @@ Window {
                 title: qsTr("Selection")
                 icon: "select-rectangular"
                 order: 5
-                Tool { tool: "select"; icon: "select-rectangular"; tooltip: qsTr("Select") }
-                Tool { tool: "lasso"; icon: "select-lasso"; tooltip: qsTr("Free-form selection") }
+                Tool { tool: "select"; icon.name: "select-rectangular"; tooltip: qsTr("Select") }
+                Tool { tool: "lasso"; icon.name: "select-lasso"; tooltip: qsTr("Free-form selection") }
                 ToolButton {
                     anchors.verticalCenter: parent.verticalCenter
                     icon.name: "transform-crop"
@@ -596,18 +596,18 @@ Window {
                 title: qsTr("Tools")
                 icon: "document-edit"
                 order: 6
-                Tool { tool: "pencil"; icon: "document-edit"; tooltip: qsTr("Pencil") }
-                Tool { tool: "fill"; icon: "color-fill"; tooltip: qsTr("Fill") }
-                Tool { tool: "text"; icon: "draw-text"; tooltip: qsTr("Text") }
-                Tool { tool: "eraser"; icon: "draw-eraser"; tooltip: qsTr("Eraser") }
-                Tool { tool: "picker"; icon: "color-picker"; tooltip: qsTr("Color picker") }
-                Tool { tool: "zoom"; icon: "edit-find"; tooltip: qsTr("Magnifier") }
+                Tool { tool: "pencil"; icon.name: "document-edit"; tooltip: qsTr("Pencil") }
+                Tool { tool: "fill"; icon.name: "color-fill"; tooltip: qsTr("Fill") }
+                Tool { tool: "text"; icon.name: "draw-text"; tooltip: qsTr("Text") }
+                Tool { tool: "eraser"; icon.name: "draw-eraser"; tooltip: qsTr("Eraser") }
+                Tool { tool: "picker"; icon.name: "color-picker"; tooltip: qsTr("Color picker") }
+                Tool { tool: "zoom"; icon.name: "edit-find"; tooltip: qsTr("Magnifier") }
             }
             Group {
                 title: qsTr("Brushes")
                 icon: "draw-brush"
                 order: 7
-                Tool { tool: "brush"; icon: "draw-brush"; tooltip: qsTr("Brush") }
+                Tool { tool: "brush"; icon.name: "draw-brush"; tooltip: qsTr("Brush") }
                 ToolButton {
                     id: brushMore
                     anchors.verticalCenter: parent.verticalCenter

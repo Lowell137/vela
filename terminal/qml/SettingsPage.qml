@@ -66,9 +66,12 @@ Rectangle {
         signal picked(string value, int index)
         text: value
         menu: true
-        color: Theme.control
-        border.width: 1
-        border.color: Theme.controlStroke
+        background: Fill {
+            color: choice.down ? Theme.subtlePressed : choice.hovered ? Theme.controlHover : Theme.control
+            border.width: 1
+            border.color: Theme.controlStroke
+            FocusRing { visible: choice.visualFocus }
+        }
         onClicked: page.win.openBelow(options.map((o, i) => ({ text: o, radio: true, checked: o === value, action: () => choice.picked(o, i) })), choice)
     }
     // One section in the list at the left.
