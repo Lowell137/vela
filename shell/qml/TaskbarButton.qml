@@ -47,30 +47,30 @@ Item {
     function animatePress(down) {
         pressAnim.stop()
         pressAnim.to = down ? 0.8 : 1
-        pressAnim.duration = Theme.motion(down ? 40 : 200)
+        pressAnim.duration = Theme.animated(down ? 40 : 200)
         pressAnim.start()
     }
     // A press during a bounce ends it where it is, without a jump.
     ParallelAnimation {
         id: settleAnim
-        NumberAnimation { target: root; property: "hop"; to: 0; duration: Theme.motion(120); easing.type: Easing.InOutQuad }
-        NumberAnimation { target: root; property: "pulse"; to: 1; duration: Theme.motion(120); easing.type: Easing.InOutQuad }
+        NumberAnimation { target: root; property: "hop"; to: 0; duration: Theme.animated(120); easing.type: Easing.InOutQuad }
+        NumberAnimation { target: root; property: "pulse"; to: 1; duration: Theme.animated(120); easing.type: Easing.InOutQuad }
     }
     ParallelAnimation {
         id: bounceAnim
         property int dir: 1
         SequentialAnimation {
-            NumberAnimation { target: root; property: "hop"; to: (bounceAnim.dir < 0 ? 2.5 : 3) * bounceAnim.dir; duration: Theme.motion(100); easing.type: Easing.OutQuad }
-            PauseAnimation { duration: Theme.motion(100) }
-            NumberAnimation { target: root; property: "hop"; to: -bounceAnim.dir; duration: Theme.motion(100); easing.type: Easing.InOutQuad }
-            PauseAnimation { duration: Theme.motion(60) }
-            NumberAnimation { target: root; property: "hop"; to: 0; duration: Theme.motion(100); easing.type: Easing.OutQuad }
+            NumberAnimation { target: root; property: "hop"; to: (bounceAnim.dir < 0 ? 2.5 : 3) * bounceAnim.dir; duration: Theme.animated(100); easing.type: Easing.OutQuad }
+            PauseAnimation { duration: Theme.animated(100) }
+            NumberAnimation { target: root; property: "hop"; to: -bounceAnim.dir; duration: Theme.animated(100); easing.type: Easing.InOutQuad }
+            PauseAnimation { duration: Theme.animated(60) }
+            NumberAnimation { target: root; property: "hop"; to: 0; duration: Theme.animated(100); easing.type: Easing.OutQuad }
         }
         SequentialAnimation {
-            PauseAnimation { duration: Theme.motion(200) }
-            NumberAnimation { target: root; property: "pulse"; to: 1.03; duration: Theme.motion(100); easing.type: Easing.InOutQuad }
-            PauseAnimation { duration: Theme.motion(60) }
-            NumberAnimation { target: root; property: "pulse"; to: 1; duration: Theme.motion(100); easing.type: Easing.OutQuad }
+            PauseAnimation { duration: Theme.animated(200) }
+            NumberAnimation { target: root; property: "pulse"; to: 1.03; duration: Theme.animated(100); easing.type: Easing.InOutQuad }
+            PauseAnimation { duration: Theme.animated(60) }
+            NumberAnimation { target: root; property: "pulse"; to: 1; duration: Theme.animated(100); easing.type: Easing.OutQuad }
         }
     }
     signal middleClicked()
@@ -92,11 +92,11 @@ Item {
     property bool slideAnimated: true
     Behavior on slide {
         enabled: root.slideAnimated
-        NumberAnimation { duration: Theme.motion(180); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+        NumberAnimation { duration: Theme.animated(180); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
     }
     // Dropped: from where the pointer left it to its place.
     property real dropOffset: 0
-    NumberAnimation { id: dropAnim; target: root; property: "dropOffset"; to: 0; duration: Theme.motion(180); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+    NumberAnimation { id: dropAnim; target: root; property: "dropOffset"; to: 0; duration: Theme.animated(180); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
     function settle(from) {
         dropOffset = from
         dropAnim.restart()

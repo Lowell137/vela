@@ -15,9 +15,20 @@ Page {
             icon: "view-grid"
             title: qsTr("Task view")
             description: qsTr("Open windows and virtual desktops (also with Win+Tab)")
-            trailing: Toggle {
+            trailing: Switch {
                 checked: Prefs.taskView
-                onToggled: on => Prefs.taskView = on
+                onToggled: Prefs.taskView = checked
+            }
+        }
+        Card {
+            icon: "preferences-desktop-screensaver"
+            title: qsTr("Caffeine")
+            description: qsTr("The icon next to the clock that keeps the screen awake")
+            trailing: Choice {
+                readonly property var modes: ["on", "always", "never"]
+                model: [qsTr("Only while on"), qsTr("Always"), qsTr("Never")]
+                currentIndex: Math.max(0, modes.indexOf(Prefs.taskbarCaffeine))
+                onChosen: index => Prefs.taskbarCaffeine = modes[index]
             }
         }
     }
@@ -28,7 +39,7 @@ Page {
             icon: "go-up"
             title: qsTr("Hidden icon menu")
             description: qsTr("Extra icons wait behind an arrow, to keep the taskbar tidy")
-            trailing: Toggle {
+            trailing: Switch {
                 checked: Prefs.trayOverflow
                 onToggled: on => Prefs.trayOverflow = on
             }
@@ -41,7 +52,7 @@ Page {
             icon: "weather-few-clouds"
             title: qsTr("Show the weather on the taskbar")
             description: qsTr("Asks open-meteo.com for the forecast of the city you choose below, every 30 minutes. Off, nothing is requested")
-            trailing: Toggle {
+            trailing: Switch {
                 checked: Prefs.weather
                 onToggled: on => Prefs.weather = on
             }
@@ -92,7 +103,7 @@ Page {
             icon: "utilities-system-monitor"
             title: qsTr("Show system info in the weather panel")
             description: qsTr("The graphics card, processor, memory and disk cards beside the forecast")
-            trailing: Toggle {
+            trailing: Switch {
                 checked: Prefs.weatherSystemInfo
                 onToggled: on => Prefs.weatherSystemInfo = on
             }
@@ -143,17 +154,17 @@ Page {
         Card {
             icon: "video-display"
             title: qsTr("Show the taskbar on all displays")
-            description: qsTr("With more than one monitor, each gets its own taskbar")
-            trailing: Toggle {
+            description: qsTr("With multiple monitors: Start, apps and the clock on each one; notification area on the main one")
+            trailing: Switch {
                 checked: Prefs.taskbarAllScreens
-                onToggled: on => Prefs.taskbarAllScreens = on
+                onToggled: Prefs.taskbarAllScreens = checked
             }
         }
         Card {
             icon: "view-grid"
             title: qsTr("Show windows from all desktops")
             description: qsTr("The taskbar lists the open apps of every desktop, not only the current one")
-            trailing: Toggle {
+            trailing: Switch {
                 checked: Prefs.taskbarAllDesktops
                 onToggled: on => Prefs.taskbarAllDesktops = on
             }
@@ -162,7 +173,7 @@ Page {
             icon: "view-fullscreen"
             title: qsTr("Automatically hide the taskbar")
             description: qsTr("Hides until you move the pointer to the screen edge")
-            trailing: Toggle {
+            trailing: Switch {
                 checked: Prefs.taskbarAutoHide
                 onToggled: on => Prefs.taskbarAutoHide = on
             }
@@ -181,9 +192,9 @@ Page {
             icon: "user-desktop"
             title: qsTr("Show desktop from taskbar corner")
             description: qsTr("Click the far-right edge of any taskbar to show or restore your windows (also with Super+D)")
-            trailing: Toggle {
+            trailing: Switch {
                 checked: Prefs.showDesktopCorner
-                onToggled: on => Prefs.showDesktopCorner = on
+                onToggled: Prefs.showDesktopCorner = checked
             }
         }
         Card {
@@ -203,10 +214,10 @@ Page {
         Card {
             icon: "process-stop"
             title: qsTr("End task")
-            description: qsTr("Adds End task to the right-click menu, for apps that stop responding")
-            trailing: Toggle {
+            description: qsTr("In the taskbar buttons' menu, to close an app that isn't responding right away")
+            trailing: Switch {
                 checked: Prefs.endTask
-                onToggled: on => Prefs.endTask = on
+                onToggled: Prefs.endTask = checked
             }
         }
     }

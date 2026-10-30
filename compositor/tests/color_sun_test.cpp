@@ -20,6 +20,21 @@ TEST(Color, NightKelvinFromStrength)
     EXPECT_EQ(vela_night_kelvin(500), 1700.0);
 }
 
+TEST(Color, NightTemperatureInKelvinOrFromTheOlderStrength)
+{
+    EXPECT_EQ(vela_night_temperature(nullptr, nullptr), 4200);
+    EXPECT_EQ(vela_night_temperature("", ""), 4200);
+    EXPECT_EQ(vela_night_temperature("3400", nullptr), 3400);
+    EXPECT_EQ(vela_night_temperature("3449", "100"), 3400); // the kelvin win, in steps of 100
+    EXPECT_EQ(vela_night_temperature("3450", nullptr), 3500);
+    EXPECT_EQ(vela_night_temperature("900", nullptr), 1700);
+    EXPECT_EQ(vela_night_temperature("9000", nullptr), 6500);
+    EXPECT_EQ(vela_night_temperature("warm", nullptr), 1700);
+    EXPECT_EQ(vela_night_temperature(nullptr, "48"), 4200); // 4196 K
+    EXPECT_EQ(vela_night_temperature(nullptr, "100"), 1700);
+    EXPECT_EQ(vela_night_temperature("", "0"), 6500);
+}
+
 TEST(Color, NightGainsAreNeutralAt6500AndWarmBelow)
 {
     float gains[3];
@@ -72,6 +87,14 @@ TEST(Color, MatrixMultiplyWithIdentity)
 }
 
 /** Check shader repaint policy on fade completion and backend switches. */
+TEST(NightLightBackend, FadesInTheShaderAndCommitsTheLutOnce)
+{
+    EXPECT_FALSE(vela_night_light_force_shader(false, false)); // steady: the LUT
+    EXPECT_TRUE(vela_night_light_force_shader(false, true)); // fading: no LUT per frame
+    EXPECT_TRUE(vela_night_light_force_shader(true, false));
+    EXPECT_TRUE(vela_night_light_force_shader(true, true));
+}
+
 TEST(NightLightBackend, FullRepaintOnShaderFadeAndBackendSwitch)
 {
     EXPECT_TRUE(vela_night_light_repaint_required(false, true, true, true, false, false));

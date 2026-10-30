@@ -111,6 +111,9 @@ static int transientMaximized;
 static int transientSiblings;
 static int fullscreenParent;
 
+static struct wl_display* connection;
+
+
 static void onGlobal(void* data, struct wl_registry* registry, uint32_t name, const char* interface, uint32_t version)
 {
     if (!strcmp(interface, wl_compositor_interface.name)) {

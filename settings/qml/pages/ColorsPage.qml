@@ -70,7 +70,7 @@ Page {
             icon: "weather-clear-night"
             title: qsTr("Light by day, dark by night")
             description: qsTr("Switch the mode by itself at these hours")
-            trailing: Toggle {
+            trailing: Switch {
                 checked: Prefs.themeSchedule
                 onToggled: on => Prefs.themeSchedule = on
             }
@@ -102,7 +102,7 @@ Page {
             icon: "preferences-desktop-wallpaper"
             title: qsTr("Accent color from wallpaper")
             description: qsTr("Pick the accent from your wallpaper's colors, each time you change it")
-            trailing: Toggle {
+            trailing: Switch {
                 checked: Prefs.accentFromWallpaper
                 onToggled: on => Prefs.accentFromWallpaper = on
             }

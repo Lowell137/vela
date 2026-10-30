@@ -69,7 +69,7 @@ Rectangle {
         spacing: 8
         ToolButton {
             anchors.verticalCenter: parent.verticalCenter
-            icon: "go-previous"
+            icon.name: "go-previous"
             tooltip: qsTr("Back (Esc)")
             onClicked: page.closed()
         }
@@ -92,7 +92,7 @@ Rectangle {
         Card {
             title: qsTr("Week numbers")
             description: qsTr("Show the number of the week in the month and the week views")
-            Toggle { checked: page.win ? page.win.weekNumbers : false; onToggled: on => page.win.weekNumbers = on }
+            Switch { checked: page.win ? page.win.weekNumbers : false; onToggled: on => page.win.weekNumbers = on }
         }
         Card {
             title: qsTr("Start with")

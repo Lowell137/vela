@@ -45,6 +45,10 @@ target_compile_options(vela-screen-record PRIVATE -Wall -Wextra -Wno-unused-para
 
 if(VELA_BUILD_TOOLS)
 
+add_executable(vela-capture-probe vela-capture-probe.c)
+target_link_libraries(vela-capture-probe PRIVATE vela-capture)
+target_compile_options(vela-capture-probe PRIVATE -Wall -Wextra -Wno-unused-parameter)
+
 vela_client_protocol(proto-foreign-toplevel ${PROTOCOLS}/wlr-foreign-toplevel-management-unstable-v1.xml
     wlr-foreign-toplevel-management-unstable-v1)
 vela_client_protocol(proto-virtual-pointer ${PROTOCOLS}/wlr-virtual-pointer-unstable-v1.xml
@@ -102,6 +106,13 @@ if(TOOLS_XCB_FOUND)
     add_executable(vela-x11 vela-x11.c)
     target_link_libraries(vela-x11 PRIVATE PkgConfig::TOOLS_XCB)
     target_compile_options(vela-x11 PRIVATE -Wall -Wextra -Wno-unused-parameter)
+endif()
+# An X11 app that shows its frames with Present, like games, for the flip test.
+pkg_check_modules(TOOLS_XCB_PRESENT IMPORTED_TARGET xcb xcb-present xcb-xfixes)
+if(TOOLS_XCB_PRESENT_FOUND)
+    add_executable(vela-x11-present vela-x11-present.c)
+    target_link_libraries(vela-x11-present PRIVATE PkgConfig::TOOLS_XCB_PRESENT)
+    target_compile_options(vela-x11-present PRIVATE -Wall -Wextra -Wno-unused-parameter)
 endif()
 
 # An app with a slow GPU (tests/functional/test_ready.py): a Vulkan compute job

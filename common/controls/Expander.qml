@@ -26,7 +26,7 @@ Rectangle {
     property real fraction: expanded ? 1 : 0
     Behavior on fraction {
         NumberAnimation {
-            duration: Theme.motion(150 + 100 * Math.abs(expander.fraction - (expander.expanded ? 1 : 0)))
+            duration: Theme.animated(150 + 100 * Math.abs(expander.fraction - (expander.expanded ? 1 : 0)))
             easing.type: Easing.BezierSpline
             easing.bezierCurve: Theme.standard
         }

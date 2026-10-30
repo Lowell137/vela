@@ -397,7 +397,7 @@ Window {
                         anchors { right: parent.right; rightMargin: 6; verticalCenter: parent.verticalCenter }
                         width: 24
                         height: 24
-                        icon: "window-close"
+                        icon.name: "window-close"
                         visible: tabButton.hovered || (tabButton.active && !tabButton.modelData.doc.modified)
                         onClicked: root.closeTab(tabButton.index)
                         HoverHandler { id: closeHover }
@@ -408,7 +408,7 @@ Window {
                 anchors.verticalCenter: parent.verticalCenter
                 width: 32
                 height: 28
-                icon: "list-add"
+                icon.name: "list-add"
                 tooltip: qsTr("New tab (Ctrl+N)")
                 onClicked: root.newTab()
             }
@@ -451,7 +451,7 @@ Window {
         ToolButton {
             anchors { right: parent.right; rightMargin: 6; verticalCenter: menuBar.verticalCenter }
             height: 28
-            icon: "configure"
+            icon.name: "configure"
             tooltip: qsTr("Settings")
             onClicked: settingsLoader.active = true
         }

@@ -88,7 +88,7 @@ Item {
                         color: Theme.text
                         font.pixelSize: Theme.fontBody
                     }
-                    Toggle {
+                    Switch {
                         anchors { right: parent.right; verticalCenter: parent.verticalCenter }
                         checked: Weather.hour24
                         onToggled: value => Weather.hour24 = value

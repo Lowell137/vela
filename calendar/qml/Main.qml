@@ -223,8 +223,8 @@ Window {
                 MouseArea { id: newMouse; anchors.fill: parent; hoverEnabled: true; onClicked: root.newEvent() }
             }
             ToolButton { text: qsTr("Today"); onClicked: root.current = D.startOfDay(new Date()) }
-            ToolButton { icon: "go-previous"; tooltip: qsTr("Previous (Ctrl+Left)"); onClicked: root.step(-1) }
-            ToolButton { icon: "go-next"; tooltip: qsTr("Next (Ctrl+Right)"); onClicked: root.step(1) }
+            ToolButton { icon.name: "go-previous"; tooltip: qsTr("Previous (Ctrl+Left)"); onClicked: root.step(-1) }
+            ToolButton { icon.name: "go-next"; tooltip: qsTr("Next (Ctrl+Right)"); onClicked: root.step(1) }
             ToolButton {
                 text: root.heading
                 tooltip: qsTr("Go to date (Ctrl+G)")
@@ -247,13 +247,13 @@ Window {
                 }
             }
             ToolButton {
-                icon: "configure"
+                icon.name: "configure"
                 tooltip: qsTr("Settings")
                 onClicked: settingsLoader.active = true
             }
             ToolButton {
                 id: moreButton
-                icon: "application-menu"
+                icon.name: "application-menu"
                 tooltip: qsTr("More")
                 onClicked: { const p = mapToItem(null, 0, height); root.mainMenu(p.x, p.y) }
             }

@@ -29,8 +29,7 @@ C.ComboBox {
     }
     FontMetrics { id: metrics; font.pixelSize: Theme.fontBody }
 
-    background: Rectangle {
-        radius: Theme.radius
+    background: Fill {
         color: combo.pressed ? Theme.controlPressed : combo.hovered ? Theme.controlHover : Theme.control
         border.width: 1
         border.color: Theme.controlStroke
@@ -40,6 +39,7 @@ C.ComboBox {
         leftPadding: 11
         rightPadding: 32
         text: combo.displayText
+        textFormat: Text.PlainText
         color: Theme.text
         font.pixelSize: Theme.fontBody
         verticalAlignment: Text.AlignVCenter
@@ -96,6 +96,7 @@ C.ComboBox {
         contentItem: Text {
             leftPadding: 14
             text: typeof entry.modelData === "object" ? entry.modelData.text : entry.modelData
+            textFormat: Text.PlainText
             color: Theme.text
             font.pixelSize: Theme.fontBody
             verticalAlignment: Text.AlignVCenter

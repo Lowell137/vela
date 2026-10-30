@@ -405,7 +405,7 @@ Window {
                     ToolButton {
                         visible: root.recording
                         anchors.verticalCenter: parent.verticalCenter
-                        icon: "edit-delete"
+                        icon.name: "edit-delete"
                         tooltip: qsTr("Discard")
                         onClicked: Rec.discard()
                     }
@@ -625,7 +625,7 @@ Window {
                 spacing: 4
                 visible: !root.trimming
                 ToolButton {
-                    icon: "edit-cut"
+                    icon.name: "edit-cut"
                     text: qsTr("Trim")
                     usable: track.ready && root.length > 0 && !Lib.busy
                     onClicked: {
@@ -634,9 +634,9 @@ Window {
                         root.trimming = true
                     }
                 }
-                ToolButton { icon: "document-edit"; text: qsTr("Rename"); onClicked: root.askRename() }
+                ToolButton { icon.name: "document-edit"; text: qsTr("Rename"); onClicked: root.askRename() }
                 ToolButton {
-                    icon: "document-save-as"
+                    icon.name: "document-save-as"
                     text: qsTr("Export")
                     menu: true
                     usable: !Lib.busy
@@ -645,16 +645,16 @@ Window {
                         menuLayer.open(root.exportEntries(root.selectedPath), p.x, p.y, { above: true })
                     }
                 }
-                ToolButton { icon: "folder-open-location"; text: qsTr("Show in folder"); onClicked: Lib.showInFolder(root.selectedPath) }
-                ToolButton { icon: "edit-copy"; text: qsTr("Copy path"); onClicked: Lib.copyPath(root.selectedPath) }
-                ToolButton { icon: "edit-delete"; text: qsTr("Delete"); onClicked: deleteDialog.open() }
+                ToolButton { icon.name: "folder-open-location"; text: qsTr("Show in folder"); onClicked: Lib.showInFolder(root.selectedPath) }
+                ToolButton { icon.name: "edit-copy"; text: qsTr("Copy path"); onClicked: Lib.copyPath(root.selectedPath) }
+                ToolButton { icon.name: "edit-delete"; text: qsTr("Delete"); onClicked: deleteDialog.open() }
             }
             Row {
                 anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom; bottomMargin: 12 }
                 spacing: 4
                 visible: root.trimming
                 ToolButton {
-                    icon: "document-save"
+                    icon.name: "document-save"
                     text: qsTr("Save a copy")
                     usable: !Lib.busy
                     onClicked: {
@@ -662,13 +662,13 @@ Window {
                         Lib.trim(root.selectedPath, root.trimStart * root.length, root.trimEnd * root.length, false)
                     }
                 }
-                ToolButton { icon: "document-save-all"; text: qsTr("Replace original"); usable: !Lib.busy; onClicked: trimDialog.open() }
-                ToolButton { icon: "tab-close"; text: qsTr("Cancel"); onClicked: root.trimming = false }
+                ToolButton { icon.name: "document-save-all"; text: qsTr("Replace original"); usable: !Lib.busy; onClicked: trimDialog.open() }
+                ToolButton { icon.name: "tab-close"; text: qsTr("Cancel"); onClicked: root.trimming = false }
             }
             // A new recording button, back to the recorder
             ToolButton {
                 anchors { right: parent.right; top: parent.top; margins: 8 }
-                icon: "audio-input-microphone"
+                icon.name: "audio-input-microphone"
                 text: qsTr("Record")
                 onClicked: root.select("")
             }

@@ -4,6 +4,7 @@
 #include "shellcontroller.h"
 
 #include "mica.h"
+#include "../../common/primaryoutput.h"
 
 #include <QCoreApplication>
 #include <QImage>
@@ -85,6 +86,8 @@ ShellController::ShellController(QObject* parent)
     connect(&m_updateCheck, &QTimer::timeout, this, checkUpdates);
     m_updateCheck.start();
     QTimer::singleShot(2 * 60 * 1000, this, checkUpdates); // not with the session's start
+    connect(qGuiApp, &QGuiApplication::screenAdded, this, &ShellController::primaryScreenChanged);
+    connect(qGuiApp, &QGuiApplication::screenRemoved, this, &ShellController::primaryScreenChanged);
     connect(&m_server, &QLocalServer::newConnection, this, [this] {
         while (QLocalSocket* socket = m_server.nextPendingConnection()) {
             connect(socket, &QLocalSocket::readyRead, this, [this, socket] {
@@ -464,6 +467,15 @@ void ShellController::handleCommand(const QByteArray& command)
             if (!request.screen.isEmpty()) emit newShortcutOnScreenRequested(request.paths.first().toString(), request.screen);
             else emit newShortcutRequested(request.paths.first().toString());
         }
+    } else if (parts.first() == "desktop-transfer-ready" && parts.size() == 2) {
+        bool ok = false;
+        const qint64 pid = parts.at(1).toLongLong(&ok);
+        if (ok && pid > 0) {
+            emit desktopTransferReadyReceived(pid);
+        }
+    } else if (command.startsWith("desktop-transfer-undo ")) {
+        // A completed transfer from vela-files, with actual Undo paths.
+        emit desktopTransferUndoReceived(command.mid(sizeof("desktop-transfer-undo ") - 1));
     } else if (parts.first() == "accessibility") {
         emit accessibilityReceived(command.mid(14));
     } else if (parts.first() == "snap-assist") {
@@ -671,7 +683,7 @@ void ShellController::placeOnScreen(QWindow* window, const QString& name)
         }
     }
     if (!target) {
-        target = QGuiApplication::primaryScreen();
+        target = vela::primaryOutputScreen(m_preferredPrimaryOutput);
     }
     if (!target) {
         return;
@@ -724,8 +736,16 @@ QPoint ShellController::placeAtPoint(QWindow* window, int x, int y)
 
 QString ShellController::primaryScreen() const
 {
-    const QScreen* screen = QGuiApplication::primaryScreen();
+    const QScreen* screen = vela::primaryOutputScreen(m_preferredPrimaryOutput);
     return screen ? screen->name() : QString();
+}
+
+void ShellController::setPreferredPrimaryOutput(const QString& name)
+{
+    if (name != m_preferredPrimaryOutput) {
+        m_preferredPrimaryOutput = name;
+        emit primaryScreenChanged();
+    }
 }
 
 QString ShellController::userName() const

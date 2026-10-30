@@ -56,6 +56,14 @@ int vela_vulkan_render_fd(const struct vela_vulkan *vk);
 // render_fd.
 struct wlr_allocator *vela_gbm_allocator_create(int render_fd);
 
+// Separate allocator for the optional cursor-only swapchain on DRM outputs.
+// It never allocates scanout/capture buffers and refuses non-renderable BOs.
+struct wlr_allocator *vela_gbm_cursor_allocator_create(int render_fd, struct vela_renderer *renderer);
+
+// Check the *actual* Vulkan DMA-BUF import/color attachment, not only the
+// GBM flags. A successful probe caches the target for later render passes.
+bool vela_renderer_validate_target(struct vela_renderer *renderer, struct wlr_buffer *buffer);
+
 // ----------------------------------------------------------- renderer --
 
 struct vela_renderer *vela_renderer_create(struct vela_vulkan *vk);
@@ -89,6 +97,23 @@ bool vela_renderer_read_timing(struct vela_renderer *renderer, int slot, uint64_
 
 // The texture is ours and its format has no alpha (an opaque buffer).
 bool vela_texture_is_opaque(struct wlr_texture *texture);
+
+// Deferred SHM capture from buffers produced on this renderer's queue. Sources
+// must be compositor-owned render targets, never directly scanned-out clients.
+// Up to four requests / 128 MiB are retained. NULL means not queued; otherwise
+// done runs once on the Wayland loop after full pixels, or failure. Cancellation
+// releases ownership without calling done. All functions run on that same loop.
+struct vela_readback;
+struct wl_event_loop;
+struct vela_readback *vela_renderer_readback(struct vela_renderer *renderer, struct wl_event_loop *loop,
+    struct wlr_buffer *src, struct wlr_buffer *dst, void (*done)(void *, bool), void *data);
+void vela_readback_cancel(struct vela_readback *readback);
+void vela_renderer_cancel_readbacks(struct vela_renderer *renderer);
+struct vela_readback_stats {
+    size_t pending, bytes;
+    uint64_t completed, cancelled, failed, rejected, submitted;
+};
+struct vela_readback_stats vela_renderer_readback_stats(const struct vela_renderer *renderer);
 
 // ------------------------------------------------------------- drawing --
 

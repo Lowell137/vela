@@ -35,9 +35,9 @@ Page {
             icon: "edit-select"
             title: qsTr("Enhance pointer precision")
             description: qsTr("The pointer goes further when you move the mouse faster (acceleration)")
-            trailing: Toggle {
+            trailing: Switch {
                 checked: Prefs.mousePrecision
-                onToggled: on => Prefs.mousePrecision = on
+                onToggled: Prefs.mousePrecision = checked
             }
         }
     }
@@ -62,7 +62,7 @@ Page {
             icon: "transform-move"
             title: qsTr("Autoscroll with the middle button")
             description: qsTr("Move the mouse away from where you pressed the wheel to scroll that way. Terminals keep pasting")
-            trailing: Toggle {
+            trailing: Switch {
                 checked: Prefs.middleClickAutoscroll
                 onToggled: on => Prefs.middleClickAutoscroll = on
             }
@@ -72,7 +72,7 @@ Page {
             icon: "input-mouse"
             title: qsTr("Start with a middle click (instead of new tab or paste)")
             description: qsTr("Click again or press Esc to stop")
-            trailing: Toggle {
+            trailing: Switch {
                 checked: Prefs.autoscrollClick
                 onToggled: on => Prefs.autoscrollClick = on
             }
@@ -82,7 +82,7 @@ Page {
             icon: "input-mouse"
             title: qsTr("Scroll by holding and dragging")
             description: qsTr("Stops when you let go of the button")
-            trailing: Toggle {
+            trailing: Switch {
                 checked: Prefs.autoscrollHold
                 onToggled: on => Prefs.autoscrollHold = on
             }

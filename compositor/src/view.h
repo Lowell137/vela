@@ -48,6 +48,9 @@ struct vela_owner {
     enum vela_owner_kind kind;
 };
 
+// Taskbars that can show a window's button: one per output.
+#define VELA_TASKBAR_BUTTONS 8
+
 struct vela_view {
     struct vela_owner owner; // first field: the tree's vela_node.data
     struct wl_list link; // vela_server.views, while mapped
@@ -88,7 +91,12 @@ struct vela_view {
     char home_output[64];
     int home_x;
     int home_y;
-    struct wlr_box taskbar_rect; // its taskbar button (global), if known
+    // Its taskbar buttons: one per taskbar (one per output), each in that
+    // taskbar's surface coordinates (vela_view_minimize_target).
+    struct {
+        struct wlr_surface *surface;
+        struct wlr_box box;
+    } taskbar_buttons[VELA_TASKBAR_BUTTONS];
 
     // How the taskbar sees and commands this window (foreign-toplevel). It
     // exists only while the window is mapped and on the current desktop.
@@ -127,7 +135,13 @@ struct vela_view {
     bool x11_wine_style_dirty;
     // Only a fullscreen exit initiated by a Wine style change arms re-entry.
     bool x11_wine_restore_fullscreen;
+    // The _NET_WM_STATE the app set before mapping, read at its MapRequest.
+    unsigned int x11_initial_state_cookie;
+    bool x11_initial_state_pending;
+    bool x11_start_fullscreen;
+    bool x11_start_maximized;
 
+    struct wl_listener map_request; // X11
     struct wl_listener map;
     struct wl_listener unmap;
     struct wl_listener commit;
@@ -198,6 +212,10 @@ int vela_view_title_bar_height(const struct vela_view *view);
 // animate: false when the window leaves maximized because it's being dragged
 // (it already follows the cursor).
 void vela_view_set_maximized(struct vela_view *view, bool on, bool animate);
+// Like Windows 11: the window's current image morphs into the frame `to` it is
+// about to take (maximize, snap and back), with corners if that frame has
+// them. Call it before changing the window's state.
+void vela_view_morph(struct vela_view *view, struct wlr_box to, bool corners);
 void vela_view_set_fullscreen(struct vela_view *view, bool on);
 // Always on top (view.c): the flag, and raising every such window over the
 // normal ones, in their usual order. focus.c calls the second after any raise.
@@ -225,9 +243,9 @@ void vela_view_set_activated(struct vela_view *view, bool on); // for the app an
 // Maximized, snapped or fullscreen: realigns it to its output.
 void vela_view_keep_in_place(struct vela_view *view);
 void vela_view_finish_open_animation(struct vela_view *view);
-// The open animations at `now_ms`: true while some remain.
-bool vela_views_tick(struct vela_server *server, double now_ms);
-bool vela_views_animating(struct vela_server *server);
+// The open animations at `now_ms` (the frame's time), retired at `wall_ms`:
+// true while some remain.
+bool vela_views_tick(struct vela_server *server, double now_ms, double wall_ms);
 // Rounded corners and shadow (docs/renderer.md §8), like Windows 11: not when
 // maximized, fullscreen or snapped, nor for apps that draw their own shadow
 // and borders (margins outside the geometry, such as GTK).
@@ -263,6 +281,10 @@ bool vela_view_stays_below(const struct vela_view *view);
 void vela_view_keep_below(struct vela_view *view);
 // Keep mapped XDG/XWayland transient descendants above a focused parent.
 void vela_views_raise_transients(struct vela_view *view);
+// Whether a mapped XDG/X11 transient belongs to an ancestor, even across layers.
+bool vela_view_is_transient_of(struct vela_view *view, struct vela_view *ancestor);
+// Reconcile transient scene layers after fullscreen visual stacking changes.
+void vela_views_sync_transient_layers(struct vela_server *server);
 bool vela_view_resizable(const struct vela_view *view); // not if min = max
 pid_t vela_view_pid(const struct vela_view *view); // the process (for "End task")
 // Size of the whole frame (bar included); 0x0: the app chooses.

@@ -55,7 +55,7 @@ Rectangle {
             spacing: 4
             ToolButton {
                 width: 32
-                icon: bar.replacing ? "go-up" : "go-down"
+                icon.name: bar.replacing ? "go-up" : "go-down"
                 tooltip: qsTr("Replace")
                 onClicked: bar.replacing = !bar.replacing
             }
@@ -71,13 +71,13 @@ Rectangle {
             }
             ToolButton {
                 width: 32
-                icon: "go-down"
+                icon.name: "go-down"
                 tooltip: qsTr("Find next (F3)")
                 onClicked: bar.next(false)
             }
             ToolButton {
                 width: 32
-                icon: "go-up"
+                icon.name: "go-up"
                 tooltip: qsTr("Find previous (Shift+F3)")
                 onClicked: bar.next(true)
             }
@@ -90,7 +90,7 @@ Rectangle {
             }
             ToolButton {
                 width: 32
-                icon: "window-close"
+                icon.name: "window-close"
                 onClicked: bar.hide()
             }
         }

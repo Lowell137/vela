@@ -20,6 +20,9 @@ Window {
     color: Theme.desktop // while the image is being prepared
 
     property bool primary: false // set by screenwindows.cpp
+    // Diagnostics only; enabled by VELA_DEBUG_SELECTION in setupWallpaper.
+    // Normal desktop selection geometry is intentionally unchanged.
+    property bool selectionTraceEnabled: false
 
     // Scrolling switches desktops, like in the desktop switchers of other
     // environments: one step per wheel notch, not faster than every 250 ms.
@@ -58,9 +61,7 @@ Window {
         smooth: false // it's already the right size
 
         opacity: status === Image.Ready ? 1 : 0
-        Behavior on opacity {
-            NumberAnimation { duration: Theme.slow; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
-        }
+        Behavior on opacity { Eased { duration: Theme.slow } }
     }
 
     // --- menus (docs/renderer.md §14.9) ---
@@ -486,6 +487,19 @@ Window {
             property point origin
             property bool banding: false
 
+            function traceSelection(phase, mouse) {
+                if (!root.selectionTraceEnabled)
+                    return
+                const point = p => Number(p).toFixed(8)
+                console.info("VELA_SELECTION qml phase=" + phase
+                             + " screen=" + (root.screen ? root.screen.name : "none")
+                             + " mouse=" + point(mouse.x) + "," + point(mouse.y)
+                             + " origin=" + point(origin.x) + "," + point(origin.y)
+                             + " band=" + [band.x, band.y, band.width, band.height].map(point).join(",")
+                             + " window=" + point(root.width) + "x" + point(root.height)
+                             + " screenDpr=" + (root.screen ? point(root.screen.devicePixelRatio) : "none"))
+            }
+
             onPressed: mouse => {
                 icons.forceActiveFocus()
                 icons.renamingPath = ""
@@ -502,6 +516,7 @@ Window {
                 band.y = mouse.y
                 band.width = 0
                 band.height = 0
+                traceSelection("press", mouse)
             }
             onPositionChanged: mouse => {
                 if (!banding) {
@@ -520,8 +535,12 @@ Window {
                     }
                 }
                 icons.selection = s
+                traceSelection("move", mouse)
             }
-            onReleased: banding = false
+            onReleased: mouse => {
+                traceSelection("release", mouse)
+                banding = false
+            }
             onClicked: mouse => {
                 if (mouse.button === Qt.RightButton) {
                     const classic = (mouse.modifiers & Qt.ShiftModifier) || Shell.shiftHeld()
@@ -612,10 +631,9 @@ Window {
                     width: parent.width - 2
                     height: Math.max(parent.height, content.height + 4) - 2
                     radius: 4
-                    color: icon.selected ? Qt.rgba(0.36, 0.55, 1.0, 0.30) : Qt.rgba(1, 1, 1, 0.12)
+                    color: icon.selected ? Qt.rgba(0.36, 0.55, 1.0, 0.30) : iconMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.12) : Qt.rgba(1, 1, 1, 0)
                     border.width: icon.selected ? 1 : 0
                     border.color: Qt.rgba(0.6, 0.75, 1.0, 0.6)
-                    visible: icon.selected || iconMouse.containsMouse
                 }
 
                 Column {

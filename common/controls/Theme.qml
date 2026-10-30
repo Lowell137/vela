@@ -36,6 +36,9 @@ QtObject {
     readonly property color subtleHover: themed("subtleHover", light ? Qt.rgba(0, 0, 0, 0.037) : Qt.rgba(1, 1, 1, 0.061))
     readonly property color subtlePressed: themed("subtlePressed", light ? Qt.rgba(0, 0, 0, 0.024) : Qt.rgba(1, 1, 1, 0.042))
     readonly property color stroke: themed("stroke", light ? Qt.rgba(0, 0, 0, 0.09) : Qt.rgba(1, 1, 1, 0.09)) // panels and menus
+    // subtleHover at alpha 0: what a subtle control fades from ("transparent"
+    // is black at alpha 0, and a fade from it would pass through gray).
+    readonly property color subtleRest: light ? Qt.rgba(0, 0, 0, 0) : Qt.rgba(1, 1, 1, 0)
     readonly property color divider: light ? Qt.rgba(0, 0, 0, 0.08) : Qt.rgba(1, 1, 1, 0.084)
     readonly property color card: themed("card", light ? Qt.rgba(1, 1, 1, 0.7) : Qt.rgba(1, 1, 1, 0.051))
     readonly property color cardHover: themed("cardHover", light ? Qt.rgba(0.976, 0.976, 0.976, 0.5) : Qt.rgba(1, 1, 1, 0.083))
@@ -230,6 +233,11 @@ QtObject {
     readonly property real notificationsReflectionOpacity: themed("notifications-reflection-opacity", 0.3)
     // The focus timer is on by default; a theme can turn it off with notifications-focus=0.
     readonly property bool notificationsFocus: themed("notifications-focus", 1) !== 0
+    // Shadows (Shadow.qml): WinUI's elevations for what floats.
+    readonly property var shadow: ({
+        flyout: { blur: 32, offset: 6, opacity: 0.45 },
+        dialog: { blur: 48, offset: 16, opacity: 0.45 }
+    })
     readonly property int fontCaption: 12
     readonly property int fontBody: 14
     readonly property int fontBodyLarge: 18
@@ -239,15 +247,17 @@ QtObject {
     // --- motion: Fluent-Qt's tokens (src/design/Animation.h, MIT): durations
     // and curves, the cubic ones as their CSS bezier equivalents ---
     // Settings > Personalization > Animations: all of them off, or faster
-    // (speed 2: half the time) or slower. Every duration goes through motion().
+    // (speed 2: half the time) or slower. Every duration goes through animated().
+    // The compositor's scale (compositor/src/motion.h; scripts/check-shared-values.py).
+    readonly property var scale: ({ fast: 120, normal: 200, slow: 250, long: 300 })
     readonly property bool animationsOn: themed("animations", 1) !== 0
     readonly property real animationSpeed: Math.max(0.5, Math.min(2, themed("animation-speed", 1)))
     readonly property real motionScale: animationsOn ? 1 / animationSpeed : 0
-    function motion(ms) { return Math.round(ms * motionScale) }
-    readonly property int fast: motion(150) // instant feedback: clicks, small toggles
-    readonly property int normal: motion(250) // expand/collapse, simple enter/exit
-    readonly property int slow: motion(400) // page, popup, layout changes
-    readonly property int verySlow: motion(700)
+    function animated(ms) { return Math.round(ms * motionScale) }
+    readonly property int fast: animated(150) // instant feedback: clicks, small toggles
+    readonly property int normal: animated(250) // expand/collapse, simple enter/exit
+    readonly property int slow: animated(400) // page, popup, layout changes
+    readonly property int verySlow: animated(700)
     // The selection pill of side menus (NavIndicator); the one of Files is off unless asked for.
     readonly property bool navPillAnimation: animationsOn && themed("nav-pill-animation", 1) !== 0
     readonly property bool filesPillAnimation: navPillAnimation && themed("files-pill-animation", 0) !== 0
@@ -257,4 +267,10 @@ QtObject {
     readonly property var exit: [0.64, 0.0, 0.78, 0.0, 1.0, 1.0] // InQuint
     // entrance: Easing.OutBack (Fluent-Qt sets an amplitude, which OutBack ignores)
     readonly property color accentFillPressed: Qt.rgba(accentFill.r, accentFill.g, accentFill.b, 0.8)
+    // Every movement is multiplied by `motion` (1 or 0): a panel's offset and
+    // scale, a page's slide, a layout change's duration.
+    readonly property bool animationEffects: animationsOn && Style.animationEffects
+    readonly property real motion: animationEffects ? 1 : 0
+    readonly property real duration: animationEffects ? Style.animationDuration : 1
+    readonly property int long: animated(300) // what moves across the whole screen
 }

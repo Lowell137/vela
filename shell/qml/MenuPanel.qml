@@ -432,7 +432,10 @@ Item {
                         // The keyboard letter shows only when the menu was
                         // opened from the keyboard.
                         textFormat: panel.keyboardMode ? Text.StyledText : Text.PlainText
-                        text: panel.keyboardMode ? panel.styledText(row.entry.text) : panel.plainText(row.entry.text)
+                        text: {
+                                const label = row.entry.liveText ? row.entry.liveText() : row.entry.text
+                                return panel.keyboardMode ? panel.styledText(label) : panel.plainText(label)
+                            }
                         color: Theme.menuSeven ? (row.usable ? "#1E1E1E" : "#8D8D8D") : row.usable ? Theme.text : Theme.textSecondary
                         font.pixelSize: Theme.fontBody
                         elide: Text.ElideRight

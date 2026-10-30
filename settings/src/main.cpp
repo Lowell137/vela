@@ -14,7 +14,9 @@
 #include "appmodel.h"
 #include "audio.h"
 #include "audioapps.h"
-#include "bluetooth.h"
+#include "bluetooth/bluetooth.h"
+#include "updates.h"
+#include "brightness.h"
 #include "controls.h"
 #include "datetime.h"
 #include "defaultapps.h"
@@ -29,7 +31,6 @@
 #include "storage.h"
 #include "systemactions.h"
 #include "systemstatus.h"
-#include "updates.h"
 #include "weather.h"
 
 #include <QCommandLineParser>
@@ -46,6 +47,7 @@
 #include <QtQml/QQmlExtensionPlugin>
 
 Q_IMPORT_QML_PLUGIN(Vela_ControlsPlugin)
+Q_IMPORT_QML_PLUGIN(Vela_Bluetooth_UiPlugin)
 
 namespace {
 
@@ -143,7 +145,7 @@ int main(int argc, char* argv[])
     parser.setApplicationDescription(QStringLiteral("Vela Settings"));
     parser.addHelpOption();
     const QCommandLineOption pageOption(QStringLiteral("page"),
-        QStringLiteral("The page to open: system, display, sound, notifications, power, about, bluetooth, "
+        QStringLiteral("The page to open: system, display, sound, notifications, power, about, updates, bluetooth, "
                        "volume-mixer, network, personalization, background, colors, taskbar, apps, installed-apps, "
                        "default-apps, time-language, datetime, keyboard, night-light, accessibility."),
         QStringLiteral("name"));
@@ -188,18 +190,22 @@ int main(int argc, char* argv[])
     SystemActions system;
     Preferences preferences;
     Displays displays;
+    // Bluetooth (docs/bluetooth.md §9.1): Settings is Vela's UI, and draws
+    // the questions of its own Adds.
+    vela::bluetooth::Bluetooth bluetooth(true);
     // The sound (docs/audio.md): the same library as the shell's.
     vela::audio::Audio audio;
     audio.setAppResolver(audioAppResolver(apps));
+    audio.setBluetooth(&bluetooth); // headsets' batteries
+    Updates updates;
     Network network;
     PlaceSearch places; // the weather's city search (no request until used)
-    Bluetooth bluetooth;
     About about;
     DateTime dateTime;
     DefaultApps defaultApps(&apps, &preferences);
     KeyboardLayouts layouts;
-    SystemStatus status;
-    Updates updates;
+    SystemStatus status(&bluetooth);
+    Brightness brightness;
     Storage storage;
 
     QQmlApplicationEngine engine;
@@ -219,14 +225,15 @@ int main(int argc, char* argv[])
     qmlRegisterType<vela::audio::LevelMeter>("Vela.Audio", 1, 0, "LevelMeter");
     context->setContextProperty(QStringLiteral("Network"), &network);
     context->setContextProperty(QStringLiteral("Places"), &places);
-    context->setContextProperty(QStringLiteral("Bluetooth"), &bluetooth);
+    qmlRegisterSingletonInstance("Vela.Bluetooth", 1, 0, "Bluetooth", &bluetooth);
+    context->setContextProperty(QStringLiteral("Updates"), &updates);
     context->setContextProperty(QStringLiteral("About"), &about);
     context->setContextProperty(QStringLiteral("DateTime"), &dateTime);
     context->setContextProperty(QStringLiteral("DefaultApps"), &defaultApps);
     context->setContextProperty(QStringLiteral("Layouts"), &layouts);
     context->setContextProperty(QStringLiteral("Status"), &status);
-    context->setContextProperty(QStringLiteral("Updates"), &updates);
     context->setContextProperty(QStringLiteral("Storage"), &storage);
+    context->setContextProperty(QStringLiteral("Brightness"), &brightness);
     engine.loadFromModule("Vela.Settings", "Main");
     if (engine.rootObjects().isEmpty()) {
         return 1;

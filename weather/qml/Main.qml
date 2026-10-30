@@ -89,7 +89,7 @@ Window {
         ToolButton {
             width: 40
             height: 36
-            icon: "application-menu"
+            icon.name: "application-menu"
             tooltip: qsTr("Open or close the navigation")
             onClicked: settings.wideRail = !settings.wideRail
         }
@@ -170,7 +170,7 @@ Window {
                     font.pixelSize: Theme.fontCaption
                 }
                 ToolButton {
-                    icon: "view-refresh"
+                    icon.name: "view-refresh"
                     tooltip: qsTr("Refresh (F5)")
                     usable: !Weather.loading
                     onClicked: Weather.refresh()

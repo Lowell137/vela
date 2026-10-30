@@ -36,13 +36,16 @@ Vela Settings preserves unrelated lines when it updates a key and asks the compo
 | `task-manager` | empty | Default task manager: a monitor program (or btop/htop/top, opened in the terminal), empty for the first installed. Set in Apps > Default apps, whose list comes from the installed .desktop files (TerminalEmulator, or System+Monitor). |
 | `decoration-ssd` | `kitty` | Comma-separated app ids that always get Vela's title bar, even when they never ask through xdg-decoration (kitty never asks). Empty disables it. |
 | `polkit-agent` | `yes` | Start Vela's polkit agent (the User Account Control dialog) in the real session. `no` leaves the job to another agent. |
+| `bluetooth-adapter` | empty | The address of the Bluetooth adapter to use when there are two or more ([Bluetooth](bluetooth.md#62-the-model)), written by Settings > Bluetooth & devices > Advanced. Empty, or an adapter that isn't there: the first one. |
+| `brightness` | `yes` | Drive the monitors' own brightness ([brightness](brightness.md)) in the real session. `no` starts no `vela-brightness` and shows no brightness slider. |
+| `update-check` | `yes` | Check for Vela updates in the background and notify when one is available ([updates](updates.md#62-checking)), never on a metered connection. Written by Settings > System > Updates. |
 | `keyboard-layout` | system/default | Comma-separated XKB layouts, for example `it,us`. |
 | `keyboard-variant` | empty | Comma-separated XKB variants matching `keyboard-layout`. |
 | `keyboard-options` | empty | XKB options. |
 | `keyboard-repeat-delay` | `400` | Key-repeat delay in milliseconds. |
 | `keyboard-repeat-rate` | `30` | Key repeats per second. |
 | `night-light` | `no` | Enable Night light. |
-| `night-light-strength` | `48` | Night-light strength, 0–100. |
+| `night-light-temperature` | `4200` | Night light's color temperature in kelvin, 1700–6500 in steps of 100 (6500 is the screen's normal white). Without it, the older `night-light-strength` (0–100: 6500 to 1700 K) is read. |
 | `night-light-nvidia-fix` | `no` | Experimental NVIDIA workaround: apply Night light in Vulkan instead of the monitor's DRM gamma LUT (may disable direct scanout). |
 | `night-light-schedule` | `no` | Night-light schedule: `no`, `sunset` or `hours`. |
 | `night-light-from` | `21:00` | Manual Night-light start time. |
@@ -52,6 +55,8 @@ Vela Settings preserves unrelated lines when it updates a key and asks the compo
 | `color-filters-shortcut` | `no` | Allow Super+Ctrl+C to toggle color filters. |
 | `magnifier-step` | `100` | Magnifier step in percent. |
 | `sticky-keys` | `no` | Sticky modifier keys. |
+| `animation-effects` | `yes` | Windows and the shell's panels move as they open, close and change. `no`: nothing moves (no rise, slide, scale, flight to the taskbar or magnifier zoom) and what fades takes at most 120 ms ([visual coherence](visual-coherence.md#65-animation-effects-one-switch-d11)). Settings > Accessibility > Visual effects. |
+| `animation-duration` | `100` | How long animations take, in percent of Vela's durations: 50–300 (Settings' slider, in steps of 25). With `animation-effects=no` fades stay at 120 ms. |
 | `tearing` | `yes` | Allow fullscreen apps that explicitly request tearing. |
 | `direct-scanout` | `auto` | `auto` (`yes` is a compatibility alias): a fullscreen app's buffer goes straight to the screen when the output allows it. `no`: always composite; use it if a game shows a black screen or garbage with the hardware cursor active. Disabling scanout also disables asynchronous tearing (`tearing=yes` only takes effect on the scanout path), and may increase game latency. Applied by `reload-config`; `VELA_SCANOUT=0` takes precedence. Settings > Display > Gaming. |
 | `variable-refresh` | `games` | VRR policy: `no`, `games` or `always`. |
@@ -172,6 +177,14 @@ Files written before October 2026 used Italian names (`schermi.conf`, and Italia
 
 Normally this file should be managed through **Settings → Displays** rather than edited by hand.
 
+Settings > System > Display lets you mark any enabled monitor as the main
+display. The connector name is stored under `display/primaryOutput` in
+`~/.config/Vela/vela-shell.conf`. The shell uses the selected screen for
+notification popups, main taskbar/desktop icons and keyboard-invoked panels.
+If unavailable, it falls back temporarily without erasing the preference,
+then restores it when the monitor reconnects. The Settings button can also
+pin the current Qt default as an explicit preference.
+
 Vela keeps the *relative* monitor arrangement while shifting its global layout
 so the upper-left corner of the enabled display group is always at (0,0).
 For example, a 1920×1080 monitor physically **above** a 2048×1152 primary
@@ -232,6 +245,12 @@ These are useful for one-off overrides, nested sessions, experiments and trouble
 | `VELA_LOCK` | Use another locker instead of `vela-lock`, for example `swaylock`. |
 | `VELA_POLKIT_AGENT` | Start this polkit agent instead of `vela-polkit-agent`; `0` starts none. Without it, Vela's agent starts only in a real (DRM) session, never nested or headless. |
 | `VELA_POLKIT_PROMPT` | For `vela-polkit-agent`: the dialog to run instead of `vela-polkit-prompt`. |
+| `VELA_BLUETOOTH` | Start this Bluetooth daemon instead of `vela-bluetooth` ([Bluetooth](bluetooth.md#61-start-and-lifetime)); `0` starts none. Without it, the daemon starts only in a real (DRM) session, never nested or headless. |
+| `VELA_UPDATE_DAEMON` | Start this update daemon instead of `vela-update-daemon` ([Updates](updates.md#6-vela-update-daemon)); `0` starts none. Without it, the daemon starts only in a real (DRM) session, never nested or headless. |
+| `VELA_RFKILL`, `VELA_SYSFS` | For tests: a fake `/dev/rfkill` and `/sys` for turning Bluetooth on. The shell reads `VELA_RFKILL` and `VELA_SYSFS`; of the daemons, only the test build `vela-bluetooth-testing` does, never the installed one. |
+| `VELA_BRIGHTNESS` | Start this helper instead of `vela-brightness` for each output (it gets `ddc <connector>` and the socket in `VELA_BRIGHTNESS_FD`); `0` starts none. Without it, helpers start only in a real (DRM) session. Either way, only DRM outputs get one. |
+| `VELA_BRIGHTNESS_FAKE` | A file of fake monitors ([brightness](brightness.md#12-tests)) for `vela-brightness`: helpers then start in any session and for every output, headless included, and never touch the hardware. For tests: only builds with `VELA_BUILD_TOOLS=ON` read it; the packages' `vela-brightness` ignores it. |
+| `VELA_BRIGHTNESS_SYSFS` | With `VELA_BRIGHTNESS_FAKE` only: a fake sysfs tree where the compositor looks for backlights and `vela-brightness` reads and writes them, straight into its files (never through logind). For tests, in builds with `VELA_BUILD_TOOLS=ON` only, like `VELA_BRIGHTNESS_FAKE`. |
 
 ### Appearance and shell integration
 
@@ -251,6 +270,7 @@ These variables are for diagnosis rather than normal user configuration.
 | `VELA_DEBUG=1` | Enable verbose wlroots logging. |
 | `VELA_DEBUG_SCANOUT=1` | Log why a fullscreen surface is not eligible for direct scanout. |
 | `VELA_DEBUG_DAMAGE=1` | Force full-output damage every frame, bypassing normal damage reduction for diagnosis. |
+| `VELA_DEBUG_ANIMATION=1` | Log, per output and frame, the presentation and wall times and each running animation's progress and geometry (position, scale, opacity), and a line when an animation retires (`tests/functional/test_animation.py` reads it). |
 | `VELA_DEBUG_SYNC=1` | Make the CPU wait for the GPU on every renderer submission; useful when isolating synchronization problems. |
 | `VELA_DEBUG_LINEAR=1` | Force linear render buffers instead of normal tiled/modifier allocation; useful for allocator/modifier diagnosis. |
 | `VELA_DEBUG_INPUT=1` | Enable the virtual keyboard/pointer protocol used by `vela-input`. Off by default for security. |
@@ -259,7 +279,7 @@ These variables are for diagnosis rather than normal user configuration.
 
 ## Internal variables
 
-The supervisor, session launcher and test harness also use internal variables such as `VELA_WAYLAND_SOCKET_FD`, `VELA_WAYLAND_DISPLAY`, `VELA_START_LOCKED`, `VELA_RESTARTED`, `VELA_BUILD` and `VELA_TEST_MARK`.
+The supervisor, session launcher and test harness also use internal variables such as `VELA_WAYLAND_SOCKET_FD`, `VELA_WAYLAND_DISPLAY`, `VELA_BRIGHTNESS_FD`, `VELA_START_LOCKED`, `VELA_RESTARTED`, `VELA_BUILD` and `VELA_TEST_MARK`.
 
 They are implementation details, are not intended as stable user configuration, and may change without notice.
 

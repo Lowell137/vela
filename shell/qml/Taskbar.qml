@@ -528,7 +528,8 @@ Window {
         spacing: Theme.taskbarSpacing
 
         Behavior on x {
-            NumberAnimation { duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+            enabled: Theme.motion > 0
+            Eased {}
         }
         Behavior on y {
             NumberAnimation { duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
@@ -536,10 +537,7 @@ Window {
         // The button of an app just opened comes in growing.
         add: Transition {
             NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Theme.normal }
-            NumberAnimation {
-                property: "scale"; from: 0.5; to: 1; duration: Theme.slow
-                easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate
-            }
+            Eased { property: "scale"; from: 1 - 0.5 * Theme.motion; to: 1; duration: Theme.slow }
         }
         move: Transition {
             enabled: !taskRepeater.dropping
@@ -746,6 +744,103 @@ Window {
         }
     }
 
+    // Transfers remain tracked by FileOps; the shell only aggregates status.
+    Item {
+        id: transferIndicator
+        objectName: "transferIndicator"
+        visible: root.primary && !root.dock && Transfers.activeCount > 0
+        x: root.vertical ? 0 : overflowButton.x - width - 4
+        y: root.vertical ? overflowButton.y - height - 4 : 0
+        width: root.vertical ? parent.width : visible ? 68 : 0
+        height: root.vertical ? (visible ? 32 : 0) : parent.height
+        readonly property var running: Transfers.jobs.filter(job => !job.finished)
+        readonly property real progress: {
+            if (running.length !== 1 || running[0].total <= 0) return -1
+            return Math.max(0, Math.min(100, Math.round(100 * running[0].done / running[0].total)))
+        }
+        function readableSize(bytes) {
+            if (bytes >= 1073741824) return (bytes / 1073741824).toFixed(1) + " GB"
+            if (bytes >= 1048576) return (bytes / 1048576).toFixed(1) + " MB"
+            if (bytes >= 1024) return (bytes / 1024).toFixed(1) + " KB"
+            return Math.round(bytes) + " B"
+        }
+        function jobById(owner, id) {
+            return Transfers.jobs.find(job => job.owner === owner && job.id === id)
+        }
+        function openTransferMenu() {
+            const entries = [{ header: qsTr("File transfers") }]
+            for (const initial of running) {
+                const owner = initial.owner
+                const id = initial.id
+                entries.push({
+                    text: initial.title, enabled: false,
+                    liveText: () => {
+                        const j = jobById(owner, id)
+                        if (!j) return qsTr("Transfer removed")
+                        return j.title + " · " + (j.finished ? qsTr("Finished")
+                            : j.total > 0 ? Math.round(100 * j.done / j.total) + "%" : qsTr("Preparing"))
+                    }
+                })
+                entries.push({
+                    text: initial.current || qsTr("Preparing"), enabled: false,
+                    liveText: () => {
+                        const j = jobById(owner, id)
+                        return j ? (j.current || (j.finished ? qsTr("Finished") : qsTr("Preparing"))) : ""
+                    }
+                })
+                entries.push({
+                    text: qsTr("Bytes transferred"), enabled: false,
+                    liveText: () => {
+                        const j = jobById(owner, id)
+                        return j ? readableSize(j.done) + " / " +
+                            (j.total > 0 ? readableSize(j.total) : qsTr("calculating")) : ""
+                    }
+                })
+                entries.push({
+                    text: qsTr("Calculating speed"), enabled: false,
+                    liveText: () => {
+                        const j = jobById(owner, id)
+                        if (!j) return ""
+                        if (j.finished) return qsTr("Transfer finished")
+                        if (j.speed <= 0) return qsTr("Calculating transfer speed…")
+                        const eta = j.eta < 0 ? qsTr("time unknown")
+                            : j.eta < 60 ? qsTr("%1 seconds remaining").arg(Math.ceil(j.eta))
+                            : qsTr("%1 minutes remaining").arg(Math.ceil(j.eta / 60))
+                        return readableSize(j.speed) + "/s · " + eta
+                    }
+                })
+                entries.push({ text: qsTr("Cancel transfer"), icon: "process-stop",
+                               action: () => Transfers.cancel(owner, id) })
+                entries.push({ separator: true })
+            }
+            root.openAbove(entries, transferIndicator, true, { minWidth: 360 })
+        }
+        Fill {
+            anchors { fill: parent; topMargin: 8; bottomMargin: 8 }
+            radius: Theme.radius
+            color: transferMouse.pressed ? Theme.subtlePressed
+                : transferMouse.containsMouse ? Theme.subtleHover : Theme.subtleRest
+        }
+        Icon {
+            x: 7
+            anchors.verticalCenter: parent.verticalCenter
+            name: "document-save"
+            size: 16
+        }
+        Text {
+            anchors { right: parent.right; verticalCenter: parent.verticalCenter; rightMargin: 6 }
+            text: transferIndicator.progress >= 0 ? transferIndicator.progress + "%"
+                : String(Transfers.activeCount)
+            color: Theme.text
+            font.pixelSize: Theme.fontCaption
+        }
+        MouseArea {
+            id: transferMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            onClicked: transferIndicator.openTransferMenu()
+        }
+    }
     // From here on, the end of the taskbar (the bottom, along a vertical one),
     // each item against the next: tray, "^", screen share, microphone, system
     // icons, clock and show desktop. Horizontally they hang from the right
@@ -917,8 +1012,8 @@ Window {
     Item {
         id: microphone
         visible: root.primary && !root.dock && Audio.microphoneUsers.length > 0
-        x: root.vertical ? 0 : systemIcons.x - width - 0
-        y: root.vertical ? systemIcons.y - height - 0 : 0
+        x: root.vertical ? 0 : caffeine.x - width
+        y: root.vertical ? caffeine.y - height : 0
         width: root.vertical ? parent.width : (visible ? 32 : 0)
         height: root.vertical ? (visible ? 32 : 0) : parent.height
 
@@ -951,16 +1046,11 @@ Window {
             anchors { fill: parent; topMargin: root.vertical ? 0 : 8; bottomMargin: root.vertical ? 0 : 8
                       leftMargin: root.vertical ? 8 : 0; rightMargin: root.vertical ? 8 : 0 }
             radius: Theme.radius
-            color: microphoneMouse.pressed ? Theme.subtlePressed : Theme.subtleHover
-            opacity: microphoneMouse.containsMouse ? 1 : 0
-            Behavior on opacity { NumberAnimation { duration: Theme.fast } }
+            color: microphoneMouse.pressed ? Theme.subtlePressed : microphoneMouse.containsMouse ? Theme.subtleHover : Theme.subtleRest
         }
-        Image {
+        Icon {
             anchors.centerIn: parent
-            width: 16
-            height: 16
-            source: Theme.icons + "audio-input-microphone"
-            sourceSize: Qt.size(width, height)
+            name: "audio-input-microphone"
         }
         MouseArea {
             id: microphoneMouse
@@ -970,6 +1060,103 @@ Window {
             onClicked: {
                 microphone.hideTooltip()
                 System.trigger("sound-settings")
+            }
+        }
+    }
+
+    // Caffeine (keep awake, compositor/src/lock.c): always here, faint while
+    // off. Either click lists the durations; the remaining time is in the
+    // tooltip and at the top of the menu. Breeze's only cup is KTeaTime's.
+    Item {
+        id: caffeine
+        visible: root.primary && !root.dock && (Config.taskbarCaffeine === "always" || (Config.taskbarCaffeine === "on" && Access.caffeine))
+        x: root.vertical ? 0 : systemIcons.x - width
+        y: root.vertical ? systemIcons.y - height : 0
+        width: root.vertical ? parent.width : (visible ? 32 : 0)
+        height: root.vertical ? (visible ? 32 : 0) : parent.height
+
+        function remainingText(secs) {
+            const minutes = Math.ceil(secs / 60)
+            if (minutes < 60) {
+                return minutes === 1 ? qsTr("1 minute remaining") : qsTr("%1 minutes remaining").arg(minutes)
+            }
+            if (minutes % 60 === 0) {
+                return qsTr("%1 h remaining").arg(minutes / 60)
+            }
+            return qsTr("%1 h %2 min remaining").arg(Math.floor(minutes / 60)).arg(minutes % 60)
+        }
+        readonly property string tooltipText: !Access.caffeine ? qsTr("Caffeine: off")
+            : Access.caffeineSecs > 0 ? qsTr("Caffeine: %1").arg(remainingText(Access.caffeineSecs))
+            : qsTr("Caffeine: keeping the computer awake")
+        function showTooltip() {
+            const p = caffeine.mapToItem(null, caffeine.width / 2, 0)
+            Menus.tooltip = { text: caffeine.tooltipText, center: p.x, screen: root.screenName, owner: "caffeine" }
+        }
+        function hideTooltip() {
+            caffeineTooltipDelay.stop()
+            if (Menus.tooltip && Menus.tooltip.owner === "caffeine") {
+                Menus.tooltip = null
+            }
+        }
+        onTooltipTextChanged: if (Menus.tooltip && Menus.tooltip.owner === "caffeine") showTooltip()
+        onVisibleChanged: if (!visible) hideTooltip()
+
+        // The selected preset, not the time left (which keeps decreasing).
+        function openMenu() {
+            const presets = [15, 30, 60, 120, 180, 300, 480]
+            const names = [qsTr("15 minutes"), qsTr("30 minutes"), qsTr("1 hour"), qsTr("2 hours"),
+                           qsTr("3 hours"), qsTr("5 hours"), qsTr("8 hours")]
+            const entries = []
+            if (Access.caffeine && Access.caffeineSecs > 0) {
+                entries.push({ header: remainingText(Access.caffeineSecs) })
+            }
+            entries.push({ text: qsTr("&Indefinitely"), radio: true,
+                           checked: Access.caffeine && Access.caffeineSecs < 0,
+                           action: () => Access.caffeine = true },
+                         { separator: true })
+            for (let i = 0; i < presets.length; i++) {
+                const minutes = presets[i]
+                entries.push({ text: names[i], radio: true,
+                               checked: Access.caffeine && Access.caffeineDurationSecs === minutes * 60,
+                               action: () => Access.setCaffeineMinutes(minutes) })
+            }
+            entries.push({ separator: true },
+                         { text: qsTr("Turn &off"), enabled: Access.caffeine, action: () => Access.caffeine = false },
+                         { text: qsTr("&Power settings"), icon: "preferences-system-power-management",
+                           enabled: System.available("power"), action: () => System.trigger("power") })
+            root.openAbove(entries, caffeine, true, { minWidth: 220 })
+        }
+
+        Timer {
+            id: caffeineTooltipDelay
+            interval: 500
+            onTriggered: caffeine.showTooltip()
+        }
+        Fill {
+            anchors { fill: parent; topMargin: 8; bottomMargin: 8 }
+            radius: Theme.radius
+            color: caffeineMouse.pressed ? Theme.subtlePressed : Theme.subtleHover
+            opacity: caffeineMouse.containsMouse ? 1 : 0
+            Behavior on opacity { NumberAnimation { duration: Theme.fast } }
+        }
+        Image {
+            anchors.centerIn: parent
+            width: 16
+            height: 16
+            source: Theme.icons + "kteatime-symbolic"
+            sourceSize: Qt.size(width, height)
+            opacity: Access.caffeine ? 1 : 0.45
+            Behavior on opacity { NumberAnimation { duration: Theme.fast } }
+        }
+        MouseArea {
+            id: caffeineMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            acceptedButtons: Qt.LeftButton | Qt.RightButton
+            onContainsMouseChanged: containsMouse ? caffeineTooltipDelay.restart() : caffeine.hideTooltip()
+            onClicked: {
+                caffeine.hideTooltip()
+                caffeine.openMenu()
             }
         }
     }
@@ -989,36 +1176,25 @@ Window {
             anchors { fill: parent; topMargin: root.vertical ? 0 : 4; bottomMargin: root.vertical ? 0 : 4
                       leftMargin: root.vertical ? 4 : 0; rightMargin: root.vertical ? 4 : 0 }
             radius: Theme.radius
-            color: systemMouse.pressed ? Theme.subtlePressed : Theme.subtleHover
-            opacity: systemMouse.containsMouse || Menus.quickSettingsOpen ? 1 : 0
-            Behavior on opacity { NumberAnimation { duration: Theme.fast } }
+            color: systemMouse.pressed ? Theme.subtlePressed : systemMouse.containsMouse || Menus.quickSettingsOpen ? Theme.subtleHover : Theme.subtleRest
         }
         Grid {
             id: iconsRow
             anchors.centerIn: parent
             columns: root.vertical ? 1 : 3
             spacing: 10
-            Image {
+            Icon {
                 id: networkIcon
-                width: 16
-                height: 16
-                source: Theme.icons + encodeURIComponent(Status.networkIconName)
-                sourceSize: Qt.size(width, height)
+                name: Status.networkIconName
             }
-            Image {
+            Icon {
                 id: volumeIcon
                 visible: Audio.available
-                width: 16
-                height: 16
-                source: Theme.icons + encodeURIComponent(Audio.iconName)
-                sourceSize: Qt.size(width, height)
+                name: Audio.iconName
             }
-            Image {
+            Icon {
                 visible: Status.batteryPresent
-                width: 16
-                height: 16
-                source: Theme.icons + encodeURIComponent(Status.batteryCharging ? "battery-good-charging" : "battery-good")
-                sourceSize: Qt.size(width, height)
+                name: Status.batteryCharging ? "battery-good-charging" : "battery-good"
             }
         }
         MouseArea {
@@ -1107,7 +1283,7 @@ Window {
                 font.pixelSize: 10
                 font.weight: Font.DemiBold
             }
-            Image {
+            Icon {
                 anchors.centerIn: parent
                 visible: Notifications.silenced
                 width: 14

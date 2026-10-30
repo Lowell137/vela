@@ -13,16 +13,16 @@ Page {
             icon: "edit-paste"
             title: qsTr("Clipboard history")
             description: qsTr("Save multiple items to the clipboard to use later. Press Win+V to see and paste them")
-            trailing: Toggle {
+            trailing: Switch {
                 checked: Prefs.clipboardHistory
-                onToggled: on => Prefs.clipboardHistory = on
+                onToggled: Prefs.clipboardHistory = checked
             }
         }
         Card {
             icon: "input-mouse"
             title: qsTr("Open next to the pointer")
             description: qsTr("The clipboard and emoji panel (Win+V, Win+.) opens where the mouse pointer is. Off: at the bottom right of the screen")
-            trailing: Toggle {
+            trailing: Switch {
                 checked: Prefs.clipboardAtPointer
                 onToggled: on => Prefs.clipboardAtPointer = on
             }
@@ -34,7 +34,7 @@ Page {
             icon: "document-save"
             title: qsTr("Keep the history after restarting")
             description: qsTr("What you copied is still there after you sign out or restart. Off: only pinned items are kept. Copied passwords are stored too")
-            trailing: Toggle {
+            trailing: Switch {
                 checked: Prefs.clipboardKeep
                 onToggled: on => Prefs.clipboardKeep = on
             }

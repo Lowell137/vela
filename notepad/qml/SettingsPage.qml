@@ -65,7 +65,7 @@ Rectangle {
         spacing: 8
         ToolButton {
             anchors.verticalCenter: parent.verticalCenter
-            icon: "go-previous"
+            icon.name: "go-previous"
             tooltip: qsTr("Back (Esc)")
             onClicked: page.closed()
         }
@@ -100,7 +100,7 @@ Rectangle {
                 title: qsTr("Font size")
                 Row {
                     spacing: 4
-                    ToolButton { icon: "list-remove"; usable: page.win && page.win.fontSize > 8; onClicked: page.win.fontSize-- }
+                    ToolButton { icon.name: "list-remove"; usable: page.win && page.win.fontSize > 8; onClicked: page.win.fontSize-- }
                     Text {
                         width: 32
                         anchors.verticalCenter: parent.verticalCenter
@@ -109,27 +109,27 @@ Rectangle {
                         color: Theme.text
                         font.pixelSize: Theme.fontBody
                     }
-                    ToolButton { icon: "list-add"; usable: page.win && page.win.fontSize < 72; onClicked: page.win.fontSize++ }
+                    ToolButton { icon.name: "list-add"; usable: page.win && page.win.fontSize < 72; onClicked: page.win.fontSize++ }
                 }
             }
             Card {
                 title: qsTr("Word wrap")
                 description: qsTr("Long lines continue on the next one instead of past the edge")
-                Toggle { checked: page.win ? page.win.wordWrap : false; onToggled: on => page.win.wordWrap = on }
+                Switch { checked: page.win ? page.win.wordWrap : false; onToggled: on => page.win.wordWrap = on }
             }
 
             Heading { text: qsTr("Window") }
             Card {
                 title: qsTr("Status bar")
                 description: qsTr("The cursor's place, the zoom, the line endings and the encoding")
-                Toggle { checked: page.win ? page.win.statusBarVisible : false; onToggled: on => page.win.statusBarVisible = on }
+                Switch { checked: page.win ? page.win.statusBarVisible : false; onToggled: on => page.win.statusBarVisible = on }
             }
 
             Heading { text: qsTr("When Notepad starts") }
             Card {
                 title: qsTr("Continue the previous session")
                 description: qsTr("Reopen the files that were open when it was closed")
-                Toggle { checked: page.win ? page.win.restoreSession : false; onToggled: on => page.win.restoreSession = on }
+                Switch { checked: page.win ? page.win.restoreSession : false; onToggled: on => page.win.restoreSession = on }
             }
 
             Heading { text: qsTr("About") }

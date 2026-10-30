@@ -13,17 +13,20 @@
 #include "scene/surface.h"
 #include "util.h"
 
+#include <limits.h>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <wlr/backend/drm.h>
 #include <wlr/backend/headless.h>
+#include <wlr/config.h>
 #include <wlr/render/color.h>
 #include <wlr/render/drm_syncobj.h>
 #include <wlr/render/swapchain.h>
 #include <wlr/types/wlr_buffer.h>
 #include <wlr/types/wlr_compositor.h>
+#include <wlr/types/wlr_layer_shell_v1.h>
 #include <wlr/types/wlr_linux_dmabuf_v1.h>
 #include <wlr/types/wlr_linux_drm_syncobj_v1.h>
 #include <wlr/types/wlr_output.h>
@@ -32,6 +35,10 @@
 #include <wlr/util/log.h>
 #include <wlr/util/region.h>
 #include <wlr/util/transform.h>
+
+#if WLR_HAS_XWAYLAND
+#include <wlr/xwayland/xwayland.h>
+#endif
 
 // ------------------------------------------------------------- helpers --
 
@@ -265,6 +272,23 @@ struct visit {
     struct vela_blur_look look;
 };
 
+// Sharpness (§3.3, §3.4): an image drawn at the output's scale (a buffer as
+// large as its physical area, up to rounding) snaps to a physical pixel and
+// covers exactly the buffer's pixels: a 1:1 copy, unfiltered, even when the
+// logical position falls in the middle of a pixel. Whoever drew it: an app, or
+// the compositor (title, icon, glyphs).
+static void snap_to_buffer(struct wlr_box *box, const struct wlr_fbox *src, enum wl_output_transform transform,
+    double width, double height, double scale)
+{
+    bool swapped = transform & WL_OUTPUT_TRANSFORM_90;
+    double buffer_width = swapped ? src->height : src->width;
+    double buffer_height = swapped ? src->width : src->height;
+    if (vela_buffer_matches_area(src->x, src->y, buffer_width, buffer_height, width, height, scale)) {
+        box->width = (int)buffer_width;
+        box->height = (int)buffer_height;
+    }
+}
+
 static void add_surface(struct wlr_surface *surface, int sx, int sy, void *data)
 {
     struct visit *v = data;
@@ -282,18 +306,7 @@ static void add_surface(struct wlr_surface *surface, int sx, int sy, void *data)
     enum wl_output_transform transform = wlr_output_transform_invert(surface->current.transform);
     struct wlr_box box = to_pixels(lx, ly, width, height, p);
 
-    // Sharpness (§3.3, §3.4): if the app drew at this output's scale (a buffer
-    // as large as its physical area, up to rounding), the surface snaps to a
-    // physical pixel and covers exactly the buffer's pixels: a 1:1 copy,
-    // unfiltered, even when the logical position falls in the middle of a
-    // pixel.
-    bool swapped = transform & WL_OUTPUT_TRANSFORM_90;
-    double buffer_width = swapped ? src.height : src.width;
-    double buffer_height = swapped ? src.width : src.height;
-    if (vela_buffer_matches_area(src.x, src.y, buffer_width, buffer_height, width, height, p->scale)) {
-        box.width = (int)buffer_width;
-        box.height = (int)buffer_height;
-    }
+    snap_to_buffer(&box, &src, transform, width, height, p->scale);
     if (!on_screen(&box, p)) {
         return;
     }
@@ -403,6 +416,7 @@ static void visit(struct vela_scene *scene, struct vela_node *node, double lx, d
     case VELA_NODE_BUFFER: {
         struct vela_buffer_node *buffer = (struct vela_buffer_node *)node;
         struct wlr_box box = to_pixels(lx, ly, buffer->width, buffer->height, p);
+        snap_to_buffer(&box, &buffer->src, buffer->transform, buffer->width, buffer->height, p->scale);
         if (!on_screen(&box, p) || !buffer->texture) {
             break;
         }
@@ -552,7 +566,7 @@ static bool same_look(const struct vela_element *a, const struct vela_element *b
         && a->linear == b->linear && same_color(&a->color, &b->color) && same_box(&a->shape_rect, &b->shape_rect)
         && a->shape_radius == b->shape_radius && same_box(&a->shadow_window, &b->shadow_window)
         && a->shadow_sigma == b->shadow_sigma && same_box(&a->blur_box, &b->blur_box)
-        && same_box(&a->blur_forced, &b->blur_forced);
+        && same_box(&a->blur_forced, &b->blur_forced) && a->acrylic == b->acrylic;
 }
 
 // The shell's rounded blur regions (shell/src/backgroundeffects.cpp) are rows
@@ -768,15 +782,10 @@ static void handle_damage(struct wl_listener *listener, void *data)
 {
     struct vela_output_frame *frame = wl_container_of(listener, frame, damage);
     const struct wlr_output_event_damage *event = data;
-    // wlroots emits output-buffer-local damage (not upright scene coordinates).
-    // Convert it at the boundary; render() transforms scene_damage back into
-    // buffer coordinates only once, when adding it to the damage ring.
-    pixman_region32_t upright;
-    pixman_region32_init(&upright);
-    wlr_region_transform(&upright, event->damage, frame->output->transform,
-        frame->output->width, frame->output->height);
-    pixman_region32_union(&frame->scene_damage, &frame->scene_damage, &upright);
-    pixman_region32_fini(&upright);
+    // Upright output coordinates, already like scene_damage: wlroots' header
+    // calls them buffer-local, but its cursors emit their box as is, and its
+    // own scene converts that damage to the buffer as we do in render(), once.
+    pixman_region32_union(&frame->scene_damage, &frame->scene_damage, event->damage);
     vela_output_schedule_frame(frame->owner);
 }
 
@@ -942,6 +951,8 @@ void vela_output_frame_destroy(struct vela_output_frame *frame)
     free(frame->last.items);
     free(frame->current.items);
     free(frame->found);
+    free(frame->match_heads);
+    free(frame->match_next);
     free(frame->visible_surfaces);
     free(frame);
 }
@@ -996,7 +1007,11 @@ static void prepare_night_light(struct vela_output_frame *frame)
     struct wlr_output_state test;
     wlr_output_state_init(&test);
     wlr_output_state_set_color_transform(&test, transform);
+    int64_t test_start = vela_now_ns();
     bool ok = wlr_output_test_state(frame->output, &test);
+    if (vela_env_flag("VELA_STATS")) {
+        wlr_log(WLR_INFO, "%s: gamma LUT test: %.2f ms", frame->output->name, (double)(vela_now_ns() - test_start) / 1e6);
+    }
     wlr_output_state_finish(&test);
     if (!ok) {
         wlr_log(WLR_INFO, "%s: the monitor doesn't accept night light in the gamma LUT, rendering applies it",
@@ -1134,6 +1149,16 @@ void vela_output_frame_surface_committed(struct vela_output_frame *frame, struct
     pixman_region32_t region;
     pixman_region32_init(&region);
     wlr_surface_get_effective_damage(surface, &region);
+#if WLR_HAS_XWAYLAND
+    // Xwayland flips a presented pixmap with only the Present update region
+    // as damage, which can be empty: nothing would be redrawn and the window
+    // kept its previous frame. A new buffer from X11 is damaged whole.
+    if (!pixman_region32_not_empty(&region) && (surface->current.committed & WLR_SURFACE_STATE_BUFFER)
+        && wlr_surface_state_has_buffer(&surface->current) && wlr_xwayland_surface_try_from_wlr_surface(surface)) {
+        pixman_region32_union_rect(&region, &region, 0, 0, (unsigned)surface->current.width,
+            (unsigned)surface->current.height);
+    }
+#endif
     if (pixman_region32_not_empty(&region)) {
         bool exact = e->scale_x == floor(e->scale_x) && e->scale_y == floor(e->scale_y)
             && e->origin_x == floor(e->origin_x) && e->origin_y == floor(e->origin_y);
@@ -1243,31 +1268,100 @@ void vela_output_frame_reset_damage(struct vela_output_frame *frame)
 // The damage: what appeared, disappeared, changed or moved compared with the
 // previous frame (surface content comes from commits). Then `current` becomes
 // `last`.
+// Index only a reordered/changed scene. The common case (matching element
+// at the same position) needs no table and retains its allocation-free path.
+// Chained buckets preserve duplicate-key semantics: use the first matching
+// old position reached by the original circular search starting at i.
+static unsigned diff_key_bucket(const void *key, unsigned mask)
+{
+    uint64_t hash = (uint64_t)(uintptr_t)key;
+    hash ^= hash >> 33;
+    hash *= UINT64_C(0xff51afd7ed558ccd);
+    hash ^= hash >> 33;
+    hash *= UINT64_C(0xc4ceb9fe1a85ec53);
+    hash ^= hash >> 33;
+    return (unsigned)hash & mask;
+}
+
+static int diff_build_index(struct vela_output_frame *frame)
+{
+    int bucket_count = 8;
+    while ((size_t)bucket_count < (size_t)frame->last.count * 2) {
+        if (bucket_count > INT_MAX / 2) {
+            abort();
+        }
+        bucket_count *= 2;
+    }
+    frame->match_heads = vela_grow(frame->match_heads, &frame->match_heads_capacity, bucket_count,
+        sizeof(*frame->match_heads));
+    frame->match_next = vela_grow(frame->match_next, &frame->match_next_capacity, frame->last.count,
+        sizeof(*frame->match_next));
+    for (int bucket = 0; bucket < bucket_count; ++bucket) {
+        frame->match_heads[bucket] = -1;
+    }
+    // Insert backwards so positions sharing a bucket can be scanned ascending.
+    for (int j = frame->last.count - 1; j >= 0; --j) {
+        unsigned bucket = diff_key_bucket(frame->last.items[j].key, (unsigned)(bucket_count - 1));
+        frame->match_next[j] = frame->match_heads[bucket];
+        frame->match_heads[bucket] = j;
+    }
+    return bucket_count;
+}
+
+static int diff_lookup_old(const struct vela_output_frame *frame, const void *key, int i, int bucket_count)
+{
+    int start = i % frame->last.count;
+    int best = -1;
+    int best_distance = frame->last.count;
+    unsigned bucket = diff_key_bucket(key, (unsigned)(bucket_count - 1));
+    for (int j = frame->match_heads[bucket]; j >= 0; j = frame->match_next[j]) {
+        if (frame->last.items[j].key != key) {
+            continue; // hash collision, not the same element
+        }
+        int distance = j >= start ? j - start : frame->last.count - start + j;
+        if (distance < best_distance) {
+            best = j;
+            best_distance = distance;
+            if (distance == 0) {
+                break;
+            }
+        }
+    }
+    return best;
+}
+
+// The damage: what appeared, disappeared, changed or moved compared with the
+// previous frame (surface content comes from commits). Then `current` becomes
+// `last`.
 static void diff_with_last(struct vela_output_frame *frame)
 {
     struct vela_elements *current = &frame->current;
     struct vela_elements *last = &frame->last;
     pixman_region32_t changed;
     pixman_region32_init(&changed);
-    // Which earlier elements are found now; the search starts where they're
-    // expected (usually the order doesn't change).
     frame->found = vela_grow(frame->found, &frame->found_capacity, last->count, sizeof(*frame->found));
     bool *found = frame->found;
     if (last->count > 0) {
         memset(found, 0, (size_t)last->count * sizeof(*found));
     }
+    int bucket_count = 0;
     int highest_old_order = 0;
     for (int i = 0; i < current->count; ++i) {
         struct vela_element *e = &current->items[i];
         e->order = i;
-        const struct vela_element *old = NULL;
-        for (int k = 0; k < last->count; ++k) {
-            int j = (i + k) % last->count;
-            if (last->items[j].key == e->key) {
-                old = &last->items[j];
-                found[j] = true;
-                break;
+        int j = -1;
+        if (i < last->count && last->items[i].key == e->key) {
+            j = i;
+        } else if (last->count > 0) {
+            if (bucket_count == 0) {
+                bucket_count = diff_build_index(frame);
             }
+            j = diff_lookup_old(frame, e->key, i, bucket_count);
+        }
+        const struct vela_element *old = NULL;
+        if (j >= 0) {
+            old = &last->items[j];
+            found[j] = true;
         }
         if (!old) {
             union_box(&changed, &e->box);

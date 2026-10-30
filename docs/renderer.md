@@ -96,17 +96,23 @@ rectangles adjacent in logical space always stay adjacent in physical space.
 
 ### 3.4 Positions snapped to physical pixels
 
-**How it is done (S2).** A surface whose buffer is as large as its physical
+**How it is done (S2).** An image whose buffer is as large as its physical
 area (up to rounding) snaps to the nearest physical pixel and occupies exactly
 the buffer's pixels: 1:1 copy, nearest sampling. Rounding the two edges
 separately at 150% sometimes gave a box one pixel larger than the buffer, and
-the whole window went through the filter.
+the whole window went through the filter. The rule is the same *whoever drew
+the image*: an app's surface, or the compositor's own images (the title bar's
+title, icon and glyphs, the pieces of a snapshot at scale 1). Applied to
+surfaces only, the same text was sharp in an app and, at some window
+positions, filtered in the bar ([visual coherence](visual-coherence.md) D1).
 
 The **physical** position of each window (the origin of its main surface) is an
-integer. Animations compute fractional logical positions, but on every frame the
-origin snaps to the nearest physical pixel: no text "trembling" by half a pixel
-during a movement. Only scale transforms (opening, minimizing) resample, and only
-for their short duration.
+integer. Animations compute fractional logical positions and pass them to the
+scene unrounded: on every frame the origin snaps to the nearest physical pixel,
+once, in `scene/frame.c`. Rounding to logical units first would round twice: at
+125% a movement would advance by 1 and 2 pixels alternately. No text
+"trembling" by half a pixel during a movement. Only scale transforms (opening,
+minimizing) resample, and only for their short duration.
 
 ### 3.5 Well-chosen logical sizes
 
@@ -214,6 +220,27 @@ instead uses the **predicted presentation time** of the frame being drawn (last
 real vblank + period, from the backend's presentation feedback). This way motion
 is correct to the frame, even at 360 Hz, even with VRR, even when a frame arrives
 late.
+
+**Each output samples its own time; the wall clock retires**
+([visual coherence](visual-coherence.md) §6.2). Every frame is "tick, then
+flatten", synchronously: the tick writes the animated state at *that output's*
+predicted presentation time into the shared scene, and the output reads it at
+once. Outputs have different leads over the wall clock (frame budget plus
+learned latency), so the state may go back from one output's frame to the
+next: that is correct, each shows its own moment. What can't be undone
+(destroying a closing window's snapshot, giving the outgoing desktop's windows
+back to their layer, ending a window's open animation) happens only once the
+wall clock has passed the animation's end: every frame still to come, on any
+output, is presented after it. Until then the ticks keep writing the final
+state. A single clock that never went back would make a fast output draw a
+slower one's future and then repeat the same state: a stutter on the fastest
+monitor.
+
+**Frames without changes wait for their vblank.** While an animation runs,
+every output is asked for frames, also those where nothing changes. Such a
+frame delivers nothing; the next one is planned from the vblank it stood for,
+not at once. A frame asked for while an output is drawing (the ticks ask every
+output, that one too) is planned by that frame's vblank.
 
 **Output latency is learned** (discovered in S0). Several vblanks can pass
 between handing over a frame and its appearance: 1 or 2 in a window nested in
@@ -331,8 +358,11 @@ game's buffer) as soon as the game commits. It is turned off in Settings
 - **Windows** (xdg toplevels), **shell surfaces** (layers), **popups**.
 - **Vela's nodes**: rectangles, snapshots (closing and minimizing animations),
   snap previews.
-- Each node has: a transform (translation + scale around a point), opacity, a
-  clip with a **rounded rectangle**, a shadow, background blur, visibility.
+- Each node has a position relative to its parent, an opacity (multiplied by
+  the ancestors') and visibility; no transform: a snapshot that scales resizes
+  its pieces. A **tree** can have a shape: its children clipped to a **rounded
+  rectangle**, with a shadow below. Background blur belongs to app surfaces
+  (the protocol, §8.3).
 
 ### 5.2 Surfaces are read live
 
@@ -597,8 +627,17 @@ red, green and blue remains at the chosen temperature).
   atomically with the newly shader-tinted frame; a failed clear leaves the
   shader off until a safe retry. This is a diagnostic workaround for drivers
   that accept the LUT but display corrupted colors.
+- The temperature is `night-light-temperature`, in kelvin (1700–6500; Settings
+  shows it as such): the gains are those of a black body at that temperature
+  relative to 6500 K.
 - The transition (one second, like Windows) is an animation of §4.2: a new value
-  on every frame, and the whole output redrawn (or just a new gamma).
+  on every frame, drawn by the **shader** even where the monitor takes the LUT,
+  with the whole output redrawn; the LUT is committed once, when the fade ends
+  (and removed once, when a fade starts from it). A new gamma on every frame
+  stalled the whole display on amdgpu: each color change revalidates the planes
+  and waits, inside the ioctl, for the flips in flight on every output, so for a
+  second the cursor and every animation stuttered. `VELA_STATS=1` logs how long
+  each gamma test and commit takes.
 
 ## 8. Effects
 
@@ -709,11 +748,12 @@ get the part below. On the left, the app icon (from the `.desktop` file via
 `app_id` or `StartupWMClass`, from KDE's icon theme, an SVG drawn with librsvg at
 the physical size; without librsvg, which is optional, no icon): a click opens
 the window menu, a double click closes the window. The background is the Mica
-tint: the shell sends the compositor the average color of the desktop wallpaper
-(`wallpaper-tint`), made safe for text and mixed with Windows 11's gray (more so
-when inactive). The live blur behind the bar (§9.4, last point) is postponed:
-the solid tint is already close to Mica, which on Windows doesn't show the
-windows behind it.
+tint: the shell computes the bar's two colors (`mica <active> <inactive>`, §9.4)
+from the desktop wallpaper's average color, made safe for text and mixed with
+Windows 11's gray (more so when inactive), with the same formula Vela's apps use
+for their content (`shell/src/mica.h`), so bar and content meet without a seam.
+The live blur behind the bar (§9.4, last point) is postponed: the solid tint is
+already close to Mica, which on Windows doesn't show the windows behind it.
 
 **First version (September 2026)**, only for X11 apps that leave the title bar
 to the window manager (`compositor/src/decoration.*`): measurements of §9.3,
@@ -762,7 +802,12 @@ debug overlay (§10) and for other compositor UI.
 - **Background**: live blur of what's behind, with a **tint derived from the
   desktop wallpaper** (like Mica on Windows): see §9.4.
 - **Minimize/maximize/close buttons**: glyphs drawn as SDFs (lines), sharp at
-  every scale; animated hover; red "close".
+  every scale. Their hover is WinUI's SubtleFillColorSecondary (white at 6.1% in
+  dark mode, black at 3.7% in light mode: `Theme.subtleHover`, checked by
+  `scripts/check-shared-values.py`) and fades in and out in `fast`, turning back
+  from where it is; Close's hover is its red, with a white glyph faded in above
+  the normal one. No pressed state: a button acts on the press
+  (docs/visual-coherence.md §6.6).
 - **Title**: text with grayscale antialiasing (no RGB subpixel: it doesn't get
   along with transparency and animations), glyphs rasterized for each physical
   scale and never enlarged, in a texture atlas. The font is **KDE's** (§9.5).
@@ -789,6 +834,15 @@ so every window blends with the desktop without any settings:
   title stays at least 4.5:1 (the WCAG threshold);
 - final result = live blur of what's behind, mixed with the tint, plus a veil of
   noise; when inactive, the tint weighs more and the bar "dims", as on Windows.
+
+**Today** the tint is the wallpaper's average color, and the shell, which owns
+the theme, computes the bar's colors itself: `mica #active #inactive` in the
+apps' mode, with `micaFromTint()` (`shell/src/mica.h`), the function Settings
+and Files use for their content. The compositor draws what it receives; without
+a shell the bar keeps Windows 11's grays. `theme <shell> <apps> <accent>` also
+brings the accent, which the snap preview uses (a rectangle with radius 8
+corners, no shadow). One formula, in the process that owns the theme
+(docs/visual-coherence.md §6.6).
 
 ### 9.5 The font, from KDE
 

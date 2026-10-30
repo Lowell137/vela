@@ -2,6 +2,158 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="it_IT" sourcelanguage="en">
 <context>
+    <name>BluetoothDevices</name>
+    <message>
+        <source>Cancel</source>
+        <translation>Annulla</translation>
+    </message>
+    <message>
+        <source>Disconnect</source>
+        <translation>Disconnetti</translation>
+    </message>
+    <message>
+        <source>Connect</source>
+        <translation>Connetti</translation>
+    </message>
+</context>
+<context>
+    <name>BluetoothDialog</name>
+    <message>
+        <source>Bluetooth</source>
+        <translation>Bluetooth</translation>
+    </message>
+</context>
+<context>
+    <name>BluetoothPrompts</name>
+    <message>
+        <source>Pair with %1?</source>
+        <translation>Associare %1?</translation>
+    </message>
+    <message>
+        <source>Check that %1 shows %2.</source>
+        <translation>Verifica che %1 mostri %2.</translation>
+    </message>
+    <message>
+        <source>Pair</source>
+        <translation>Associa</translation>
+    </message>
+    <message>
+        <source>Deny</source>
+        <translation>Nega</translation>
+    </message>
+    <message>
+        <source>%1 wants to pair with this PC.</source>
+        <translation>%1 vuole associarsi a questo PC.</translation>
+    </message>
+    <message>
+        <source>Allow %1 to use %2?</source>
+        <translation>Consentire a %1 di usare %2?</translation>
+    </message>
+    <message>
+        <source>Allow</source>
+        <translation>Consenti</translation>
+    </message>
+    <message>
+        <source>Type the 6-digit code shown on %1.</source>
+        <translation>Digita il codice di 6 cifre mostrato su %1.</translation>
+    </message>
+    <message>
+        <source>Type the PIN for %1.</source>
+        <translation>Digita il PIN di %1.</translation>
+    </message>
+    <message>
+        <source>Enter code</source>
+        <translation>Inserisci codice</translation>
+    </message>
+    <message>
+        <source>Type %1 on %2, then press Enter on it.</source>
+        <translation>Digita %1 su %2, poi premi Invio sul dispositivo.</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Annulla</translation>
+    </message>
+    <message>
+        <source>Bluetooth</source>
+        <translation>Bluetooth</translation>
+    </message>
+    <message>
+        <source>Your PC is still visible to nearby devices</source>
+        <translation>Il PC è ancora visibile ai dispositivi vicini</translation>
+    </message>
+    <message>
+        <source>Another app is searching for devices.</source>
+        <translation>Un&apos;altra app sta cercando dispositivi.</translation>
+    </message>
+    <message>
+        <source>Stop being visible</source>
+        <translation>Non essere più visibile</translation>
+    </message>
+</context>
+<context>
+    <name>BluetoothQuestion</name>
+    <message>
+        <source>Does %1 show this code?</source>
+        <translation>%1 mostra questo codice?</translation>
+    </message>
+    <message>
+        <source>%1 wants to pair with this PC.</source>
+        <translation>%1 vuole associarsi a questo PC.</translation>
+    </message>
+    <message>
+        <source>Allow %1 to use %2?</source>
+        <translation>Consentire a %1 di usare %2?</translation>
+    </message>
+    <message>
+        <source>Type the 6-digit code shown on %1.</source>
+        <translation>Digita il codice di 6 cifre mostrato su %1.</translation>
+    </message>
+    <message>
+        <source>Type the PIN for %1.</source>
+        <translation>Digita il PIN di %1.</translation>
+    </message>
+    <message>
+        <source>Type this code on %1, then press Enter on it.</source>
+        <translation>Digita questo codice su %1, poi premi Invio sul dispositivo.</translation>
+    </message>
+    <message>
+        <source>Code %1</source>
+        <translation>Codice %1</translation>
+    </message>
+    <message>
+        <source>%1 of 6 digits typed</source>
+        <translation>%1 cifre su 6 digitate</translation>
+    </message>
+    <message>
+        <source>Code</source>
+        <translation>Codice</translation>
+    </message>
+    <message>
+        <source>PIN</source>
+        <translation>PIN</translation>
+    </message>
+    <message>
+        <source>Time left: %1 s</source>
+        <translation>Tempo rimasto: %1 s</translation>
+    </message>
+    <message>
+        <source>Allow</source>
+        <translation>Consenti</translation>
+    </message>
+    <message>
+        <source>Pair</source>
+        <translation>Associa</translation>
+    </message>
+    <message>
+        <source>Deny</source>
+        <translation>Nega</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Annulla</translation>
+    </message>
+</context>
+<context>
     <name>ClipboardPanel</name>
     <message>
         <source>Clipboard</source>
@@ -56,6 +208,10 @@
         <translation>Non c&apos;è niente qui. Quando copi qualcosa, lo ritrovi qui per incollarlo di nuovo.</translation>
     </message>
     <message>
+        <source>See more</source>
+        <translation>Visualizza altro</translation>
+    </message>
+    <message>
         <source>&amp;Unpin</source>
         <translation>&amp;Rimuovi fissaggio</translation>
     </message>
@@ -98,8 +254,16 @@
         <translation>Controlla il formato dell&apos;eseguibile e le librerie necessarie.</translation>
     </message>
     <message>
+        <source>Could not launch Vela Files to transfer the selected items.</source>
+        <translation>Impossibile avviare Vela Files per trasferire gli elementi selezionati.</translation>
+    </message>
+    <message>
         <source>Couldn&apos;t create the shortcut.</source>
         <translation>Impossibile creare il collegamento.</translation>
+    </message>
+    <message>
+        <source>Vela Files did not confirm that the transfer window opened.</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Recycle Bin</source>
@@ -126,22 +290,6 @@
         <translation>Nuovo documento di testo.txt</translation>
     </message>
     <message>
-        <source>Move</source>
-        <translation>Sposta</translation>
-    </message>
-    <message>
-        <source>Copy</source>
-        <translation>Copia</translation>
-    </message>
-    <message>
-        <source> - Copy.</source>
-        <translation> - Copia.</translation>
-    </message>
-    <message>
-        <source> - Copy</source>
-        <translation> - Copia</translation>
-    </message>
-    <message>
         <source>Compress</source>
         <translation>Comprimi</translation>
     </message>
@@ -160,6 +308,45 @@
     <message>
         <source>Couldn&apos;t create the shortcut here.</source>
         <translation>Impossibile creare il collegamento qui.</translation>
+    </message>
+</context>
+<context>
+    <name>DeviceState</name>
+    <message>
+        <source>Waiting for you...</source>
+        <translation>In attesa di una tua risposta...</translation>
+    </message>
+    <message>
+        <source>Pairing...</source>
+        <translation>Associazione in corso...</translation>
+    </message>
+    <message>
+        <source>Connecting...</source>
+        <translation>Connessione in corso...</translation>
+    </message>
+    <message>
+        <source>Disconnecting...</source>
+        <translation>Disconnessione in corso...</translation>
+    </message>
+    <message>
+        <source>Removing...</source>
+        <translation>Rimozione in corso...</translation>
+    </message>
+    <message>
+        <source>Renaming...</source>
+        <translation>Ridenominazione in corso...</translation>
+    </message>
+    <message>
+        <source>Connected</source>
+        <translation>Connesso</translation>
+    </message>
+    <message>
+        <source>Paired</source>
+        <translation>Associato</translation>
+    </message>
+    <message>
+        <source>Battery %1%</source>
+        <translation>Batteria %1%</translation>
     </message>
 </context>
 <context>
@@ -195,10 +382,6 @@
     <message>
         <source>Email</source>
         <translation>Posta elettronica</translation>
-    </message>
-    <message>
-        <source>Bluetooth</source>
-        <translation>Bluetooth</translation>
     </message>
     <message>
         <source>No apps to share with.</source>
@@ -364,6 +547,13 @@
     <message>
         <source>No new notifications</source>
         <translation>Nessuna nuova notifica</translation>
+    </message>
+</context>
+<context>
+    <name>NotificationPopups</name>
+    <message>
+        <source>Close</source>
+        <translation>Chiudi</translation>
     </message>
 </context>
 <context>
@@ -559,52 +749,40 @@
         <translation>Ingresso predefinito</translation>
     </message>
     <message>
-        <source>30 minutes</source>
-        <translation>30 minuti</translation>
+        <source>%1 settings</source>
+        <translation>Impostazioni di %1</translation>
     </message>
     <message>
-        <source>1 hour</source>
-        <translation>1 ora</translation>
+        <source>Unmute</source>
+        <translation>Riattiva audio</translation>
     </message>
     <message>
-        <source>2 hours</source>
-        <translation>2 ore</translation>
+        <source>Mute</source>
+        <translation>Disattiva audio</translation>
     </message>
     <message>
-        <source>5 hours</source>
-        <translation>5 ore</translation>
+        <source>Brightness of %1</source>
+        <translation>Luminosità di %1</translation>
     </message>
     <message>
-        <source>Indefinitely</source>
-        <translation>A tempo indeterminato</translation>
+        <source>Brightness</source>
+        <translation>Luminosità</translation>
     </message>
     <message>
-        <source>Custom...</source>
-        <translation>Personalizzato...</translation>
+        <source>Brightness of each display</source>
+        <translation>Luminosità di ogni schermo</translation>
     </message>
     <message>
-        <source>Turn off</source>
-        <translation>Disattiva</translation>
+        <source>This display isn&apos;t responding</source>
+        <translation>Questo schermo non risponde</translation>
     </message>
     <message>
-        <source>Previous player</source>
-        <translation>Lettore precedente</translation>
+        <source>The display didn&apos;t accept the change</source>
+        <translation>Lo schermo non ha accettato la modifica</translation>
     </message>
     <message>
-        <source>Next player</source>
-        <translation>Lettore successivo</translation>
-    </message>
-    <message>
-        <source>Previous</source>
-        <translation>Precedente</translation>
-    </message>
-    <message>
-        <source>Pause</source>
-        <translation>Pausa</translation>
-    </message>
-    <message>
-        <source>Play</source>
-        <translation>Riproduci</translation>
+        <source>Back</source>
+        <translation>Indietro</translation>
     </message>
     <message>
         <source>Wi-Fi</source>
@@ -711,6 +889,26 @@
         <translation>Altre impostazioni Wi-Fi</translation>
     </message>
     <message>
+        <source>Bluetooth is turned off.</source>
+        <translation>Il Bluetooth è disattivato.</translation>
+    </message>
+    <message>
+        <source>No paired devices.</source>
+        <translation>Nessun dispositivo associato.</translation>
+    </message>
+    <message>
+        <source>More Bluetooth settings</source>
+        <translation>Altre impostazioni Bluetooth</translation>
+    </message>
+    <message>
+        <source>More display settings</source>
+        <translation>Altre impostazioni dello schermo</translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation>Impostazioni</translation>
+    </message>
+    <message>
         <source>Sound output</source>
         <translation>Uscita audio</translation>
     </message>
@@ -754,6 +952,10 @@
         <translation>Sfoglia</translation>
     </message>
     <message>
+        <source>Browse...</source>
+        <translation>Sfoglia...</translation>
+    </message>
+    <message>
         <source>Type the name of a program, folder, document or Internet resource, and Vela will open it for you.</source>
         <translation>Digita il nome di un programma, cartella, documento o risorsa Internet e Vela lo aprirà.</translation>
     </message>
@@ -771,6 +973,21 @@
     <message>
         <source>Lock the screen before suspending</source>
         <translation>Blocca lo schermo prima di sospendere</translation>
+    </message>
+</context>
+<context>
+    <name>Shell</name>
+    <message>
+        <source>File transfer complete</source>
+        <translation>Trasferimento file completato</translation>
+    </message>
+    <message>
+        <source>File transfer interrupted</source>
+        <translation>Trasferimento file interrotto</translation>
+    </message>
+    <message>
+        <source>File Explorer closed before this transfer finished.</source>
+        <translation>Esplora file è stato chiuso prima del completamento del trasferimento.</translation>
     </message>
 </context>
 <context>
@@ -1180,8 +1397,12 @@
         <translation>A&amp;ltro</translation>
     </message>
     <message>
-        <source>Search apps, files and settings</source>
-        <translation>Cerca app, file e impostazioni</translation>
+        <source>Couldn&apos;t find this application&apos;s launcher.</source>
+        <translation>Impossibile trovare l&apos;avviatore di questa applicazione.</translation>
+    </message>
+    <message>
+        <source>Search apps</source>
+        <translation>Cerca app</translation>
     </message>
     <message>
         <source>Results</source>
@@ -1202,6 +1423,10 @@
     <message>
         <source>No apps found</source>
         <translation>Nessuna app trovata</translation>
+    </message>
+    <message>
+        <source>Power</source>
+        <translation>Arresta</translation>
     </message>
     <message>
         <source>Sleep</source>
@@ -1296,6 +1521,74 @@
 </context>
 <context>
     <name>Taskbar</name>
+    <message>
+        <source>1 minute remaining</source>
+        <translation>1 minuto rimanente</translation>
+    </message>
+    <message>
+        <source>%1 minutes remaining</source>
+        <translation>%1 minuti rimanenti</translation>
+    </message>
+    <message>
+        <source>%1 h remaining</source>
+        <translation>%1 h rimanenti</translation>
+    </message>
+    <message>
+        <source>%1 h %2 min remaining</source>
+        <translation>%1 h %2 min rimanenti</translation>
+    </message>
+    <message>
+        <source>Caffeine: off</source>
+        <translation>Caffeina: disattivata</translation>
+    </message>
+    <message>
+        <source>Caffeine: %1</source>
+        <translation>Caffeina: %1</translation>
+    </message>
+    <message>
+        <source>Caffeine: keeping the computer awake</source>
+        <translation>Caffeina: il computer resta attivo</translation>
+    </message>
+    <message>
+        <source>15 minutes</source>
+        <translation>15 minuti</translation>
+    </message>
+    <message>
+        <source>30 minutes</source>
+        <translation>30 minuti</translation>
+    </message>
+    <message>
+        <source>1 hour</source>
+        <translation>1 ora</translation>
+    </message>
+    <message>
+        <source>2 hours</source>
+        <translation>2 ore</translation>
+    </message>
+    <message>
+        <source>3 hours</source>
+        <translation>3 ore</translation>
+    </message>
+    <message>
+        <source>5 hours</source>
+        <translation>5 ore</translation>
+    </message>
+    <message>
+        <source>8 hours</source>
+        <translation>8 ore</translation>
+    </message>
+    <message>
+        <source>&amp;Indefinitely</source>
+        <translation>A tempo &amp;indeterminato</translation>
+    </message>
+    <message>
+        <source>Turn &amp;off</source>
+        <translation>&amp;Disattiva</translation>
+    </message>
+    <message>
+        <source>&amp;Power settings</source>
+        <translation>Impostazioni di &amp;alimentazione</translation>
+    </message>
     <message>
         <source>&amp;Open</source>
         <translation>&amp;Apri</translation>
@@ -1445,27 +1738,52 @@
         <translation>Visualizzazione attività</translation>
     </message>
     <message>
-        <source>99+</source>
-        <translation>99+</translation>
+        <source>File transfers</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Show hidden icons</source>
-        <translation>Mostra icone nascoste</translation>
+        <source>Transfer removed</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Your screen is being shared. Notifications are silenced.</source>
-        <translation>Il tuo schermo è condiviso. Le notifiche sono silenziate.</translation>
+        <source>Finished</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Your screen is being shared</source>
-        <translation>Il tuo schermo è condiviso</translation>
+        <source>Preparing</source>
+        <translation type="unfinished"></translation>
     </message>
-    <message numerus="yes">
-        <source>%n window(s) hidden from the capture</source>
-        <translation>
-            <numerusform>%n finestra nascosta dall&apos;acquisizione</numerusform>
-            <numerusform>%n finestre nascoste dall&apos;acquisizione</numerusform>
-        </translation>
+    <message>
+        <source>Bytes transferred</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>calculating</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Calculating speed</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Transfer finished</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Calculating transfer speed…</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>time unknown</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 seconds remaining</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cancel transfer</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>%1 is using your microphone</source>
@@ -1501,7 +1819,38 @@
     </message>
     <message>
         <source>Show desktop</source>
-        <translation>Mostra desktop</translation>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>UpdateNotices</name>
+    <message>
+        <source>Updates</source>
+        <translation>Aggiornamenti</translation>
+    </message>
+    <message>
+        <source>Vela %1 is available</source>
+        <translation>È disponibile Vela %1</translation>
+    </message>
+    <message>
+        <source>Open Updates to see what&apos;s new and install it.</source>
+        <translation>Apri Aggiornamenti per vedere le novità e installarlo.</translation>
+    </message>
+    <message>
+        <source>Open Updates</source>
+        <translation>Apri Aggiornamenti</translation>
+    </message>
+    <message>
+        <source>Sign out to finish updating</source>
+        <translation>Esci per completare l&apos;aggiornamento</translation>
+    </message>
+    <message>
+        <source>Vela was updated. Sign out and sign in again to use the new version.</source>
+        <translation>Vela è stato aggiornato. Esci e accedi di nuovo per usare la nuova versione.</translation>
+    </message>
+    <message>
+        <source>Sign out</source>
+        <translation>Esci</translation>
     </message>
 </context>
 <context>
@@ -1751,123 +2100,42 @@
     </message>
 </context>
 <context>
-    <name>Weather</name>
+    <name>vela::bluetooth::Bluetooth</name>
     <message>
-        <source>Today</source>
-        <translation>Oggi</translation>
-    </message>
-</context>
-<context>
-    <name>WeatherFlyout</name>
-    <message>
-        <source>No weather data yet</source>
-        <translation>Nessun dato meteo</translation>
+        <source>Bluetooth is busy. Try again in a moment.</source>
+        <translation>Il Bluetooth è occupato. Riprova tra un momento.</translation>
     </message>
     <message>
-        <source>Out of date. Last updated %1.</source>
-        <translation>Non aggiornato. Ultimo aggiornamento: %1.</translation>
+        <source>Wait for %1 to finish pairing.</source>
+        <translation>Attendi che %1 finisca l&apos;associazione.</translation>
     </message>
     <message>
-        <source>Feels like</source>
-        <translation>Percepita</translation>
+        <source>Bluetooth can&apos;t be changed while the screen is locked or another session is in use.</source>
+        <translation>Il Bluetooth non si può modificare mentre lo schermo è bloccato o è in uso un&apos;altra sessione.</translation>
     </message>
     <message>
-        <source>Humidity</source>
-        <translation>Umidità</translation>
+        <source>This app isn&apos;t allowed to change Bluetooth.</source>
+        <translation>Questa app non può modificare il Bluetooth.</translation>
     </message>
     <message>
-        <source>Wind</source>
-        <translation>Vento</translation>
-    </message>
-</context>
-<context>
-    <name>WeatherWidget</name>
-    <message>
-        <source>out of date</source>
-        <translation>non aggiornato</translation>
-    </message>
-</context>
-<context>
-    <name>vela::weather</name>
-    <message>
-        <source>Clear</source>
-        <translation>Sereno</translation>
+        <source>There&apos;s no Bluetooth adapter.</source>
+        <translation>Non c&apos;è nessun adattatore Bluetooth.</translation>
     </message>
     <message>
-        <source>Mostly clear</source>
-        <translation>Prevalentemente sereno</translation>
+        <source>The device isn&apos;t there anymore.</source>
+        <translation>Il dispositivo non c&apos;è più.</translation>
     </message>
     <message>
-        <source>Partly cloudy</source>
-        <translation>Parzialmente nuvoloso</translation>
+        <source>That code isn&apos;t valid.</source>
+        <translation>Il codice non è valido.</translation>
     </message>
     <message>
-        <source>Overcast</source>
-        <translation>Coperto</translation>
+        <source>That name can&apos;t be used. Use up to 248 characters, without control characters.</source>
+        <translation>Questo nome non si può usare. Usa al massimo 248 caratteri, senza caratteri di controllo.</translation>
     </message>
     <message>
-        <source>Fog</source>
-        <translation>Nebbia</translation>
-    </message>
-    <message>
-        <source>Drizzle</source>
-        <translation>Pioviggine</translation>
-    </message>
-    <message>
-        <source>Freezing drizzle</source>
-        <translation>Pioviggine gelata</translation>
-    </message>
-    <message>
-        <source>Light rain</source>
-        <translation>Pioggia leggera</translation>
-    </message>
-    <message>
-        <source>Rain</source>
-        <translation>Pioggia</translation>
-    </message>
-    <message>
-        <source>Heavy rain</source>
-        <translation>Pioggia forte</translation>
-    </message>
-    <message>
-        <source>Freezing rain</source>
-        <translation>Pioggia gelata</translation>
-    </message>
-    <message>
-        <source>Light snow</source>
-        <translation>Neve debole</translation>
-    </message>
-    <message>
-        <source>Snow</source>
-        <translation>Neve</translation>
-    </message>
-    <message>
-        <source>Heavy snow</source>
-        <translation>Neve forte</translation>
-    </message>
-    <message>
-        <source>Snow grains</source>
-        <translation>Granelli di neve</translation>
-    </message>
-    <message>
-        <source>Rain showers</source>
-        <translation>Rovesci di pioggia</translation>
-    </message>
-    <message>
-        <source>Snow showers</source>
-        <translation>Rovesci di neve</translation>
-    </message>
-    <message>
-        <source>Thunderstorm</source>
-        <translation>Temporale</translation>
-    </message>
-    <message>
-        <source>Thunderstorm with hail</source>
-        <translation>Temporale con grandine</translation>
-    </message>
-    <message>
-        <source>Unknown</source>
-        <translation>Sconosciuto</translation>
+        <source>Bluetooth isn&apos;t responding.</source>
+        <translation>Il Bluetooth non risponde.</translation>
     </message>
 </context>
 </TS>

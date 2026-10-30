@@ -8,7 +8,7 @@ import Vela.Controls
 // description on the left, the control on the right (the children). With
 // `clickable` the whole card is a button (and shows the arrow if it leads to
 // another page).
-Rectangle {
+Fill {
     id: card
     property string icon
     property string title
@@ -74,6 +74,7 @@ Rectangle {
             Text {
                 width: parent.width
                 text: card.title
+                textFormat: Text.PlainText
                 color: Theme.text
                 font.pixelSize: Theme.fontBody
                 elide: Text.ElideRight
@@ -82,6 +83,7 @@ Rectangle {
                 visible: card.description !== ""
                 width: parent.width
                 text: card.description
+                textFormat: Text.PlainText
                 color: Theme.textSecondary
                 font.pixelSize: Theme.fontCaption
                 wrapMode: Text.Wrap
@@ -94,12 +96,10 @@ Rectangle {
             anchors { right: parent.right; rightMargin: card.chevron ? 28 : 0; verticalCenter: parent.verticalCenter }
             spacing: 8
         }
-        Text {
+        Chevron {
             visible: card.chevron
-            anchors { right: parent.right; rightMargin: 2; verticalCenter: parent.verticalCenter }
-            text: "›"
+            anchors { right: parent.right; rightMargin: 4; verticalCenter: parent.verticalCenter }
             color: Theme.textSecondary
-            font.pixelSize: 22
         }
     }
 

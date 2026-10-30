@@ -12,6 +12,7 @@
 // VELA_FILES_TIMING=1 it prints how long it took.
 
 #include "appmodel.h"
+#include "../../common/filetransferrequest.h"
 #include "controls.h"
 #include "fileops.h"
 #include "language.h"
@@ -97,7 +98,23 @@ int main(int argc, char* argv[])
     QString select;
     const QStringList args = app.arguments().mid(1);
     Picker picker;
-    if (args.size() == 2 && args.first() == QLatin1String("--pick") && picker.load(args.at(1))) {
+    vela::files::TransferRequest externalTransfer;
+    const bool transferMode = vela::files::parseTransferArguments(args, &externalTransfer);
+    if (!args.isEmpty() && args.first() == QLatin1String("--vela-transfer") && !transferMode) {
+        qCritical("vela-files: invalid transfer request");
+        vela::files::notifyTransferStartupFailure(
+            QCoreApplication::translate("Files", "Invalid transfer request."));
+        return 2;
+    }
+    if (transferMode && !QFileInfo(externalTransfer.directory).isDir()) {
+        qCritical("vela-files: destination folder does not exist");
+        vela::files::notifyTransferStartupFailure(
+            QCoreApplication::translate("Files", "The destination folder does not exist."));
+        return 2;
+    }
+    if (transferMode) {
+        start = QFileInfo(externalTransfer.directory).absoluteFilePath();
+    } else if (args.size() == 2 && args.first() == QLatin1String("--pick") && picker.load(args.at(1))) {
         start = picker.startFolder();
     } else if (!args.isEmpty()) {
         const QUrl url = QUrl::fromUserInput(args.first(), QDir::currentPath(), QUrl::AssumeLocalFile);
@@ -115,6 +132,15 @@ int main(int argc, char* argv[])
     AppModel apps;
     FileOps ops(&apps);
     Places places;
+    places.setTransferGuard([&ops](const QString& device) { return ops.activeOnDevice(device); });
+    ops.setEjectGuard([&places](const QStringList& sources, const QString& destination) {
+        for (const QString& device : places.ejectingDevices()) {
+            if (FileOps::pathsOnDevice(sources, destination, device)) {
+                return true;
+            }
+        }
+        return false;
+    });
     SystemActions system;
     ServiceMenus serviceMenus;
 
@@ -136,7 +162,33 @@ int main(int argc, char* argv[])
     context->setContextProperty(QStringLiteral("StartSelection"), select);
     engine.loadFromModule("Vela.Files", "Main");
     if (engine.rootObjects().isEmpty()) {
+        if (transferMode) {
+            vela::files::notifyTransferStartupFailure(
+                QCoreApplication::translate("Files", "Could not open the file transfer window."));
+        }
         return 1;
+    }
+    // A desktop paste/drop uses exactly the same FileOps requestTransfer()
+    // pipeline as Explorer's own paste/drop: conflict UI, progress and cancel.
+    // Dispatch only after the QML window has connected to Ops signals.
+    if (transferMode) {
+        QStringList urls;
+        for (const QString& source : externalTransfer.sources) {
+            const QFileInfo info(source);
+            if (info.exists()) {
+                urls.append(QUrl::fromLocalFile(info.absoluteFilePath()).toString());
+            }
+        }
+        if (urls.isEmpty()) {
+            qCritical("vela-files: no valid source files for transfer");
+            vela::files::notifyTransferStartupFailure(
+                QCoreApplication::translate("Files", "The source files are no longer available."));
+            return 2;
+        }
+        QTimer::singleShot(0, &ops, [&ops, urls, externalTransfer] {
+            ops.dropFromDesktop(urls, externalTransfer.directory, static_cast<int>(externalTransfer.action));
+            vela::files::acknowledgeTransferStartup();
+        });
     }
 
     auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().first());

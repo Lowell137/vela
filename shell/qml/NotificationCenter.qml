@@ -25,7 +25,7 @@ Window {
     // away from below without fading, and what is above it slides down (Windows 11's, measured).
     property real fold: monthFolded ? 0 : 1
     Behavior on fold {
-        NumberAnimation { duration: Theme.motion(root.monthFolded ? 180 : 150); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+        NumberAnimation { duration: Theme.animated(root.monthFolded ? 180 : 150); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
     }
     property date now: new Date()
     Timer {
@@ -112,10 +112,10 @@ Window {
     // solid after two frames.
     SequentialAnimation {
         id: appear
-        PauseAnimation { duration: Theme.motion(root.lead) }
+        PauseAnimation { duration: Theme.animated(root.lead) }
         ParallelAnimation {
-            NumberAnimation { target: column; property: "opacity"; to: 1; duration: Theme.motion(60) }
-            NumberAnimation { target: slide; property: "x"; to: 0; duration: Theme.motion(150); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+            NumberAnimation { target: column; property: "opacity"; to: 1; duration: Theme.animated(60) }
+            NumberAnimation { target: slide; property: "x"; to: 0; duration: Theme.animated(150); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
         }
     }
 

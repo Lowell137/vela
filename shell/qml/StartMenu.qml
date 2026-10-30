@@ -570,12 +570,12 @@ Window {
         id: openAnimation
         NumberAnimation {
             target: panel; property: "offset"; to: 0
-            duration: Theme.motion(190) // Windows 11's: about 170 ms, slowing down
+            duration: Theme.animated(190) // Windows 11's: about 170 ms, slowing down
             easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate
         }
         NumberAnimation {
             target: panel; property: "opacity"; to: 1
-            duration: Theme.motion(60) // it does not fade in on Windows, only comes up
+            duration: Theme.animated(60) // it does not fade in on Windows, only comes up
             easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate
         }
     }

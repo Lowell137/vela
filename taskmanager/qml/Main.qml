@@ -201,7 +201,7 @@ Window {
         ToolButton {
             width: 40
             height: 36
-            icon: "application-menu"
+            icon.name: "application-menu"
             tooltip: qsTr("Open or close the navigation")
             onClicked: settings.wideRail = !settings.wideRail
         }
@@ -323,34 +323,34 @@ Window {
                 spacing: 4
                 ToolButton {
                     visible: root.page === "processes" || root.page === "details"
-                    icon: "window-new"
+                    icon.name: "window-new"
                     text: qsTr("Run new task")
                     onClicked: runDialog.ask()
                 }
                 ToolButton {
                     visible: root.page === "processes" || root.page === "details"
-                    icon: "process-stop"
+                    icon.name: "process-stop"
                     text: qsTr("End task")
                     usable: root.selected !== null && root.selected.mine === true
                     onClicked: root.endSelected()
                 }
                 ToolButton {
                     visible: root.page === "services"
-                    icon: "media-playback-start"
+                    icon.name: "media-playback-start"
                     text: qsTr("Start")
                     usable: root.selected !== null && !root.selected.active
                     onClicked: Sys.service("start", root.selected.unit, root.selected.user)
                 }
                 ToolButton {
                     visible: root.page === "services"
-                    icon: "process-stop"
+                    icon.name: "process-stop"
                     text: qsTr("Stop")
                     usable: root.selected !== null && root.selected.active === true
                     onClicked: Sys.service("stop", root.selected.unit, root.selected.user)
                 }
                 ToolButton {
                     visible: root.page === "services"
-                    icon: "view-refresh"
+                    icon.name: "view-refresh"
                     text: qsTr("Restart")
                     usable: root.selected !== null && root.selected.active === true
                     onClicked: Sys.service("restart", root.selected.unit, root.selected.user)
@@ -704,7 +704,7 @@ Window {
                             elide: Text.ElideMiddle
                         }
                     }
-                    Toggle {
+                    Switch {
                         anchors { right: parent.right; rightMargin: 16; verticalCenter: parent.verticalCenter }
                         checked: app.row.enabled
                         onToggled: checked => {

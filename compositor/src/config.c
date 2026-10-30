@@ -6,6 +6,7 @@
 #include "legacy_names.h"
 #include "path_security.h"
 
+#include <errno.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -110,24 +111,24 @@ static void read_lines(const char *path, struct lines *lines, bool *changed)
 }
 
 // A new file in place of the old one: readers never see half a file.
-static void write_lines(const char *path, const struct lines *lines)
+static bool write_lines(const char *path, const struct lines *lines)
 {
     // mkstemp uses 0600 regardless of umask, and prevents a predictable
     // .tmp symlink from redirecting configuration writes.
     char temporary[PATH_MAX + 8];
     int n = snprintf(temporary, sizeof(temporary), "%s.XXXXXX", path);
     if (n < 0 || (size_t)n >= sizeof(temporary)) {
-        return;
+        return false;
     }
     int fd = mkstemp(temporary);
     if (fd < 0) {
-        return;
+        return false;
     }
     FILE *file = fdopen(fd, "w");
     if (!file) {
         close(fd);
         unlink(temporary);
-        return;
+        return false;
     }
     bool ok = true;
     for (int i = 0; i < lines->count; ++i) {
@@ -136,7 +137,9 @@ static void write_lines(const char *path, const struct lines *lines)
     ok = fclose(file) == 0 && ok;
     if (!ok || rename(temporary, path) != 0) {
         unlink(temporary);
+        return false;
     }
+    return true;
 }
 
 static void set_entry(struct vela_config *config, const char *line, size_t key_length)
@@ -254,21 +257,23 @@ bool vela_config_list_has(const char *list, const char *item)
 }
 
 
-void vela_config_write(const char *key, const char *value)
+bool vela_config_write_checked(const char *key, const char *value)
 {
     char dir[PATH_MAX];
     char path[PATH_MAX];
     if (!vela_config_path(NULL, dir, sizeof(dir)) || !vela_config_path("vela.conf", path, sizeof(path))) {
-        return;
+        return false;
     }
-    mkdir(dir, 0755);
+    if (mkdir(dir, 0755) < 0 && errno != EEXIST) {
+        return false;
+    }
 
     struct lines lines = { 0 };
     read_lines(path, &lines, NULL);
     char *wanted = NULL;
     if (asprintf(&wanted, "%s=%s", key, value) < 0) {
         lines_free(&lines);
-        return;
+        return false;
     }
     size_t key_length = strlen(key);
     bool found = false;
@@ -295,8 +300,14 @@ void vela_config_write(const char *key, const char *value)
         lines_push(&lines, strdup(wanted));
     }
     free(wanted);
-    write_lines(path, &lines);
+    bool ok = write_lines(path, &lines);
     lines_free(&lines);
+    return ok;
+}
+
+void vela_config_write(const char *key, const char *value)
+{
+    (void)vela_config_write_checked(key, value);
 }
 
 void vela_config_migrate(void)

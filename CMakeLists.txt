@@ -34,9 +34,12 @@ if(VELA_BUILD_TOOLS)
     add_test(NAME script-tests COMMAND ${Python3_EXECUTABLE} -m unittest discover
         -s ${PROJECT_SOURCE_DIR}/scripts/tests -v)
     add_test(NAME documentation COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/check-docs.py)
+    add_test(NAME shared-values COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/check-shared-values.py)
+    # Reports only until the private controls are replaced (docs/visual-coherence.md §8).
+    add_test(NAME qml-motion COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/scripts/check-qml-motion.py)
     add_test(NAME functional-harness COMMAND ${Python3_EXECUTABLE} -m unittest discover
         -s ${PROJECT_SOURCE_DIR}/tests/harness -v)
-    set_tests_properties(script-tests documentation functional-harness PROPERTIES TIMEOUT 30)
+    set_tests_properties(script-tests documentation shared-values qml-motion functional-harness PROPERTIES TIMEOUT 30)
     set_tests_properties(functional-harness PROPERTIES
         ENVIRONMENT "PYTHONPATH=${PROJECT_SOURCE_DIR}/tests/functional")
 endif()
@@ -48,6 +51,10 @@ endif()
 
 if(VELA_BUILD_COMPOSITOR)
     add_subdirectory(compositor)
+    add_subdirectory(brightness)
+    add_subdirectory(common/caller)
+    add_subdirectory(bluetooth)
+    add_subdirectory(updates)
     add_subdirectory(session)
 endif()
 option(VELA_BUILD_STEAM_PROGRESS "Build the optional Steam download progress for the taskbar (reads Steam's own files)" OFF)
@@ -92,20 +99,103 @@ if(VELA_BUILD_TOOLS)
     # they are reported as skipped (code 77).
     if(VELA_BUILD_COMPOSITOR)
         if(Python3_FOUND)
-            add_test(NAME functional COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tests/functional/run.py)
+            # One entry per module (test_shell.py becomes functional-shell),
+            # so each stays well within its timeout however the suite grows.
+            file(GLOB VELA_FUNCTIONAL_MODULES CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/tests/functional/test_*.py)
+            set(VELA_FUNCTIONAL_TESTS)
+            foreach(module_path IN LISTS VELA_FUNCTIONAL_MODULES)
+                get_filename_component(module ${module_path} NAME_WE)
+                string(REGEX REPLACE "^test_" "" name ${module})
+                string(REPLACE "_" "-" name ${name})
+                add_test(NAME functional-${name}
+                    COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tests/functional/run.py ${module})
+                list(APPEND VELA_FUNCTIONAL_TESTS functional-${name})
+            endforeach()
             add_test(NAME sharpness COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tests/functional/run.py --sharpness)
             add_test(NAME sharpness-cpu COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tests/functional/run.py --sharpness)
-            set_tests_properties(functional sharpness sharpness-cpu PROPERTIES
+            set_tests_properties(${VELA_FUNCTIONAL_TESTS} sharpness sharpness-cpu PROPERTIES
                 ENVIRONMENT "VELA_BUILD=${CMAKE_BINARY_DIR}"
                 SKIP_RETURN_CODE 77
                 TIMEOUT 600
                 LABELS gpu
                 RUN_SERIAL TRUE)
+            set_property(TEST ${VELA_FUNCTIONAL_TESTS} APPEND PROPERTY LABELS functional)
             set_property(TEST sharpness-cpu APPEND PROPERTY ENVIRONMENT "VELA_SYNC_FILE=0")
         endif()
     endif()
     # A private PipeWire and WirePlumber for the audio tests (docs/audio.md).
     add_subdirectory(tests/audio)
+    # A fake BlueZ for vela-bluetooth (docs/bluetooth.md §11).
+    if(TARGET vela-bluetooth-testing AND VELA_BUILD_SHELL)
+        add_subdirectory(tests/bluetooth)
+    endif()
+    # A fake vela-update, terminal and NetworkManager for vela-update-daemon
+    # (docs/updates.md §10).
+    if(TARGET vela-update-daemon-testing AND VELA_BUILD_SHELL)
+        add_subdirectory(tests/updates)
+    endif()
+endif()
+
+# Experimental Ubuntu 26.10 binary package. Opt-in so other distributions and
+# local builds do not accidentally produce Debian packages.
+option(VELA_PACKAGE_DEB "Enable experimental Debian package generation" OFF)
+if(VELA_PACKAGE_DEB)
+    if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        message(FATAL_ERROR "Vela DEB packaging requires Linux")
+    endif()
+    set(CPACK_GENERATOR "DEB")
+    set(VELA_PACKAGE_CHANNEL "experimental" CACHE STRING "Vela distribution channel (experimental or beta)")
+    if(VELA_PACKAGE_CHANNEL STREQUAL "beta")
+        set(CPACK_PACKAGE_NAME "vela")
+        set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+        set(CPACK_DEBIAN_PACKAGE_CONFLICTS "vela-git")
+        set(CPACK_DEBIAN_PACKAGE_REPLACES "vela-git")
+    elseif(VELA_PACKAGE_CHANNEL STREQUAL "experimental")
+        set(CPACK_PACKAGE_NAME "vela-git")
+        set(CPACK_DEBIAN_PACKAGE_CONFLICTS "vela")
+        set(CPACK_DEBIAN_PACKAGE_REPLACES "vela")
+    else()
+        message(FATAL_ERROR "Unknown VELA_PACKAGE_CHANNEL: ${VELA_PACKAGE_CHANNEL}")
+    endif()
+    # Embed the selected revision in Debian Version for reliable updater comparisons.
+    # Unstamped local/CI preview builds retain the ordinary project version.
+    set(VELA_PACKAGE_COMMIT "" CACHE STRING "Short Git commit for the DEB version")
+    if(VELA_PACKAGE_CHANNEL STREQUAL "experimental" AND NOT VELA_PACKAGE_COMMIT STREQUAL "")
+        string(LENGTH "${VELA_PACKAGE_COMMIT}" VELA_PACKAGE_COMMIT_LENGTH)
+        if(NOT VELA_PACKAGE_COMMIT MATCHES "^[0-9a-f]+$" OR
+           VELA_PACKAGE_COMMIT_LENGTH LESS 7 OR VELA_PACKAGE_COMMIT_LENGTH GREATER 40)
+            message(FATAL_ERROR "VELA_PACKAGE_COMMIT must be a hexadecimal Git commit abbreviation")
+        endif()
+        set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}+git${VELA_PACKAGE_COMMIT}")
+    endif()
+    set(CPACK_PACKAGE_VENDOR "Vela Desktop")
+    set(CPACK_PACKAGE_CONTACT "Vela contributors <dev@velade.org>")
+    set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "${PROJECT_DESCRIPTION}")
+    set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/LICENSE")
+    set(CPACK_DEBIAN_PACKAGE_MAINTAINER "${CPACK_PACKAGE_CONTACT}")
+    set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
+    set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+    # Executables, icon themes and launch scripts require these at runtime
+    # even when not linked as ELF libraries (shlibdeps handles the rest).
+    # Vela uses Breeze by default; Qt needs the SVG icon engine to render it.
+    set(CPACK_DEBIAN_PACKAGE_DEPENDS
+        "git, curl, apt, dpkg, sudo, util-linux, xdg-terminal-exec, breeze-icon-theme, qt6-svg-plugins, qt6-wayland, layer-shell-qt, xwayland, pipewire, wireplumber, polkitd, dbus-user-session, python3, python3-numpy, python3-pil, qml6-module-qtquick, qml6-module-qtquick-controls, qml6-module-qtquick-layouts, qml6-module-qtqml-workerscript")
+    # Bluetooth needs only BlueZ (docs/bluetooth.md §10), as Fedora's
+    # Recommends and Arch's optional dependency. Settings > Updates runs
+    # vela-update in a terminal (docs/updates.md §6.3): xdg-terminal-exec
+    # (Depends) picks any one installed, Konsole by default.
+    set(CPACK_DEBIAN_PACKAGE_RECOMMENDS "bluez, konsole | x-terminal-emulator")
+    # Unlike the native Arch/Fedora specs, CPack installs these explicitly.
+    install(PROGRAMS "${PROJECT_SOURCE_DIR}/packaging/vela-update"
+        DESTINATION "${CMAKE_INSTALL_BINDIR}")
+    install(PROGRAMS "${PROJECT_SOURCE_DIR}/packaging/vela-update-beta"
+        DESTINATION "${CMAKE_INSTALL_LIBEXECDIR}")
+    install(FILES "${PROJECT_SOURCE_DIR}/packaging/verify-attestation.py"
+        DESTINATION "${CMAKE_INSTALL_LIBEXECDIR}")
+    install(PROGRAMS "${PROJECT_SOURCE_DIR}/packaging/vela-update-state"
+        DESTINATION "${CMAKE_INSTALL_LIBEXECDIR}")
+    set(CPACK_PACKAGING_INSTALL_PREFIX "/usr")
+    include(CPack)
 endif()
 
 # Themes (themes/*.conf) and the surfaces' styles (themes/taskbar/, startmenu/,

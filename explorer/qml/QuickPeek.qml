@@ -167,6 +167,7 @@ Item {
             }
             // Videos and sounds: only while shown, so closing stops them.
             Loader {
+                id: mediaLoader
                 objectName: "mediaLoader"
                 anchors.fill: parent
                 active: peek.visible && peek.kind === "media"
@@ -181,10 +182,13 @@ Item {
                 visible: textFlick.visible && ratio < 1
                 anchors { right: textFlick.right; top: textFlick.top; bottom: textFlick.bottom }
             }
-            // Folder, other types, or a PDF without QtPdf: the large icon.
+            // Folder, other types, a PDF without QtPdf, or a PDF, video or sound
+            // when QtPdf or QtMultimedia is missing at run time: the large icon.
             Column {
                 anchors.centerIn: parent
                 visible: peek.kind === "folder" || peek.kind === "other"
+                    || (peek.kind === "pdf" && pdf.status === Loader.Error)
+                    || (peek.kind === "media" && mediaLoader.status === Loader.Error)
                 spacing: 12
                 Image {
                     anchors.horizontalCenter: parent.horizontalCenter
@@ -207,14 +211,14 @@ Item {
             objectName: "pager"
             anchors { right: parent.right; bottom: parent.bottom; margins: 6 }
             visible: peek.kind === "pdf" && peek.pages > 1
-            ToolButton { icon: "go-previous"; tooltip: qsTr("Previous page (Page Up)"); usable: peek.page > 0; onClicked: peek.pageBy(-1); width: 36 }
+            ToolButton { icon.name: "go-previous"; tooltip: qsTr("Previous page (Page Up)"); usable: peek.page > 0; onClicked: peek.pageBy(-1); width: 36 }
             Text {
                 anchors.verticalCenter: parent.verticalCenter
                 text: (peek.page + 1) + " / " + peek.pages
                 color: Theme.textSecondary
                 font.pixelSize: Theme.fontCaption
             }
-            ToolButton { icon: "go-next"; tooltip: qsTr("Next page (Page Down)"); usable: peek.page < peek.pages - 1; onClicked: peek.pageBy(1); width: 36 }
+            ToolButton { icon.name: "go-next"; tooltip: qsTr("Next page (Page Down)"); usable: peek.page < peek.pages - 1; onClicked: peek.pageBy(1); width: 36 }
         }
         Text {
             id: meta

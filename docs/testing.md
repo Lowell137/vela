@@ -26,21 +26,23 @@ ctest --test-dir build -L gpu --output-on-failure  # GPU suites
 | Suite | What it covers | GPU required |
 |---|---|---:|
 | **Compositor / GoogleTest** | FrameClock, vblank grid, late latching, adaptive margin, learned host latency, animation curves, output scale selection, pixel geometry, night light, color filters, sunrise/sunset, `vela.conf` parsing and `outputs.conf` persistence. | No |
-| **Files** (`files-copies`) | Copy/move behavior, atomic replacement across file/directory types, failed or unsupported exchanges, processes killed immediately before/after exchange, removal errors, and a simulated full disk with `RLIMIT_FSIZE`. | No |
-| **Shell** (`shell-*`) | `.desktop` `Exec=` parsing, default-app resolution, volume steps, and the asynchronous network model with slow, failed or missing services. | No |
+| **Files** (`files-copies`, `files-views`) | Copy/move behavior, atomic replacement across file/directory types, failed or unsupported exchanges, processes killed immediately before/after exchange, removal errors, and a simulated full disk with `RLIMIT_FSIZE`. Under Qt Quick Test, on a real `FolderModel` over 300 files: the Details and icon views' recycled delegates take their new file's state without a fade while scrolling, and the command bar's `ToolButton` (colors, `checked`, keys, focus, tooltip) ([visual coherence](visual-coherence.md#68-controls-qt-behaves-vela-looks-d12)). | No |
+| **Shell** (`shell-*`) | `.desktop` `Exec=` parsing, default-app resolution, volume steps, the asynchronous network model with slow, failed or missing services, `Style` following `animation-effects` and `animation-duration` in `vela.conf`, and the Wi-Fi switch and airplane mode moving at once and turning back when a fake NetworkManager on a private bus refuses or never does it (`shell-requested-switches`). The shell's Bluetooth is in the Bluetooth suite. | No |
+| **Vela.Controls** (`controls`, `controls-no-effects`) | Qt Quick Test, offscreen, at three times Vela's durations, then with animation effects off: `Button`, `Switch` and `Slider` reach the color of each state combination, fade and turn back halfway from where they are, take the focus from Tab and not from a click, activate from Space and Enter and set their accessible role and state; a binding on `checked` or `value` survives input; the switch's knob follows a drag and slides only on its own (jumps with effects off); the slider's value is never animated and it reports when the user is done; `PanelMotion` enters, leaves, turns back when reopened without `closed()`, takes no input while leaving (mouse and keys), moves only with effects on, blurs its travel only while moving (cut to its window) and closes at once when asked; `Shadow`'s reach for each depth and its cut above and below; `ListItem`'s colors, keys and ring, `Icon`'s size and source, `Chevron`'s two shapes; `Dialog`'s buttons, Esc, Enter, one choice per opening and fade-out ([visual coherence](visual-coherence.md#68-controls-qt-behaves-vela-looks-d12)). The programs' own pieces have runners of their own, which add fakes of what their windows find in their context (`Vela.Bluetooth`, and the shell's `Shell` and `BluetoothPrompts`): the shell's `CheckBox`, Start's tiles, quick settings' Bluetooth devices and the Bluetooth question dialog (`shell-controls`, `shell-controls-no-effects`); Settings' `RadioButton`, brightness card and Bluetooth pieces: a device's card, a question of the agent for every kind, "Add a device" and the "still visible" line (`settings-controls`, `settings-controls-no-effects`). | No |
 | **Settings** (`settings-displays`) | Native Wayland inventory and hotplug, modes, scale, rotation, confirmation-only persistence, explicit revert, compositor deadlines with the GUI thread blocked, client disconnection and SIGKILL, competing clients, failed commits and hotplug during preview. Uses real wlroots headless outputs and Vela’s output manager/preview; rendering and window rearrangement are stubbed. | No |
 | **Vela Report** (`reporting`, `reporting-gui`) | Guided CLI without a display, shared Qt worker and ZIP export, explicit collection boundaries, redaction, review exclusion, process identity, resource recording, bounded commands and archive failures. | No |
 | **Package updater** (`packaging-update`) | Public HTTPS defaults in both the updater and PKGBUILD, first run and cached fetches, migration of saved SSH URLs and old mirrors, local sources, branch/commit selection, exact CI artifacts, download fallback and failed fetch/build/install handling. Uses real Git repositories with simulated package tools. | No |
 | **Test infrastructure** (`functional-harness`) | Unexpected compositor exits, explicit intentional failure status, failed startup cleanup, reaping clients, all five PNG filters with known pixels, and exact bounds of changed pixels. | No |
-| **Scripts and documentation** (`script-tests`, `documentation`) | Distribution metrics, API failures without partial writes, offline Markdown links/anchors and build dependency lists. | No |
-| **Functional** (`functional`) | Opening and manipulating windows (Wayland and X11), menus (popups and X11 override-redirect menus) kept where they belong, resizing from the invisible borders, keyboard Move/Resize, the window menu, drag-to-edge snap with Snap Assist, snap layouts and snap groups, snap, maximize/restore, minimize/Alt+Tab, virtual desktops, Vela's title bar (text, buttons, double click), shell layers (reserved space, live blur), partial redraws identical to full redraws, output hotplug, per-output scale and position set like Settings does, accessibility quick settings (night light and its schedule, color filters, magnifier, sticky keys), Super alone opening Start, the media and volume keys (held volume keys repeat), the mouse's side buttons as Back and Forward in Vela's apps (File Explorer, also with the focus elsewhere or on an inactive window), lock/unlock, screen power, compositor crash recovery, a shell that crashes (restarted, then given up) or exits cleanly (left alone), and an app whose GPU finishes 150 ms late (explicit and implicit sync) without a missed vblank, and the polkit agent (below). | Yes |
-| **Audio** (`audio-*`) | The private PipeWire and WirePlumber the audio tests run on ([audio](audio.md#11-tests)): fake devices, defaults, streams following the default output, recording, levels, restarts and isolation from the user's audio. On it, the `vela-audio` library: the model, changes from outside, the volume's grid and 100% cap, balance, values shown at once and the server winning, microphone actions shown only once confirmed, apps grouped by program with their volume, mute, output and input, devices appearing, PipeWire and WirePlumber restarts; a Bluetooth headset's battery from a fake BlueZ. The shell's sound keys on it: volume keys, the microphone key whose indicator waits for the server, the wheel on a taskbar button. | No |
+| **Scripts and documentation** (`script-tests`, `documentation`, `shared-values`, `qml-motion`) | Distribution metrics, API failures without partial writes, offline Markdown links/anchors and build dependency lists; the motion durations and curve written in both `motion.h` and `Theme.qml` agreeing ([visual coherence](visual-coherence.md#64-one-duration-scale-written-twice-and-checked-d10)); QML durations that aren't `Theme` tokens and state colors or backgrounds' opacities that don't fade, failing ([§6.11](visual-coherence.md#611-keeping-it-so)). | No |
+| **Functional** (`functional`) | Opening and manipulating windows (Wayland and X11), menus (popups and X11 override-redirect menus) kept where they belong, resizing from the invisible borders, keyboard Move/Resize, the window menu, drag-to-edge snap with Snap Assist, snap layouts and snap groups, snap, maximize/restore, minimize/Alt+Tab, virtual desktops, Vela's title bar (text, buttons, double click, the shell's Mica colors and accent, the buttons' fading hover, no seam with Settings' content), every window animation from every trigger (with the app's images in its snapshots), the shell's panels entering animated (Start, Quick Settings, Notification Center, Task View, captured at 300% duration), dialogs and panels leaving animated and menus and Task View at once, the exit, shadow room and blur during the slide of Start, Quick Settings, Notification Center and clipboard, Quick Settings' page heights, animation durations following `animation-duration`, shell layers (reserved space, live blur, Vela's acrylic only on `vela-` surfaces and a plain blur for other clients), partial redraws identical to full redraws, output hotplug, per-output scale and position set like Settings does, accessibility quick settings (night light and its schedule, color filters, magnifier, sticky keys), Super alone opening Start, the media and volume keys (held volume keys repeat), the mouse's side buttons as Back and Forward in Vela's apps (File Explorer, also with the focus elsewhere or on an inactive window), lock/unlock, screen power, compositor crash recovery, a shell that crashes (restarted, then given up) or exits cleanly (left alone), and an app whose GPU finishes 150 ms late (explicit and implicit sync) without a missed vblank, and the polkit agent (below). | Yes |
+| **Audio** (`audio-*`) | The private PipeWire and WirePlumber the audio tests run on ([audio](audio.md#11-tests)): fake devices, defaults, streams following the default output, recording, levels, restarts and isolation from the user's audio. On it, the `vela-audio` library: the model, changes from outside, the volume's grid and 100% cap, balance, values shown at once and the server winning, microphone actions shown only once confirmed, apps grouped by program with their volume, mute, output and input, devices appearing, PipeWire and WirePlumber restarts; a Bluetooth headset's battery from a fake `vela-bluetooth`, matched by address. The shell's sound keys on it: volume keys, the microphone key whose indicator waits for the server, the wheel on a taskbar button. | No |
+| **Bluetooth** (`bluetooth.*`, `bluetooth-daemon`, `bluetooth-client`, `bluetooth-shell`) | GoogleTest: BlueZ's errors in plain words, an Add's steps, rfkill switches on a fake `/sys` (the adapter's own, platform ones, the event written), the sandbox checks on a fake `/proc`, Vela's executables, device types and names. Then the real `vela-bluetooth` against a fake BlueZ and a fake logind on private buses ([Bluetooth](bluetooth.md#11-tests)): the model and a `bluetoothd` restart, the adapter in use and the one remembered, every operation and each early ending, Cancel, one Add at a time, power with retries and refusals, only the adapter's own rfkill switch unblocked, hard blocks, a platform switch with no adapter, the agent and every kind of question, the session in the background or locked, search leases (each way one ends, the Discoverable filter only when nobody else searches, "still visible" and "Stop being visible", an Add suspending discovery, restarts three times a minute), `dbus-send` unable to draw Vela's questions; after each case, no operation, question or lease left open and no adapter-wide setting written. On the same daemon: the client library (`Vela.Bluetooth`), and the shell's side: questions as the dialog or a notification with its actions, Settings handing a question over, the "still visible" notification and airplane mode. | No |
 | **Polkit agent / GoogleTest** (`polkit.*`) | The agent's queue, cancellations by polkit and by the user, a crashed dialog counting as "No", retries after a wrong password, sessions that fail by themselves, identity order and choice, the dialog protocol. | No |
 | **Sharpness** (`sharpness`) | Pixel-level checks that windows reach the expected physical pixels across fractional scales and common window states. | Yes |
 
-The compositor currently contains 75 GoogleTest cases and the polkit agent 23;
+The compositor currently contains 83 GoogleTest cases and the polkit agent 23;
 the functional harness runs 103 end-to-end scenarios when the Qt shell is built.
-A complete build registers 124 CTest entries; some entries contain multiple
+A complete build registers 143 CTest entries; some entries contain multiple
 scenarios. Every scenario requires the expected compositor exit status, normally
 0, even if it exited before cleanup. The deliberate three-crash supervisor test
 explicitly requires status 1. Unexpected crashes cannot become passing tests.
@@ -130,10 +132,12 @@ Diagnostic reporter and graphical smoke check:
 ctest --test-dir build -R '^reporting' --output-on-failure
 ```
 
-Functional session tests:
+Functional session tests, one ctest entry per module of `tests/functional`
+(`test_shell.py` is `functional-shell`):
 
 ```sh
-ctest --test-dir build -R '^functional$' --output-on-failure
+ctest --test-dir build -L '^functional$' --output-on-failure
+ctest --test-dir build -R '^functional-shell$' --output-on-failure
 ```
 
 Package and updater contracts (also runnable without building Vela):
@@ -174,8 +178,9 @@ The sharpness check additionally needs NumPy and Pillow available to `python3`.
 ## GPU requirements
 
 `tests/functional/test_output_rotation.py` exercises mixed landscape/portrait
-outputs, all eight Wayland transforms on an already maximized window, negative
-layout coordinates at 150% scale, and four-output layouts with explicit
+outputs, all eight Wayland transforms on an already maximized window, an
+output placed at negative coordinates (the compositor then moves the layout's
+origin to 0,0) at 150% scale, and four-output layouts with explicit
 transform assertions. Every interior pixel of the maximized `vela-pattern`
 window is compared with its independently generated coordinate pattern;
 nonblank pixels or equality with a previous capture are insufficient. Stability
@@ -184,8 +189,9 @@ that screen-dump regions use upright image coordinates.
 Software-cursor-only damage is checked after rotating the output, with a shader
 color filter forcing cursor composition: old cursor pixels must be restored
 and the new pointer drawn without relying on capture's PAINT_CURSORS option.
-The event damage arrives in buffer-local coordinates and is converted into
-upright scene coordinates before the frame's damage ring consumes it.
+The output's damage event arrives in upright output coordinates (wlroots'
+header says buffer-local, but its cursors emit their box as is) and joins the
+scene damage unchanged; the frame converts it to the buffer once.
 The four-output case also renders three simultaneous maximized coordinate
 patterns and checks their pixels on the individual outputs.
 
@@ -208,17 +214,20 @@ They require:
 
 If the harness cannot find a usable GPU, it exits with status 77. CTest marks that as **skipped**, not failed.
 
-### Primary development hardware
+### GPU CI hardware
 
-The complete GPU-dependent suite is run regularly during development on:
+The complete GPU-dependent suite runs on two machines using the
+[GPU CI workflows](ci-quality.md#gpu-ci-policy):
 
-- **GPU:** AMD Radeon RX 9070 XT
-- **Driver:** Mesa/RADV
-- **OS:** CachyOS
+| GPU | Driver | OS |
+|---|---|---|
+| AMD Radeon RX 9070 XT | Mesa/RADV | CachyOS |
+| NVIDIA GeForce RTX 4070 Laptop GPU | NVIDIA proprietary | Arch/CachyOS |
 
-The functional and sharpness suites currently pass in full on that machine.
+The [GPU CI policy](ci-quality.md#gpu-ci-policy) is the single source for
+when these manually triggered runs are required and what counts as a pass.
 
-This gives the renderer regular real-hardware coverage during development. It is not the same as a broad hardware matrix: Intel and NVIDIA paths currently receive less repeated real-hardware testing than AMD/RADV.
+This gives the renderer real-hardware coverage on both Vulkan drivers. It is not the same as a broad hardware matrix: Intel paths currently receive no repeated real-hardware testing, and both runners use the headless backend, not DRM/KMS ([hardware coverage](hardware.md)).
 
 ## Headless functional harness
 
@@ -276,6 +285,24 @@ with Session(scale=1.25) as vela:
 - **The agent** (`vela-polkit-agent`) is started by the compositor (`VELA_POLKIT_AGENT`) and registers with `fake_polkitd.py`, a fake polkitd on a private D-Bus bus passed as `DBUS_SYSTEM_BUS_ADDRESS`. `VELA_POLKIT_TEST_PASSWORD` replaces PAM with a session that accepts one password; the agent refuses that mode unless the authority reports itself as the fake one. Covered: registration for the session in Vela's language, authorizing after a wrong password, "No", a request withdrawn by polkit, a crashed dialog counting as "No", queued requests, restart after a crash, no restart when another agent owns the session, test mode refused against another authority.
 
 The agent tests need `dbus-python` and `dbus-daemon`; without them they are skipped.
+Strict self-hosted GPU CI treats these skips as failures. On the Arch/CachyOS AMD
+runner, install the test dependencies **on the host** (not in the workflow):
+
+```sh
+sudo pacman -S --needed python-dbus dbus
+/usr/bin/python3 -c 'import dbus; print("D-Bus Python bindings OK")'
+command -v dbus-daemon
+```
+
+The AMD workflow intentionally pins `-DPython3_EXECUTABLE=/usr/bin/python3`
+for CTest and verifies D-Bus on that exact interpreter before building. This
+prevents CMake from preferring another `~/.local/bin/python3.12` which cannot
+import the system-installed D-Bus bindings (as happened in AMD run 40130281376).
+The interactive `python3` on `PATH` may be different from CMake's selection.
+For CTest sharpness, `tests/functional/run.py` passes its interpreter to
+`scripts/test-sharpness.sh` through `VELA_TEST_PYTHON`, ensuring all NumPy/Pillow
+checks and pixel comparisons use that same interpreter. When run standalone,
+the shell script still defaults to `python3` from `PATH`.
 
 `state` also lists the layer-shell surfaces (`layers`: namespace, layer, keyboard interactivity, output) and the one with the keyboard (`focusedLayer`).
 
@@ -355,8 +382,19 @@ compositor synchronization and a 100 Hz output. It checks repeated Super
 toggles, reopening during the close animation, and the Wayland trace of each
 native surface lifetime: configure and ACK precede the first buffer, the hidden
 menu releases its native surface, and blur binds to the new surface on reopen.
-Run, Quick Settings and Notification Center also reopen after native surface
-destruction. A fake shell or `vela-panel` cannot exercise this Qt lifecycle.
+Run, Quick Settings, Notification Center and clipboard also reopen after
+native surface destruction. Quick Settings, Notification Center and clipboard
+repeat Start's toggles; all four turn back when reopened during their exit,
+with the window never unmapped, and close on a click in their shadow's room
+but not on their own background. Between pages Quick Settings resizes its
+window exactly twice while its panel animates (docs/visual-coherence.md §6.9,
+§6.10). Run, Properties and the clipboard leave in `normal` (600 ms at 300%),
+the desktop menu and Task View at once. `PanelBlur`, on a private striped
+wallpaper, finds blur behind every row of Quick Settings, Start and the
+clipboard in every captured frame of their entrance, also below where they
+rest, and behind every column of the Notification Center sliding in from the
+right; at rest the blur region is the panels only and their shadow isn't
+blurred. A fake shell or `vela-panel` cannot exercise this Qt lifecycle.
 Selection and snipping tests cover all eight transforms, 100%, 125% and 150%
 scales, and outputs above, below, left and right in eight representative cases.
 Additional snips cover odd 1367x769 dimensions at 125% and 4K at 200%.

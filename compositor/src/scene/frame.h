@@ -57,7 +57,8 @@ struct vela_element {
     struct wlr_box shadow_window;
     float shadow_sigma;
     // Blur behind the surface (ext-background-effect, §8.3): where, in pixels
-    // (empty: none).
+    // (empty: none), and whether it gets Vela's acrylic recipe (saturation and
+    // gray tint): only Vela's own surfaces do (docs/visual-coherence.md §6.7).
     struct wlr_box blur_box;
     // The window's forced blur (vela_surface_node.blur), surface coordinates.
     struct wlr_box blur_forced;
@@ -65,6 +66,7 @@ struct vela_element {
     struct vela_blur_look look; // the surface's own blur look, if set
     float blur_scale; // the window's blur radius factor (window-blur-strength)
     bool capture_hidden; // under a node hidden from captures (§15)
+    bool acrylic;
     bool visible; // not entirely covered
     int64_t visible_area; // uncovered pixels
     int order; // position in the list, from the bottom
@@ -134,6 +136,12 @@ struct vela_output_frame {
     // Match flags for the previous frame; reused per output, only growing.
     bool *found;
     int found_capacity;
+    // Per-output scratch index for frames with changed element positions.
+    // Built lazily per comparison and retained to avoid steady allocations.
+    int *match_heads;
+    int match_heads_capacity;
+    int *match_next;
+    int match_next_capacity;
     // The surfaces visible in the last frame (for frame callbacks).
     struct wlr_surface **visible_surfaces;
     int visible_count, visible_capacity;

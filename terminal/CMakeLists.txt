@@ -31,7 +31,6 @@ set(TERMINAL_QML_FILES
     qml/Pane.qml
     qml/Split.qml
     qml/SettingsPage.qml
-    ${PROJECT_SOURCE_DIR}/settings/qml/Slider.qml
     ${PROJECT_SOURCE_DIR}/notepad/qml/WindowButton.qml
     ${PROJECT_SOURCE_DIR}/notepad/qml/ResizeEdges.qml
     ${PROJECT_SOURCE_DIR}/explorer/qml/MenuLayer.qml

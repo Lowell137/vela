@@ -30,7 +30,6 @@ set(WEATHER_QML_FILES
     qml/SettingsPage.qml
     qml/HourlyChart.qml
     qml/SunArc.qml
-    ${PROJECT_SOURCE_DIR}/settings/qml/Toggle.qml
     ${PROJECT_SOURCE_DIR}/notepad/qml/WindowButton.qml
     ${PROJECT_SOURCE_DIR}/notepad/qml/ResizeEdges.qml
     ${PROJECT_SOURCE_DIR}/explorer/qml/ScrollBar.qml

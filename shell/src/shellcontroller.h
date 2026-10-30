@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <QColor>
 #include <QDBusUnixFileDescriptor>
 #include <QLocalServer>
 #include <QLocalSocket>
@@ -107,6 +108,7 @@ public:
     QString userName() const;
     QString userPicture() const;
     QString primaryScreen() const;
+    void setPreferredPrimaryOutput(const QString& name);
     QString userInitial() const;
 
     bool screenCaptured() const { return m_screenCaptured; }
@@ -143,8 +145,8 @@ public:
     // Relaunches only vela-shell (the compositor and apps stay).
     Q_INVOKABLE void restartShell();
     Q_INVOKABLE void lock(); // Win+L from the shell
-    // The wallpaper's average color to the compositor: the title bars' tint
-    // (Mica, docs/renderer.md §9.4).
+    // The wallpaper's average color (the Mica tint, docs/renderer.md §9.4),
+    // also left in the cache for Vela's apps; invalid if it can't be read.
     void sendWallpaperTint(const QString& wallpaper) const;
     // Locks the screen before the computer suspends.
     void watchSleep();
@@ -203,6 +205,8 @@ signals:
     void shareOnScreenRequested(const QStringList& paths, const QString& screen);
     void openWithOnScreenRequested(const QString& path, const QString& screen);
     void newShortcutOnScreenRequested(const QString& folder, const QString& screen);
+    void desktopTransferUndoReceived(const QByteArray& json);
+    void desktopTransferReadyReceived(qint64 pid);
     void accessibilityReceived(const QByteArray& json); // from the compositor
     // Win+V ("clipboard") and Win+. ("emoji"); the pointer, in layout
     // coordinates, or -1 when it isn't known.
@@ -226,6 +230,7 @@ private Q_SLOTS:
     void onPrepareForSleep(bool starting);
 
 private:
+    QString m_preferredPrimaryOutput;
     void handleCommand(const QByteArray& command);
     void takeSleepDelay();
     void startChooser(QLocalSocket* socket);

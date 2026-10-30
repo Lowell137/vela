@@ -7,6 +7,7 @@
 #include "a11y.h"
 #include "autoscroll.h"
 #include "bindings.h"
+#include "brightness.h"
 #include "buffer.h"
 #include "decoration.h"
 #include "icons.h"
@@ -15,6 +16,7 @@
 #include "lock.h"
 #include "output.h"
 #include "output_manager.h"
+#include "render/renderer.h"
 #include "scene/frame.h"
 #include "scene/scene.h"
 #include "server.h"
@@ -46,6 +48,18 @@
 
 #define MAX_LINE 4096 // a connection sending more is closed
 
+// What a connection can follow with "watch <topic>" (docs/brightness.md
+// §7.2): a name, and the whole state as one line.
+struct topic {
+    const char *name;
+    void (*write)(struct vela_server *server, struct vela_buffer *line);
+};
+
+static const struct topic topics[] = {
+    { "brightness", vela_brightness_json },
+};
+#define TOPICS ((int)(sizeof(topics) / sizeof(topics[0])))
+
 // A connection to the command socket.
 struct client {
     struct wl_list link; // vela_commands.clients
@@ -54,6 +68,13 @@ struct client {
     struct wl_event_source *source;
     char buffer[MAX_LINE];
     size_t length;
+    // Watching: per topic, the newest line not yet started (only the newest
+    // matters, every line is the whole state), and the line being written.
+    bool watching[TOPICS];
+    char *queued[TOPICS];
+    char *out;
+    size_t out_length, out_done;
+    bool brightness_live; // shows a brightness slider (brightness-live on)
 };
 
 struct vela_commands {
@@ -178,11 +199,18 @@ static void state_json(struct vela_server *server, struct vela_buffer *json)
     struct vela_view *focused = vela_views_focused(server);
     vela_buffer_appendf(json, "{\"locked\":%s,\"workspace\":%d,\"workspaces\":%d,\"focused\":",
         server->locked ? t : f, server->workspaces->current, server->workspaces->count);
+    struct vela_readback_stats readbacks = vela_renderer_readback_stats(server->renderer);
+    // The private state socket exposes retention and terminal counts so GPU
+    // lifecycle tests can prove they cancelled real in-flight work.
     if (focused && focused->ext_handle && focused->ext_handle->identifier) {
         vela_buffer_append_json(json, focused->ext_handle->identifier);
     } else {
         vela_buffer_append(json, "null");
     }
+    vela_buffer_appendf(json, ",\"readback\":{\"pending\":%zu,\"bytes\":%zu,\"completed\":%llu,\"cancelled\":%llu,\"failed\":%llu,\"rejected\":%llu,\"submitted\":%llu}",
+        readbacks.pending, readbacks.bytes, (unsigned long long)readbacks.completed,
+        (unsigned long long)readbacks.cancelled, (unsigned long long)readbacks.failed,
+        (unsigned long long)readbacks.rejected, (unsigned long long)readbacks.submitted);
     vela_buffer_appendf(json, ",\"held\":%llu,\"outputs\":[", (unsigned long long)server->ready.held_total);
     bool first = true;
     struct vela_output *output;
@@ -330,6 +358,8 @@ static bool answer(struct vela_server *server, int fd, const char *line)
         vela_buffer_appendf(&reply, "{\"envDisabled\":%s,\"enabled\":%s}",
             vela_env_off("VELA_SCANOUT") ? "true" : "false",
             server->scene->allow_scanout ? "true" : "false");
+    } else if (strcmp(line, "brightness") == 0) {
+        vela_brightness_json(server, &reply);
     } else if (strcmp(line, "caffeine status") == 0) {
         vela_buffer_append(&reply, server->lock->caffeine ? "on" : "off");
     } else if (starts_with(line, "caffeine-set ")) {
@@ -406,8 +436,54 @@ static void wallpaper_tint(struct vela_server *server, const char *arguments)
     refresh_decorations(server);
 }
 
+// "#rrggbb" as an opaque color.
+static bool parse_color(const char *text, struct wlr_render_color *color)
+{
+    unsigned rgb = 0;
+    if (strlen(text) != 7 || text[0] != '#' || strspn(text + 1, "0123456789abcdefABCDEF") != 6
+        || sscanf(text, "#%6x", &rgb) != 1) {
+        return false;
+    }
+    *color = (struct wlr_render_color) {
+        ((rgb >> 16) & 0xff) / 255.0f,
+        ((rgb >> 8) & 0xff) / 255.0f,
+        (rgb & 0xff) / 255.0f,
+        1.0f,
+    };
+    return true;
+}
+
+static bool same_color(const struct wlr_render_color *a, const struct wlr_render_color *b)
+{
+    return a->r == b->r && a->g == b->g && a->b == b->b && a->a == b->a;
+}
+
+// mica #active #inactive: the title bars' colors, computed by the shell
+// (shell/src/mica.h, micaFromTint) in the apps' mode.
+static void mica(struct vela_server *server, const char *arguments)
+{
+    char active_text[16] = "";
+    char inactive_text[16] = "";
+    struct wlr_render_color active;
+    struct wlr_render_color inactive;
+    if (sscanf(arguments, "%15s %15s", active_text, inactive_text) != 2 || !parse_color(active_text, &active)
+        || !parse_color(inactive_text, &inactive)) {
+        return;
+    }
+    if (server->has_mica && same_color(&active, &server->mica_active)
+        && same_color(&inactive, &server->mica_inactive)) {
+        return;
+    }
+    server->has_mica = true;
+    server->mica_active = active;
+    server->mica_inactive = inactive;
+    ++server->look_version;
+    refresh_decorations(server);
+}
+
 // theme <shell> <apps> [<accent>]: "light" or "dark", Vela's mode and the
-// apps' mode, and the accent as #rrggbb (without it the accent stays).
+// apps' mode, and the accent as #rrggbb (an older shell doesn't send it: the
+// default stays).
 static void theme(struct vela_server *server, const char *arguments)
 {
     char shell_mode[16] = "";
@@ -416,17 +492,15 @@ static void theme(struct vela_server *server, const char *arguments)
     if (sscanf(arguments, "%15s %15s %15s", shell_mode, app_mode, accent_text) < 2) {
         return;
     }
-    unsigned rgb = 0;
-    if (strlen(accent_text) == 7 && sscanf(accent_text, "#%6x", &rgb) == 1) {
-        server->accent[0] = ((rgb >> 16) & 0xff) / 255.0f;
-        server->accent[1] = ((rgb >> 8) & 0xff) / 255.0f;
-        server->accent[2] = (rgb & 0xff) / 255.0f;
-    }
     bool shell_light = strcmp(shell_mode, "light") == 0;
     bool apps_light = strcmp(app_mode, "light") == 0;
-    if (shell_light == server->light_shell && apps_light == server->light_apps) {
+    struct wlr_render_color accent = server->accent;
+    parse_color(accent_text, &accent);
+    if (shell_light == server->light_shell && apps_light == server->light_apps
+        && same_color(&accent, &server->accent)) {
         return;
     }
+    server->accent = accent;
     server->light_shell = shell_light;
     server->light_apps = apps_light;
     // Windows 11's acrylic, dark or light: WinUI's
@@ -437,6 +511,7 @@ static void theme(struct vela_server *server, const char *arguments)
         : (struct wlr_render_color) { 0.173f, 0.173f, 0.173f, 0.15f };
     server->scene->acrylic_luminosity = shell_light ? 0.85f : 0.96f;
     ++server->wallpaper_tint_version;
+    ++server->look_version;
     reload_icons(server);
     refresh_decorations(server);
     struct vela_output *output;
@@ -530,6 +605,24 @@ static void end_task(struct vela_server *server, const char *app_id)
     free(pids);
 }
 
+// brightness <output> <value>, value from 0 to 1 (docs/brightness.md §7.2).
+static void brightness(struct vela_server *server, const char *arguments)
+{
+    const char *space = strrchr(arguments, ' ');
+    char name[64];
+    if (!space || space == arguments || (size_t)(space - arguments) >= sizeof(name)) {
+        return;
+    }
+    memcpy(name, arguments, (size_t)(space - arguments));
+    name[space - arguments] = '\0';
+    char *end = NULL;
+    errno = 0;
+    double value = strtod(space + 1, &end);
+    if (end == space + 1 || *end != '\0' || errno == ERANGE || !vela_brightness_set(server, name, value)) {
+        wlr_log(WLR_DEBUG, "Brightness: \"%s\" not applied", arguments);
+    }
+}
+
 static void run_command(struct vela_server *server, const char *line)
 {
     struct vela_a11y *a11y = server->a11y;
@@ -541,6 +634,8 @@ static void run_command(struct vela_server *server, const char *line)
         vela_shell_restart(server);
     } else if (starts_with(line, "wallpaper-tint ")) {
         wallpaper_tint(server, line + 15);
+    } else if (starts_with(line, "mica ")) {
+        mica(server, line + 5);
     } else if (starts_with(line, "theme ")) {
         theme(server, line + 6);
     } else if (starts_with(line, "blur-look ")) {
@@ -608,8 +703,13 @@ static void run_command(struct vela_server *server, const char *line)
     } else if (strcmp(line, "modifiers") == 0 || strcmp(line, "workspaces") == 0
         || strcmp(line, "accessibility") == 0 || strcmp(line, "window-rects") == 0
         || strcmp(line, "caffeine status") == 0 || starts_with(line, "caffeine-set ")
-        || strcmp(line, "always-on-top status") == 0 || strcmp(line, "pick-window") == 0) {
-        // already answered to whoever asked
+        || strcmp(line, "always-on-top status") == 0 || strcmp(line, "pick-window") == 0
+        || strcmp(line, "brightness") == 0 || starts_with(line, "watch ") || starts_with(line, "brightness-live ")) {
+        // already answered to whoever asked, or about the connection itself
+    } else if (starts_with(line, "brightness-probe ")) {
+        vela_brightness_probe(server, line + 17); // Settings is showing this output
+    } else if (starts_with(line, "brightness ")) {
+        brightness(server, line + 11);
     } else if (starts_with(line, "workspace ")) {
         workspace(server, line);
     } else if (strcmp(line, "reload-config") == 0) {
@@ -620,6 +720,7 @@ static void run_command(struct vela_server *server, const char *line)
         vela_autoscroll_load_settings(server->autoscroll);
         vela_output_load_settings(server);
         vela_views_load_settings(server); // window blur, title bars for the listed app ids
+        vela_brightness_load_settings(server);
         vela_a11y_load(a11y);
         vela_shortcuts_load();
         vela_workspaces_load_settings(server);
@@ -707,6 +808,143 @@ static void run_command(struct vela_server *server, const char *line)
     }
 }
 
+// -------------------------------------------------------------- watching --
+
+static int topic_index(const char *name)
+{
+    for (int i = 0; i < TOPICS; ++i) {
+        if (strcmp(topics[i].name, name) == 0) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+static void stop_watching(struct client *client)
+{
+    for (int i = 0; i < TOPICS; ++i) {
+        client->watching[i] = false;
+        free(client->queued[i]);
+        client->queued[i] = NULL;
+    }
+    free(client->out);
+    client->out = NULL;
+}
+
+// Writes what it can without blocking; the rest when the socket has room. A
+// watcher that stops reading misses states in between, never the last one.
+static void flush(struct client *client)
+{
+    for (;;) {
+        if (!client->out) {
+            for (int i = 0; i < TOPICS && !client->out; ++i) {
+                if (client->queued[i]) {
+                    client->out = client->queued[i];
+                    client->out_length = strlen(client->out);
+                    client->out_done = 0;
+                    client->queued[i] = NULL;
+                }
+            }
+            if (!client->out) {
+                break;
+            }
+        }
+        ssize_t n = send(client->fd, client->out + client->out_done, client->out_length - client->out_done,
+            MSG_NOSIGNAL | MSG_DONTWAIT);
+        if (n < 0 && errno == EINTR) {
+            continue;
+        }
+        if (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+            break;
+        }
+        if (n <= 0) {
+            stop_watching(client); // gone: the hangup closes it
+            break;
+        }
+        client->out_done += (size_t)n;
+        if (client->out_done == client->out_length) {
+            free(client->out);
+            client->out = NULL;
+        }
+    }
+    wl_event_source_fd_update(client->source, WL_EVENT_READABLE | (client->out ? WL_EVENT_WRITABLE : 0));
+}
+
+static void queue(struct client *client, int topic, const char *line)
+{
+    free(client->queued[topic]);
+    client->queued[topic] = strdup(line);
+    flush(client);
+}
+
+static char *topic_line(struct vela_server *server, int topic)
+{
+    struct vela_buffer line = { 0 };
+    topics[topic].write(server, &line);
+    vela_buffer_append(&line, "\n");
+    char *text = strdup(vela_buffer_text(&line));
+    vela_buffer_finish(&line);
+    return text;
+}
+
+void vela_commands_notify(struct vela_server *server, const char *name)
+{
+    int topic = topic_index(name);
+    if (!server->commands || topic < 0) {
+        return;
+    }
+    char *line = NULL;
+    struct client *client;
+    wl_list_for_each (client, &server->commands->clients, link) {
+        if (client->watching[topic]) {
+            if (!line) {
+                line = topic_line(server, topic);
+            }
+            queue(client, topic, line);
+        }
+    }
+    free(line);
+}
+
+static void watch(struct client *client, const char *name)
+{
+    int topic = topic_index(name);
+    if (topic < 0) {
+        wlr_log(WLR_DEBUG, "Nothing to watch called \"%s\"", name);
+        return;
+    }
+    client->watching[topic] = true;
+    char *line = topic_line(client->server, topic);
+    queue(client, topic, line); // the state now, then every change
+    free(line);
+}
+
+// Live sync is on while any connection shows a slider: a client that closes
+// counts as off (§7.2).
+static void update_brightness_live(struct vela_server *server)
+{
+    bool live = false;
+    struct client *client;
+    wl_list_for_each (client, &server->commands->clients, link) {
+        live = live || client->brightness_live;
+    }
+    vela_brightness_live(server, live);
+}
+
+// Lines about the connection itself: false if the line isn't one of them.
+static bool connection_line(struct client *client, const char *line)
+{
+    if (starts_with(line, "watch ")) {
+        watch(client, line + 6);
+    } else if (strcmp(line, "brightness-live on") == 0 || strcmp(line, "brightness-live off") == 0) {
+        client->brightness_live = strcmp(line, "brightness-live on") == 0;
+        update_brightness_live(client->server);
+    } else {
+        return false;
+    }
+    return true;
+}
+
 // --------------------------------------------------------------- socket --
 
 static void client_destroy(struct client *client)
@@ -717,9 +955,14 @@ static void client_destroy(struct client *client)
         wl_event_source_timer_update(commands->pick_timer, 0);
         vela_input_set_xcursor(client->server, "default");
     }
+    bool live = client->brightness_live;
     wl_list_remove(&client->link);
     wl_event_source_remove(client->source);
     close(client->fd);
+    stop_watching(client);
+    if (live && client->server->commands) {
+        update_brightness_live(client->server);
+    }
     free(client);
 }
 
@@ -727,13 +970,26 @@ static int handle_client(int fd, uint32_t mask, void *data)
 {
     struct client *client = data;
     struct vela_server *server = client->server;
+    if (mask & WL_EVENT_WRITABLE) {
+        flush(client);
+    }
     char chunk[256];
-    ssize_t n = 0;
-    while ((n = read(fd, chunk, sizeof(chunk))) > 0 && client->length < MAX_LINE) {
+    ssize_t n = -1;
+    // Bound each event-loop turn to MAX_LINE bytes, not the lifetime of the
+    // socket. A stream may contain thousands of short, valid commands. Do
+    // not read past the remaining capacity: that would silently discard the
+    // tail of a read, then close an otherwise valid connection on a burst.
+    // Once this buffer fills, drain its complete lines below and let the
+    // still-readable fd wake us again for the next batch.
+    while (client->length < MAX_LINE) {
         size_t room = MAX_LINE - client->length;
-        size_t take = (size_t)n < room ? (size_t)n : room;
-        memcpy(client->buffer + client->length, chunk, take);
-        client->length += take;
+        size_t amount = room < sizeof(chunk) ? room : sizeof(chunk);
+        n = read(fd, chunk, amount);
+        if (n <= 0) {
+            break;
+        }
+        memcpy(client->buffer + client->length, chunk, (size_t)n);
+        client->length += (size_t)n;
     }
     // The complete lines; the rest waits for the next piece.
     char lines[MAX_LINE + 1];
@@ -750,10 +1006,13 @@ static int handle_client(int fd, uint32_t mask, void *data)
     for (size_t at = 0; at < lines_length; at += strlen(lines + at) + 1) {
         if (strcmp(lines + at, "pick-window") == 0) {
             pick_begin(server, client);
-        } else {
+        } else if (!connection_line(client, lines + at)) {
             answer(server, fd, lines + at);
         }
     }
+    // A full buffer of COMPLETE lines is not an overlong request: removing
+    // those lines freed capacity. Only an incomplete line occupying all of
+    // MAX_LINE is malformed and must close this client.
     bool closed = n == 0 || (mask & (WL_EVENT_HANGUP | WL_EVENT_ERROR)) || client->length >= MAX_LINE;
     if (closed) {
         client_destroy(client);

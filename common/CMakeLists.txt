@@ -45,12 +45,24 @@ qt_add_library(vela-controls STATIC)
 
 set(CONTROLS_QML_FILES
     controls/Theme.qml
+    controls/Fill.qml
+    controls/Eased.qml
+    controls/ColorFade.qml
+    controls/Icon.qml
+    controls/Chevron.qml
+    controls/FocusRing.qml
     controls/Button.qml
     controls/TextBox.qml
     controls/NavIndicator.qml
     controls/CheckBox.qml
     controls/RadioButton.qml
-    controls/Expander.qml)
+    controls/Expander.qml
+    controls/Switch.qml
+    controls/Slider.qml
+    controls/ListItem.qml
+    controls/Shadow.qml
+    controls/PanelMotion.qml
+    controls/Dialog.qml)
 foreach(file IN LISTS CONTROLS_QML_FILES)
     get_filename_component(name ${file} NAME)
     set_source_files_properties(${file} PROPERTIES QT_RESOURCE_ALIAS ${name})
@@ -87,6 +99,21 @@ target_link_libraries(vela-controls PUBLIC
     Qt6::GuiPrivate # the windows' wl_surface (backgroundeffects.cpp)
     PkgConfig::CONTROLS_WAYLAND_CLIENT)
 
+# The shared pieces under Qt Quick Test (tests/tst_*.qml): their states,
+# fades, keyboard and accessibility, with animation effects on and off.
+if(VELA_BUILD_TOOLS)
+    find_package(Qt6 6.5 REQUIRED COMPONENTS QuickTest)
+    qt_add_executable(vela-controls-test tests/controls_test.cpp)
+    target_compile_definitions(vela-controls-test PRIVATE QUICK_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests")
+    target_compile_options(vela-controls-test PRIVATE -Wall -Wextra)
+    target_include_directories(vela-controls-test PRIVATE ${PROJECT_SOURCE_DIR}/common/tests)
+    target_link_libraries(vela-controls-test PRIVATE vela-controls vela-controlsplugin Qt6::QuickTest)
+    add_test(NAME controls COMMAND vela-controls-test)
+    add_test(NAME controls-no-effects COMMAND vela-controls-test)
+    set_tests_properties(controls-no-effects PROPERTIES ENVIRONMENT "VELA_TEST_ANIMATION_EFFECTS=no")
+    set_tests_properties(controls controls-no-effects PROPERTIES TIMEOUT 120)
+endif()
+
 # vela-audio: the audio backend of the shell and Settings (docs/audio.md).
 add_subdirectory(audio)
 
@@ -105,3 +132,9 @@ if(VELA_BUILD_TOOLS)
     target_link_libraries(vela-imageformats-test PRIVATE vela-imageformats Qt6::Test)
     add_test(NAME imageformats COMMAND vela-imageformats-test)
 endif()
+# vela-bluetooth-client: Bluetooth for the shell and Settings
+# (docs/bluetooth.md §8).
+add_subdirectory(bluetooth)
+# vela-updates-client: updates for the shell and Settings
+# (docs/updates.md §8).
+add_subdirectory(updates)

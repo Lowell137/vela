@@ -1,12 +1,15 @@
 # Installing and updating Vela
 
-Vela is experimental alpha software. Keep a working desktop or TTY available, and review the [hardware coverage](hardware.md) before using a full session.
+Vela is experimental software. The `vela` package is the numbered Beta
+channel; `vela-git` tracks Experimental development. Keep a working desktop or TTY available, and review the [hardware coverage](hardware.md) before using a full session.
 
 Vela requires a Vulkan 1.4 GPU and a working PipeWire/WirePlumber audio stack. The commands below install native development snapshots, not stable distribution releases.
 
 ## Arch Linux, CachyOS, EndeavourOS
 
-Vela installs as a native `vela-git` package. Install `git`, `curl`, `base-devel` and `cosign` (for signed prebuilt packages; GitHub CLI is not required):
+For Experimental, Vela installs as a native `vela-git` package. To install
+numbered Beta instead, run `sh vela/packaging/vela-update --channel beta`
+after cloning the checkout and installing Cosign. Install `git`, `curl`, `base-devel` and `cosign` (for signed prebuilt packages; GitHub CLI is not required):
 
 ```sh
 sudo pacman -S --needed git curl base-devel cosign
@@ -21,7 +24,8 @@ public, commit-matched alpha package built on `main` (no GitHub login required)
 and verifies its SHA-256 checksum **and signed build provenance** before installing with pacman. If there is no
 matching public package, it can use a temporary CI artifact through an
 authenticated [GitHub CLI](https://cli.github.com/) or build the native package
-locally. The public alpha packages are published only after successful `main` builds;
+locally. Historical public alpha packages were published after successful `main` builds;
+new commits only produce temporary CI artifacts;
 experimental branches normally build locally unless you have access to a matching
 CI artifact.
 
@@ -29,7 +33,9 @@ Once installed, use **`vela-update`** to fetch new commits and install updates.
 
 ## Fedora 44
 
-Fedora 44 x86_64 has a native `vela-git` RPM. RPMs are not yet supported on
+Fedora 44 x86_64 has an Experimental `vela-git` RPM and a numbered Beta
+`vela` RPM. For Beta, run `sh vela/packaging/vela-update --channel beta`
+after installing Cosign as described below. RPMs are not yet supported on
 other Fedora releases or other DNF-based distributions. The same updater installs it
 and handles subsequent updates through DNF. To get started:
 
@@ -79,38 +85,90 @@ DNF-based installer.
 Once installed, use **`vela-update`** on either distribution to fetch new
 commits and install updates.
 
-## Ubuntu 26.10 (experimental package preview)
+## Ubuntu 26.10 (experimental native DEB updater)
 
-Ubuntu 26.10 has a preliminary **source-built .deb** in the Ubuntu CI workflow.
-It is not yet published as a stable release and `vela-update` does not manage
-Ubuntu installations. Download the `vela-ubuntu-26.10-deb` artifact from a
-successful workflow run on a trusted Vela commit, then on **Ubuntu 26.10 only**:
+Ubuntu **26.10** has an experimental **locally built `.deb` updater**. Enable
+the **universe** repository first. Other Ubuntu releases are not supported.
+Keep a working desktop or TTY available.
+
+Bootstrap from a trusted Vela checkout:
 
 ```sh
 sudo apt update
-sudo apt install ./vela-git_*.deb
+sudo apt install git ca-certificates sudo
+git clone https://github.com/vela-desktop/vela.git
+sh vela/packaging/vela-update
 ```
 
-Alternatively, build locally from a trusted Vela checkout after installing the
-Ubuntu build dependencies listed in [development.md](development.md):
+The updater installs the Ubuntu build dependencies through APT, compiles the
+exact selected Git revision with CMake/CPack, and installs a native DEB.
+The DEB contains `/usr/bin/vela-update` for subsequent updates. Run
+`vela-update --check` to inspect pending changes, `vela-update --force` to
+rebuild and reinstall the default branch, or `vela-update --commit SHA` to
+downgrade. Use `vela-update --force --commit SHA` to reinstall a specific commit.
+Commits older than the revision-stamping support cannot be installed
+through this updater unless they produce a correctly stamped DEB.
+
+**On Ubuntu, automatic download of CI preview binaries is intentionally
+disabled.** Even `vela-update --download` builds locally. Those artifacts
+currently lack the release provenance used by Arch/Fedora; do not
+automatically trust or install them. `--build` explicitly opts into the
+same local build path.
+
+The last three locally built DEBs remain in
+`~/.cache/vela-update/packages/` for manual rollback. Select **one exact**
+cached filename; never install every cached package with a wildcard:
 
 ```sh
-cmake -S . -B build-ubuntu -G Ninja \
-    -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-    -DCMAKE_INSTALL_PREFIX=/usr \
-    -DCMAKE_INSTALL_LIBEXECDIR=libexec/vela \
-    -DVELA_BUILD_TOOLS=ON -DVELA_PACKAGE_DEB=ON
-cmake --build build-ubuntu --parallel 2
-cpack --config build-ubuntu/CPackConfig.cmake -G DEB -B build-ubuntu/packages
-sudo apt install ./build-ubuntu/packages/*.deb
+sudo apt-get install -y --allow-downgrades --reinstall \
+  "$HOME/.cache/vela-update/packages/vela-git_VERSION_amd64.deb"
 ```
 
-The preview package includes development tools, matching the Ubuntu CI build. The CI checks installed session entry points, ELF dependencies, baseline Qt Quick/QML modules, and package removal in addition to dependency resolution and installation in a fresh
-Ubuntu 26.10 container. **Neither a successful package install nor a
-successful source build proves the graphical session works.** Keep a working
-desktop or TTY available; GPU/DRM, portals, audio, polkit and login-manager
-integration still need tests on a real Ubuntu installation. Do not install
-this preview package on other Ubuntu releases.
+Replace `vela-git_VERSION_amd64.deb` with the actual filename. If a
+previous package transaction left dpkg incomplete, first run
+`sudo dpkg --configure -a`, then retry the update.
+
+CI also publishes **unsigned experimental preview packages** for manual
+testing. Its build includes development tools; updater builds omit them.
+See [development.md](development.md#distribution-dependencies) for the
+manual source build and prerequisites. CI checks compilation, DEB metadata,
+installed entry points, dependency resolution, and removal in a fresh
+Ubuntu 26.10 container. **That does not prove a graphical session works.**
+Real GPU/DRM, portal, audio, polkit and display-manager testing is still
+required. Do not install these packages on other Ubuntu releases.
+
+## Bluetooth
+
+Bluetooth needs only **BlueZ**, with its service running. Vela pairs,
+connects and answers devices itself ([Bluetooth](bluetooth.md)): BlueDevil,
+blueman or GNOME's Bluetooth panel are not needed.
+
+| Distribution | BlueZ |
+|---|---|
+| Arch Linux and derivatives | `bluez` is an optional dependency: `sudo pacman -S --needed bluez` |
+| Fedora 44 | `bluez` is a weak dependency, installed unless weak dependencies are disabled |
+| Ubuntu 26.10 | `bluez` is recommended, installed unless recommends are disabled |
+
+Then turn the service on once: `sudo systemctl enable --now bluetooth`.
+
+Vela's daemon, `vela-bluetooth`, starts with the session (in `/usr/lib/vela`
+on Arch, `/usr/libexec/vela` on Fedora and Ubuntu). It shares BlueZ with other desktops on
+the same machine: while you are in another session, that desktop answers
+its devices, and Vela changes nothing.
+
+## Updating from the desktop
+
+**Settings > System > Updates** shows whether an update is available, what's
+new (Beta's release notes, or Experimental's commits) and the update channel.
+Vela checks by itself once a day, never on a metered connection, and sends a
+notification when there is something new; turn this off on the same page.
+
+**Install now** runs `vela-update` in a terminal, where the package manager
+asks for your password and the build stays readable; updates started by hand
+in a terminal show on the page too. `xdg-terminal-exec` (a dependency of the
+package) opens your default terminal, or Konsole without one. After an update,
+sign out and in again to use the new version: the page and a notification say
+so. The design is in [Updates](updates.md).
 
 ## Updating, selecting revisions, and rollback
 

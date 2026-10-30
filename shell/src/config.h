@@ -32,6 +32,8 @@ class Config : public QObject {
     // The Task View button on the taskbar.
     Q_PROPERTY(bool taskView READ taskView NOTIFY taskbarChanged)
     Q_PROPERTY(bool taskbarWindowBounce READ taskbarWindowBounce NOTIFY taskbarChanged)
+    // "on" (only while Caffeine is on), "always" or "never".
+    Q_PROPERTY(QString taskbarCaffeine READ taskbarCaffeine NOTIFY taskbarChanged)
     // The apps' tray icons behind the "^" button, in a flyout, like Windows 11.
     Q_PROPERTY(bool trayOverflow READ trayOverflow NOTIFY taskbarChanged)
     // The taskbar on all outputs (like Windows) or only on the main one.
@@ -40,6 +42,7 @@ class Config : public QObject {
     Q_PROPERTY(bool taskbarAutoHide READ taskbarAutoHide NOTIFY taskbarChanged)
     // "always" (one button per app) or "never" (one per window).
     Q_PROPERTY(QString taskbarCombine READ taskbarCombine NOTIFY taskbarChanged)
+    Q_PROPERTY(QString primaryOutput READ primaryOutput NOTIFY primaryOutputChanged)
     // Clickable right-hand taskbar corner that toggles the desktop.
     Q_PROPERTY(bool showDesktopCorner READ showDesktopCorner NOTIFY taskbarChanged)
     // 0-100: how much more solid than the theme the Start menu's background is.
@@ -68,6 +71,7 @@ public:
     bool endTask() const { return m_endTask; }
     bool taskView() const { return m_taskView; }
     bool taskbarWindowBounce() const { return m_taskbarWindowBounce; }
+    QString taskbarCaffeine() const { return m_taskbarCaffeine; }
     bool trayOverflow() const { return m_trayOverflow; }
     bool taskbarAllScreens() const { return m_taskbarAllScreens; }
     bool taskbarAutoHide() const { return m_taskbarAutoHide; }
@@ -80,6 +84,7 @@ public:
     QString weatherLon() const { return m_weatherLon; }
     QString weatherUnit() const { return m_weatherUnit; }
     bool weatherSystemInfo() const { return m_weatherSystemInfo; }
+    QString primaryOutput() const { return m_primaryOutput; }
     bool showDesktopCorner() const { return m_showDesktopCorner; }
     int startSolid() const { return m_startSolid; }
     bool clipboardHistory() const { return m_clipboardHistory; }
@@ -90,6 +95,7 @@ public:
 signals:
     void wallpaperChanged();
     void taskbarChanged();
+    void primaryOutputChanged();
     void doNotDisturbChanged(bool on);
     void themeChanged();
     void clipboardChanged();
@@ -105,9 +111,11 @@ private:
     QString m_taskbarAlignment;
     QString m_taskbarStyle = QStringLiteral("classic");
     QString m_taskbarPosition = QStringLiteral("bottom");
+    QString m_primaryOutput;
     bool m_endTask = true;
     bool m_taskView = true;
     bool m_taskbarWindowBounce = false;
+    QString m_taskbarCaffeine = QStringLiteral("on");
     bool m_trayOverflow = true;
     bool m_taskbarAllScreens = true;
     bool m_taskbarAutoHide = false;

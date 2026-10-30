@@ -18,7 +18,7 @@ Page {
             icon: "preferences-desktop-effects"
             title: qsTr("Window blur")
             description: qsTr("Blur what is behind see-through windows")
-            trailing: Toggle {
+            trailing: Switch {
                 checked: Prefs.windowBlur
                 onToggled: on => Prefs.windowBlur = on
             }

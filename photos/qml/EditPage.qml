@@ -66,7 +66,7 @@ Rectangle {
                 ]
                 delegate: ToolButton {
                     required property var modelData
-                    icon: modelData.icon
+                    icon.name: modelData.icon
                     text: modelData.text
                     checked: page.tab === modelData.tab
                     onClicked: page.tab = modelData.tab
@@ -234,15 +234,15 @@ Rectangle {
             }
             Item { width: 16; height: 1 }
             ToolButton {
-                icon: "object-rotate-right"
+                icon.name: "object-rotate-right"
                 tooltip: qsTr("Rotate")
                 onClicked: {
                     view.rotate()
                     if (page.aspect > 0) page.aspect = 1 / page.aspect
                 }
             }
-            ToolButton { icon: "object-flip-horizontal"; tooltip: qsTr("Flip horizontally"); onClicked: view.flip(true) }
-            ToolButton { icon: "object-flip-vertical"; tooltip: qsTr("Flip vertically"); onClicked: view.flip(false) }
+            ToolButton { icon.name: "object-flip-horizontal"; tooltip: qsTr("Flip horizontally"); onClicked: view.flip(true) }
+            ToolButton { icon.name: "object-flip-vertical"; tooltip: qsTr("Flip vertically"); onClicked: view.flip(false) }
         }
 
         Row {
@@ -365,7 +365,7 @@ Rectangle {
             }
             Item { width: 12; height: 1 }
             ToolButton {
-                icon: "edit-undo"
+                icon.name: "edit-undo"
                 tooltip: qsTr("Undo (Ctrl+Z)")
                 usable: view.hasStrokes
                 onClicked: view.undoStroke()

@@ -70,6 +70,10 @@ void Config::reload()
     const bool endTask = settings.value(QStringLiteral("taskbar/endTask"), true).toBool();
     const bool taskView = settings.value(QStringLiteral("taskbar/taskView"), true).toBool();
     const bool windowBounce = settings.value(QStringLiteral("taskbar/windowBounce"), false).toBool();
+    QString caffeine = settings.value(QStringLiteral("taskbar/caffeine")).toString();
+    if (caffeine != QLatin1String("always") && caffeine != QLatin1String("never")) {
+        caffeine = QStringLiteral("on");
+    }
     const bool trayOverflow = settings.value(QStringLiteral("taskbar/trayOverflow"), true).toBool();
     const bool allScreens = settings.value(QStringLiteral("taskbar/allScreens"), true).toBool();
     const bool autoHide = settings.value(QStringLiteral("taskbar/autoHide"), false).toBool();
@@ -102,7 +106,7 @@ void Config::reload()
         m_startSolid = startSolid;
         emit taskbarChanged();
     }
-    if (weatherChanged || systemInfoChanged || autoHide != m_taskbarAutoHide || combine != m_taskbarCombine || alignment != m_taskbarAlignment || position != m_taskbarPosition || style != m_taskbarStyle || endTask != m_endTask || taskView != m_taskView || windowBounce != m_taskbarWindowBounce
+    if (weatherChanged || systemInfoChanged || autoHide != m_taskbarAutoHide || combine != m_taskbarCombine || alignment != m_taskbarAlignment || position != m_taskbarPosition || style != m_taskbarStyle || endTask != m_endTask || taskView != m_taskView || windowBounce != m_taskbarWindowBounce || caffeine != m_taskbarCaffeine
         || trayOverflow != m_trayOverflow || allScreens != m_taskbarAllScreens || showDesktopCorner != m_showDesktopCorner) {
         m_taskbarAutoHide = autoHide;
         m_taskbarCombine = combine;
@@ -112,10 +116,17 @@ void Config::reload()
         m_endTask = endTask;
         m_taskView = taskView;
         m_taskbarWindowBounce = windowBounce;
+        m_taskbarCaffeine = caffeine;
         m_trayOverflow = trayOverflow;
         m_taskbarAllScreens = allScreens;
         m_showDesktopCorner = showDesktopCorner;
         emit taskbarChanged();
+    }
+
+    const QString primaryOutput = settings.value(QStringLiteral("display/primaryOutput")).toString();
+    if (primaryOutput != m_primaryOutput) {
+        m_primaryOutput = primaryOutput;
+        emit primaryOutputChanged();
     }
 
     auto mode = [&](const char* key) {

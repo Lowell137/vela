@@ -36,8 +36,8 @@ Item {
     }
     Row {
         anchors { right: parent.right; top: parent.top }
-        ToolButton { width: 28; height: 28; icon: "go-up"; onClicked: mini.shown = D.addMonths(mini.shown, -1) }
-        ToolButton { width: 28; height: 28; icon: "go-down"; onClicked: mini.shown = D.addMonths(mini.shown, 1) }
+        ToolButton { width: 28; height: 28; icon.name: "go-up"; onClicked: mini.shown = D.addMonths(mini.shown, -1) }
+        ToolButton { width: 28; height: 28; icon.name: "go-down"; onClicked: mini.shown = D.addMonths(mini.shown, 1) }
     }
     Row {
         y: 28

@@ -451,20 +451,20 @@ Window {
         Row {
             anchors.verticalCenter: parent.verticalCenter
             spacing: 2
-            ToolButton { icon: "list-add"; text: qsTr("Add media"); tooltip: qsTr("Add videos, pictures and sounds (Ctrl+I)"); onClicked: root.addMedia() }
-            ToolButton { icon: "draw-text"; text: qsTr("Text"); tooltip: qsTr("Add a text at the playhead (T)"); onClicked: root.addText() }
+            ToolButton { icon.name: "list-add"; text: qsTr("Add media"); tooltip: qsTr("Add videos, pictures and sounds (Ctrl+I)"); onClicked: root.addMedia() }
+            ToolButton { icon.name: "draw-text"; text: qsTr("Text"); tooltip: qsTr("Add a text at the playhead (T)"); onClicked: root.addText() }
             Rectangle { width: 1; height: 20; anchors.verticalCenter: parent.verticalCenter; color: Theme.divider }
-            ToolButton { icon: "edit-undo"; tooltip: qsTr("Undo (Ctrl+Z)"); usable: Project.canUndo; onClicked: Project.undo() }
-            ToolButton { icon: "edit-redo"; tooltip: qsTr("Redo (Ctrl+Shift+Z)"); usable: Project.canRedo; onClicked: Project.redo() }
+            ToolButton { icon.name: "edit-undo"; tooltip: qsTr("Undo (Ctrl+Z)"); usable: Project.canUndo; onClicked: Project.undo() }
+            ToolButton { icon.name: "edit-redo"; tooltip: qsTr("Redo (Ctrl+Shift+Z)"); usable: Project.canRedo; onClicked: Project.redo() }
             Rectangle { width: 1; height: 20; anchors.verticalCenter: parent.verticalCenter; color: Theme.divider }
-            ToolButton { icon: "edit-cut"; text: qsTr("Split"); tooltip: qsTr("Split at the playhead (S)"); usable: Project.video.length > 0 || Project.texts.length > 0; onClicked: root.split() }
-            ToolButton { icon: "edit-delete"; tooltip: qsTr("Delete (Del)"); usable: !!root.selected; onClicked: root.removeSelected(true) }
+            ToolButton { icon.name: "edit-cut"; text: qsTr("Split"); tooltip: qsTr("Split at the playhead (S)"); usable: Project.video.length > 0 || Project.texts.length > 0; onClicked: root.split() }
+            ToolButton { icon.name: "edit-delete"; tooltip: qsTr("Delete (Del)"); usable: !!root.selected; onClicked: root.removeSelected(true) }
         }
         Row {
             anchors { right: parent.right; verticalCenter: parent.verticalCenter }
             spacing: 4
-            ToolButton { icon: "document-save"; tooltip: qsTr("Save (Ctrl+S)"); onClicked: root.save() }
-            ToolButton { icon: "configure"; tooltip: qsTr("Settings"); onClicked: root.showSettings = true }
+            ToolButton { icon.name: "document-save"; tooltip: qsTr("Save (Ctrl+S)"); onClicked: root.save() }
+            ToolButton { icon.name: "configure"; tooltip: qsTr("Settings"); onClicked: root.showSettings = true }
             ToolButton { id: moreButton; text: "⋯"; tooltip: qsTr("More"); onClicked: root.openMenu(moreButton, root.moreEntries()) }
             Button {
                 accent: true
@@ -495,7 +495,7 @@ Window {
         }
         ToolButton {
             anchors { right: parent.right; rightMargin: 8; verticalCenter: poolTitle.verticalCenter }
-            icon: "list-add"
+            icon.name: "list-add"
             tooltip: qsTr("Add media (Ctrl+I)")
             onClicked: root.addMedia()
         }
@@ -759,23 +759,23 @@ Window {
         Row {
             anchors.centerIn: parent
             spacing: 4
-            ToolButton { icon: "media-skip-backward"; tooltip: qsTr("To the start (Home)"); onClicked: root.seek(0) }
+            ToolButton { icon.name: "media-skip-backward"; tooltip: qsTr("To the start (Home)"); onClicked: root.seek(0) }
             ToolButton { text: "‹"; tooltip: qsTr("Previous frame (,)"); usable: root.loaded; onClicked: root.step(false) }
             ToolButton {
-                icon: root.playing ? "media-playback-pause" : "media-playback-start"
+                icon.name: root.playing ? "media-playback-pause" : "media-playback-start"
                 tooltip: root.playing ? qsTr("Pause (Space)") : qsTr("Play (Space)")
                 usable: root.loaded
                 onClicked: root.togglePlay()
             }
             ToolButton { text: "›"; tooltip: qsTr("Next frame (.)"); usable: root.loaded; onClicked: root.step(true) }
-            ToolButton { icon: "media-skip-forward"; tooltip: qsTr("To the end (End)"); onClicked: root.seek(Project.videoLength) }
+            ToolButton { icon.name: "media-skip-forward"; tooltip: qsTr("To the end (End)"); onClicked: root.seek(Project.videoLength) }
         }
         Row {
             anchors { right: parent.right; rightMargin: 12; verticalCenter: parent.verticalCenter }
             spacing: 2
-            ToolButton { icon: "zoom-out"; tooltip: qsTr("Zoom out (Ctrl+-)"); onClicked: timeline.zoomTo(timeline.pps * 0.8, timeline.width / 2) }
-            ToolButton { icon: "zoom-fit-best"; tooltip: qsTr("Fit the timeline"); onClicked: timeline.fit() }
-            ToolButton { icon: "zoom-in"; tooltip: qsTr("Zoom in (Ctrl+=)"); onClicked: timeline.zoomTo(timeline.pps * 1.25, timeline.width / 2) }
+            ToolButton { icon.name: "zoom-out"; tooltip: qsTr("Zoom out (Ctrl+-)"); onClicked: timeline.zoomTo(timeline.pps * 0.8, timeline.width / 2) }
+            ToolButton { icon.name: "zoom-fit-best"; tooltip: qsTr("Fit the timeline"); onClicked: timeline.fit() }
+            ToolButton { icon.name: "zoom-in"; tooltip: qsTr("Zoom in (Ctrl+=)"); onClicked: timeline.zoomTo(timeline.pps * 1.25, timeline.width / 2) }
         }
     }
 

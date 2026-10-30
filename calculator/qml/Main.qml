@@ -192,7 +192,7 @@ Window {
                 id: modeButton
                 x: 6
                 y: 6
-                icon: "application-menu"
+                icon.name: "application-menu"
                 tooltip: qsTr("Mode")
                 onClicked: {
                     const p = mapToItem(null, 0, height)
@@ -212,7 +212,7 @@ Window {
                 anchors { right: parent.right; rightMargin: 6 }
                 y: 6
                 visible: !root.wide
-                icon: "view-history"
+                icon.name: "view-history"
                 tooltip: qsTr("History and memory (Ctrl+H)")
                 checked: root.historyOpen
                 onClicked: root.historyOpen = !root.historyOpen
@@ -470,7 +470,7 @@ Window {
                 id: clearButton
                 anchors { right: parent.right; bottom: parent.bottom; margins: 8 }
                 visible: list.count > 0
-                icon: "edit-delete"
+                icon.name: "edit-delete"
                 tooltip: root.panelTab === "history" ? qsTr("Clear all history") : qsTr("Clear all memory")
                 onClicked: root.panelTab === "history" ? Calc.clearHistory() : Calc.memory("MC")
             }

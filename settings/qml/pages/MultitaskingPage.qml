@@ -12,7 +12,7 @@ Page {
         Card {
             icon: "view-split-left-right"
             title: qsTr("Show snap layouts when I drag a window to the top of my screen")
-            trailing: Toggle {
+            trailing: Switch {
                 checked: Prefs.snapDragLayouts
                 onToggled: on => Prefs.snapDragLayouts = on
             }
@@ -70,7 +70,7 @@ Page {
             icon: "view-grid"
             title: qsTr("Hot corner")
             description: qsTr("Moving the pointer into the top-left corner opens Task View")
-            trailing: Toggle {
+            trailing: Switch {
                 checked: Prefs.hotCorner
                 onToggled: on => Prefs.hotCorner = on
             }
@@ -80,7 +80,7 @@ Page {
             enabled: Prefs.hotCorner
             opacity: enabled ? 1 : 0.45
             title: qsTr("Glow when the pointer is near")
-            trailing: Toggle {
+            trailing: Switch {
                 checked: Prefs.hotCornerGlow
                 onToggled: on => Prefs.hotCornerGlow = on
             }
@@ -89,7 +89,7 @@ Page {
             enabled: Prefs.hotCorner
             opacity: enabled ? 1 : 0.45
             title: qsTr("Animation when it triggers")
-            trailing: Toggle {
+            trailing: Switch {
                 checked: Prefs.hotCornerAnimation
                 onToggled: on => Prefs.hotCornerAnimation = on
             }

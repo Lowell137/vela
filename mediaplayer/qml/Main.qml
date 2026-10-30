@@ -305,7 +305,7 @@ Window {
             ToolButton {
                 anchors.horizontalCenter: parent.horizontalCenter
                 visible: !root.loaded && !root.mini
-                icon: "document-open"
+                icon.name: "document-open"
                 text: qsTr("Open")
                 onClicked: root.open()
             }
@@ -339,11 +339,11 @@ Window {
             Row {
                 id: miniRow
                 anchors.centerIn: parent
-                ToolButton { icon: "media-skip-backward"; usable: Playlist.index > 0; onClicked: Playlist.index-- }
-                ToolButton { icon: root.loaded && !root.info.paused ? "media-playback-pause" : "media-playback-start"; onClicked: root.togglePause() }
-                ToolButton { icon: "media-skip-forward"; usable: root.hasNext; onClicked: root.next() }
-                ToolButton { icon: "view-restore"; tooltip: qsTr("Leave the mini player (Esc)"); onClicked: root.setMini(false) }
-                ToolButton { icon: "window-close"; onClicked: root.close() }
+                ToolButton { icon.name: "media-skip-backward"; usable: Playlist.index > 0; onClicked: Playlist.index-- }
+                ToolButton { icon.name: root.loaded && !root.info.paused ? "media-playback-pause" : "media-playback-start"; onClicked: root.togglePause() }
+                ToolButton { icon.name: "media-skip-forward"; usable: root.hasNext; onClicked: root.next() }
+                ToolButton { icon.name: "view-restore"; tooltip: qsTr("Leave the mini player (Esc)"); onClicked: root.setMini(false) }
+                ToolButton { icon.name: "window-close"; onClicked: root.close() }
             }
         }
     }
@@ -368,7 +368,7 @@ Window {
         }
         ToolButton {
             anchors { right: parent.right; rightMargin: 6; verticalCenter: sideTitle.verticalCenter }
-            icon: "window-close"
+            icon.name: "window-close"
             tooltip: qsTr("Close the playlist (Ctrl+L)")
             onClicked: settings.playlistOpen = false
         }
@@ -485,14 +485,14 @@ Window {
             spacing: 6
             ToolButton {
                 anchors.verticalCenter: parent.verticalCenter
-                icon: "media-playlist-shuffle"
+                icon.name: "media-playlist-shuffle"
                 tooltip: qsTr("Shuffle")
                 checked: settings.shuffle
                 onClicked: settings.shuffle = !settings.shuffle
             }
             ToolButton {
                 anchors.verticalCenter: parent.verticalCenter
-                icon: "media-skip-backward"
+                icon.name: "media-skip-backward"
                 tooltip: qsTr("Previous (Ctrl+B)")
                 usable: Playlist.index > 0
                 onClicked: Playlist.index--
@@ -523,14 +523,14 @@ Window {
             }
             ToolButton {
                 anchors.verticalCenter: parent.verticalCenter
-                icon: "media-skip-forward"
+                icon.name: "media-skip-forward"
                 tooltip: qsTr("Next (Ctrl+F)")
                 usable: root.hasNext
                 onClicked: root.next()
             }
             ToolButton {
                 anchors.verticalCenter: parent.verticalCenter
-                icon: "media-playlist-repeat"
+                icon.name: "media-playlist-repeat"
                 tooltip: qsTr("Repeat")
                 checked: settings.repeat
                 onClicked: settings.repeat = !settings.repeat
@@ -541,7 +541,7 @@ Window {
             spacing: 2
             ToolButton {
                 anchors.verticalCenter: parent.verticalCenter
-                icon: root.info.muted || root.info.volume === 0 ? "audio-volume-muted" : "audio-volume-high"
+                icon.name: root.info.muted || root.info.volume === 0 ? "audio-volume-muted" : "audio-volume-high"
                 tooltip: qsTr("Mute (M)")
                 onClicked: player.set("mute", root.info.muted ? "no" : "yes")
             }
@@ -563,7 +563,7 @@ Window {
             ToolButton {
                 id: trackButton
                 anchors.verticalCenter: parent.verticalCenter
-                icon: "media-view-subtitles-symbolic"
+                icon.name: "media-view-subtitles-symbolic"
                 tooltip: qsTr("Subtitles and audio")
                 usable: root.loaded
                 onClicked: root.openMenu(trackButton, root.trackEntries())
@@ -571,20 +571,20 @@ Window {
             ToolButton {
                 anchors.verticalCenter: parent.verticalCenter
                 visible: !root.fullScreen
-                icon: "view-media-playlist"
+                icon.name: "view-media-playlist"
                 tooltip: qsTr("Playlist (Ctrl+L)")
                 checked: settings.playlistOpen
                 onClicked: settings.playlistOpen = !settings.playlistOpen
             }
             ToolButton {
                 anchors.verticalCenter: parent.verticalCenter
-                icon: root.fullScreen ? "view-restore" : "view-fullscreen"
+                icon.name: root.fullScreen ? "view-restore" : "view-fullscreen"
                 tooltip: root.fullScreen ? qsTr("Leave full screen (Esc)") : qsTr("Full screen (F11)")
                 onClicked: root.toggleFullScreen()
             }
             ToolButton {
                 anchors.verticalCenter: parent.verticalCenter
-                icon: "window-minimize-pip"
+                icon.name: "window-minimize-pip"
                 tooltip: qsTr("Mini player (Ctrl+M)")
                 onClicked: root.setMini(true)
             }

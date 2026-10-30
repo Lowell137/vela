@@ -5,14 +5,20 @@
 // without the Qt shell cover layers, reserved space and blur
 // (ext-background-effect).
 //
-// Usage: vela-panel wallpaper          fullscreen wallpaper, a striped
-//                                     gradient (something to blur)
-//        vela-panel taskbar [--blur] [--autohide] [--position top|left|right]
+// Usage: vela-panel wallpaper [--color RRGGBB]
+//                                     fullscreen wallpaper, a striped
+//                                     gradient (something to blur), or one
+//                                     flat color
+//        vela-panel taskbar [--blur] [--clear] [--autohide] [--position top|left|right]
+//        vela-panel menu          TOP/ON_DEMAND layer surface simulating Start
 //                                     48-thick translucent bar at the bottom
 //                                     edge (--position: another one),
 //                                     reserving 48 units; --blur asks to
-//                                     blur what lies behind; --autohide
-//                                     slides it down, 2 units still showing
+//                                     blur what lies behind; --clear: black
+//                                     at 50% instead of a dark gray (what's
+//                                     below shows unchanged, halved);
+//                                     --autohide slides it down, 2 units
+//                                     still showing
 //        --namespace NAME             the layer-shell namespace instead
 //                                     (capture-hiding tests: a shell panel)
 //
@@ -39,6 +45,8 @@ static struct wl_surface* surface;
 static struct zwlr_layer_surface_v1* layerSurface;
 static struct ext_background_effect_surface_v1* effect; // with --blur
 static int wallpaper;
+static int flat = -1; // the wallpaper's one color (--color), or -1
+static int clear;
 static int running = 1;
 
 static void onGlobal(void* data, struct wl_registry* registry, uint32_t name, const char* interface, uint32_t version)
@@ -78,15 +86,17 @@ static void draw(uint32_t width, uint32_t height)
     for (uint32_t y = 0; y < height; ++y) {
         for (uint32_t x = 0; x < width; ++x) {
             uint32_t color;
-            if (wallpaper) {
+            if (wallpaper && flat >= 0) {
+                color = 0xff000000u | (uint32_t)flat;
+            } else if (wallpaper) {
                 // Colored bands changing along x and y: the blur shows.
                 const uint32_t r = (x * 255 / width) & 0xff;
                 const uint32_t g = ((y / 24) % 2) ? 0xc0 : 0x30;
                 const uint32_t b = (255 - y * 255 / height) & 0xff;
                 color = 0xff000000u | r << 16 | g << 8 | b;
             } else {
-                // Dark gray at 50%, premultiplied.
-                color = 0x80101018u;
+                // Dark gray (or black) at 50%, premultiplied.
+                color = clear ? 0x80000000u : 0x80101018u;
             }
             pixels[(size_t)y * width + x] = color;
         }
@@ -128,21 +138,32 @@ static const struct zwlr_layer_surface_v1_listener layerListener = { onConfigure
 
 int main(int argc, char** argv)
 {
-    if (argc < 2 || (strcmp(argv[1], "wallpaper") && strcmp(argv[1], "taskbar"))) {
-        fprintf(stderr, "usage: vela-panel wallpaper | taskbar [--blur] [--autohide] [--position top|left|right]\n");
+    if (argc < 2 || (strcmp(argv[1], "wallpaper") && strcmp(argv[1], "taskbar") && strcmp(argv[1], "menu"))) {
+        fprintf(stderr, "usage: vela-panel wallpaper [--color RRGGBB] | taskbar [--blur] [--clear] [--autohide] "
+                        "[--position top|left|right] [--namespace NAME] | menu\n");
         return 2;
     }
     wallpaper = !strcmp(argv[1], "wallpaper");
+    const int menu = !strcmp(argv[1], "menu");
     int blur = 0, autohide = 0;
-    const char* scope = wallpaper ? "vela-panel" : "vela-taskbar";
+    const char* scope = wallpaper || menu ? "vela-panel" : "vela-taskbar";
     const char* position = "bottom";
     for (int i = 2; i < argc; ++i) {
-        blur |= !strcmp(argv[i], "--blur");
-        autohide |= !strcmp(argv[i], "--autohide");
-        if (!strcmp(argv[i], "--position") && i + 1 < argc) {
+        if (!strcmp(argv[i], "--blur")) {
+            blur = 1;
+        } else if (!strcmp(argv[i], "--autohide")) {
+            autohide = 1;
+        } else if (!strcmp(argv[i], "--clear")) {
+            clear = 1;
+        } else if (!strcmp(argv[i], "--position") && i + 1 < argc) {
             position = argv[++i];
         } else if (!strcmp(argv[i], "--namespace") && i + 1 < argc) {
             scope = argv[++i];
+        } else if (!strcmp(argv[i], "--color") && i + 1 < argc) {
+            flat = (int)(strtoul(argv[++i], NULL, 16) & 0xffffff);
+        } else {
+            fprintf(stderr, "vela-panel: unknown option %s\n", argv[i]);
+            return 2;
         }
     }
     const int top = !strcmp(position, "top");
@@ -170,6 +191,12 @@ int main(int argc, char** argv)
         zwlr_layer_surface_v1_set_anchor(layerSurface, ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM
                 | ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT);
         zwlr_layer_surface_v1_set_exclusive_zone(layerSurface, -1);
+    } else if (menu) {
+        zwlr_layer_surface_v1_set_anchor(layerSurface, ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM);
+        zwlr_layer_surface_v1_set_size(layerSurface, 360, 280);
+        zwlr_layer_surface_v1_set_exclusive_zone(layerSurface, 0);
+        zwlr_layer_surface_v1_set_keyboard_interactivity(layerSurface,
+            ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_ON_DEMAND);
     } else {
         if (left || right) {
             zwlr_layer_surface_v1_set_anchor(layerSurface, ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP

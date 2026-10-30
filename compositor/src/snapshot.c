@@ -30,6 +30,7 @@ struct vela_snapshot {
     struct piece *pieces;
     int count;
     int capacity;
+    int surfaces; // of them, the app's surfaces
     struct vela_shape shape; // the window's (corners, shadow), scaled with it
 };
 
@@ -62,6 +63,7 @@ static void add_surface_copy(struct wlr_surface *surface, int sx, int sy, void *
     struct vela_buffer_node *copy = vela_buffer_node_create(context->snapshot->tree, &buffer->base, buffer->texture,
         &src, wlr_output_transform_invert(surface->current.transform), width, height);
     add_piece(context->snapshot, &copy->node, context->lx + sx, context->ly + sy, width, height);
+    ++context->snapshot->surfaces;
 }
 
 // For surfaces, whether nodes are enabled doesn't matter: on close the surface
@@ -150,9 +152,9 @@ static void snapshot_destroy(struct vela_snapshot *snapshot)
 }
 
 // Draws the snapshot with the frame's center at (cx, cy), scaled (in width and
-// height, to maximize and restore) and faded.
+// height, to maximize and restore), with corners of `radius` and faded.
 static void snapshot_apply(struct vela_snapshot *snapshot, double cx, double cy, double scale_x, double scale_y,
-    float opacity)
+    double radius, float opacity)
 {
     for (int i = 0; i < snapshot->count; ++i) {
         const struct piece *piece = &snapshot->pieces[i];
@@ -172,7 +174,7 @@ static void snapshot_apply(struct vela_snapshot *snapshot, double cx, double cy,
         shape.height = snapshot->frame.height * scale_y;
         shape.x = cx - shape.width / 2.0;
         shape.y = cy - shape.height / 2.0;
-        shape.radius = snapshot->shape.radius * fmin(scale_x, scale_y);
+        shape.radius = radius;
         vela_tree_set_shape(snapshot->tree, &shape);
     }
 }
@@ -188,7 +190,12 @@ struct animation {
     double from_x, from_y, to_x, to_y; // center
     double from_scale, to_scale;
     double from_scale_y, to_scale_y; // morph: the height scales on its own
+    double from_radius, to_radius; // morph: the corners go to the new frame's
     float from_opacity, to_opacity;
+    // Last presentation fraction applied to the shared scene. Repeated
+    // clamped endpoints on consecutive output ticks cannot change a pixel.
+    double last_sample_x;
+    bool has_sample;
 };
 
 static double lerp(double a, double b, double t)
@@ -214,11 +221,6 @@ void vela_snapshots_finish(struct vela_server *server)
     wl_list_for_each_safe (animation, next, &server->snapshot_animations, link) {
         animation_destroy(animation);
     }
-}
-
-bool vela_snapshots_running(const struct vela_server *server)
-{
-    return !wl_list_empty(&server->snapshot_animations);
 }
 
 void vela_snapshot_cancel(struct vela_server *server, struct vela_view *view)
@@ -267,14 +269,18 @@ bool vela_snapshot_animate(struct vela_server *server, struct vela_view *view, e
     }
     struct animation *a = animation_create(view, kind, frame);
     if (kind == VELA_SNAPSHOT_CLOSE) {
-        vela_tween_start(&a->tween, VELA_WINDOW_CLOSE_MS, &vela_decelerate);
-        a->to_scale = VELA_WINDOW_CLOSE_SCALE;
+        vela_tween_start(&a->tween, "close", vela_motion_ms(VELA_WINDOW_CLOSE_MS), &vela_decelerate);
+        a->to_scale = vela_motion_effects() ? VELA_WINDOW_CLOSE_SCALE : 1.0;
     } else {
-        struct wlr_box target = vela_view_minimize_target(view);
-        vela_tween_start(&a->tween, VELA_WINDOW_MINIMIZE_MS, &vela_decelerate);
-        a->to_x = target.x + target.width / 2.0;
-        a->to_y = target.y + target.height / 2.0;
-        a->to_scale = VELA_WINDOW_MINIMIZE_SCALE;
+        vela_tween_start(&a->tween, kind == VELA_SNAPSHOT_RESTORE ? "restore" : "minimize",
+            vela_motion_ms(VELA_WINDOW_MINIMIZE_MS), &vela_decelerate);
+        // Without animation effects it fades where it is.
+        if (vela_motion_effects()) {
+            struct wlr_box target = vela_view_minimize_target(view);
+            a->to_x = target.x + target.width / 2.0;
+            a->to_y = target.y + target.height / 2.0;
+            a->to_scale = VELA_WINDOW_MINIMIZE_SCALE;
+        }
         if (kind == VELA_SNAPSHOT_RESTORE) {
             // The same flight, reversed.
             double x = a->from_x, y = a->from_y, scale = a->from_scale;
@@ -291,26 +297,36 @@ bool vela_snapshot_animate(struct vela_server *server, struct vela_view *view, e
     }
     a->from_scale_y = a->from_scale;
     a->to_scale_y = a->to_scale;
-    snapshot_apply(a->snapshot, a->from_x, a->from_y, a->from_scale, a->from_scale, a->from_opacity);
+    snapshot_apply(a->snapshot, a->from_x, a->from_y, a->from_scale, a->from_scale,
+        a->snapshot->shape.radius * a->from_scale, a->from_opacity);
     wl_list_insert(server->snapshot_animations.prev, &a->link);
     vela_server_schedule_frames(server);
     return true;
 }
 
-bool vela_snapshot_morph(struct vela_server *server, struct vela_view *view, struct wlr_box to)
+bool vela_snapshot_morph(struct vela_server *server, struct vela_view *view, struct wlr_box to, double to_radius)
 {
     struct wlr_box from = vela_view_frame_box(view);
     if (from.width <= 0 || from.height <= 0 || to.width <= 0 || to.height <= 0) {
         return false;
     }
     vela_snapshot_cancel(server, view);
+    if (!vela_motion_effects()) {
+        return false; // the window takes its new frame at once
+    }
     struct animation *a = animation_create(view, VELA_SNAPSHOT_MORPH, from);
-    a->tween = (struct vela_tween) { -1.0, VELA_WINDOW_MAXIMIZE_MS, &vela_decelerate };
+    vela_tween_start(&a->tween, "morph", vela_motion_ms(VELA_WINDOW_MAXIMIZE_MS), &vela_decelerate);
     a->to_x = to.x + to.width / 2.0;
     a->to_y = to.y + to.height / 2.0;
     a->to_scale = (double)to.width / from.width;
     a->to_scale_y = (double)to.height / from.height;
-    snapshot_apply(a->snapshot, a->from_x, a->from_y, 1.0, 1.0, 1.0f);
+    // A window without corners (maximized) gets a shape too, with none: they
+    // grow during the morph.
+    struct vela_shape *shape = &a->snapshot->shape;
+    a->from_radius = shape->enabled ? shape->radius : 0.0;
+    a->to_radius = to_radius;
+    shape->enabled = shape->enabled || to_radius > 0.0;
+    snapshot_apply(a->snapshot, a->from_x, a->from_y, 1.0, 1.0, a->from_radius, 1.0f);
     // The real window, already in its new place, stays invisible under the
     // snapshot until the app has redrawn.
     vela_node_set_opacity(&view->tree->node, 0.0f);
@@ -319,11 +335,44 @@ bool vela_snapshot_morph(struct vela_server *server, struct vela_view *view, str
     return true;
 }
 
-bool vela_snapshots_tick(struct vela_server *server, double now_ms)
+bool vela_snapshots_tick(struct vela_server *server, double now_ms, double wall_ms)
 {
     struct animation *a, *next;
     wl_list_for_each_safe (a, next, &server->snapshot_animations, link) {
+        // An already-expired animation must be retired before sampling the
+        // next output's predicted presentation time. Sampling first adds a
+        // redundant terminal (x=1) frame after the wall clock has reached the
+        // end, which can exceed the 180 Hz restore frame budget.
+        if (vela_tween_retired(&a->tween, wall_ms)) {
+            struct vela_view *owner = a->owner;
+            bool restored = a->kind == VELA_SNAPSHOT_RESTORE;
+            if (a->kind == VELA_SNAPSHOT_MORPH) {
+                vela_node_set_opacity(&owner->tree->node, 1.0f);
+            }
+            animation_destroy(a);
+            if (restored && owner) {
+                vela_view_finish_restore(owner);
+            }
+            continue;
+        }
+        // The 75 Hz and 180 Hz outputs have independent presentation
+        // clocks. Their predicted times can straddle the first tick, causing
+        // several consecutive x=0 samples on the faster output; NVIDIA also
+        // predicts beyond x=1 before the wall clock permits retirement.
+        // Those repeats redraw no different animation state and must not
+        // count as extra sampled frames. Still resample on *any* change,
+        // including when a different output's earlier timestamp moves x
+        // backwards, to preserve per-output predicted-presentation accuracy.
+        double fraction = a->tween.start_ms < 0.0 ? 0.0
+            : a->tween.duration_ms > 0.0
+                ? vela_clampd((now_ms - a->tween.start_ms) / a->tween.duration_ms, 0.0, 1.0)
+                : 1.0;
+        if (a->has_sample && (fraction == 0.0 || fraction == 1.0) && fraction == a->last_sample_x) {
+            continue;
+        }
         double p = vela_tween_progress(&a->tween, now_ms);
+        a->last_sample_x = fraction;
+        a->has_sample = true;
         // Opacity runs ahead of motion: what comes in is readable at once,
         // what goes out has vanished before arriving.
         double fade = fmin(1.0, p * 1.4);
@@ -334,21 +383,26 @@ bool vela_snapshots_tick(struct vela_server *server, double now_ms)
             fade = vela_clampd((p - 0.5) / 0.5, 0.0, 1.0);
             vela_node_set_opacity(&a->owner->tree->node, (float)vela_clampd((p - 0.25) / 0.6, 0.0, 1.0));
         }
-        snapshot_apply(a->snapshot, lerp(a->from_x, a->to_x, p), lerp(a->from_y, a->to_y, p),
-            lerp(a->from_scale, a->to_scale, p), lerp(a->from_scale_y, a->to_scale_y, p),
-            (float)lerp(a->from_opacity, a->to_opacity, fade));
-        if (!vela_tween_finished(&a->tween, now_ms)) {
-            continue;
-        }
-        struct vela_view *owner = a->owner;
-        bool restored = a->kind == VELA_SNAPSHOT_RESTORE;
-        if (a->kind == VELA_SNAPSHOT_MORPH) {
-            vela_node_set_opacity(&owner->tree->node, 1.0f);
-        }
-        animation_destroy(a);
-        if (restored && owner) {
-            vela_view_finish_restore(owner);
+        double scale_x = lerp(a->from_scale, a->to_scale, p);
+        double scale_y = lerp(a->from_scale_y, a->to_scale_y, p);
+        // The morph's corners become the new frame's; a window closing or
+        // flying to the taskbar is an image of itself, scaled with it.
+        double radius = a->kind == VELA_SNAPSHOT_MORPH ? lerp(a->from_radius, a->to_radius, p)
+                                                       : a->snapshot->shape.radius * fmin(scale_x, scale_y);
+        double x = lerp(a->from_x, a->to_x, p);
+        double y = lerp(a->from_y, a->to_y, p);
+        float opacity = (float)lerp(a->from_opacity, a->to_opacity, fade);
+        snapshot_apply(a->snapshot, x, y, scale_x, scale_y, radius, opacity);
+        if (vela_motion_logger) {
+            // The snapshot's center and scale, and how many images it has
+            // (of them, the app's surfaces).
+            wlr_log(WLR_INFO, "animation: %s #%u geometry %.3f %.3f %.4f %.4f opacity %.3f pieces %d surfaces %d",
+                a->tween.name, a->tween.serial, x, y, scale_x, scale_y, opacity, a->snapshot->count,
+                a->snapshot->surfaces);
+            if (a->snapshot->shape.enabled) {
+                wlr_log(WLR_INFO, "animation: %s #%u radius %.3f", a->tween.name, a->tween.serial, radius);
+            }
         }
     }
-    return vela_snapshots_running(server);
+    return !wl_list_empty(&server->snapshot_animations);
 }

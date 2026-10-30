@@ -354,14 +354,14 @@ Window {
         ToolButton {
             anchors.verticalCenter: parent.verticalCenter
             height: 28
-            icon: "document-save"
+            icon.name: "document-save"
             tooltip: qsTr("Save (Ctrl+S)")
             onClicked: root.save()
         }
         ToolButton {
             anchors.verticalCenter: parent.verticalCenter
             height: 28
-            icon: "edit-undo"
+            icon.name: "edit-undo"
             tooltip: qsTr("Undo (Ctrl+Z)")
             usable: canvas.canUndo
             onClicked: canvas.undo()
@@ -369,7 +369,7 @@ Window {
         ToolButton {
             anchors.verticalCenter: parent.verticalCenter
             height: 28
-            icon: "edit-redo"
+            icon.name: "edit-redo"
             tooltip: qsTr("Redo (Ctrl+Y)")
             usable: canvas.canRedo
             onClicked: canvas.redo()
@@ -411,7 +411,7 @@ Window {
             visible: group.isFolded
             x: (parent.width - 1 - width) / 2
             y: 16
-            icon: group.icon
+            icon.name: group.icon
             menu: true
             checked: group.isOpen
             onClicked: root.openGroup = group.isOpen ? null : group
@@ -495,7 +495,7 @@ Window {
                 anchors.centerIn: parent
                 width: 18
                 height: 28
-                icon: "go-previous"
+                icon.name: "go-previous"
                 onClicked: scroller.contentX = Math.max(0, scroller.contentX - 90)
             }
         }
@@ -509,7 +509,7 @@ Window {
                 anchors.centerIn: parent
                 width: 18
                 height: 28
-                icon: "go-next"
+                icon.name: "go-next"
                 onClicked: scroller.contentX = Math.min(scroller.contentWidth - scroller.width, scroller.contentX + 90)
             }
         }
@@ -544,7 +544,7 @@ Window {
                 Tool { tool: "lasso"; icon: "select-lasso"; tooltip: qsTr("Free-form selection") }
                 ToolButton {
                     anchors.verticalCenter: parent.verticalCenter
-                    icon: "transform-crop"
+                    icon.name: "transform-crop"
                     tooltip: qsTr("Crop to the selection (Ctrl+Shift+X)")
                     usable: canvas.selection.width > 0
                     onClicked: canvas.crop()
@@ -569,25 +569,25 @@ Window {
                 order: 3
                 ToolButton {
                     anchors.verticalCenter: parent.verticalCenter
-                    icon: "transform-scale"
+                    icon.name: "transform-scale"
                     tooltip: qsTr("Resize (Ctrl+W)")
                     onClicked: resizeLoader.show()
                 }
                 ToolButton {
                     anchors.verticalCenter: parent.verticalCenter
-                    icon: "object-rotate-right"
+                    icon.name: "object-rotate-right"
                     tooltip: qsTr("Rotate (Ctrl+R)")
                     onClicked: canvas.rotate()
                 }
                 ToolButton {
                     anchors.verticalCenter: parent.verticalCenter
-                    icon: "object-flip-horizontal"
+                    icon.name: "object-flip-horizontal"
                     tooltip: qsTr("Flip horizontally")
                     onClicked: canvas.flip(true)
                 }
                 ToolButton {
                     anchors.verticalCenter: parent.verticalCenter
-                    icon: "object-flip-vertical"
+                    icon.name: "object-flip-vertical"
                     tooltip: qsTr("Flip vertically")
                     onClicked: canvas.flip(false)
                 }
@@ -644,7 +644,7 @@ Window {
                             required property var modelData
                             width: 28
                             height: 28
-                            icon: "shape-" + modelData[0]
+                            icon.name: "shape-" + modelData[0]
                             tooltip: modelData[1]
                             checked: canvas.tool === modelData[0]
                             onClicked: canvas.tool = modelData[0]
@@ -657,7 +657,7 @@ Window {
                     ToolButton {
                         width: 28
                         height: 28
-                        icon: "shape-outline"
+                        icon.name: "shape-outline"
                         tooltip: qsTr("Outline, in color 1")
                         checked: canvas.outlined
                         onClicked: canvas.outlined = !canvas.outlined
@@ -665,7 +665,7 @@ Window {
                     ToolButton {
                         width: 28
                         height: 28
-                        icon: "format-fill-color"
+                        icon.name: "format-fill-color"
                         tooltip: qsTr("Fill, in color 2")
                         checked: canvas.filled
                         onClicked: canvas.filled = !canvas.filled
@@ -761,7 +761,7 @@ Window {
                 Item { width: 8; height: 1 }
                 ToolButton {
                     anchors.verticalCenter: parent.verticalCenter
-                    icon: "color-management"
+                    icon.name: "color-management"
                     tooltip: qsTr("Edit colors")
                     onClicked: root.editColor()
                 }
@@ -790,7 +790,7 @@ Window {
             spacing: 4
             ToolButton {
                 anchors.verticalCenter: parent.verticalCenter
-                icon: "preferences-desktop-font"
+                icon.name: "preferences-desktop-font"
                 text: root.textFamily
                 tooltip: qsTr("Font")
                 onClicked: root.chooseFont()
@@ -798,7 +798,7 @@ Window {
             Item { width: 8; height: 1 }
             ToolButton {
                 anchors.verticalCenter: parent.verticalCenter
-                icon: "list-remove"
+                icon.name: "list-remove"
                 tooltip: qsTr("Smaller")
                 usable: root.textSize > 8
                 onClicked: root.textSize = Math.max(8, root.textSize - (root.textSize > 32 ? 4 : 2))
@@ -813,7 +813,7 @@ Window {
             }
             ToolButton {
                 anchors.verticalCenter: parent.verticalCenter
-                icon: "list-add"
+                icon.name: "list-add"
                 tooltip: qsTr("Larger")
                 usable: root.textSize < 288
                 onClicked: root.textSize = Math.min(288, root.textSize + (root.textSize >= 32 ? 4 : 2))
@@ -821,21 +821,21 @@ Window {
             Item { width: 8; height: 1 }
             ToolButton {
                 anchors.verticalCenter: parent.verticalCenter
-                icon: "format-text-bold"
+                icon.name: "format-text-bold"
                 tooltip: qsTr("Bold")
                 checked: root.textBold
                 onClicked: root.textBold = !root.textBold
             }
             ToolButton {
                 anchors.verticalCenter: parent.verticalCenter
-                icon: "format-text-italic"
+                icon.name: "format-text-italic"
                 tooltip: qsTr("Italic")
                 checked: root.textItalic
                 onClicked: root.textItalic = !root.textItalic
             }
             ToolButton {
                 anchors.verticalCenter: parent.verticalCenter
-                icon: "format-text-underline"
+                icon.name: "format-text-underline"
                 tooltip: qsTr("Underline")
                 checked: root.textUnderline
                 onClicked: root.textUnderline = !root.textUnderline
@@ -1150,7 +1150,7 @@ Window {
             spacing: 2
             ToolButton {
                 height: 26
-                icon: "zoom-out"
+                icon.name: "zoom-out"
                 tooltip: qsTr("Zoom out (Ctrl+-)")
                 onClicked: root.zoomTo(root.zoom / 2)
             }
@@ -1164,7 +1164,7 @@ Window {
             }
             ToolButton {
                 height: 26
-                icon: "zoom-in"
+                icon.name: "zoom-in"
                 tooltip: qsTr("Zoom in (Ctrl++)")
                 onClicked: root.zoomTo(root.zoom * 2)
             }

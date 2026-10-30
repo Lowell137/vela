@@ -43,10 +43,8 @@ set(NOTEPAD_QML_FILES
     qml/WindowButton.qml
     qml/ResizeEdges.qml
     ${PROJECT_SOURCE_DIR}/explorer/qml/MenuLayer.qml
-    ${PROJECT_SOURCE_DIR}/explorer/qml/Dialog.qml
     ${PROJECT_SOURCE_DIR}/explorer/qml/ToolButton.qml
     ${PROJECT_SOURCE_DIR}/explorer/qml/ScrollBar.qml
-    ${PROJECT_SOURCE_DIR}/settings/qml/Toggle.qml
     ${PROJECT_SOURCE_DIR}/shell/qml/MenuPanel.qml
     ${PROJECT_SOURCE_DIR}/shell/qml/PanelShadow.qml)
 

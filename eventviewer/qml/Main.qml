@@ -284,7 +284,7 @@ Window {
                     color: Theme.text
                     font.pixelSize: Theme.fontBody
                 }
-                Toggle {
+                Switch {
                     anchors.verticalCenter: parent.verticalCenter
                     showLabel: false
                     checked: Journal.follow
@@ -292,13 +292,13 @@ Window {
                 }
             }
             ToolButton {
-                icon: "document-save-as"
+                icon.name: "document-save-as"
                 text: qsTr("Save the shown events as…")
                 usable: Journal.count > 0
                 onClicked: root.saveShown()
             }
             ToolButton {
-                icon: "view-refresh"
+                icon.name: "view-refresh"
                 tooltip: qsTr("Reload (F5)")
                 onClicked: Journal.reload()
             }

@@ -3,16 +3,15 @@
 
 #include "systemstatus.h"
 
-#include "bluetoothpower.h"
+#include "bluetooth/bluetooth.h"
 
 #include <QDBusArgument>
 #include <QDBusConnection>
 #include <QDBusInterface>
-#include <QDBusMetaType>
+#include <QDBusMessage>
+#include <QDBusPendingCallWatcher>
 #include <QDBusReply>
 #include <QDBusVariant>
-#include <QDir>
-#include <QFile>
 
 namespace {
 
@@ -37,24 +36,19 @@ void dbusSet(const QDBusConnection& bus, const QString& service, const QString& 
 
 } // namespace
 
-using ManagedObjects = QMap<QDBusObjectPath, QMap<QString, QVariantMap>>;
-Q_DECLARE_METATYPE(ManagedObjects)
-
-SystemStatus::SystemStatus(QObject* parent)
+SystemStatus::SystemStatus(vela::bluetooth::Bluetooth* bluetooth, QObject* parent)
     : QObject(parent)
+    , m_bluetooth(bluetooth)
 {
     QDBusConnection system = QDBusConnection::systemBus();
     connect(this, &SystemStatus::networkChanged, this, &SystemStatus::airplaneChanged);
-    connect(this, &SystemStatus::bluetoothChanged, this, &SystemStatus::airplaneChanged);
+    connect(m_bluetooth, &vela::bluetooth::Bluetooth::changed, this, &SystemStatus::refreshBluetooth);
+    refreshBluetooth();
 
     // --- Network: NetworkManager.
     system.connect(nm, nmPath, propertiesInterface, QStringLiteral("PropertiesChanged"), this,
         SLOT(onPropertiesChanged(QString, QVariantMap, QStringList)));
     refreshNetwork();
-
-    // --- Bluetooth: BlueZ's first adapter.
-    qDBusRegisterMetaType<ManagedObjects>();
-    refreshBluetooth();
 
     // --- Battery: UPower's "display" device.
     system.connect(QStringLiteral("org.freedesktop.UPower"), QStringLiteral("/org/freedesktop/UPower/devices/DisplayDevice"),
@@ -65,13 +59,6 @@ SystemStatus::SystemStatus(QObject* parent)
     system.connect(QStringLiteral("org.freedesktop.UPower.PowerProfiles"), QStringLiteral("/org/freedesktop/UPower/PowerProfiles"),
         propertiesInterface, QStringLiteral("PropertiesChanged"), this, SLOT(refreshPowerProfile()));
     refreshPowerProfile();
-
-    // --- Brightness: the first backlight (laptops).
-    const QStringList backlights = QDir(QStringLiteral("/sys/class/backlight")).entryList(QDir::Dirs | QDir::NoDotAndDotDot);
-    if (!backlights.isEmpty()) {
-        m_backlight = backlights.first();
-        readBacklight();
-    }
 }
 
 SystemStatus::~SystemStatus() = default;
@@ -91,6 +78,7 @@ void SystemStatus::refreshNetwork()
     const uint state = dbusGet(system, nm, nmPath, nm, QStringLiteral("State")).toUInt();
     m_networkConnected = state >= 60; // NM_STATE_CONNECTED_SITE and above
     m_wifiEnabled = dbusGet(system, nm, nmPath, nm, QStringLiteral("WirelessEnabled")).toBool();
+    m_wifiRequest.reported(m_wifiEnabled);
     m_wifiAvailable = dbusGet(system, nm, nmPath, nm, QStringLiteral("WirelessHardwareEnabled")).toBool();
     m_networkName.clear();
     m_networkWireless = false;
@@ -113,7 +101,16 @@ void SystemStatus::refreshNetwork()
 
 void SystemStatus::setWifiEnabled(bool on)
 {
-    dbusSet(QDBusConnection::systemBus(), nm, nmPath, nm, QStringLiteral("WirelessEnabled"), on);
+    const Requested::Id request = m_wifiRequest.ask(on);
+    QDBusMessage call = QDBusMessage::createMethodCall(nm, nmPath, propertiesInterface, QStringLiteral("Set"));
+    call << nm << QStringLiteral("WirelessEnabled") << QVariant::fromValue(QDBusVariant(on));
+    auto* reply = new QDBusPendingCallWatcher(QDBusConnection::systemBus().asyncCall(call), this);
+    connect(reply, &QDBusPendingCallWatcher::finished, this, [this, request](QDBusPendingCallWatcher* w) {
+        w->deleteLater();
+        if (w->isError()) {
+            m_wifiRequest.refused(request);
+        }
+    });
 }
 
 QString SystemStatus::networkIcon() const
@@ -130,41 +127,27 @@ QString SystemStatus::networkIcon() const
                                : QStringLiteral("network-wireless-signal-weak");
 }
 
-// -------------------------------------------------------------- Bluetooth --
+// --------------------------------------------------------- airplane mode --
 
+// Bluetooth counts when there is an adapter, or a blocked platform switch
+// that turning it on unblocks (docs/bluetooth.md §6.3).
 void SystemStatus::refreshBluetooth()
 {
-    QDBusConnection system = QDBusConnection::systemBus();
-    if (m_adapter.isEmpty()) {
-        QDBusInterface manager(QStringLiteral("org.bluez"), QStringLiteral("/"), QStringLiteral("org.freedesktop.DBus.ObjectManager"), system);
-        const QDBusReply<ManagedObjects> objects = manager.call(QStringLiteral("GetManagedObjects"));
-        if (objects.isValid()) {
-            for (auto it = objects.value().cbegin(); it != objects.value().cend(); ++it) {
-                if (it.value().contains(QStringLiteral("org.bluez.Adapter1"))) {
-                    m_adapter = it.key().path();
-                    system.connect(QStringLiteral("org.bluez"), m_adapter, propertiesInterface,
-                        QStringLiteral("PropertiesChanged"), this, SLOT(refreshBluetooth()));
-                    break;
-                }
-            }
-        }
+    if (m_bluetooth->running()) {
+        m_bluetoothWasPresent = m_bluetooth->available() || m_bluetooth->platformBlocked();
+        m_bluetoothWasPowered = m_bluetooth->powered();
     }
-    if (!m_adapter.isEmpty()) {
-        m_bluetoothEnabled
-            = dbusGet(system, QStringLiteral("org.bluez"), m_adapter, QStringLiteral("org.bluez.Adapter1"), QStringLiteral("Powered")).toBool();
-    }
-    emit bluetoothChanged();
-}
-
-void SystemStatus::setBluetoothEnabled(bool on)
-{
-    vela::bluetooth::setPowered(m_adapter, on); // even if blocked by rfkill
+    emit airplaneChanged();
 }
 
 bool SystemStatus::airplaneMode() const
 {
-    return (!m_wifiAvailable || !m_wifiEnabled) && (m_adapter.isEmpty() || !m_bluetoothEnabled)
-        && (m_wifiAvailable || !m_adapter.isEmpty());
+    // The daemon can restart without switching BlueZ's radio off. Until the
+    // new owner reports its state, do not mistake unknown for powered-off.
+    const bool bluetooth = m_bluetooth->running()
+        ? (m_bluetooth->available() || m_bluetooth->platformBlocked()) : m_bluetoothWasPresent;
+    const bool powered = m_bluetooth->running() ? m_bluetooth->powered() : m_bluetoothWasPowered;
+    return (!m_wifiAvailable || !wifiEnabled()) && (!bluetooth || !powered) && (m_wifiAvailable || bluetooth);
 }
 
 void SystemStatus::setAirplaneMode(bool on)
@@ -172,7 +155,9 @@ void SystemStatus::setAirplaneMode(bool on)
     if (m_wifiAvailable) {
         setWifiEnabled(!on);
     }
-    setBluetoothEnabled(!on);
+    if (m_bluetooth->powered() == on) {
+        m_bluetooth->setPowered(!on);
+    }
 }
 
 // ----------------------------------------------------------------- battery --
@@ -231,33 +216,4 @@ void SystemStatus::setPowerProfile(const QString& profile)
     dbusSet(QDBusConnection::systemBus(), QStringLiteral("org.freedesktop.UPower.PowerProfiles"),
         QStringLiteral("/org/freedesktop/UPower/PowerProfiles"), QStringLiteral("org.freedesktop.UPower.PowerProfiles"),
         QStringLiteral("ActiveProfile"), profile);
-}
-
-// -------------------------------------------------------------- brightness --
-
-void SystemStatus::readBacklight()
-{
-    const QString base = QStringLiteral("/sys/class/backlight/") + m_backlight;
-    auto read = [&](const char* name) {
-        QFile file(base + u'/' + QLatin1String(name));
-        return file.open(QIODevice::ReadOnly) ? file.readAll().trimmed().toInt() : 0;
-    };
-    m_maxBrightness = read("max_brightness");
-    m_brightness = m_maxBrightness > 0 ? double(read("brightness")) / m_maxBrightness : 0.0;
-    emit brightnessChanged();
-}
-
-void SystemStatus::setBrightness(double value)
-{
-    if (m_backlight.isEmpty() || m_maxBrightness <= 0) {
-        return;
-    }
-    value = std::clamp(value, 0.01, 1.0); // never entirely off
-    // logind lets the session change the backlight, without root.
-    QDBusInterface session(QStringLiteral("org.freedesktop.login1"), QStringLiteral("/org/freedesktop/login1/session/auto"),
-        QStringLiteral("org.freedesktop.login1.Session"), QDBusConnection::systemBus());
-    session.asyncCall(QStringLiteral("SetBrightness"), QStringLiteral("backlight"), m_backlight,
-        uint(std::lround(value * m_maxBrightness)));
-    m_brightness = value;
-    emit brightnessChanged();
 }

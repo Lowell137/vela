@@ -64,7 +64,7 @@ Item {
             anchors.centerIn: parent
             width: 24
             height: 24
-            icon: "window-close"
+            icon.name: "window-close"
             tooltip: qsTr("Close pane (Ctrl+Shift+W)")
             onClicked: pane.win.closePane(pane)
         }

@@ -13,7 +13,7 @@ Page {
             icon: "preferences-desktop-effects"
             title: qsTr("Animations")
             description: qsTr("Off: windows, menus and everything else change at once")
-            trailing: Toggle {
+            trailing: Switch {
                 checked: Prefs.animations
                 onToggled: on => Prefs.animations = on
             }
@@ -44,7 +44,7 @@ Page {
             icon: "preferences-desktop-panel"
             title: qsTr("Taskbar button hop")
             description: qsTr("The button of an open app hops up when its window comes back and dips when it is minimized")
-            trailing: Toggle {
+            trailing: Switch {
                 checked: Prefs.activateHop
                 onToggled: on => Prefs.activateHop = on
             }
@@ -53,7 +53,7 @@ Page {
             icon: "preferences-desktop-panel"
             title: qsTr("Bounce icons when windows open and close")
             description: qsTr("Also without a click on the taskbar button; needs the hop above")
-            trailing: Toggle {
+            trailing: Switch {
                 checked: Prefs.taskbarWindowBounce
                 onToggled: on => Prefs.taskbarWindowBounce = on
             }
@@ -62,7 +62,7 @@ Page {
             icon: "preferences-desktop-theme"
             title: qsTr("Zoom on press")
             description: qsTr("Quick settings' sliders: the knob zooms a little, with a bounce, while it's held")
-            trailing: Toggle {
+            trailing: Switch {
                 checked: Prefs.sliderPressZoom
                 onToggled: on => Prefs.sliderPressZoom = on
             }
@@ -71,7 +71,7 @@ Page {
             icon: "preferences-system-windows"
             title: qsTr("Hot corner")
             description: qsTr("The animation when the corner triggers")
-            trailing: Toggle {
+            trailing: Switch {
                 checked: Prefs.hotCornerAnimation
                 onToggled: on => Prefs.hotCornerAnimation = on
             }
@@ -86,7 +86,7 @@ Page {
             icon: "window"
             title: qsTr("Snap layouts at the top")
             description: qsTr("While a window is dragged, the edge of the layouts shows at the top and opens near it")
-            trailing: Toggle {
+            trailing: Switch {
                 checked: Prefs.snapDragPeek
                 onToggled: on => Prefs.snapDragPeek = on
             }
@@ -101,7 +101,7 @@ Page {
             icon: "view-list-details"
             title: qsTr("Selection pill")
             description: qsTr("In the side menus of Settings and the apps, the pill of the chosen item hops to the new one")
-            trailing: Toggle {
+            trailing: Switch {
                 checked: Prefs.navPillAnimation
                 onToggled: on => Prefs.navPillAnimation = on
             }
@@ -112,7 +112,7 @@ Page {
             icon: "system-file-manager"
             title: qsTr("Selection pill in Files")
             description: qsTr("Off: the pill of the side pane of Files jumps to the folder you open")
-            trailing: Toggle {
+            trailing: Switch {
                 checked: Prefs.filesPillAnimation
                 onToggled: on => Prefs.filesPillAnimation = on
             }

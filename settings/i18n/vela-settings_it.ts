@@ -117,6 +117,10 @@ Specifiche sistema
         <translation>Avanti</translation>
     </message>
     <message>
+        <source>Cancel</source>
+        <translation>Annulla</translation>
+    </message>
+    <message>
         <source>Your PC&apos;s current name is </source>
         <translation>Il nome attuale del PC è </translation>
     </message>
@@ -196,12 +200,32 @@ Specifiche sistema
         <translation>Interazione</translation>
     </message>
     <message>
-        <source>Mouse pointer</source>
-        <translation>Puntatore del mouse</translation>
+        <source>Visual effects</source>
+        <translation>Effetti visivi</translation>
     </message>
     <message>
-        <source>Cursor theme and size</source>
-        <translation>Tema e dimensione del cursore</translation>
+        <source>Animation effects</source>
+        <translation>Effetti di animazione</translation>
+    </message>
+    <message>
+        <source>Animation duration</source>
+        <translation>Durata delle animazioni</translation>
+    </message>
+    <message>
+        <source>How long they take, compared with Vela&apos;s suggested durations (the mark). Double-click the knob to go back to them</source>
+        <translation>Quanto durano, rispetto alle durate consigliate da Vela (la tacca). Doppio clic sul cursore per tornarci</translation>
+    </message>
+    <message>
+        <source>%1% (suggested)</source>
+        <translation>%1% (consigliata)</translation>
+    </message>
+    <message>
+        <source>%1%</source>
+        <translation>%1%</translation>
+    </message>
+    <message>
+        <source>Windows and panels move as they open, close and change. Off, they only fade, briefly</source>
+        <translation>Finestre e pannelli si muovono quando si aprono, si chiudono e cambiano. Disattivati, svaniscono soltanto, in breve</translation>
     </message>
     <message>
         <source>Sticky keys</source>
@@ -210,6 +234,45 @@ Specifiche sistema
     <message>
         <source>Shift, Ctrl, Alt and Win pressed and released apply to the next key: shortcuts are typed one key at a time. Pressed twice, they stay locked</source>
         <translation>Maiusc, Ctrl, Alt e Win premuti e lasciati valgono per il tasto dopo: le scorciatoie si fanno un tasto alla volta. Premuti due volte restano bloccati</translation>
+    </message>
+</context>
+<context>
+    <name>AddDeviceDialog</name>
+    <message>
+        <source>Add a device</source>
+        <translation>Aggiungi un dispositivo</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Annulla</translation>
+    </message>
+    <message>
+        <source>Make sure your device is turned on and discoverable. Select it below to add it.</source>
+        <translation>Assicurati che il dispositivo sia acceso e individuabile. Selezionalo qui sotto per aggiungerlo.</translation>
+    </message>
+    <message>
+        <source>Discoverable as &quot;%1&quot;</source>
+        <translation>Individuabile come &quot;%1&quot;</translation>
+    </message>
+    <message>
+        <source>Another app is searching for devices, so this PC isn&apos;t made visible. Pairing from this PC still works.</source>
+        <translation>Un&apos;altra app sta cercando dispositivi, quindi questo PC non viene reso visibile. L&apos;associazione da questo PC funziona comunque.</translation>
+    </message>
+    <message>
+        <source>Wait for %1 to finish pairing.</source>
+        <translation>Attendi che %1 finisca l&apos;associazione.</translation>
+    </message>
+    <message>
+        <source>Looking for devices...</source>
+        <translation>Ricerca dei dispositivi...</translation>
+    </message>
+    <message>
+        <source>No devices found</source>
+        <translation>Nessun dispositivo trovato</translation>
+    </message>
+    <message>
+        <source>Search again</source>
+        <translation>Cerca di nuovo</translation>
     </message>
 </context>
 <context>
@@ -267,46 +330,34 @@ Specifiche sistema
     </message>
 </context>
 <context>
-    <name>Bluetooth</name>
+    <name>BluetoothDevice</name>
     <message>
-        <source>Pairing failed: the device rejected it.</source>
-        <translation>Associazione non riuscita: il dispositivo l&apos;ha rifiutata.</translation>
+        <source>Cancel</source>
+        <translation>Annulla</translation>
     </message>
     <message>
-        <source>The device isn&apos;t responding. Make sure it&apos;s on and nearby.</source>
-        <translation>Il dispositivo non risponde. Controlla che sia acceso e vicino.</translation>
+        <source>Disconnect</source>
+        <translation>Disconnetti</translation>
     </message>
     <message>
-        <source>Bluetooth is turned off.</source>
-        <translation>Il Bluetooth è spento.</translation>
+        <source>Connect</source>
+        <translation>Connetti</translation>
     </message>
     <message>
-        <source>The operation failed.</source>
-        <translation>Operazione non riuscita.</translation>
+        <source>Rename</source>
+        <translation>Rinomina</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <translation>Rimuovi</translation>
+    </message>
+    <message>
+        <source>Sound settings</source>
+        <translation>Impostazioni audio</translation>
     </message>
 </context>
 <context>
     <name>BluetoothPage</name>
-    <message>
-        <source>Connecting...</source>
-        <translation>Connessione in corso...</translation>
-    </message>
-    <message>
-        <source>Connected</source>
-        <translation>Connesso</translation>
-    </message>
-    <message>
-        <source>Paired</source>
-        <translation>Associato</translation>
-    </message>
-    <message>
-        <source> · Battery </source>
-        <translation> · Batteria </translation>
-    </message>
-    <message>
-        <source>Bluetooth isn&apos;t available</source>
-        <translation>Bluetooth non disponibile</translation>
-    </message>
     <message>
         <source>There&apos;s no Bluetooth adapter, or the bluetooth service isn&apos;t running.</source>
         <translation>Non c&apos;è un adattatore Bluetooth, o il servizio bluetooth non è attivo.</translation>
@@ -314,10 +365,6 @@ Specifiche sistema
     <message>
         <source>Bluetooth</source>
         <translation>Bluetooth</translation>
-    </message>
-    <message>
-        <source>Discoverable as &quot;</source>
-        <translation>Individuabile come &quot;</translation>
     </message>
     <message>
         <source>Off</source>
@@ -336,20 +383,36 @@ Specifiche sistema
         <translation>Aggiungi dispositivo</translation>
     </message>
     <message>
-        <source>Disconnect</source>
-        <translation>Disconnetti</translation>
-    </message>
-    <message>
-        <source>Connect</source>
-        <translation>Connetti</translation>
-    </message>
-    <message>
         <source>Remove</source>
         <translation>Rimuovi</translation>
     </message>
     <message>
         <source>Related settings</source>
         <translation>Impostazioni correlate</translation>
+    </message>
+    <message>
+        <source>Bluetooth isn&apos;t available on this PC</source>
+        <translation>Il Bluetooth non è disponibile su questo PC</translation>
+    </message>
+    <message>
+        <source>Discoverable as &quot;%1&quot;</source>
+        <translation>Individuabile come &quot;%1&quot;</translation>
+    </message>
+    <message>
+        <source>On</source>
+        <translation>Attivato</translation>
+    </message>
+    <message>
+        <source>Advanced</source>
+        <translation>Avanzate</translation>
+    </message>
+    <message>
+        <source>Bluetooth adapter</source>
+        <translation>Adattatore Bluetooth</translation>
+    </message>
+    <message>
+        <source>The one this PC uses</source>
+        <translation>Quello che usa questo PC</translation>
     </message>
     <message>
         <source>Mouse</source>
@@ -380,44 +443,118 @@ Specifiche sistema
         <translation>Rimuovere il dispositivo?</translation>
     </message>
     <message>
-        <source>Yes</source>
-        <translation>Sì</translation>
+        <source>To use %1 again, you&apos;ll need to pair it once more.</source>
+        <translation>Per usare di nuovo %1 dovrai associarlo un&apos;altra volta.</translation>
     </message>
     <message>
-        <source>No</source>
-        <translation>No</translation>
+        <source>Rename this device</source>
+        <translation>Rinomina questo dispositivo</translation>
     </message>
     <message>
-        <source>To use </source>
-        <translation>Per usare di nuovo </translation>
+        <source>Rename</source>
+        <translation>Rinomina</translation>
     </message>
     <message>
-        <source> again, you&apos;ll need to pair it once more.</source>
-        <translation> dovrai associarlo un&apos;altra volta.</translation>
-    </message>
-    <message>
-        <source>Add a device</source>
-        <translation>Aggiungi un dispositivo</translation>
+        <source>Name</source>
+        <translation>Nome</translation>
     </message>
     <message>
         <source>Cancel</source>
         <translation>Annulla</translation>
     </message>
+</context>
+<context>
+    <name>BluetoothQuestion</name>
     <message>
-        <source>Make sure your device is turned on and discoverable. Select it below to connect.</source>
-        <translation>Assicurati che il dispositivo sia acceso e individuabile. Selezionalo qui sotto per connetterlo.</translation>
+        <source>Does %1 show this code?</source>
+        <translation>%1 mostra questo codice?</translation>
     </message>
     <message>
-        <source>Pairing...</source>
-        <translation>Associazione in corso...</translation>
+        <source>%1 wants to pair with this PC.</source>
+        <translation>%1 vuole associarsi a questo PC.</translation>
     </message>
     <message>
-        <source>Looking for devices...</source>
-        <translation>Ricerca dei dispositivi...</translation>
+        <source>Allow %1 to use %2?</source>
+        <translation>Consentire a %1 di usare %2?</translation>
     </message>
     <message>
-        <source>No devices found</source>
-        <translation>Nessun dispositivo trovato</translation>
+        <source>Type the 6-digit code shown on %1.</source>
+        <translation>Digita il codice di 6 cifre mostrato su %1.</translation>
+    </message>
+    <message>
+        <source>Type the PIN for %1.</source>
+        <translation>Digita il PIN di %1.</translation>
+    </message>
+    <message>
+        <source>Type this code on %1, then press Enter on it.</source>
+        <translation>Digita questo codice su %1, poi premi Invio sul dispositivo.</translation>
+    </message>
+    <message>
+        <source>Code %1</source>
+        <translation>Codice %1</translation>
+    </message>
+    <message>
+        <source>%1 of 6 digits typed</source>
+        <translation>%1 cifre su 6 digitate</translation>
+    </message>
+    <message>
+        <source>Code</source>
+        <translation>Codice</translation>
+    </message>
+    <message>
+        <source>PIN</source>
+        <translation>PIN</translation>
+    </message>
+    <message>
+        <source>Time left: %1 s</source>
+        <translation>Tempo rimasto: %1 s</translation>
+    </message>
+    <message>
+        <source>Allow</source>
+        <translation>Consenti</translation>
+    </message>
+    <message>
+        <source>Pair</source>
+        <translation>Associa</translation>
+    </message>
+    <message>
+        <source>Deny</source>
+        <translation>Nega</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Annulla</translation>
+    </message>
+</context>
+<context>
+    <name>BrightnessCard</name>
+    <message>
+        <source>Brightness is controlled by the display&apos;s buttons. If its menu has a DDC/CI option, turning it on lets Vela control it.</source>
+        <translation>La luminosità si regola con i tasti dello schermo. Se il suo menu ha un&apos;opzione DDC/CI, attivandola Vela potrà regolarla.</translation>
+    </message>
+    <message>
+        <source>This display doesn&apos;t allow changing its brightness</source>
+        <translation>Questo schermo non permette di cambiare la luminosità</translation>
+    </message>
+    <message>
+        <source>Vela can&apos;t reach this display. The installation may be incomplete</source>
+        <translation>Vela non riesce a comunicare con questo schermo. L&apos;installazione potrebbe essere incompleta</translation>
+    </message>
+    <message>
+        <source>Brightness</source>
+        <translation>Luminosità</translation>
+    </message>
+    <message>
+        <source>This display isn&apos;t responding</source>
+        <translation>Questo schermo non risponde</translation>
+    </message>
+    <message>
+        <source>The display didn&apos;t accept the change</source>
+        <translation>Lo schermo non ha accettato la modifica</translation>
+    </message>
+    <message>
+        <source>Adjust the brightness of this display</source>
+        <translation>Regola la luminosità di questo schermo</translation>
     </message>
 </context>
 <context>
@@ -775,10 +912,49 @@ Specifiche sistema
     </message>
 </context>
 <context>
+    <name>DeviceState</name>
+    <message>
+        <source>Waiting for you...</source>
+        <translation>In attesa di una tua risposta...</translation>
+    </message>
+    <message>
+        <source>Pairing...</source>
+        <translation>Associazione in corso...</translation>
+    </message>
+    <message>
+        <source>Connecting...</source>
+        <translation>Connessione in corso...</translation>
+    </message>
+    <message>
+        <source>Disconnecting...</source>
+        <translation>Disconnessione in corso...</translation>
+    </message>
+    <message>
+        <source>Removing...</source>
+        <translation>Rimozione in corso...</translation>
+    </message>
+    <message>
+        <source>Renaming...</source>
+        <translation>Ridenominazione in corso...</translation>
+    </message>
+    <message>
+        <source>Connected</source>
+        <translation>Connesso</translation>
+    </message>
+    <message>
+        <source>Paired</source>
+        <translation>Associato</translation>
+    </message>
+    <message>
+        <source>Battery %1%</source>
+        <translation>Batteria %1%</translation>
+    </message>
+</context>
+<context>
     <name>Dialog</name>
     <message>
-        <source>Cancel</source>
-        <translation>Annulla</translation>
+        <source>OK</source>
+        <translation>OK</translation>
     </message>
 </context>
 <context>
@@ -791,6 +967,22 @@ Specifiche sistema
         <source>Off</source>
         <comment>direct scanout</comment>
         <translation>Disattivato</translation>
+    </message>
+    <message>
+        <source>Make this my main display</source>
+        <translation>Imposta come schermo principale</translation>
+    </message>
+    <message>
+        <source>Show notifications and the main taskbar on this display</source>
+        <translation>Mostra le notifiche e la barra delle applicazioni principale su questo schermo</translation>
+    </message>
+    <message>
+        <source>Main display</source>
+        <translation>Schermo principale</translation>
+    </message>
+    <message>
+        <source>Make main</source>
+        <translation>Imposta come principale</translation>
     </message>
     <message>
         <source>Landscape</source>
@@ -823,14 +1015,6 @@ Specifiche sistema
     <message>
         <source>Brightness &amp; color</source>
         <translation>Luminosità e colore</translation>
-    </message>
-    <message>
-        <source>Brightness</source>
-        <translation>Luminosità</translation>
-    </message>
-    <message>
-        <source>Adjust the brightness of the built-in display</source>
-        <translation>Regola la luminosità dello schermo integrato</translation>
     </message>
     <message>
         <source>Night light</source>
@@ -967,18 +1151,6 @@ Specifiche sistema
         <translation>Un gioco a schermo intero va sullo schermo senza essere ridisegnato. Se un gioco mostra schermo nero o immagini corrotte, disattivalo</translation>
     </message>
     <message>
-        <source>Screen sharing</source>
-        <translation>Condivisione dello schermo</translation>
-    </message>
-    <message>
-        <source>Show an indicator while my screen is shared or recorded</source>
-        <translation>Mostra un indicatore mentre lo schermo è condiviso o registrato</translation>
-    </message>
-    <message>
-        <source>direct scanout black screen glitch game full screen flicker</source>
-        <translation>scanout diretto schermo nero glitch gioco schermo intero</translation>
-    </message>
-    <message>
         <source>Related settings</source>
         <translation>Impostazioni correlate</translation>
     </message>
@@ -1081,12 +1253,16 @@ Specifiche sistema
         <translation>Bluetooth</translation>
     </message>
     <message>
-        <source>Discoverable as &quot;</source>
-        <translation>Individuabile come &quot;</translation>
-    </message>
-    <message>
         <source>Off</source>
         <translation>Disattivato</translation>
+    </message>
+    <message>
+        <source>Discoverable as &quot;%1&quot;</source>
+        <translation>Individuabile come &quot;%1&quot;</translation>
+    </message>
+    <message>
+        <source>On</source>
+        <translation>Attivato</translation>
     </message>
     <message>
         <source>View all devices</source>
@@ -1169,6 +1345,10 @@ Specifiche sistema
     <message>
         <source>Uninstall </source>
         <translation>Disinstalla </translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Annulla</translation>
     </message>
     <message>
         <source>This app and its related info will be uninstalled. You may be asked for your password.</source>
@@ -1321,6 +1501,10 @@ Specifiche sistema
         <translation>Informazioni</translation>
     </message>
     <message>
+        <source>Updates</source>
+        <translation>Aggiornamenti</translation>
+    </message>
+    <message>
         <source>Bluetooth &amp; devices</source>
         <translation>Bluetooth e dispositivi</translation>
     </message>
@@ -1441,6 +1625,14 @@ Specifiche sistema
         <translation>hz refresh frequenza</translation>
     </message>
     <message>
+        <source>Change the brightness</source>
+        <translation>Cambia la luminosità</translation>
+    </message>
+    <message>
+        <source>brightness backlight dim bright monitor ddc</source>
+        <translation>luminosità retroilluminazione scuro luminoso monitor schermo ddc</translation>
+    </message>
+    <message>
         <source>volume speakers headphones microphone output input sound</source>
         <translation>volume altoparlanti cuffie microfono uscita ingresso suono</translation>
     </message>
@@ -1531,6 +1723,26 @@ Specifiche sistema
     <message>
         <source>device name hostname</source>
         <translation>nome dispositivo hostname</translation>
+    </message>
+    <message>
+        <source>update upgrade new version install check release channel beta experimental</source>
+        <translation>aggiornamento aggiornare aggiorna nuova versione installa controlla release canale beta sperimentale update</translation>
+    </message>
+    <message>
+        <source>Check for updates</source>
+        <translation>Controlla aggiornamenti</translation>
+    </message>
+    <message>
+        <source>update check new version</source>
+        <translation>aggiornamento controlla verifica nuova versione update</translation>
+    </message>
+    <message>
+        <source>Update channel</source>
+        <translation>Canale di aggiornamento</translation>
+    </message>
+    <message>
+        <source>beta experimental channel branch commit development</source>
+        <translation>beta sperimentale canale branch commit sviluppo</translation>
     </message>
     <message>
         <source>Bluetooth</source>
@@ -1789,6 +2001,22 @@ Specifiche sistema
         <translation>sticky keys maiusc ctrl alt tastiera</translation>
     </message>
     <message>
+        <source>Animation effects</source>
+        <translation>Effetti di animazione</translation>
+    </message>
+    <message>
+        <source>animations motion reduce movement visual effects</source>
+        <translation>animazioni movimento ridurre effetti visivi</translation>
+    </message>
+    <message>
+        <source>Animation duration</source>
+        <translation>Durata delle animazioni</translation>
+    </message>
+    <message>
+        <source>animations speed slow fast duration</source>
+        <translation>animazioni velocità lente veloci durata</translation>
+    </message>
+    <message>
         <source>Local account</source>
         <translation>Account locale</translation>
     </message>
@@ -1811,6 +2039,13 @@ Specifiche sistema
     <message>
         <source>update upgrade new version check</source>
         <translation>aggiornamento aggiornamenti nuova versione verifica</translation>
+    </message>
+</context>
+<context>
+    <name>MoreMenu</name>
+    <message>
+        <source>More options</source>
+        <translation>Altre opzioni</translation>
     </message>
 </context>
 <context>
@@ -2137,6 +2372,10 @@ Specifiche sistema
         <translation>Avanti</translation>
     </message>
     <message>
+        <source>Cancel</source>
+        <translation>Annulla</translation>
+    </message>
+    <message>
         <source>Enter the network security key</source>
         <translation>Immetti la chiave di sicurezza di rete</translation>
     </message>
@@ -2160,8 +2399,24 @@ Specifiche sistema
         <translation>Attiva ora</translation>
     </message>
     <message>
-        <source>Strength</source>
-        <translation>Intensità</translation>
+        <source>Color temperature</source>
+        <translation>Temperatura colore</translation>
+    </message>
+    <message>
+        <source>Lower is warmer; 6500 K is the screen&apos;s normal white</source>
+        <translation>Più è bassa, più è calda; 6500 K è il bianco normale dello schermo</translation>
+    </message>
+    <message>
+        <source>%1 K</source>
+        <translation>%1 K</translation>
+    </message>
+    <message>
+        <source>Experimental NVIDIA fix</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Use Vulkan instead of the monitor&apos;s gamma LUT if Night light causes broken colors. May disable direct scanout.</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Experimental NVIDIA fix</source>
@@ -2892,6 +3147,10 @@ Specifiche sistema
         <translation>Rinomina il dispositivo</translation>
     </message>
     <message>
+        <source>Cancel</source>
+        <translation>Annulla</translation>
+    </message>
+    <message>
         <source>Leave it empty to use the device&apos;s own name. Other apps show the new name after you sign in again.</source>
         <translation>Lascialo vuoto per usare il nome del dispositivo. Le altre app mostrano il nuovo nome dopo il prossimo accesso.</translation>
     </message>
@@ -3032,81 +3291,29 @@ Specifiche sistema
     </message>
 </context>
 <context>
-    <name>Storage</name>
+    <name>StillVisibleCard</name>
     <message>
-        <source>The trash is already empty.</source>
-        <translation>Il cestino è già vuoto.</translation>
+        <source>Your PC is still visible to nearby devices</source>
+        <translation>Il PC è ancora visibile ai dispositivi vicini</translation>
     </message>
     <message>
-        <source>Some of the trash could not be deleted.</source>
-        <translation>Alcuni elementi del cestino non sono stati eliminati.</translation>
+        <source>Another app is searching for devices.</source>
+        <translation>Un&apos;altra app sta cercando dispositivi.</translation>
     </message>
     <message>
-        <source>The trash is emptied.</source>
-        <translation>Il cestino è stato svuotato.</translation>
-    </message>
-    <message>
-        <source>The cache is already empty.</source>
-        <translation>La cache è già vuota.</translation>
-    </message>
-    <message>
-        <source>Some of the cache could not be deleted.</source>
-        <translation>Alcuni elementi della cache non sono stati eliminati.</translation>
-    </message>
-    <message>
-        <source>The cache is cleared. The apps build it again.</source>
-        <translation>La cache è stata svuotata. Le app la ricostruiscono da sole.</translation>
+        <source>Stop being visible</source>
+        <translation>Non essere più visibile</translation>
     </message>
 </context>
 <context>
-    <name>StoragePage</name>
+    <name>Switch</name>
     <message>
-        <source>%1 of %2 used</source>
-        <translation>%1 di %2 usati</translation>
+        <source>On</source>
+        <translation>Attivato</translation>
     </message>
     <message>
-        <source>Temporary files</source>
-        <translation>File temporanei</translation>
-    </message>
-    <message>
-        <source>Trash</source>
-        <translation>Cestino</translation>
-    </message>
-    <message>
-        <source>Empty</source>
-        <translation>Svuota</translation>
-    </message>
-    <message>
-        <source>Cache</source>
-        <translation>Cache</translation>
-    </message>
-    <message>
-        <source>Clear</source>
-        <translation>Cancella</translation>
-    </message>
-    <message>
-        <source>Biggest folders</source>
-        <translation>Cartelle più grandi</translation>
-    </message>
-    <message>
-        <source>Measuring...</source>
-        <translation>Misurazione in corso...</translation>
-    </message>
-    <message>
-        <source>The biggest things right in the home folder</source>
-        <translation>Le voci più grandi nella cartella home</translation>
-    </message>
-    <message>
-        <source>Nothing could be measured.</source>
-        <translation>Non è stato possibile misurare nulla.</translation>
-    </message>
-    <message>
-        <source>Clear the cache?</source>
-        <translation>Cancellare la cache?</translation>
-    </message>
-    <message>
-        <source>Everything in the cache (%1) is deleted right now. Apps build their cache again as they need it.</source>
-        <translation>Tutto il contenuto della cache (%1) verrà eliminato subito. Le app ricostruiscono la cache quando ne hanno bisogno.</translation>
+        <source>Off</source>
+        <translation>Disattivato</translation>
     </message>
 </context>
 <context>
@@ -3177,6 +3384,14 @@ Specifiche sistema
     <message>
         <source>Clipboard history (Win+V), clear</source>
         <translation>Cronologia degli Appunti (Win+V), cancella</translation>
+    </message>
+    <message>
+        <source>Updates</source>
+        <translation>Aggiornamenti</translation>
+    </message>
+    <message>
+        <source>Check for updates, what&apos;s new, update channel</source>
+        <translation>Controlla aggiornamenti, novità, canale di aggiornamento</translation>
     </message>
     <message>
         <source>About</source>
@@ -3469,17 +3684,6 @@ Specifiche sistema
     </message>
 </context>
 <context>
-    <name>Toggle</name>
-    <message>
-        <source>On</source>
-        <translation>Attivato</translation>
-    </message>
-    <message>
-        <source>Off</source>
-        <translation>Disattivato</translation>
-    </message>
-</context>
-<context>
     <name>TouchpadPage</name>
     <message>
         <source>Switch apps and show the desktop</source>
@@ -3559,181 +3763,213 @@ Specifiche sistema
     </message>
 </context>
 <context>
-    <name>Updates</name>
+    <name>UpdateOptions</name>
     <message>
-        <source>Vela was updated since you last looked.</source>
-        <translation type="unfinished"></translation>
+        <source>Beta</source>
+        <translation>Beta</translation>
     </message>
     <message>
-        <source>The vela-update script is not installed.</source>
-        <translation>Lo script vela-update non è installato.</translation>
+        <source>Experimental</source>
+        <translation>Sperimentale</translation>
     </message>
     <message>
-        <source>The update could not be checked.</source>
-        <translation>Non è stato possibile verificare l&apos;aggiornamento.</translation>
+        <source>More options</source>
+        <translation>Altre opzioni</translation>
     </message>
     <message>
-        <source>Vela isn&apos;t installed as a package: the update will install it.</source>
-        <translation>Vela non è installato come pacchetto: l&apos;aggiornamento lo installerà.</translation>
+        <source>Check for updates automatically</source>
+        <translation>Controlla automaticamente gli aggiornamenti</translation>
     </message>
     <message>
-        <source>The terminal is not installed.</source>
-        <translation>Il terminale non è installato.</translation>
+        <source>Not on metered connections</source>
+        <translation>Non sulle connessioni a consumo</translation>
     </message>
     <message>
-        <source>The terminal could not be started.</source>
-        <translation>Non è stato possibile avviare il terminale.</translation>
+        <source>Update channel</source>
+        <translation>Canale di aggiornamento</translation>
     </message>
     <message>
-        <source>The update runs in a terminal.</source>
-        <translation>L&apos;aggiornamento viene eseguito in un terminale.</translation>
+        <source>Tested, signed releases</source>
+        <translation>Versioni testate e firmate</translation>
     </message>
     <message>
-        <source>The package of that version is not in the cache any more.</source>
-        <translation type="unfinished"></translation>
+        <source>The latest development version, as it&apos;s made</source>
+        <translation>L&apos;ultima versione di sviluppo, man mano che cambia</translation>
     </message>
     <message>
-        <source>The rollback runs in a terminal.</source>
-        <translation type="unfinished"></translation>
+        <source>Advanced options</source>
+        <translation>Opzioni avanzate</translation>
     </message>
     <message>
-        <source>The compositor is not answering.</source>
-        <translation type="unfinished"></translation>
+        <source>Install from another repository, branch or commit</source>
+        <translation>Installa da un altro repository, branch o commit</translation>
+    </message>
+    <message>
+        <source>Source: a repository URL or a folder</source>
+        <translation>Origine: l&apos;URL di un repository o una cartella</translation>
+    </message>
+    <message>
+        <source>Source</source>
+        <translation>Origine</translation>
+    </message>
+    <message>
+        <source>Branch or commit</source>
+        <translation>Branch o commit</translation>
+    </message>
+    <message>
+        <source>The default branch</source>
+        <translation>Il branch predefinito</translation>
+    </message>
+    <message>
+        <source>Install this revision</source>
+        <translation>Installa questa revisione</translation>
+    </message>
+    <message>
+        <source>Installed version</source>
+        <translation>Versione installata</translation>
+    </message>
+    <message>
+        <source>%1, %2 channel</source>
+        <translation>%1, canale %2</translation>
+    </message>
+    <message>
+        <source>Not installed from a package</source>
+        <translation>Non installato da un pacchetto</translation>
+    </message>
+    <message>
+        <source>Switch to Beta?</source>
+        <translation>Passare al canale Beta?</translation>
+    </message>
+    <message>
+        <source>Switch to Experimental?</source>
+        <translation>Passare al canale Sperimentale?</translation>
+    </message>
+    <message>
+        <source>Switch</source>
+        <translation>Cambia</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Annulla</translation>
+    </message>
+    <message>
+        <source>Beta installs tested, signed releases. The vela-git package is replaced by vela, and Vela may go back to an older version than the one you have.</source>
+        <translation>Beta installa versioni testate e firmate. Il pacchetto vela-git viene sostituito da vela, e Vela potrebbe tornare a una versione più vecchia di quella che hai.</translation>
+    </message>
+    <message>
+        <source>Experimental installs the latest development version, downloaded or built on this PC. It changes often and may be less stable. The vela package is replaced by vela-git.</source>
+        <translation>Sperimentale installa l&apos;ultima versione di sviluppo, scaricata o compilata su questo PC. Cambia spesso e può essere meno stabile. Il pacchetto vela viene sostituito da vela-git.</translation>
+    </message>
+    <message>
+        <source>The update runs in a terminal, where your password is asked for.</source>
+        <translation>L&apos;aggiornamento si svolge in un terminale, dove ti viene chiesta la password.</translation>
     </message>
 </context>
 <context>
-    <name>UpdatesPage</name>
+    <name>UpdateStatusCard</name>
+    <message>
+        <source>getting ready</source>
+        <translation>preparazione</translation>
+    </message>
+    <message>
+        <source>downloading</source>
+        <translation>download</translation>
+    </message>
+    <message>
+        <source>verifying</source>
+        <translation>verifica</translation>
+    </message>
+    <message>
+        <source>building</source>
+        <translation>compilazione</translation>
+    </message>
+    <message>
+        <source>installing</source>
+        <translation>installazione</translation>
+    </message>
+    <message>
+        <source>Last checked: today, %1</source>
+        <translation>Ultimo controllo: oggi, %1</translation>
+    </message>
+    <message>
+        <source>Last checked: yesterday, %1</source>
+        <translation>Ultimo controllo: ieri, %1</translation>
+    </message>
+    <message>
+        <source>Last checked: %1, %2</source>
+        <translation>Ultimo controllo: %1, %2</translation>
+    </message>
+    <message>
+        <source>The update service isn&apos;t running</source>
+        <translation>Il servizio di aggiornamento non è attivo</translation>
+    </message>
     <message>
         <source>Checking for updates...</source>
-        <translation>Ricerca degli aggiornamenti...</translation>
+        <translation>Controllo degli aggiornamenti in corso...</translation>
+    </message>
+    <message>
+        <source>Opening the terminal...</source>
+        <translation>Apertura del terminale...</translation>
+    </message>
+    <message>
+        <source>Updating in the terminal: %1</source>
+        <translation>Aggiornamento nel terminale: %1</translation>
+    </message>
+    <message>
+        <source>Updating in the terminal</source>
+        <translation>Aggiornamento nel terminale</translation>
+    </message>
+    <message>
+        <source>Vela %1 is available</source>
+        <translation>È disponibile Vela %1</translation>
     </message>
     <message>
         <source>You&apos;re up to date</source>
-        <translation>Sei aggiornato</translation>
+        <translation>Vela è aggiornato</translation>
     </message>
     <message>
-        <source>Update available: %1</source>
-        <translation>Aggiornamento disponibile: %1</translation>
+        <source>You have a newer version than the latest release</source>
+        <translation>Hai una versione più recente dell&apos;ultima release</translation>
     </message>
     <message>
-        <source>Look for a newer Vela</source>
-        <translation>Cerca una versione più recente di Vela</translation>
+        <source>Development build: not installed from a package</source>
+        <translation>Build di sviluppo: non installata da un pacchetto</translation>
     </message>
     <message>
-        <source>Vela Update</source>
-        <translation>Aggiornamenti di Vela</translation>
+        <source>Couldn&apos;t check for updates</source>
+        <translation>Impossibile controllare gli aggiornamenti</translation>
+    </message>
+    <message>
+        <source>Updates haven&apos;t been checked yet</source>
+        <translation>Gli aggiornamenti non sono ancora stati controllati</translation>
+    </message>
+    <message>
+        <source>Vela can&apos;t check for updates or install them until it starts again.</source>
+        <translation>Vela non può controllare né installare aggiornamenti finché il servizio non riparte.</translation>
+    </message>
+    <message>
+        <source>Follow the update in the terminal window. Your password is asked for there.</source>
+        <translation>Segui l&apos;aggiornamento nella finestra del terminale: la password ti viene chiesta lì.</translation>
+    </message>
+    <message>
+        <source>Install now</source>
+        <translation>Installa ora</translation>
     </message>
     <message>
         <source>Check for updates</source>
-        <translation>Verifica la presenza di aggiornamenti</translation>
+        <translation>Controlla aggiornamenti</translation>
     </message>
     <message>
-        <source>Checking...</source>
-        <translation type="unfinished"></translation>
+        <source>Sign out to finish updating. Until then, the version you signed in with keeps running.</source>
+        <translation>Esci per completare l&apos;aggiornamento. Fino ad allora resta in uso la versione con cui hai effettuato l&apos;accesso.</translation>
     </message>
     <message>
-        <source>Updates are paused until %1.</source>
-        <translation type="unfinished"></translation>
+        <source>Couldn&apos;t check for updates: %1</source>
+        <translation>Impossibile controllare gli aggiornamenti: %1</translation>
     </message>
     <message>
-        <source>Installed: %1</source>
-        <translation>Installata: %1</translation>
-    </message>
-    <message>
-        <source>Last checked: %1</source>
-        <translation>Ultima verifica: %1</translation>
-    </message>
-    <message>
-        <source>Download and install</source>
-        <translation>Scarica e installa</translation>
-    </message>
-    <message>
-        <source>Update in another terminal</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Log out to finish</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>The package manager asks for your password in the terminal.</source>
-        <translation>Il gestore dei pacchetti chiede la password nel terminale.</translation>
-    </message>
-    <message>
-        <source>What&apos;s new</source>
-        <translation>Novità</translation>
-    </message>
-    <message>
-        <source>and %1 more</source>
-        <translation>e altre %1</translation>
-    </message>
-    <message>
-        <source>Update options</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>How often the page checks by itself, and the pause</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Daily</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Weekly</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Never</source>
-        <translation type="unfinished">Mai</translation>
-    </message>
-    <message>
-        <source>Pause updates</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Resumed on %1.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>No checks for seven days, then they start again</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Resume</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>For a week</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Rollback</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Go back to a package the updater keeps in its cache</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Roll back</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Update source</source>
-        <translation>Origine degli aggiornamenti</translation>
-    </message>
-    <message>
-        <source>The Git repository or the folder the updates come from</source>
-        <translation>Il repository Git o la cartella da cui proviene l&apos;aggiornamento</translation>
-    </message>
-    <message>
-        <source>The upstream repository, unless it is set.</source>
-        <translation>Il repository upstream, se non impostato.</translation>
-    </message>
-    <message>
-        <source>Save</source>
-        <translation>Salva</translation>
+        <source>The last update didn&apos;t finish: %1</source>
+        <translation>L&apos;ultimo aggiornamento non è stato completato: %1</translation>
     </message>
 </context>
 <context>
@@ -3800,287 +4036,143 @@ Specifiche sistema
     </message>
 </context>
 <context>
-    <name>Weather</name>
+    <name>WhatsNew</name>
     <message>
-        <source>Today</source>
-        <translation>Oggi</translation>
+        <source>What&apos;s new</source>
+        <translation>Novità</translation>
+    </message>
+    <message>
+        <source>Vela %1</source>
+        <translation>Vela %1</translation>
+    </message>
+    <message numerus="yes">
+        <source>and %n more</source>
+        <translation>
+            <numerusform>e un altro</numerusform>
+            <numerusform>e altri %n</numerusform>
+        </translation>
     </message>
 </context>
 <context>
-    <name>WindowBlurPage</name>
+    <name>vela::bluetooth::Bluetooth</name>
     <message>
-        <source>Window blur</source>
-        <translation>Sfocatura delle finestre</translation>
+        <source>Bluetooth is busy. Try again in a moment.</source>
+        <translation>Il Bluetooth è occupato. Riprova tra un momento.</translation>
     </message>
     <message>
-        <source>Blur what is behind see-through windows</source>
-        <translation>Sfoca ciò che sta dietro le finestre trasparenti</translation>
+        <source>Wait for %1 to finish pairing.</source>
+        <translation>Attendi che %1 finisca l&apos;associazione.</translation>
     </message>
     <message>
-        <source>Blur</source>
-        <translation>Sfocatura</translation>
+        <source>Bluetooth can&apos;t be changed while the screen is locked or another session is in use.</source>
+        <translation>Il Bluetooth non si può modificare mentre lo schermo è bloccato o è in uso un&apos;altra sessione.</translation>
     </message>
     <message>
-        <source>Every window, except the apps below</source>
-        <translation>Ogni finestra, tranne le app qui sotto</translation>
+        <source>This app isn&apos;t allowed to change Bluetooth.</source>
+        <translation>Questa app non può modificare il Bluetooth.</translation>
     </message>
     <message>
-        <source>Apps that ask for it, and the apps you add below</source>
-        <translation>Le app che la richiedono e quelle che aggiungi qui sotto</translation>
+        <source>There&apos;s no Bluetooth adapter.</source>
+        <translation>Non c&apos;è nessun adattatore Bluetooth.</translation>
     </message>
     <message>
-        <source>Only apps that ask for it</source>
-        <translation>Solo le app che la richiedono</translation>
+        <source>The device isn&apos;t there anymore.</source>
+        <translation>Il dispositivo non c&apos;è più.</translation>
     </message>
     <message>
-        <source>All windows</source>
-        <translation>Tutte le finestre</translation>
+        <source>That code isn&apos;t valid.</source>
+        <translation>Il codice non è valido.</translation>
     </message>
     <message>
-        <source>Window opacity</source>
-        <translation>Opacità delle finestre</translation>
+        <source>That name can&apos;t be used. Use up to 248 characters, without control characters.</source>
+        <translation>Questo nome non si può usare. Usa al massimo 248 caratteri, senza caratteri di controllo.</translation>
     </message>
     <message>
-        <source>%1%</source>
-        <translation>%1%</translation>
-    </message>
-    <message>
-        <source>Also blur these apps</source>
-        <translation>Sfoca anche queste app</translation>
-    </message>
-    <message>
-        <source>No apps added</source>
-        <translation>Nessuna app aggiunta</translation>
-    </message>
-    <message>
-        <source>Never blur these apps</source>
-        <translation>Non sfocare mai queste app</translation>
-    </message>
-    <message>
-        <source>No apps excluded</source>
-        <translation>Nessuna app esclusa</translation>
-    </message>
-    <message>
-        <source>Where blur shows</source>
-        <translation>Dove si vede la sfocatura</translation>
-    </message>
-    <message>
-        <source>Only behind the see-through parts of a window, never behind its shadow. Opaque and fullscreen windows aren&apos;t blurred, unless window opacity makes them see-through; fullscreen windows always stay opaque. Apps that ask for blur themselves keep it.</source>
-        <translation>Solo dietro le parti trasparenti di una finestra, mai dietro la sua ombra. Le finestre opache e a schermo intero non vengono sfocate, a meno che l&apos;opacità non le renda trasparenti; le finestre a schermo intero restano sempre opache. Le app che richiedono da sole la sfocatura la mantengono.</translation>
-    </message>
-    <message>
-        <source> app</source>
-        <translation> app</translation>
-    </message>
-    <message>
-        <source> apps</source>
-        <translation> app</translation>
-    </message>
-    <message>
-        <source>Add an app</source>
-        <translation>Aggiungi un&apos;app</translation>
-    </message>
-    <message>
-        <source>Remove</source>
-        <translation>Rimuovi</translation>
-    </message>
-    <message>
-        <source>Never blur an app</source>
-        <translation>Non sfocare mai un&apos;app</translation>
-    </message>
-    <message>
-        <source>Blur an app</source>
-        <translation>Sfoca un&apos;app</translation>
-    </message>
-    <message>
-        <source>Add</source>
-        <translation>Aggiungi</translation>
-    </message>
-    <message>
-        <source>No open windows</source>
-        <translation>Nessuna finestra aperta</translation>
-    </message>
-    <message>
-        <source>Open windows</source>
-        <translation>Finestre aperte</translation>
-    </message>
-    <message>
-        <source>Or type an app id (e.g. org.kde.konsole)</source>
-        <translation>Oppure scrivi l&apos;id di un&apos;app (ad es. org.kde.konsole)</translation>
+        <source>Bluetooth isn&apos;t responding.</source>
+        <translation>Il Bluetooth non risponde.</translation>
     </message>
 </context>
 <context>
-    <name>WindowRulesPage</name>
+    <name>vela::updates::Updates</name>
     <message>
-        <source>Remember window positions</source>
-        <translation>Ricorda la posizione delle finestre</translation>
+        <source>Another update is already running.</source>
+        <translation>È già in corso un altro aggiornamento.</translation>
     </message>
     <message>
-        <source>Apps open where you left them. Your rules below come first.</source>
-        <translation>Le app si aprono dove le hai lasciate. Le tue regole qui sotto hanno la precedenza.</translation>
+        <source>Vela can&apos;t update itself on this system.</source>
+        <translation>Vela non può aggiornarsi su questo sistema.</translation>
     </message>
     <message>
-        <source>No rules</source>
-        <translation>Nessuna regola</translation>
+        <source>A program needed to update Vela isn&apos;t installed.</source>
+        <translation>Manca un programma necessario per aggiornare Vela.</translation>
     </message>
     <message>
-        <source> rule</source>
-        <translation> regola</translation>
+        <source>Couldn&apos;t connect. Check your internet connection.</source>
+        <translation>Impossibile connettersi. Controlla la connessione a Internet.</translation>
     </message>
     <message>
-        <source> rules</source>
-        <translation> regole</translation>
+        <source>GitHub is limiting requests. Try again later.</source>
+        <translation>GitHub sta limitando le richieste. Riprova più tardi.</translation>
     </message>
     <message>
-        <source>Add a rule</source>
-        <translation>Aggiungi una regola</translation>
+        <source>No Beta release has been published yet.</source>
+        <translation>Non è ancora stata pubblicata nessuna versione Beta.</translation>
     </message>
     <message>
-        <source>Remove</source>
-        <translation>Rimuovi</translation>
+        <source>The update wasn&apos;t found.</source>
+        <translation>Aggiornamento non trovato.</translation>
     </message>
     <message>
-        <source>When rules apply</source>
-        <translation>Quando si applicano le regole</translation>
+        <source>The installed version is newer than the update.</source>
+        <translation>La versione installata è più recente dell&apos;aggiornamento.</translation>
     </message>
     <message>
-        <source>A rule works when a window opens, not on windows that are already open. You can still move the window after.</source>
-        <translation>Una regola vale quando una finestra si apre, non per quelle già aperte. Puoi comunque spostare la finestra dopo.</translation>
+        <source>The update couldn&apos;t be verified, so it wasn&apos;t installed.</source>
+        <translation>Non è stato possibile verificare l&apos;aggiornamento, quindi non è stato installato.</translation>
     </message>
     <message>
-        <source>These windows don&apos;t show in screen sharing, recordings or screenshots. You still see them as usual. Their name and taskbar icon can still show.</source>
-        <translation>Queste finestre non compaiono nella condivisione dello schermo, nelle registrazioni e negli screenshot. Tu le vedi normalmente. Il nome e l&apos;icona nella barra possono comunque comparire.</translation>
+        <source>Building the update failed.</source>
+        <translation>La compilazione dell&apos;aggiornamento non è riuscita.</translation>
     </message>
     <message>
-        <source>App (e.g. discord)</source>
-        <translation>App (ad es. discord)</translation>
+        <source>The package manager didn&apos;t install the update.</source>
+        <translation>Il gestore dei pacchetti non ha installato l&apos;aggiornamento.</translation>
     </message>
     <message>
-        <source>Screen: name (HDMI-A-1) or number (1, 2, ...)</source>
-        <translation>Schermo: nome (HDMI-A-1) o numero (1, 2, ...)</translation>
+        <source>The update was interrupted.</source>
+        <translation>L&apos;aggiornamento è stato interrotto.</translation>
     </message>
     <message>
-        <source>Position from the screen&apos;s corner: 100,80</source>
-        <translation>Posizione dall&apos;angolo dello schermo: 100,80</translation>
+        <source>The terminal didn&apos;t start the update.</source>
+        <translation>Il terminale non ha avviato l&apos;aggiornamento.</translation>
     </message>
     <message>
-        <source>Hide from screen capture</source>
-        <translation>Nascondi dalle acquisizioni dello schermo</translation>
+        <source>Something went wrong.</source>
+        <translation>Qualcosa è andato storto.</translation>
     </message>
     <message>
-        <source>Add a window rule</source>
-        <translation>Aggiungi una regola per le finestre</translation>
+        <source>An update or a check is already running.</source>
+        <translation>È già in corso un aggiornamento o un controllo.</translation>
     </message>
     <message>
-        <source>Add</source>
-        <translation>Aggiungi</translation>
+        <source>Vela can&apos;t update to that: %1</source>
+        <translation>Vela non può aggiornarsi a questa revisione: %1</translation>
     </message>
     <message>
-        <source>Pick a window</source>
-        <translation>Scegli una finestra</translation>
+        <source>Couldn&apos;t open a terminal to run the update.</source>
+        <translation>Impossibile aprire un terminale per l&apos;aggiornamento.</translation>
     </message>
     <message>
-        <source>Desktop number (1, 2, ...)</source>
-        <translation>Numero del desktop (1, 2, ...)</translation>
+        <source>This app isn&apos;t allowed to update Vela.</source>
+        <translation>Questa app non è autorizzata ad aggiornare Vela.</translation>
     </message>
     <message>
-        <source>Size: 900x600</source>
-        <translation>Dimensione: 900x600</translation>
+        <source>Couldn&apos;t start vela-update.</source>
+        <translation>Impossibile avviare vela-update.</translation>
     </message>
     <message>
-        <source>Centered</source>
-        <translation>Centrata</translation>
-    </message>
-    <message>
-        <source>Maximized</source>
-        <translation>Ingrandita</translation>
-    </message>
-    <message>
-        <source>Always on top</source>
-        <translation>Sempre in primo piano</translation>
-    </message>
-</context>
-<context>
-    <name>vela::weather</name>
-    <message>
-        <source>Clear</source>
-        <translation type="unfinished">Cancella</translation>
-    </message>
-    <message>
-        <source>Mostly clear</source>
-        <translation>Prevalentemente sereno</translation>
-    </message>
-    <message>
-        <source>Partly cloudy</source>
-        <translation>Parzialmente nuvoloso</translation>
-    </message>
-    <message>
-        <source>Overcast</source>
-        <translation>Coperto</translation>
-    </message>
-    <message>
-        <source>Fog</source>
-        <translation>Nebbia</translation>
-    </message>
-    <message>
-        <source>Drizzle</source>
-        <translation>Pioviggine</translation>
-    </message>
-    <message>
-        <source>Freezing drizzle</source>
-        <translation>Pioviggine gelata</translation>
-    </message>
-    <message>
-        <source>Light rain</source>
-        <translation>Pioggia leggera</translation>
-    </message>
-    <message>
-        <source>Rain</source>
-        <translation>Pioggia</translation>
-    </message>
-    <message>
-        <source>Heavy rain</source>
-        <translation>Pioggia forte</translation>
-    </message>
-    <message>
-        <source>Freezing rain</source>
-        <translation>Pioggia gelata</translation>
-    </message>
-    <message>
-        <source>Light snow</source>
-        <translation>Neve debole</translation>
-    </message>
-    <message>
-        <source>Snow</source>
-        <translation>Neve</translation>
-    </message>
-    <message>
-        <source>Heavy snow</source>
-        <translation>Neve forte</translation>
-    </message>
-    <message>
-        <source>Snow grains</source>
-        <translation>Granelli di neve</translation>
-    </message>
-    <message>
-        <source>Rain showers</source>
-        <translation>Rovesci di pioggia</translation>
-    </message>
-    <message>
-        <source>Snow showers</source>
-        <translation>Rovesci di neve</translation>
-    </message>
-    <message>
-        <source>Thunderstorm</source>
-        <translation>Temporale</translation>
-    </message>
-    <message>
-        <source>Thunderstorm with hail</source>
-        <translation>Temporale con grandine</translation>
-    </message>
-    <message>
-        <source>Unknown</source>
-        <translation>Sconosciuto</translation>
+        <source>The update service isn&apos;t responding.</source>
+        <translation>Il servizio di aggiornamento non risponde.</translation>
     </message>
 </context>
 </TS>

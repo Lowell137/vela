@@ -114,7 +114,7 @@ Window {
             if (v < from) v = wrap ? to : from
             value = v
         }
-        ToolButton { anchors.horizontalCenter: parent.horizontalCenter; icon: "go-up"; onClicked: field.step(1) }
+        ToolButton { anchors.horizontalCenter: parent.horizontalCenter; icon.name: "go-up"; onClicked: field.step(1) }
         Rectangle {
             width: 64
             height: 40
@@ -133,7 +133,7 @@ Window {
                 onWheel: wheel => field.step(wheel.angleDelta.y > 0 ? 1 : -1)
             }
         }
-        ToolButton { anchors.horizontalCenter: parent.horizontalCenter; icon: "go-down"; onClicked: field.step(-1) }
+        ToolButton { anchors.horizontalCenter: parent.horizontalCenter; icon.name: "go-down"; onClicked: field.step(-1) }
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             visible: field.label !== ""
@@ -250,7 +250,7 @@ Window {
         ToolButton {
             width: 40
             height: 36
-            icon: "application-menu"
+            icon.name: "application-menu"
             tooltip: qsTr("Open or close the navigation")
             onClicked: settings.wideRail = !settings.wideRail
         }
@@ -335,19 +335,19 @@ Window {
                 }
                 ToolButton {
                     visible: root.page === "timer"
-                    icon: "list-add"
+                    icon.name: "list-add"
                     text: qsTr("New timer")
                     onClicked: timerDialog.ask(-1, "", 300000)
                 }
                 ToolButton {
                     visible: root.page === "alarm"
-                    icon: "list-add"
+                    icon.name: "list-add"
                     text: qsTr("New alarm")
                     onClicked: alarmDialog.ask(null)
                 }
                 ToolButton {
                     visible: root.page === "world"
-                    icon: "list-add"
+                    icon.name: "list-add"
                     text: qsTr("Add city")
                     onClicked: cityDialog.ask()
                 }
@@ -440,12 +440,12 @@ Window {
                         Row {
                             anchors { right: parent.right; rightMargin: 8; top: parent.top; topMargin: 8 }
                             ToolButton {
-                                icon: "document-edit"
+                                icon.name: "document-edit"
                                 tooltip: qsTr("Edit")
                                 onClicked: timerDialog.ask(card.modelData.id, card.modelData.name, card.modelData.durationMs)
                             }
                             ToolButton {
-                                icon: "edit-delete"
+                                icon.name: "edit-delete"
                                 tooltip: qsTr("Delete")
                                 onClicked: Clock.timerRemove(card.modelData.id)
                             }
@@ -514,7 +514,7 @@ Window {
                         elide: Text.ElideRight
                     }
                 }
-                Toggle {
+                Switch {
                     id: toggle
                     anchors { right: trash.left; rightMargin: 8; verticalCenter: parent.verticalCenter }
                     showLabel: false
@@ -524,7 +524,7 @@ Window {
                 ToolButton {
                     id: trash
                     anchors { right: parent.right; rightMargin: 8; verticalCenter: parent.verticalCenter }
-                    icon: "edit-delete"
+                    icon.name: "edit-delete"
                     tooltip: qsTr("Delete")
                     onClicked: Clock.alarmRemove(alarmRow.modelData.id)
                 }
@@ -669,7 +669,7 @@ Window {
                     id: zoneTrash
                     visible: zoneRow.index > 0
                     anchors { right: parent.right; rightMargin: 8; verticalCenter: parent.verticalCenter }
-                    icon: "edit-delete"
+                    icon.name: "edit-delete"
                     tooltip: qsTr("Remove")
                     onClicked: Clock.zoneRemove(zoneRow.modelData)
                 }
@@ -706,7 +706,7 @@ Window {
             }
             SettingRow {
                 title: qsTr("24-hour clock")
-                Toggle {
+                Switch {
                     anchors { right: parent.right; verticalCenter: parent.verticalCenter }
                     checked: Clock.use24h
                     onToggled: checked => Clock.use24h = checked
@@ -735,14 +735,14 @@ Window {
                 Row {
                     anchors { right: parent.right; verticalCenter: parent.verticalCenter }
                     spacing: 8
-                    ToolButton { icon: "list-remove"; onClicked: Clock.snoozeMinutes -= 1 }
+                    ToolButton { icon.name: "list-remove"; onClicked: Clock.snoozeMinutes -= 1 }
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
                         text: qsTr("%1 min").arg(Clock.snoozeMinutes)
                         color: Theme.text
                         font.pixelSize: Theme.fontBody
                     }
-                    ToolButton { icon: "list-add"; onClicked: Clock.snoozeMinutes += 1 }
+                    ToolButton { icon.name: "list-add"; onClicked: Clock.snoozeMinutes += 1 }
                 }
             }
         }

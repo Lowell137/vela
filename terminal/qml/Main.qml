@@ -440,7 +440,7 @@ Window {
                         anchors { right: parent.right; rightMargin: 6; verticalCenter: parent.verticalCenter }
                         width: 24
                         height: 24
-                        icon: "window-close"
+                        icon.name: "window-close"
                         visible: tabButton.hovered || tabButton.active
                         onClicked: root.removeTab(tabButton.index)
                         HoverHandler { id: closeHover }
@@ -451,7 +451,7 @@ Window {
                 anchors.verticalCenter: parent.verticalCenter
                 width: 32
                 height: 28
-                icon: "list-add"
+                icon.name: "list-add"
                 tooltip: qsTr("New tab (Ctrl+Shift+T)")
                 onClicked: root.newTab()
             }
@@ -460,7 +460,7 @@ Window {
                 anchors.verticalCenter: parent.verticalCenter
                 width: 28
                 height: 28
-                icon: "go-down"
+                icon.name: "go-down"
                 tooltip: qsTr("Profiles, panes and settings")
                 onClicked: root.openBelow(root.profileEntries(), profilesButton)
             }

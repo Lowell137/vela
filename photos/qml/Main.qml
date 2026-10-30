@@ -188,14 +188,14 @@ Window {
         spacing: 4
         ToolButton {
             anchors.verticalCenter: parent.verticalCenter
-            icon: "document-open"
+            icon.name: "document-open"
             text: qsTr("Open")
             tooltip: qsTr("Open (Ctrl+O)")
             onClicked: root.open()
         }
         ToolButton {
             anchors.verticalCenter: parent.verticalCenter
-            icon: "document-edit"
+            icon.name: "document-edit"
             text: qsTr("Edit")
             tooltip: qsTr("Edit (Ctrl+E)")
             usable: root.hasImage && !Album.animated && !Album.scalable
@@ -203,56 +203,56 @@ Window {
         }
         ToolButton {
             anchors.verticalCenter: parent.verticalCenter
-            icon: "draw-brush"
+            icon.name: "draw-brush"
             tooltip: qsTr("Open in Paint")
             usable: root.hasImage && !Album.animated && !Album.scalable
             onClicked: Album.openInPaint()
         }
         ToolButton {
             anchors.verticalCenter: parent.verticalCenter
-            icon: "object-rotate-right"
+            icon.name: "object-rotate-right"
             tooltip: qsTr("Rotate (Ctrl+R)")
             usable: root.hasImage
             onClicked: root.turn = (root.turn + 90) % 360
         }
         ToolButton {
             anchors.verticalCenter: parent.verticalCenter
-            icon: "edit-delete"
+            icon.name: "edit-delete"
             tooltip: qsTr("Delete (Del)")
             usable: root.hasImage
             onClicked: root.askDelete()
         }
         ToolButton {
             anchors.verticalCenter: parent.verticalCenter
-            icon: "edit-copy"
+            icon.name: "edit-copy"
             tooltip: qsTr("Copy (Ctrl+C)")
             usable: root.hasImage
             onClicked: Album.copy()
         }
         ToolButton {
             anchors.verticalCenter: parent.verticalCenter
-            icon: "document-print"
+            icon.name: "document-print"
             tooltip: qsTr("Print (Ctrl+P)")
             usable: root.hasImage
             onClicked: Album.print()
         }
         ToolButton {
             anchors.verticalCenter: parent.verticalCenter
-            icon: "preferences-desktop-wallpaper"
+            icon.name: "preferences-desktop-wallpaper"
             tooltip: qsTr("Set as desktop background")
             usable: root.hasImage
             onClicked: Album.setAsWallpaper()
         }
         ToolButton {
             anchors.verticalCenter: parent.verticalCenter
-            icon: "media-playback-start"
+            icon.name: "media-playback-start"
             tooltip: qsTr("Slideshow (F5)")
             usable: root.hasImage
             onClicked: root.startSlideshow()
         }
         ToolButton {
             anchors.verticalCenter: parent.verticalCenter
-            icon: "documentinfo"
+            icon.name: "documentinfo"
             tooltip: qsTr("File info (Ctrl+I)")
             usable: root.hasImage
             checked: root.infoOpen
@@ -260,7 +260,7 @@ Window {
         }
         ToolButton {
             anchors.verticalCenter: parent.verticalCenter
-            icon: "view-fullscreen"
+            icon.name: "view-fullscreen"
             tooltip: qsTr("Full screen (F11)")
             onClicked: root.toggleFullScreen()
         }
@@ -504,14 +504,14 @@ Window {
             spacing: 2
             ToolButton {
                 height: 26
-                icon: "zoom-fit-best"
+                icon.name: "zoom-fit-best"
                 tooltip: qsTr("Fit to window (Ctrl+0)")
                 checked: root.zoom === 0
                 onClicked: root.zoom = 0
             }
             ToolButton {
                 height: 26
-                icon: "zoom-out"
+                icon.name: "zoom-out"
                 tooltip: qsTr("Zoom out (Ctrl+-)")
                 onClicked: root.zoomTo(root.factor / 1.25)
             }
@@ -525,7 +525,7 @@ Window {
             }
             ToolButton {
                 height: 26
-                icon: "zoom-in"
+                icon.name: "zoom-in"
                 tooltip: qsTr("Zoom in (Ctrl++)")
                 onClicked: root.zoomTo(root.factor * 1.25)
             }

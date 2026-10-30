@@ -112,7 +112,7 @@ Page {
             icon: "preferences-desktop-panel"
             title: qsTr("Blur behind the taskbar")
             description: qsTr("A floating taskbar: the strip around it blurred while a window is maximized")
-            trailing: Toggle {
+            trailing: Switch {
                 checked: Prefs.taskbarBackdrop
                 onToggled: on => Prefs.taskbarBackdrop = on
             }

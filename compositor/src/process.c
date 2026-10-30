@@ -5,6 +5,8 @@
 
 #include "util.h"
 
+#include <fcntl.h>
+#include <limits.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,6 +19,27 @@
 #include <unistd.h>
 #include <wayland-server-core.h>
 #include <wlr/util/log.h>
+
+bool vela_find_program(const char *name, const char *build_dir, char *command, size_t size)
+{
+    char self[PATH_MAX];
+    ssize_t n = readlink("/proc/self/exe", self, sizeof(self) - 1);
+    if (n <= 0) {
+        return false;
+    }
+    self[n] = '\0';
+    char *slash = strrchr(self, '/');
+    if (slash) {
+        *slash = '\0';
+    }
+    char path[PATH_MAX];
+    if ((vela_format(path, sizeof(path), "%s/%s", self, name) && access(path, X_OK) == 0)
+        || (vela_format(path, sizeof(path), "%s/../%s/%s", self, build_dir, name) && access(path, X_OK) == 0)) {
+        return vela_format(command, size, "'%s'", path);
+    }
+    return vela_format(path, sizeof(path), "%s/%s", VELA_LIBEXECDIR, name) && access(path, X_OK) == 0
+        && vela_format(command, size, "'%s'", path);
+}
 
 void vela_exec_shell(const char *command)
 {
@@ -54,6 +77,7 @@ void vela_child_init(struct vela_child *child, const char *name, int death_signa
     child->final_exit_code = final_exit_code;
     child->pid = -1;
     child->pidfd = -1;
+    child->keep_fd = -1;
 }
 
 static void stop_watching(struct vela_child *child)
@@ -78,6 +102,11 @@ static int handle_exit(int fd, uint32_t mask, void *data)
     stop_watching(child);
     char *command = child->command;
     child->command = NULL;
+    if (child->exited) {
+        free(command);
+        child->exited(child, status);
+        return 0;
+    }
 
     // Asked for by vela_child_restart(): not a crash, whatever the status.
     if (child->restart_requested) {
@@ -155,7 +184,7 @@ static char **environment_with(char *entry)
     return env;
 }
 
-void vela_child_start(struct vela_child *child, struct wl_event_loop *loop, const char *command)
+bool vela_child_start(struct vela_child *child, struct wl_event_loop *loop, const char *command)
 {
     extern char **environ;
     // The shell's own connection (§15.3): fds[0] ours, fds[1] the child's.
@@ -190,7 +219,7 @@ void vela_child_start(struct vela_child *child, struct wl_event_loop *loop, cons
             close(fds[1]);
         }
         free(env);
-        return;
+        return false;
     }
     if (pid == 0) {
         // The child dies with the compositor: if the compositor crashes, the
@@ -200,6 +229,9 @@ void vela_child_start(struct vela_child *child, struct wl_event_loop *loop, cons
         if (env) {
             fcntl(fds[1], F_SETFD, 0); // inherited by exec; libwayland sets CLOEXEC again
             environ = env;
+        }
+        if (child->keep_fd >= 0) {
+            fcntl(child->keep_fd, F_SETFD, 0);
         }
         vela_exec_shell(command);
     }
@@ -215,12 +247,13 @@ void vela_child_start(struct vela_child *child, struct wl_event_loop *loop, cons
     int pidfd = pidfd_open(pid, 0);
     if (pidfd < 0) {
         wlr_log_errno(WLR_ERROR, "pidfd_open: \"%s\" won't be restarted", command);
-        return;
+        return false;
     }
     child->pid = pid;
     child->pidfd = pidfd;
     child->started_ns = vela_now_ns();
     child->source = wl_event_loop_add_fd(loop, pidfd, WL_EVENT_READABLE, handle_exit, child);
+    return true;
 }
 
 void vela_child_restart(struct vela_child *child)

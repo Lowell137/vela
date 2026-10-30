@@ -21,7 +21,11 @@ Window {
         field.text = System.runHistory()[0] || ""
         field.selectAll()
         historyIndex = -1
+        Menus.placeOnTargetScreen(root)
         visible = true
+        // A mapped layer is not necessarily keyboard-active yet. Ask the
+        // compositor to activate this window before focusing the text field.
+        requestActivate()
         field.forceActiveFocus()
     }
     function close() {
@@ -67,10 +71,20 @@ Window {
         }
     }
 
+    // The field may initially gain activeFocus before Qt's Wayland window is
+    // keyboard-active: focus again on activation, so the first Escape isn't lost.
     onActiveChanged: {
-        if (!active && visible && !browsing && !Menus.isOpen) {
+        if (active && visible && !browsing) {
+            field.forceActiveFocus()
+        } else if (!active && visible && !browsing && !Menus.isOpen) {
             close()
         }
+    }
+    Shortcut {
+        sequence: "Escape"
+        context: Qt.WindowShortcut
+        enabled: root.visible
+        onActivated: root.close()
     }
 
     FileDialog {

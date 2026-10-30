@@ -48,7 +48,7 @@ Dialog {
             onTextEdited: if (stretch.checked && parseInt(text) > 0) across.text = Math.max(1, Math.round(parseInt(text) * dialog.current.width / dialog.current.height))
         }
         Text { text: qsTr("Stretch the picture"); color: Theme.text; font.pixelSize: Theme.fontBody }
-        Toggle {
+        Switch {
             id: stretch
             checked: true
         }

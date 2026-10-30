@@ -24,7 +24,7 @@ Page {
             icon: "window"
             title: qsTr("Remember window positions")
             description: qsTr("Apps open where you left them. Your rules below come first.")
-            trailing: Toggle {
+            trailing: Switch {
                 checked: Prefs.rememberWindowPositions
                 onToggled: on => Prefs.rememberWindowPositions = on
             }
@@ -215,7 +215,7 @@ Page {
                             font.pixelSize: Theme.fontBody
                             wrapMode: Text.Wrap
                         }
-                        Toggle {
+                        Switch {
                             id: cellToggle
                             anchors { right: parent.right; verticalCenter: parent.verticalCenter }
                             showLabel: false

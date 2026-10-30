@@ -36,8 +36,6 @@ qt_add_executable(vela-settings
     src/main.cpp
     src/about.cpp
     src/about.h
-    src/bluetooth.cpp
-    src/bluetooth.h
     src/datetime.cpp
     src/datetime.h
     src/defaultapps.cpp
@@ -50,6 +48,8 @@ qt_add_executable(vela-settings
     src/storage.h
     src/updates.cpp
     src/updates.h
+    ${PROJECT_SOURCE_DIR}/compositor/src/color.c # night light's temperature, read as the compositor does
+    ${PROJECT_SOURCE_DIR}/compositor/src/color.h
     ${PROJECT_SOURCE_DIR}/compositor/src/legacy_names.c
     ${PROJECT_SOURCE_DIR}/compositor/src/legacy_names.h
     ${SHELL_SRC}/appmodel.cpp
@@ -64,21 +64,29 @@ qt_add_executable(vela-settings
     ${SHELL_SRC}/systemstatus.cpp
     ${SHELL_SRC}/systemstatus.h
     ${SHELL_SRC}/weather.cpp
-    ${SHELL_SRC}/weather.h)
+    ${SHELL_SRC}/weather.h
+    ${SHELL_SRC}/brightness.cpp
+    ${SHELL_SRC}/brightness.h)
 target_include_directories(vela-settings PRIVATE ${SHELL_SRC} ${PROJECT_SOURCE_DIR}/compositor/src)
 
 set(SETTINGS_QML_FILES
     qml/Main.qml
     qml/Card.qml
+    qml/BrightnessCard.qml
     qml/CardGroup.qml
     qml/LinkCard.qml
-    qml/Toggle.qml
     qml/Choice.qml
-    qml/Slider.qml
+    qml/RadioButton.qml
     qml/LevelBar.qml
+    qml/MoreMenu.qml
+    qml/BluetoothDevice.qml
+    qml/AddDeviceDialog.qml
+    qml/StillVisibleCard.qml
+    qml/UpdateStatusCard.qml
+    qml/WhatsNew.qml
+    qml/UpdateOptions.qml
     qml/PageHeader.qml
     qml/Page.qml
-    qml/Dialog.qml
     qml/pages/HomePage.qml
     qml/pages/SystemPage.qml
     qml/pages/MultitaskingPage.qml
@@ -91,6 +99,7 @@ set(SETTINGS_QML_FILES
     qml/pages/UpdatesPage.qml
     qml/pages/StoragePage.qml
     qml/pages/AboutPage.qml
+    qml/pages/UpdatesPage.qml
     qml/pages/BluetoothPage.qml
     qml/pages/NetworkPage.qml
     qml/pages/PersonalizationPage.qml
@@ -148,7 +157,10 @@ target_link_libraries(vela-settings PRIVATE
     vela-controls # Theme, Button, TextBox, Style (common/)
     vela-controlsplugin
     vela-app # the mouse's Back and Forward buttons (common/)
-    vela-audio) # the sound (common/audio, docs/audio.md)
+    vela-audio # the sound (common/audio, docs/audio.md)
+    vela-bluetooth-client # Bluetooth (common/bluetooth, docs/bluetooth.md)
+    vela-bluetooth-uiplugin
+    vela-updates-client) # Updates (common/updates, docs/updates.md)
 
 install(TARGETS vela-settings RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(FILES vela-settings.desktop DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
@@ -158,7 +170,7 @@ install(FILES vela-settings.desktop DESTINATION ${CMAKE_INSTALL_DATADIR}/applica
 # shell/src/language.h). After changing texts:
 #   cmake --build build --target update_translations
 find_package(Qt6 6.7 REQUIRED COMPONENTS LinguistTools)
-qt_add_translations(TARGETS vela-settings SOURCE_TARGETS vela-settings vela-displays
+qt_add_translations(TARGETS vela-settings SOURCE_TARGETS vela-settings vela-displays vela-controls vela-bluetooth-client vela-bluetooth-ui vela-updates-client
     TS_FILES i18n/vela-settings_it.ts
     RESOURCE_PREFIX /i18n
     LUPDATE_TARGET vela-settings_lupdate
@@ -172,12 +184,26 @@ if(Python3_FOUND)
 endif()
 
 if(VELA_BUILD_TOOLS)
-    find_package(Qt6 6.5 REQUIRED COMPONENTS Test)
+    find_package(Qt6 6.5 REQUIRED COMPONENTS Test QuickTest)
     qt_add_executable(vela-wallpaperaccent-test tests/wallpaperaccent_test.cpp)
     target_include_directories(vela-wallpaperaccent-test PRIVATE src)
     target_link_libraries(vela-wallpaperaccent-test PRIVATE Qt6::Gui Qt6::Test)
     add_test(NAME settings-wallpaperaccent COMMAND vela-wallpaperaccent-test)
     set_tests_properties(settings-wallpaperaccent PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen" TIMEOUT 60)
+
+    # Settings' own pieces (tests/tst_*.qml) under Qt Quick Test, with fake
+    # Vela.Bluetooth and Vela.Updates, with animation effects on and off.
+    qt_add_executable(vela-settings-test tests/settings_test.cpp)
+    target_compile_definitions(vela-settings-test PRIVATE QUICK_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests"
+        FAKE_BLUETOOTH="${PROJECT_SOURCE_DIR}/common/bluetooth/tests/FakeBluetooth.qml"
+        FAKE_UPDATES="${PROJECT_SOURCE_DIR}/common/updates/tests/FakeUpdates.qml")
+    target_compile_options(vela-settings-test PRIVATE -Wall -Wextra)
+    target_include_directories(vela-settings-test PRIVATE ${PROJECT_SOURCE_DIR}/common/tests)
+    target_link_libraries(vela-settings-test PRIVATE vela-controls vela-controlsplugin vela-bluetooth-uiplugin Qt6::QuickTest)
+    add_test(NAME settings-controls COMMAND vela-settings-test)
+    add_test(NAME settings-controls-no-effects COMMAND vela-settings-test)
+    set_tests_properties(settings-controls-no-effects PROPERTIES ENVIRONMENT "VELA_TEST_ANIMATION_EFFECTS=no")
+    set_tests_properties(settings-controls settings-controls-no-effects PROPERTIES TIMEOUT 60)
 endif()
 
 if(VELA_BUILD_TOOLS AND VELA_BUILD_COMPOSITOR)

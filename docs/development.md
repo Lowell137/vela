@@ -10,17 +10,17 @@ Vela requires CMake 3.22 or newer, Ninja, a C17 and C++20 compiler, wlroots 0.20
 
 ## Distribution dependencies
 
-These packages are for **building Vela from source**, not the much smaller requirements of the [user installer](installation.md). Keep them synchronized with the CI's build dependencies.
+These packages are for **building Vela from source**, not the runtime requirements of the [user installer](installation.md). Arch `vela-git` deliberately installs Core and Desktop together: Konsole, Breeze icons, `xdg-desktop-portal` and the wlr screen-capture backend are default dependencies. `xdg-desktop-portal-gtk` is installed for generic application portals, while `xdg-desktop-portal-kde` and Plasma Workspace are not required; an already installed KDE portal remains an optional fallback if GTK is missing. Optional extras include KDE Connect, BlueZ for native Bluetooth management, and Bluedevil plus BlueZ OBEX for file sending from Files. `vela-update --build` installs `base-devel` through pacman only when a local build is required; makepkg installs the selected PKGBUILD's other build dependencies. `git`, `curl`, `sudo` and `util-linux` are runtime dependencies of the updater. On unattended local builds pacman and makepkg use `--noconfirm` (sudo must already allow authentication without interaction); an installed pacman hook warns after `qt6-base` upgrades because `vela-shell` links `Qt6::GuiPrivate`, and `vela-update --force --build` rebuilds the current revision when Qt's private ABI changes. Keep them synchronized with the CI's build dependencies.
 
 <details>
 <summary><b>Arch / CachyOS / EndeavourOS</b></summary>
 
 ```sh
 sudo pacman -S --needed base-devel git cmake ninja pkgconf wlroots0.20 wayland wayland-protocols \
-    libxkbcommon pixman libinput qt6-base qt6-declarative qt6-svg qt6-wayland qt6-tools layer-shell-qt libarchive \
+    libxkbcommon pixman libinput qt6-base qt6-declarative qt6-svg qt6-wayland qt6-tools qt6-multimedia layer-shell-qt libarchive mpv libvterm libarchive \
     vulkan-headers vulkan-icd-loader shaderc mesa libdrm freetype2 harfbuzz fontconfig cairo \
     pam polkit librsvg zlib gtest python python-numpy python-pillow hicolor-icon-theme shared-mime-info xorg-xwayland \
-    pipewire wireplumber
+    pipewire wireplumber systemd-libs
 ```
 </details>
 
@@ -36,12 +36,12 @@ sudo dnf install git cmake ninja-build gcc gcc-c++ pkgconf-pkg-config \
     vulkan-headers vulkan-loader-devel glslc freetype-devel harfbuzz-devel \
     fontconfig-devel pam-devel polkit-devel librsvg2-devel cairo-devel \
     zlib-devel gtest-devel python3 python3-numpy python3-pillow shared-mime-info \
-    pipewire-devel wireplumber-devel pipewire pipewire-utils wireplumber
+    pipewire-devel wireplumber-devel pipewire pipewire-utils wireplumber systemd-devel
 ```
 </details>
 
 <details>
-<summary><b>Ubuntu 26.10 (experimental; CI build validation only)</b></summary>
+<summary><b>Ubuntu 26.10 (experimental native DEB updater and CI validation)</b></summary>
 
 Use Ubuntu 26.10 (Stonking Stingray) with the `universe` repository enabled.
 The CI uses the official `ubuntu:26.10` container and compiles the compositor,
@@ -74,9 +74,9 @@ ctest --test-dir build -N -LE 'gpu|distro-packaging'
 ctest --test-dir build --output-on-failure -LE 'gpu|distro-packaging'
 ```
 
-Build success alone does not imply Ubuntu runtime support. Validate a real
-Wayland session, portals, audio, polkit, and GPU-specific behavior separately
-before declaring the distribution supported.
+Ubuntu 26.10 also has an [experimental DEB updater](installation.md#ubuntu-2610-experimental-native-deb-updater).
+Build success alone does not prove Ubuntu graphical session functionality:
+validate Wayland, portals, audio, polkit and GPU-specific behavior on real hardware.
 
 </details>
 
@@ -86,7 +86,7 @@ before declaring the distribution supported.
 ```sh
 sudo zypper install cmake ninja gcc-c++ wlroots-devel wayland-protocols-devel \
     libxkbcommon-devel pixman-devel libinput-devel qt6-declarative-devel qt6-linguist-devel \
-    libarchive-devel qt6-svg-devel qt6-waylandclient-devel layer-shell-qt6-devel \
+    libarchive-devel mpv-devel libvterm-devel qt6-svg-devel qt6-waylandclient-devel layer-shell-qt6-devel \
     vulkan-headers vulkan-devel shaderc libgbm-devel libdrm-devel \
     freetype2-devel harfbuzz-devel fontconfig-devel pam-devel librsvg-devel \
     zlib-devel gtest python3
@@ -224,9 +224,10 @@ The tools under `build/tools/` are small clients intended for development and fu
 | `vela-windows` | Inspect windows and compositor-visible state. |
 | `vela-screen-dump` | Capture an output or region to PNG. |
 | `vela-screen-record` | Record an output or region frame by frame, each with its presentation time, until SIGINT (`frames.raw` and `frames.txt` in a directory; `VELA_SCREEN_RECORD_DOWNSCALE=2` for full outputs at high refresh rates). |
-| `vela-pattern` | Produce deterministic visual test content (`--decorated` asks for Vela's title bar, `--popup X,Y` opens a 200×150 magenta menu anchored at that point of the window, `--pointer-log FILE` writes every `wl_pointer` event with its arrival time in µs). |
+| `vela-pattern` | Produce deterministic visual test content (`--decorated` asks for Vela's title bar, `--popup X,Y` opens a 200×150 magenta menu anchored at that point of the window). |
 | `vela-panel` | Fake shell pieces on wlr-layer-shell: `wallpaper`, and `taskbar [--blur]` with a reserved area and background blur. |
-| `vela-x11` | An X11 app (through Xwayland) for the X11 tests: an orange 300×200 window with class `vela.x11` that draws only on Expose, like most apps; `--menu X,Y` adds an override-redirect menu; `--cover` adds a screen-sized override-redirect window once the window shows (like the Steam overlay); `--wine-backdrop` adds Wine's black fullscreen backdrop (override-redirect, then managed with fullscreen, skip-taskbar and below). |
+| `vela-x11` | An X11 app (through Xwayland) for the X11 tests: an orange 300×200 window with class `vela.x11` that draws only on Expose, like most apps; `--menu X,Y` adds an override-redirect menu; `--wine-backdrop` adds Wine's black fullscreen backdrop (override-redirect, then managed with fullscreen, skip-taskbar and below). |
+| `vela-x11-present` | An X11 window that shows its frames with Present, like games: an orange pixmap until Xwayland flips it, then, after a line on stdin, a green one with an empty update region. |
 | `vela-randr` | Configure outputs like Settings > Display (wlr-output-management): list them, or `--output NAME` with `--on`/`--off`, `--scale`, `--pos X,Y`, `--mode WxH`. |
 | `vela-testlock` | Test the lock path without requiring a password; it unlocks itself. |
 | `vela-slowgpu` | An app whose GPU finishes each frame late (Vulkan compute job, explicit or `--implicit` sync), to check that the screen never waits for it. |
@@ -254,6 +255,47 @@ caffeine status
 ```
 
 `state` returns the compositor's visible state as JSON and is the primary assertion surface used by the functional test harness. `restart-shell` (also "Restart shell" in the Start menu's power menu) sends SIGTERM to the startup command and relaunches it without ending the session or counting a crash (`compositor/src/process.c`).
+
+### Before/after videos
+
+`scripts/record-before-after.py` records the same scene on two builds and puts
+the takes side by side, for the journal on velade.org:
+
+```sh
+cmake --build build --target vela-screen-record
+scripts/record-before-after.py --before f72a182^ --after main --pick 3fb2a40 --out ~/videos
+scripts/record-before-after.py --list
+```
+
+It builds each ref in a worktree under `~/.cache/vela-before-after`, runs each
+scene headless with the real shell, as the functional tests do, and records it
+with this checkout's `vela-screen-record`. The takes are lined up on their
+first new image after the scene starts and encoded by FFmpeg as WebM, MP4 and
+a PNG poster. Each scene also writes a `SCENE-manifest.json` alongside the
+videos, recording exact source commits, requested picks, output name and size,
+capture/presentation counts and pixel format. Cached worktrees are verified
+against their original commit and picked diff before reuse; an interrupted
+cherry-pick is discarded and rebuilt. `maximize` runs without late latching (`VELA_LATCH=0`): with
+it, the two monitors' leads differ by about 1 ms and the old shared clock
+hardly showed (see D3 in [visual-coherence.md](visual-coherence.md)). Scenes
+about frame pacing (`maximize`) also give a strip of consecutive refreshes,
+before above and after below (`maximize-frames.png`), and say how many repeat
+the previous image. It needs
+a GPU, `dbus-daemon`, `ffmpeg`, PipeWire with WirePlumber and unprivileged
+user namespaces. Both the session and system D-Bus addresses point to the
+take's private bus; NetworkManager, BlueZ and other host services are not
+available to the shell, so real network names and device identities cannot
+appear in Quick Settings (those devices will show as unavailable). The text
+is in English, sound devices are made up on a private PipeWire, and Settings
+sees a user named Alex.
+
+For each take it prints the frames captured and the frames presented. Frames
+where only the pointer moved are presented but not captured, since captures
+leave the pointer out; otherwise fewer captured means the video misses some.
+Before #111 (`3fb2a40`), copying a 1080p output into shared memory took Vela
+longer than a frame at 180 Hz, so recording a build without it slows that
+build down. `--pick COMMIT` applies a commit to both builds when they don't
+already have it, uncommitted, in their own worktree.
 
 ### Before/after videos
 
@@ -452,6 +494,23 @@ The compositor owns its scene graph, Vulkan renderer, frame clock, damage handli
 
 The renderer design is documented in detail in [renderer.md](renderer.md).
 
+## Controls
+
+Vela's Qt Quick interfaces share one module, `Vela.Controls` (`common/controls`): `Theme` (colors, radii, shadows, durations) and the pieces more than one program uses. Their behavior is Qt's (Qt Quick Templates: input, keyboard, focus, accessibility); their look and their timing are Vela's ([visual coherence](visual-coherence.md#68-controls-qt-behaves-vela-looks-d12)).
+
+| Piece | What it is |
+|---|---|
+| `Fill` | A background whose color, chosen by the control from its state, fades in `Theme.fast` |
+| `Icon`, `Chevron`, `FocusRing`, `Eased`, `ColorFade` | What controls are made of: a theme icon at its size, the ">" and "v" arrows, the keyboard focus ring, a number and a color animated on Vela's curve |
+| `Button`, `Switch`, `Slider` | Templates' controls on `Fill`; `usable` is an alias of `enabled`; a subtle `Button` that is `checked` (what it opens is open) rests on the hover color |
+| `ListItem` | A row of a list on `Fill`: subtle (resting on the hover color when `checked`, the current one), or the control's colors when `highlighted` |
+| `TextBox` | A restyled Basic `TextField` |
+| `Shadow` | What floats casts it outside itself; `depth` is one of `Theme.shadow`'s, `above` and `below` cut it next to another panel |
+| `PanelMotion` | A panel's entrance, exit and turning back, and its blur `area` (`visibleArea`: cut to its window) ([§6.9](visual-coherence.md#69-panels-panelmotion-shadow-dialog-d14d18)) |
+| `Dialog` | A window's dialog: title, text, content, `buttons` and `chosen(value)` |
+
+A control goes into `Vela.Controls` only when two programs use it; otherwise it stays with its program, built on Templates and `Fill`: Files' `ToolButton`, the shell's `CheckBox` and `MenuTextBox` (a `TextBox` with the right-click menu of `TextMenu`), Settings' `RadioButton`. Every shell panel is a `PanelMotion` holding its `Shadow` and its panel, in a window that leaves the shadow's `reach` around it; the shell's `ShadowRoom` makes a press in that room a press outside. A state color (hover, press, checked, selected) belongs to a `Fill`, and every duration is a `Theme` token: `scripts/check-qml-motion.py` (ctest `qml-motion`) fails on what doesn't, and a line that differs on purpose says why with a `// motion:` comment. A recycled delegate (`reuseItems`) sets its `Fill`'s `animated` to false when pooled and back to true when reused. The pieces are tested with Qt Quick Test (`common/tests`, ctest `controls` and `controls-no-effects`); the programs' own controls with the same runner (`shell/tests`, `settings/tests`) and Files' views with their own (`explorer/tests`, ctest `files-views`).
+
 ## Debugging rendering
 
 `SIGUSR1` forces a full redraw for damage-tracking diagnostics. The real
@@ -483,7 +542,10 @@ Run the complete suite with:
 ctest --test-dir build --output-on-failure
 ```
 
-The GPU-dependent functional and sharpness suites are part of CTest as well. They are run regularly on Vela's primary development machine with an AMD Radeon RX 9070 XT and Mesa/RADV, where they currently pass in full. GitHub-hosted CI skips those suites because it does not expose a usable DRM/Vulkan device.
+The GPU-dependent functional and sharpness suites are part of CTest.
+Hosted runners skip them for lack of a usable DRM/Vulkan device; the
+[GPU CI policy](ci-quality.md#gpu-ci-policy) defines required real-hardware
+testing and per-release verification.
 
 See [testing.md](testing.md) for individual suites, GPU requirements and the headless harness.
 

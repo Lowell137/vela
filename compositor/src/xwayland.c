@@ -64,7 +64,7 @@ static bool wine_decorated(uint32_t style)
 static void request_wine_style(struct vela_view *view)
 {
     struct vela_server *server = view->server;
-    if (!server->xwayland_wine_style_atom || !server->xwayland_wine_timer) {
+    if (!server->xwayland_wine_style_atom || !server->xwayland_property_timer) {
         return;
     }
     if (view->x11_wine_style_pending) {
@@ -82,7 +82,7 @@ static void request_wine_style(struct vela_view *view)
     view->x11_wine_style_cookie = cookie.sequence;
     view->x11_wine_style_pending = true;
     xcb_flush(connection);
-    wl_event_source_timer_update(server->xwayland_wine_timer, 1);
+    wl_event_source_timer_update(server->xwayland_property_timer, 1);
 }
 
 static void cancel_wine_style(struct vela_view *view)
@@ -97,6 +97,71 @@ static void cancel_wine_style(struct vela_view *view)
     view->x11_wine_style_dirty = false;
     view->x11_wine_style_known = false;
     view->x11_wine_restore_fullscreen = false;
+}
+
+// The state an app asks for before appearing (a game starting fullscreen)
+// sits in _NET_WM_STATE before the window maps. wlroots reads that property
+// only when it is told it changed, which it isn't when the app set it before
+// wlroots watched the window, and when the window maps wlroots writes its own
+// state over it. So it is read here at the MapRequest, which wlroots reports
+// just before it maps the window: this read is answered before that write.
+enum { NET_WM_STATE, NET_WM_STATE_FULLSCREEN, NET_WM_STATE_MAXIMIZED_VERT, NET_WM_STATE_MAXIMIZED_HORZ };
+
+static void request_initial_state(struct vela_view *view)
+{
+    struct vela_server *server = view->server;
+    xcb_connection_t *connection = wlr_xwayland_get_xwm_connection(server->xwayland);
+    if (!server->xwayland_state_atoms[NET_WM_STATE] || !server->xwayland_property_timer || !connection
+        || xcb_connection_has_error(connection)) {
+        return;
+    }
+    if (view->x11_initial_state_pending) {
+        xcb_discard_reply(connection, view->x11_initial_state_cookie);
+    }
+    xcb_get_property_cookie_t cookie = xcb_get_property(connection, 0, view->x11->window_id,
+        server->xwayland_state_atoms[NET_WM_STATE], XCB_ATOM_ATOM, 0, 32);
+    view->x11_initial_state_cookie = cookie.sequence;
+    view->x11_initial_state_pending = true;
+    view->x11_start_fullscreen = false;
+    view->x11_start_maximized = false;
+    xcb_flush(connection);
+    wl_event_source_timer_update(server->xwayland_property_timer, 1);
+}
+
+static void cancel_initial_state(struct vela_view *view)
+{
+    if (view->x11_initial_state_pending && view->server->xwayland) {
+        xcb_connection_t *connection = wlr_xwayland_get_xwm_connection(view->server->xwayland);
+        if (connection) {
+            xcb_discard_reply(connection, view->x11_initial_state_cookie);
+        }
+    }
+    view->x11_initial_state_pending = false;
+    view->x11_start_fullscreen = false;
+    view->x11_start_maximized = false;
+}
+
+static void apply_initial_state(struct vela_view *view, const xcb_get_property_reply_t *reply)
+{
+    const uint32_t *atoms = view->server->xwayland_state_atoms;
+    const xcb_atom_t *state = xcb_get_property_value(reply);
+    int count = xcb_get_property_value_length(reply) / (int)sizeof(*state);
+    bool vert = false;
+    bool horz = false;
+    for (int i = 0; i < count; i++) {
+        view->x11_start_fullscreen |= state[i] == atoms[NET_WM_STATE_FULLSCREEN];
+        vert |= state[i] == atoms[NET_WM_STATE_MAXIMIZED_VERT];
+        horz |= state[i] == atoms[NET_WM_STATE_MAXIMIZED_HORZ];
+    }
+    view->x11_start_maximized = vert || horz;
+    if (!view->mapped) {
+        return; // handle_map applies it
+    }
+    if (view->x11_start_fullscreen && !view->fullscreen) {
+        vela_view_set_fullscreen(view, true);
+    } else if (view->x11_start_maximized && !view->maximized && !view->fullscreen) {
+        vela_view_set_maximized(view, true, true);
+    }
 }
 
 static void apply_wine_style(struct vela_view *view, uint32_t style)
@@ -124,7 +189,28 @@ static void apply_wine_style(struct vela_view *view, uint32_t style)
     }
 }
 
-static int poll_wine_styles(void *data)
+static void wake_window_manager(struct vela_server *server);
+
+// Returns whether it is still waiting for the reply. Polling reads from the
+// window manager's socket outside its event handler, so it can leave events in
+// xcb's queue: whoever polls wakes the window manager afterwards.
+static bool poll_initial_state(struct vela_view *view, xcb_connection_t *connection)
+{
+    xcb_get_property_reply_t *reply = NULL;
+    xcb_generic_error_t *error = NULL;
+    if (!xcb_poll_for_reply(connection, view->x11_initial_state_cookie, (void **)&reply, &error)) {
+        return true;
+    }
+    view->x11_initial_state_pending = false;
+    if (!error && reply && reply->type == XCB_ATOM_ATOM && reply->format == 32) {
+        apply_initial_state(view, reply);
+    }
+    free(reply);
+    free(error);
+    return false;
+}
+
+static int poll_property_replies(void *data)
 {
     struct vela_server *server = data;
     xcb_connection_t *connection = wlr_xwayland_get_xwm_connection(server->xwayland);
@@ -132,11 +218,17 @@ static int poll_wine_styles(void *data)
         return 0;
     }
     bool waiting = false;
+    bool polled = false;
     struct vela_view *view;
     wl_list_for_each (view, &server->views, link) {
+        if (view->x11 && view->x11_initial_state_pending) {
+            waiting |= poll_initial_state(view, connection);
+            polled = true;
+        }
         if (!view->x11 || !view->x11_wine_style_pending) {
             continue;
         }
+        polled = true;
         xcb_get_property_reply_t *reply = NULL;
         xcb_generic_error_t *error = NULL;
         if (!xcb_poll_for_reply(connection, view->x11_wine_style_cookie, (void **)&reply, &error)) {
@@ -163,7 +255,10 @@ static int poll_wine_styles(void *data)
         }
     }
     if (waiting) {
-        wl_event_source_timer_update(server->xwayland_wine_timer, 5);
+        wl_event_source_timer_update(server->xwayland_property_timer, 5);
+    }
+    if (polled) {
+        wake_window_manager(server);
     }
     return 0;
 }
@@ -440,17 +535,31 @@ void vela_view_sync_x11(struct vela_view *view)
     view->x11_sent = wanted;
 }
 
+static void handle_map_request(struct wl_listener *listener, void *data)
+{
+    struct vela_view *view = wl_container_of(listener, view, map_request);
+    request_initial_state(view);
+}
+
 static void handle_map(struct wl_listener *listener, void *data)
 {
     struct vela_view *view = wl_container_of(listener, view, map);
+    xcb_connection_t *connection = wlr_xwayland_get_xwm_connection(view->server->xwayland);
+    if (view->x11_initial_state_pending && connection) {
+        if (poll_initial_state(view, connection)) {
+            // Not answered yet: the timer applies it when it is.
+            wl_event_source_timer_update(view->server->xwayland_property_timer, 1);
+        }
+        wake_window_manager(view->server);
+    }
     // Establish the baseline even when Wine set the style before mapping:
     // only later transitions may affect fullscreen policy.
     request_wine_style(view);
     vela_view_update_decoration(view);
     // X11 apps can ask to start maximized or fullscreen (games).
-    if (view->x11->fullscreen) {
+    if (view->x11->fullscreen || view->x11_start_fullscreen) {
         vela_view_set_fullscreen(view, true);
-    } else if (view->x11->maximized_horz || view->x11->maximized_vert) {
+    } else if (view->x11->maximized_horz || view->x11->maximized_vert || view->x11_start_maximized) {
         vela_view_set_maximized(view, true, true);
     }
     vela_view_mapped(view);
@@ -460,6 +569,7 @@ static void handle_unmap(struct wl_listener *listener, void *data)
 {
     struct vela_view *view = wl_container_of(listener, view, unmap);
     cancel_wine_style(view);
+    cancel_initial_state(view);
     vela_view_unmapped(view);
 }
 
@@ -499,6 +609,7 @@ static void handle_destroy(struct wl_listener *listener, void *data)
 {
     struct vela_view *view = wl_container_of(listener, view, destroy);
     cancel_wine_style(view);
+    cancel_initial_state(view);
     vela_view_destroy(view);
 }
 
@@ -650,6 +761,7 @@ static void handle_set_override_redirect(struct wl_listener *listener, void *dat
     }
     bool mapped = view->mapped;
     cancel_wine_style(view);
+    cancel_initial_state(view);
     if (mapped) {
         // The underlying Wayland surface is still live. Closing snapshots
         // would leave a fading ghost over its replacement unmanaged surface.
@@ -676,6 +788,7 @@ static struct vela_view *view_create(struct vela_server *server, struct wlr_xway
     vela_listen(&x11->events.associate, &view->associate, handle_associate);
     vela_listen(&x11->events.dissociate, &view->dissociate, handle_dissociate);
     vela_listen(&x11->events.destroy, &view->destroy, handle_destroy);
+    vela_listen(&x11->events.map_request, &view->map_request, handle_map_request);
     vela_listen(&x11->events.request_configure, &view->request_configure, handle_request_configure);
     vela_listen(&x11->events.request_move, &view->request_move, handle_request_move);
     vela_listen(&x11->events.request_resize, &view->request_resize, handle_request_resize);
@@ -754,6 +867,17 @@ static void handle_ready(struct wl_listener *listener, void *data)
         xcb_intern_atom(connection, 0, sizeof(wine_style_name) - 1, wine_style_name), NULL);
     server->xwayland_wine_style_atom = atom ? atom->atom : XCB_ATOM_NONE;
     free(atom);
+    static const char *const state_names[] = { "_NET_WM_STATE", "_NET_WM_STATE_FULLSCREEN",
+        "_NET_WM_STATE_MAXIMIZED_VERT", "_NET_WM_STATE_MAXIMIZED_HORZ" };
+    xcb_intern_atom_cookie_t cookies[4];
+    for (int i = 0; i < 4; i++) {
+        cookies[i] = xcb_intern_atom(connection, 0, (uint16_t)strlen(state_names[i]), state_names[i]);
+    }
+    for (int i = 0; i < 4; i++) {
+        atom = xcb_intern_atom_reply(connection, cookies[i], NULL);
+        server->xwayland_state_atoms[i] = atom ? atom->atom : XCB_ATOM_NONE;
+        free(atom);
+    }
     wake_window_manager(server);
     wlr_log(WLR_INFO, "Xwayland ready on DISPLAY=%s", server->xwayland->display_name);
 }
@@ -783,11 +907,11 @@ void vela_xwayland_init(struct vela_server *server)
     // Observe Wine's _WINE_HWND_STYLE notifications while forwarding every
     // event to wlroots for normal XWM management.
     server->xwayland->data = server;
-    server->xwayland_wine_timer = wl_event_loop_add_timer(server->loop, poll_wine_styles, server);
-    if (server->xwayland_wine_timer) {
+    server->xwayland_property_timer = wl_event_loop_add_timer(server->loop, poll_property_replies, server);
+    if (server->xwayland_property_timer) {
         server->xwayland->user_event_handler = handle_x11_event;
     } else {
-        wlr_log(WLR_ERROR, "Xwayland: cannot watch Wine style changes (timer creation failed)");
+        wlr_log(WLR_ERROR, "Xwayland: cannot read initial states and Wine style changes (timer creation failed)");
     }
     vela_listen(&server->xwayland->events.ready, &server->xwayland_ready, handle_ready);
     vela_listen(&server->xwayland->events.new_surface, &server->xwayland_new_surface, handle_new_surface);
@@ -797,9 +921,9 @@ void vela_xwayland_init(struct vela_server *server)
 
 void vela_xwayland_finish(struct vela_server *server)
 {
-    if (server->xwayland_wine_timer) {
-        wl_event_source_remove(server->xwayland_wine_timer);
-        server->xwayland_wine_timer = NULL;
+    if (server->xwayland_property_timer) {
+        wl_event_source_remove(server->xwayland_property_timer);
+        server->xwayland_property_timer = NULL;
     }
     // Closes the X11 windows (and their views) before the Wayland clients.
     if (server->xwayland) {

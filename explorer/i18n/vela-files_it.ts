@@ -170,7 +170,50 @@
     </message>
 </context>
 <context>
+    <name>Dialog</name>
+    <message>
+        <source>OK</source>
+        <translation>OK</translation>
+    </message>
+</context>
+<context>
     <name>Files</name>
+    <message>
+        <source>File transfer did not start</source>
+        <translation>Impossibile avviare il trasferimento</translation>
+    </message>
+    <message>
+        <source>A drive is being ejected or the transfer lock is unavailable. Try again.</source>
+        <translation>È in corso l'espulsione di un'unità oppure il blocco del trasferimento non è disponibile. Riprova.</translation>
+    </message>
+    <message>
+        <source>Invalid transfer request.</source>
+        <translation>Richiesta di trasferimento non valida.</translation>
+    </message>
+    <message>
+        <source>The destination folder does not exist.</source>
+        <translation>La cartella di destinazione non esiste.</translation>
+    </message>
+    <message>
+        <source>The source files are no longer available.</source>
+        <translation>I file sorgente non sono più disponibili.</translation>
+    </message>
+    <message>
+        <source>Could not open the file transfer window.</source>
+        <translation>Impossibile aprire la finestra del trasferimento.</translation>
+    </message>
+    <message>
+        <source>This drive is being ejected. Wait for ejection to finish before transferring files.</source>
+        <translation>È in corso l&apos;espulsione di questa unità. Attendi che termini prima di trasferire i file.</translation>
+    </message>
+    <message>
+        <source>Drive ejection is already in progress.</source>
+        <translation>Espulsione dell&apos;unità già in corso.</translation>
+    </message>
+    <message>
+        <source>A file transfer is using this drive. Wait for it to finish or cancel it before ejecting.</source>
+        <translation>Un trasferimento di file sta utilizzando questa unità. Attendi che termini o annullalo prima di espellerla.</translation>
+    </message>
     <message>
         <source>File Explorer</source>
         <translation>Esplora file</translation>
@@ -317,23 +360,7 @@
     </message>
     <message>
         <source>Couldn&apos;t empty the Recycle Bin (%1 items could not be deleted).</source>
-        <translation>Impossibile svuotare il Cestino (%1 elementi non eliminati).</translation>
-    </message>
-    <message>
-        <source>7-Zip or zip would be needed to compress, but it isn&apos;t installed.</source>
-        <translation>Per comprimere servirebbero 7-Zip o zip, ma non sono installati.</translation>
-    </message>
-    <message>
-        <source>tar would be needed to compress to tar.gz, but it isn&apos;t installed.</source>
-        <translation>Per comprimere in tar.gz servirebbe tar, ma non è installato.</translation>
-    </message>
-    <message>
-        <source>“%1” couldn&apos;t be created.</source>
-        <translation>Impossibile creare «%1».</translation>
-    </message>
-    <message>
-        <source>Couldn&apos;t create “%1”:</source>
-        <translation>Impossibile creare «%1»:</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Compress</source>
@@ -480,6 +507,18 @@
 </context>
 <context>
     <name>Main</name>
+    <message>
+        <source>File transfer in progress</source>
+        <translation>Trasferimento di file in corso</translation>
+    </message>
+    <message>
+        <source>Files are still being copied or moved. Keep File Explorer open until they finish, or cancel the transfer first.</source>
+        <translation>La copia o lo spostamento dei file è ancora in corso. Tieni aperto Esplora file fino al termine oppure annulla il trasferimento.</translation>
+    </message>
+    <message>
+        <source>Keep copying</source>
+        <translation>Continua la copia</translation>
+    </message>
     <message>
         <source> - File Explorer</source>
         <translation> - Esplora file</translation>
@@ -674,6 +713,26 @@
 <context>
     <name>ProgressPanel</name>
     <message>
+        <source>Dismiss</source>
+        <translation>Rimuovi</translation>
+    </message>
+    <message>
+        <source>Cancel transfer</source>
+        <translation>Annulla trasferimento</translation>
+    </message>
+    <message>
+        <source>Transfer incomplete</source>
+        <translation>Trasferimento incompleto</translation>
+    </message>
+    <message>
+        <source>Completed</source>
+        <translation>Completato</translation>
+    </message>
+    <message>
+        <source>Preparing transfer…</source>
+        <translation>Preparazione del trasferimento…</translation>
+    </message>
+    <message>
         <source>% complete</source>
         <translation>% completato</translation>
     </message>
@@ -714,6 +773,17 @@
     <message>
         <source>      Loading...</source>
         <translation>      Caricamento...</translation>
+    </message>
+</context>
+<context>
+    <name>Switch</name>
+    <message>
+        <source>On</source>
+        <translation>Attivato</translation>
+    </message>
+    <message>
+        <source>Off</source>
+        <translation>Disattivato</translation>
     </message>
 </context>
 <context>

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "lock.h"
+#include "lock_retry_policy.h"
 
 #include "listen.h"
 #include "a11y.h"
@@ -9,12 +10,16 @@
 #include "snap.h"
 #include "focus.h"
 #include "config.h"
+#include "error_screen.h"
 #include "input.h"
+#include "interact.h"
 #include "output.h"
 #include "process.h"
+#include "render/renderer.h"
 #include "scene/scene.h"
 #include "scene/surface.h"
 #include "server.h"
+#include "bluetooth.h"
 #include "path_security.h"
 #include "util.h"
 #include "view.h"
@@ -24,11 +29,14 @@
 #include <limits.h>
 #include <math.h>
 #include <stdlib.h>
+#include <signal.h>
+#include <sys/wait.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <wlr/types/wlr_compositor.h>
 #include <wlr/types/wlr_cursor.h>
+#include <wlr/types/wlr_data_device.h>
 #include <wlr/types/wlr_idle_inhibit_v1.h>
 #include <wlr/types/wlr_idle_notify_v1.h>
 #include <wlr/types/wlr_output.h>
@@ -39,6 +47,8 @@
 #include <wlr/util/log.h>
 
 #define SCREEN_OFF_AFTER_LOCK_MS 5000 // locked for inactivity: then it turns off
+
+static int handle_respawn(void *data);
 
 // A surface of the lock program, as large as its output.
 struct lock_surface {
@@ -55,12 +65,129 @@ static void set_desktop_enabled(struct vela_server *server, bool enabled)
 {
     struct vela_layers *l = &server->layers;
     struct vela_tree *layers[] = {
-        l->background, l->bottom, l->windows, l->windows_out, l->top, l->fullscreen, l->x11_covers, l->x11_popups,
-        l->overlay,
+        l->background, l->bottom, l->windows, l->windows_out, l->top, l->top_above_fullscreen,
+        l->fullscreen, l->x11_covers, l->x11_popups, l->overlay, l->drag,
     };
     for (size_t i = 0; i < sizeof(layers) / sizeof(layers[0]); ++i) {
         vela_node_set_enabled(&layers[i]->node, enabled);
     }
+}
+
+// An unsafe supervisor marker (or a broken retry timer) ends the session.
+// First submit an opaque black frame for every active output. Committing a
+ // frame isn't proof of physical scanout, so allow another few refresh cycles
+ // before exit; a bounded fallback avoids hanging on a failed GPU/connector.
+#define VELA_LOCK_FATAL_TIMEOUT_MS 2000
+#define VELA_LOCK_FATAL_SCANOUT_GRACE_MS 200
+
+static __attribute__((noreturn)) void lock_unsafe_exit(struct vela_lock *lock)
+{
+    // Older supervisors do not understand exit 77 and would restart unlocked.
+    // Their existing SIGTERM handler ends the session instead. Only signal
+    // the supervisor after blackout, immediately before our terminal exit.
+    if (lock->server->runtime_dir_fd >= 0 && getenv("VELA_WAYLAND_SOCKET_FD") && getppid() > 1) {
+        kill(getppid(), SIGTERM);
+    }
+    _exit(VELA_EXIT_LOCK_UNSAFE);
+}
+
+static int handle_lock_fatal_exit(void *data)
+{
+    lock_unsafe_exit(data);
+}
+
+static void lock_fatal_shutdown(struct vela_lock *lock)
+{
+    if (lock->fatal_exit_pending) {
+        return;
+    }
+    lock->fatal_exit_pending = true;
+    struct vela_server *server = lock->server;
+    // Suppress any currently displayed lock-client surfaces as well: a
+    // terminal failure must leave only the compositor's opaque backdrop.
+    set_desktop_enabled(server, false);
+    vela_node_set_enabled(&server->layers.lock->node, true);
+    if (lock->lock) {
+        struct wlr_session_lock_surface_v1 *surface;
+        wl_list_for_each (surface, &lock->lock->surfaces, link) {
+            struct lock_surface *mapped = surface->data;
+            if (mapped) {
+                vela_node_set_enabled(&mapped->tree->node, false);
+            }
+        }
+    }
+    wlr_seat_keyboard_clear_focus(server->seat);
+    wlr_seat_pointer_clear_focus(server->seat);
+    vela_lock_update_layout(lock);
+    vela_scene_changed(server->scene);
+    struct vela_output *output;
+    wl_list_for_each (output, &server->outputs, link) {
+        if (!output->wlr->enabled || !output->powered) {
+            continue;
+        }
+        lock->fatal_waiting = vela_grow(lock->fatal_waiting, &lock->fatal_waiting_capacity,
+            lock->fatal_waiting_count + 1, sizeof(*lock->fatal_waiting));
+        lock->fatal_waiting[lock->fatal_waiting_count++] = output;
+        vela_output_schedule_frame(output);
+    }
+    if (lock->fatal_waiting_count == 0) {
+        wlr_log(WLR_ERROR, "Lock: no active outputs to blank before terminating session");
+        lock_unsafe_exit(lock);
+    }
+    lock->fatal_timer = wl_event_loop_add_timer(server->loop, handle_lock_fatal_exit, lock);
+    if (!lock->fatal_timer ||
+        wl_event_source_timer_update(lock->fatal_timer, VELA_LOCK_FATAL_TIMEOUT_MS) < 0) {
+        wlr_log_errno(WLR_ERROR, "Lock: cannot schedule bounded session shutdown");
+        lock_unsafe_exit(lock);
+    }
+    wlr_log(WLR_ERROR, "Lock: ending session after the black backdrop is committed");
+}
+
+// Own a pending locker launcher so a non-registering process cannot survive
+// into the next attempt. The shell is launched in its own session.
+static void lock_stop_launcher(struct vela_lock *lock)
+{
+    if (lock->launcher_pid <= 0) {
+        return;
+    }
+    pid_t pid = lock->launcher_pid;
+    lock->launcher_pid = 0;
+    // Signal before reaping to prevent PID reuse across retries.
+    if (kill(-pid, SIGKILL) < 0 && errno != ESRCH) {
+        wlr_log_errno(WLR_ERROR, "Lock: failed to stop launcher process group");
+    }
+    if (kill(pid, SIGKILL) < 0 && errno != ESRCH) {
+        wlr_log_errno(WLR_ERROR, "Lock: failed to stop launcher");
+    }
+    while (waitpid(pid, NULL, 0) < 0 && errno == EINTR) {}
+}
+
+static void lock_start_launcher(struct vela_lock *lock, const char *command)
+{
+    pid_t pid = fork();
+    if (pid < 0) {
+        wlr_log_errno(WLR_ERROR, "Lock: unable to launch locker");
+        return; // retry already scheduled
+    }
+    if (pid == 0) {
+        vela_exec_shell(command);
+    }
+    lock->launcher_pid = pid;
+}
+
+// All retry paths share this arm operation, including crashes after registration.
+static bool lock_arm_retry(struct vela_lock *lock, int delay_ms)
+{
+    if (!lock->respawn) {
+        lock->respawn = wl_event_loop_add_timer(lock->server->loop, handle_respawn, lock);
+    }
+    if (!lock->respawn || wl_event_source_timer_update(lock->respawn, delay_ms) < 0) {
+        wlr_log_errno(WLR_ERROR, "Lock: retry timer unavailable; ending session safely");
+        lock_fatal_shutdown(lock);
+        return false;
+    }
+    lock->retry.scheduled = true;
+    return true;
 }
 
 static void place_surface(struct lock_surface *surface)
@@ -73,6 +200,7 @@ static void place_surface(struct lock_surface *surface)
     }
 }
 
+/** Focus a newly mapped locker surface even for a stationary pointer. */
 static void handle_surface_map(struct wl_listener *listener, void *data)
 {
     struct lock_surface *surface = wl_container_of(listener, surface, map);
@@ -82,21 +210,30 @@ static void handle_surface_map(struct wl_listener *listener, void *data)
     if (!server->seat->keyboard_state.focused_surface || (under && under->wlr == surface->wlr->output)) {
         vela_input_keyboard_enter(server->input, surface->wlr->surface);
     }
+    // A stationary pointer must receive focus without an artificial motion.
+    vela_interact_retarget_lock_pointer(server);
     vela_scene_changed(server->scene);
 }
 
+/** Drop focus from a removed lock surface before destroying its scene nodes. */
 static void handle_surface_destroy(struct wl_listener *listener, void *data)
 {
     struct lock_surface *surface = wl_container_of(listener, surface, destroy);
-    struct wlr_seat *seat = surface->server->seat;
+    struct vela_server *server = surface->server;
+    struct wlr_seat *seat = server->seat;
     if (seat->keyboard_state.focused_surface == surface->wlr->surface) {
         wlr_seat_keyboard_clear_focus(seat);
+    }
+    if (seat->pointer_state.focused_surface == surface->wlr->surface) {
+        wlr_seat_pointer_clear_focus(seat);
     }
     wl_list_remove(&surface->map.link);
     wl_list_remove(&surface->destroy.link);
     vela_node_destroy(&surface->surface_node->node);
     vela_node_destroy(&surface->tree->node);
     free(surface);
+    // A different mapped lock surface may now be under the pointer.
+    vela_interact_retarget_lock_pointer(server);
 }
 
 static void handle_new_surface(struct wl_listener *listener, void *data)
@@ -114,6 +251,16 @@ static void handle_new_surface(struct wl_listener *listener, void *data)
     vela_listen(&wlr->events.destroy, &surface->destroy, handle_surface_destroy);
 }
 
+// Cursor relocation on output removal can occur after the layout-change
+// listener. Retarget at the end of the dispatch, once wlroots has warped it.
+/** Recheck pointer focus after all output-layout listeners have run. */
+static void retarget_pointer_after_layout(void *data)
+{
+    struct vela_lock *lock = data;
+    lock->pointer_retarget_idle = NULL;
+    vela_interact_retarget_lock_pointer(lock->server);
+}
+
 static void clear_backdrop(struct vela_lock *lock)
 {
     for (int i = 0; i < lock->backdrop_count; ++i) {
@@ -122,12 +269,21 @@ static void clear_backdrop(struct vela_lock *lock)
     lock->backdrop_count = 0;
 }
 
+/** Restore desktop input only after the lock client explicitly unlocks. */
 static void handle_unlock(struct wl_listener *listener, void *data)
 {
     struct vela_lock *lock = wl_container_of(listener, lock, unlock);
     struct vela_server *server = lock->server;
+    if (lock->fatal_exit_pending) {
+        return; // never show desktop after an unsafe lock transition
+    }
     // Really unlocked: the desktop is back as it was.
+    if (lock->pointer_retarget_idle) {
+        wl_event_source_remove(lock->pointer_retarget_idle);
+        lock->pointer_retarget_idle = NULL;
+    }
     server->locked = false;
+    vela_bluetooth_report_lock(server, false);
     if (server->runtime_dir_fd >= 0
         && !vela_lock_marker_remove_at(server->runtime_dir_fd, server->socket_name)) {
         wlr_log(WLR_ERROR, "Could not remove secure screen-lock marker");
@@ -136,7 +292,11 @@ static void handle_unlock(struct wl_listener *listener, void *data)
     vela_node_set_enabled(&server->layers.lock->node, false);
     clear_backdrop(lock);
     wlr_seat_keyboard_clear_focus(server->seat);
+    wlr_seat_pointer_clear_focus(server->seat);
     vela_focus_refocus(server);
+    // Re-target the pointer to the restored desktop immediately, without
+    // waiting for a new physical motion event.
+    vela_interact_motion(server, 0);
     vela_scene_changed(server->scene);
     wlr_log(WLR_INFO, "Screen unlocked");
 }
@@ -144,6 +304,10 @@ static void handle_unlock(struct wl_listener *listener, void *data)
 static void handle_lock_destroy(struct wl_listener *listener, void *data)
 {
     struct vela_lock *lock = wl_container_of(listener, lock, destroy);
+    lock_stop_launcher(lock);
+    // This wlroots lock is being torn down. A timer-arm failure may initiate
+    // terminal blackout, which must never walk surfaces on the dying object.
+    lock->lock = NULL;
     // If it didn't unlock (crash), everything stays locked and black: a new
     // vela-lock can take its place.
     if (lock->server->locked) {
@@ -160,10 +324,14 @@ static void handle_lock_destroy(struct wl_listener *listener, void *data)
         lock->respawn_count = kept;
         if (lock->respawn_count < VELA_LOCK_RESPAWNS) {
             lock->respawns[lock->respawn_count++] = now;
-            wl_event_source_timer_update(lock->respawn, 1000);
+            lock_arm_retry(lock, 1000);
+        } else {
+            // A repeatedly crashing locker remains black, but can recover
+            // after a cooldown instead of requiring a new login.
+            wlr_log(WLR_ERROR, "Lock: repeated crashes; retrying after cooldown");
+            lock_arm_retry(lock, VELA_LOCK_RETRY_COOLDOWN_MS);
         }
     }
-    lock->lock = NULL;
     lock->waiting_count = 0;
     wl_list_remove(&lock->new_surface.link);
     wl_list_remove(&lock->unlock.link);
@@ -178,13 +346,28 @@ static void handle_new_lock(struct wl_listener *listener, void *data)
     struct vela_lock *lock = wl_container_of(listener, lock, new_lock);
     struct vela_server *server = lock->server;
     struct wlr_session_lock_v1 *wlr = data;
-    if (lock->lock) {
-        wlr_log(WLR_INFO, "Lock: a locker is already running, rejecting the second one");
+    if (lock->fatal_exit_pending || lock->lock) {
+        wlr_log(WLR_INFO, "Lock: refusing duplicate or unsafe locker registration");
         wlr_session_lock_v1_destroy(wlr);
         return;
     }
     lock->lock = wlr;
+    // Establish the black, input-isolated state before any cancellation error
+    // can enter the terminal failure path, including unsolicited clients.
     vela_lock_engage(lock);
+    if (lock->fatal_exit_pending) {
+        wlr_session_lock_v1_destroy(wlr);
+        lock->lock = NULL;
+        return;
+    }
+    vela_lock_retry_registered(&lock->retry);
+    if (lock->respawn && wl_event_source_timer_update(lock->respawn, 0) < 0) {
+        wlr_log_errno(WLR_ERROR, "Lock: could not cancel pending retry timer");
+        lock_fatal_shutdown(lock);
+        wlr_session_lock_v1_destroy(wlr);
+        lock->lock = NULL;
+        return;
+    }
     // The app is told "locked" once every output has shown black.
     lock->waiting_count = 0;
     struct vela_output *output;
@@ -208,7 +391,10 @@ static void handle_new_lock(struct wl_listener *listener, void *data)
 
 static int handle_respawn(void *data)
 {
-    vela_lock_screen(data);
+    struct vela_lock *lock = data;
+    lock_stop_launcher(lock);
+    vela_lock_retry_timer_fired(&lock->retry);
+    vela_lock_screen(lock);
     return 0;
 }
 
@@ -449,6 +635,9 @@ struct vela_lock *vela_lock_create(struct vela_server *server)
     // First the backdrop, then (above) the lock program's surfaces.
     lock->backdrop_tree = vela_tree_create(server->layers.lock);
     lock->respawn = wl_event_loop_add_timer(server->loop, handle_respawn, lock);
+    if (!lock->respawn) {
+        wlr_log_errno(WLR_ERROR, "Unable to create locker retry timer");
+    }
     wl_list_init(&lock->new_surface.link);
     wl_list_init(&lock->unlock.link);
     wl_list_init(&lock->destroy.link);
@@ -476,14 +665,29 @@ struct vela_lock *vela_lock_create(struct vela_server *server)
     return lock;
 }
 
+/** Release the lock manager and any deferred pointer retarget callback. */
 void vela_lock_destroy(struct vela_lock *lock)
 {
+    lock_stop_launcher(lock);
     if (!lock) {
         return;
     }
     if (lock->caffeine_timer) {
         wl_event_source_remove(lock->caffeine_timer);
     }
+    if (lock->respawn) {
+        wl_event_source_remove(lock->respawn);
+    }
+    if (lock->idle_timer) {
+        wl_event_source_remove(lock->idle_timer);
+    }
+    if (lock->fatal_timer) {
+        wl_event_source_remove(lock->fatal_timer);
+    }
+    if (lock->pointer_retarget_idle) {
+        wl_event_source_remove(lock->pointer_retarget_idle);
+    }
+    free(lock->fatal_waiting);
     clear_backdrop(lock);
     vela_node_destroy(&lock->backdrop_tree->node);
     free(lock->backdrop);
@@ -506,35 +710,71 @@ void vela_lock_engage(struct vela_lock *lock)
         return;
     }
     server->locked = true;
+    vela_bluetooth_report_lock(server, true);
+    // Cancel the active DnD grab before hiding the desktop. Ending the
+    // matching wlroots grab invokes its cancellation path (not its drop path).
+    // The drag may be destroyed by that callback: don't access it afterwards.
+    if (server->seat->drag) {
+        switch (server->seat->drag->grab_type) {
+        case WLR_DRAG_GRAB_KEYBOARD_POINTER:
+            wlr_seat_pointer_end_grab(server->seat);
+            break;
+        case WLR_DRAG_GRAB_KEYBOARD_TOUCH:
+            wlr_seat_touch_end_grab(server->seat);
+            break;
+        case WLR_DRAG_GRAB_KEYBOARD:
+            wlr_seat_keyboard_end_grab(server->seat);
+            break;
+        }
+    }
     // Invalidate old isolated window sources; output capture still shows the
     // composed lock screen, but window capture could bypass occlusion.
     vela_views_revoke_capture_on_lock(server);
-    // For the supervisor: if the compositor crashes now, the next one starts
-    // locked (supervisor.c).
-    if (server->runtime_dir_fd >= 0
-        && !vela_lock_marker_create_at(server->runtime_dir_fd, server->socket_name)) {
-        wlr_log(WLR_ERROR, "Could not create secure screen-lock marker");
-    }
+    // A pre-lock output readback must not deliver desktop pixels after lock.
+    vela_renderer_cancel_readbacks(server->renderer);
+    // Before exposing the locked state to the supervisor, persist its marker.
+    // If we cannot, a compositor restart might reveal the desktop: end the
+    // entire session instead of ever allowing a restart without a marker.
+    bool marker_failed = server->runtime_dir_fd >= 0
+        && !vela_lock_marker_create_at(server->runtime_dir_fd, server->socket_name);
     set_desktop_enabled(server, false);
     vela_node_set_enabled(&server->layers.lock->node, true);
-    server->cursor_mode = VELA_CURSOR_PASSTHROUGH;
+    // Drop every pre-lock interaction, including keyboard Move/Size and
+    // suppressed mouse releases, before handing input to the locker.
+    vela_interact_cancel_for_lock(server);
     // No drags, Alt+Tab or panels with the keyboard.
-    server->grabbed = NULL;
     vela_snap_end_zone(server, false);
     vela_switcher_finish(server, false);
     server->focused_layer = NULL;
     wlr_seat_keyboard_clear_focus(server->seat);
     wlr_seat_pointer_clear_focus(server->seat);
+    // Revoke constraints from the previously focused application as well.
+    // Its pointer lock must not remain active through session locking.
+    vela_input_constrain(server->input, NULL);
     vela_input_set_xcursor(server, "default");
     vela_lock_update_layout(lock);
     vela_scene_changed(server->scene);
     wlr_log(WLR_INFO, "Screen locked");
+    if (marker_failed) {
+        wlr_log(WLR_ERROR, "Could not create secure screen-lock marker");
+        lock_fatal_shutdown(lock);
+    }
 }
 
 void vela_lock_screen(struct vela_lock *lock)
 {
-    if (lock->server->locked && lock->lock) {
-        return; // already locked, and the lock program is there
+    if (lock->fatal_exit_pending || lock->lock) {
+        return;
+    }
+    // Black backdrop and revoked focus/captures precede any locker launch.
+    vela_lock_engage(lock);
+    if (lock->fatal_exit_pending || !vela_lock_retry_begin(&lock->retry)) {
+        return; // duplicate command while waiting for registration
+    }
+    // Never rely on fork() success: only ext-session-lock registration cancels
+    // retries. After five failed launches, back off for 60 seconds and retry.
+    if (!lock_arm_retry(lock, vela_lock_retry_delay_ms(&lock->retry))) {
+        return;
     }
     // VELA_LOCK picks another program (such as swaylock). Otherwise vela-lock
     // next to the compositor (installed) or in the build directory.
@@ -561,15 +801,32 @@ void vela_lock_screen(struct vela_lock *lock)
         }
     }
     if (!command[0]) {
-        wlr_log(WLR_ERROR, "Lock: vela-lock not found (VELA_LOCK picks another locker)");
+        wlr_log(WLR_ERROR, "Lock: vela-lock not found; keeping desktop hidden and retrying");
         return;
     }
     wlr_log(WLR_INFO, "Locking the screen: %s", command);
-    vela_spawn(command);
+    lock_start_launcher(lock, command);
 }
 
 void vela_lock_output_rendered(struct vela_lock *lock, struct vela_output *output)
 {
+    if (lock->fatal_exit_pending && lock->fatal_waiting_count > 0) {
+        for (int i = 0; i < lock->fatal_waiting_count; ++i) {
+            if (lock->fatal_waiting[i] != output) {
+                continue;
+            }
+            lock->fatal_waiting[i] = lock->fatal_waiting[--lock->fatal_waiting_count];
+            if (lock->fatal_waiting_count == 0) {
+                wlr_log(WLR_ERROR, "Lock: blackout committed on all active outputs; ending session");
+                // Permit scanout to catch up with the committed black frames.
+                if (!lock->fatal_timer ||
+                    wl_event_source_timer_update(lock->fatal_timer, VELA_LOCK_FATAL_SCANOUT_GRACE_MS) < 0) {
+                    lock_unsafe_exit(lock);
+                }
+            }
+            break;
+        }
+    }
     if (!lock->lock || lock->waiting_count == 0) {
         return;
     }
@@ -585,6 +842,7 @@ void vela_lock_output_rendered(struct vela_lock *lock, struct vela_output *outpu
     }
 }
 
+/** Rebuild lock backdrops and recheck pointer focus after output changes. */
 void vela_lock_update_layout(struct vela_lock *lock)
 {
     struct vela_server *server = lock->server;
@@ -614,5 +872,10 @@ void vela_lock_update_layout(struct vela_lock *lock)
                 place_surface(surface->data);
             }
         }
+    }
+    // Defer the hit test: a layout-change callback may precede wlroots'
+    // output-removal cursor warp, and a click must work without motion.
+    if (!lock->pointer_retarget_idle) {
+        lock->pointer_retarget_idle = wl_event_loop_add_idle(server->loop, retarget_pointer_after_layout, lock);
     }
 }

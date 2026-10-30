@@ -70,7 +70,7 @@ Rectangle {
         spacing: 8
         ToolButton {
             anchors.verticalCenter: parent.verticalCenter
-            icon: "go-previous"
+            icon.name: "go-previous"
             tooltip: qsTr("Back (Esc)")
             onClicked: page.closed()
         }
@@ -120,7 +120,7 @@ Rectangle {
             Card {
                 title: qsTr("Hardware encoding")
                 description: qsTr("MP4 is encoded by the graphics card (NVIDIA) when it can; otherwise by the processor")
-                Toggle { checked: page.win ? page.win.hardwareEncoder : false; onToggled: on => page.win.hardwareEncoder = on }
+                Switch { checked: page.win ? page.win.hardwareEncoder : false; onToggled: on => page.win.hardwareEncoder = on }
             }
 
             Heading { text: qsTr("About") }

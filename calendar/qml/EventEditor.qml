@@ -237,7 +237,7 @@ Rectangle {
         property int maximum: 999
         signal changed(int value)
         spacing: 2
-        ToolButton { icon: "list-remove"; usable: stepper.value > stepper.minimum; onClicked: stepper.changed(stepper.value - 1) }
+        ToolButton { icon.name: "list-remove"; usable: stepper.value > stepper.minimum; onClicked: stepper.changed(stepper.value - 1) }
         Text {
             width: 36
             height: 32
@@ -247,7 +247,7 @@ Rectangle {
             color: Theme.text
             font.pixelSize: Theme.fontBody
         }
-        ToolButton { icon: "list-add"; usable: stepper.value < stepper.maximum; onClicked: stepper.changed(stepper.value + 1) }
+        ToolButton { icon.name: "list-add"; usable: stepper.value < stepper.maximum; onClicked: stepper.changed(stepper.value + 1) }
     }
 
     // --- the header ---
@@ -265,7 +265,7 @@ Rectangle {
         }
         ToolButton {
             anchors { right: parent.right; rightMargin: 6; verticalCenter: parent.verticalCenter }
-            icon: "window-close"
+            icon.name: "window-close"
             tooltip: qsTr("Close (Esc)")
             onClicked: editor.visible = false
         }
@@ -304,7 +304,7 @@ Rectangle {
                     color: Theme.text
                     font.pixelSize: Theme.fontBody
                 }
-                Toggle {
+                Switch {
                     id: allDayToggle
                     showLabel: false
                     checked: editor.allDay

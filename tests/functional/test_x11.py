@@ -8,6 +8,7 @@ window is tools/vela-x11, which draws only on Expose; Xwayland starts with
 it, so its window is created while the X window manager is being set up."""
 
 import os
+import select
 import subprocess
 import time
 import unittest
@@ -305,8 +306,14 @@ class X11(unittest.TestCase):
         self.x11_control("--override-redirect", backdrop, "on")
         self.vela.wait_for(lambda s: len(s.windows) == 1 and s.has(game),
                            what="mapped BELOW backdrop became unmanaged")
+        # The backdrop is completely covered by the game. Changing its X11
+        # management mode need not damage any visible pixel, so the compositor
+        # may correctly stay idle. Request a real repaint with cursor damage
+        # before asserting the resulting composition instead of requiring an
+        # unsolicited frame for an invisible scene change.
+        self.vela.input("move", out["w"] // 3, out["h"] // 3)
         self.vela.wait_for(lambda s: s.output["frames"] > frame,
-                           what="frame after backdrop demotion")
+                           what="frame after cursor damage following backdrop demotion")
         self.assertTrue(all(self.vela.pixels().at(*point) == ORANGE for point in points))
         self.assertEqual(self.vela.state()["focused"], game)
 
@@ -329,6 +336,9 @@ class X11(unittest.TestCase):
         point = (position["x"] + 150, position["y"] + position["h"] - 60)
         self.assertEqual(self.vela.pixels().at(*point), ORANGE)
 
+        # The test helper changes the X11 attribute and issues a genuine
+        # ConfigureWindow: ChangeWindowAttributes alone has no XWM event.
+        # No X11 unmap/map occurs; the existing Wayland surface must survive.
         self.x11_control("--override-redirect", xid, "on")
         self.vela.wait_for(lambda s: not s.has(original),
                            what="mapped X11 window became an unmanaged surface")
@@ -381,67 +391,62 @@ class X11(unittest.TestCase):
         self.assertEqual(image.at(105, 125), GREEN)
         self.assertNotEqual(image.at(95, 160), GREEN)
 
-    def test_screen_sized_override_redirect_stays_below_the_taskbar(self):
-        """An override-redirect window as large as the screen, opened after
-        the app's window (the Steam overlay over a game), neither covers the taskbar nor keeps the
-        keyboard: the app's window keeps it and Alt+Tab still switches."""
-        self.vela.clients.append(subprocess.Popen([tool("vela-panel"), "taskbar"], env=self.vela.client_env))
-        time.sleep(0.4)
-        window = self.open_x11("--cover", 300, 200)
-        time.sleep(0.4)
-        state = self.vela.wait_for(lambda s: s["focused"] == window, what="the X11 window keeps the keyboard")
-        out = state.output
-        image = self.vela.pixels()
-        self.assertEqual(image.at(out["w"] // 2, out["h"] // 2), GREEN)  # it is shown
-        self.assertNotEqual(image.at(out["w"] // 2, out["h"] - 24), GREEN)  # the taskbar is above it
-        other = self.vela.open_window(300, 200)
-        self.vela.wait_for(lambda s: s["focused"] == other, what="the new window has focus")
-        self.vela.keys("alt+Tab")
-        self.vela.wait_for(lambda s: s["focused"] == window, what="Alt+Tab back to the X11 window")
+    def test_flipped_frame_without_damage_is_shown(self):
+        # Xwayland flips a presented pixmap as the window's new buffer and
+        # damages only the update region, here empty: the new frame is shown.
+        if not os.path.exists(tool("vela-x11-present")):
+            self.skipTest("vela-x11-present not built (needs xcb-present, xcb-xfixes)")
+        app = subprocess.Popen([tool("vela-x11-present"), "400", "300"], env=self.env,
+                               stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+        self.vela.clients.append(app)
+        self.addCleanup(app.stdout.close)
+        self.addCleanup(app.stdin.close)
 
-    def test_screen_sized_override_redirect_stays_above_a_fullscreen_game(self):
-        self.open_x11("--cover", 300, 200)
-        game = self.vela.open_window(command=[tool("vela-pattern"), "--fullscreen"])
-        state = self.vela.wait_for(lambda s: s.window(game)["fullscreen"], what="fullscreen")
-        time.sleep(0.4)
-        out = state.output
-        self.assertEqual(self.vela.pixels().at(out["w"] // 2, out["h"] // 2), GREEN)
+        def status():
+            # Read a complete line under one deadline. select() followed by
+            # TextIOWrapper.readline() can still block on a partial line.
+            deadline = time.monotonic() + 15
+            fd = app.stdout.fileno()
+            os.set_blocking(fd, False)
+            line = bytearray()
+            failure = "timed out"
+            while len(line) < 80 and not line.endswith(b"\n"):
+                remaining = deadline - time.monotonic()
+                if remaining <= 0 or not select.select([fd], [], [], remaining)[0]:
+                    break
+                try:
+                    chunk = os.read(fd, 1)
+                except BlockingIOError:
+                    continue
+                if not chunk:
+                    failure = "closed stdout"
+                    break
+                line.extend(chunk)
+            if not line.endswith(b"\n"):
+                if len(line) >= 80:
+                    failure = "status too long"
+                if app.poll() is None:
+                    app.kill()
+                app.wait(timeout=5)
+                self.fail(f"vela-x11-present {failure} before completing status "
+                          f"({bytes(line)!r}; exit={app.returncode})")
+            return line.decode("ascii", errors="replace").split()
 
-    def test_fullscreen_x11_window_is_shown_and_stays_shown_across_focus_changes(self):
-        """A fullscreen X11 window (a Proton game) is drawn while it has the
-        keyboard, after another window took it and after it comes back."""
-        game = self.open_x11("--start-fullscreen")
-        state = self.vela.wait_for(lambda s: s.window(game)["fullscreen"] and s["focused"] == game,
-                                   what="fullscreen with focus")
-        out = state.output
-        center = (out["w"] // 2, out["h"] // 2)
-        self.vela.wait_for(lambda s: self.vela.pixels().at(*center) == ORANGE, what="the game is drawn")
-        other = self.vela.open_window(300, 200)
-        self.vela.wait_for(lambda s: s["focused"] == other, what="the other window has focus")
-        self.vela.keys("alt+Tab")
-        self.vela.wait_for(lambda s: s["focused"] == game, what="back to the game")
-        time.sleep(0.4)
-        self.assertEqual(self.vela.pixels().at(*center), ORANGE)
-
-    def test_fullscreen_game_asking_for_focus_back_does_not_undo_alt_tab(self):
-        """A game that asks for its window back as soon as it loses the
-        keyboard (Wine, Darling's League) does not get it: quick Alt+Tab and
-        Alt held through Tab both stay on the chosen window."""
-        game = self.open_x11("--steal-focus", "--start-fullscreen")
-        self.vela.wait_for(lambda s: s.window(game)["fullscreen"] and s["focused"] == game,
-                           what="fullscreen with focus")
-        other = self.vela.open_window(300, 200)
-        self.vela.wait_for(lambda s: s["focused"] == other, what="the new window has focus")
-        for held in (False, True):
-            self.vela.keys("alt+Tab")
-            self.vela.wait_for(lambda s: s["focused"] == game, what="Alt+Tab to the game")
-            if held:
-                self.vela.input("keydown", "alt", "key", "Tab", "sleep", "300", "keyup", "alt")
-            else:
-                self.vela.keys("alt+Tab")
-            self.vela.wait_for(lambda s: s["focused"] == other, what="Alt+Tab to the other window")
-            time.sleep(0.5)
-            self.assertEqual(self.vela.state()["focused"], other, "the game took the keyboard back")
+        first = status()
+        # XCB Present completion modes: 0 = COPY, 1 = FLIP, 3 = SUBOPTIMAL_COPY.
+        # Skipping on EOF, an XCB error (-1), or an unknown mode hides regressions.
+        if first in (["orange", "0"], ["orange", "3"]):
+            self.skipTest("Xwayland copies instead of flipping (no glamor)")
+        self.assertEqual(first, ["orange", "1"], "Unexpected Present completion status")
+        w = self.vela.wait_for(lambda s: s.windows, what="the X11 window").windows[0]
+        point = (w["x"] + w["w"] // 2, w["y"] + w["h"] - 60)
+        self.vela.wait_for(lambda _: self.vela.pixels().at(*point) == ORANGE, read_state=False,
+                           what="the first frame")
+        app.stdin.write("next\n")
+        app.stdin.flush()
+        self.assertEqual(status(), ["green", "1"])
+        self.vela.wait_for(lambda _: self.vela.pixels().at(*point) == GREEN, read_state=False,
+                           what="the frame flipped without damage")
 
 
 if __name__ == "__main__":

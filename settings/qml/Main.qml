@@ -174,6 +174,7 @@ Window {
         { page: "display", text: qsTr("Change the screen resolution"), keys: qsTr("resolution") },
         { page: "display", text: qsTr("Change the scale"), keys: qsTr("scale size text dpi zoom") },
         { page: "display", text: qsTr("Refresh rate"), keys: qsTr("hz refresh rate frequency") },
+        { page: "display", text: qsTr("Change the brightness"), keys: qsTr("brightness backlight dim bright monitor ddc") },
         { page: "sound", text: qsTr("Sound"), keys: qsTr("volume speakers headphones microphone output input sound") },
         { page: "sound", text: qsTr("Choose your output device"), keys: qsTr("output speakers headphones") },
         { page: "sound", text: qsTr("Microphone"), keys: qsTr("input recording level test") },
@@ -186,11 +187,11 @@ Window {
         { page: "power", text: qsTr("Power"), keys: qsTr("screen off sleep idle battery energy saver lock") },
         { page: "power", text: qsTr("Turn off the screen after"), keys: qsTr("idle timeout") },
         { page: "power", text: qsTr("Power mode"), keys: qsTr("profile performance balanced") },
-        { page: "updates", text: qsTr("Updates"), keys: qsTr("update upgrade new version install download package") },
-        { page: "updates", text: qsTr("Check for updates"), keys: qsTr("update upgrade new version check") },
         { page: "storage", text: qsTr("Storage"), keys: qsTr("disk space free used cache trash cleanup drive") },
         { page: "about", text: qsTr("About"), keys: qsTr("specifications processor ram memory pc name rename version kernel graphics card") },
         { page: "about", text: qsTr("Rename this PC"), keys: qsTr("device name hostname") },
+        { page: "updates", text: qsTr("Updates"), keys: qsTr("update upgrade new version install download package") },
+        { page: "updates", text: qsTr("Check for updates"), keys: qsTr("update upgrade new version check") },
         { page: "bluetooth", text: qsTr("Bluetooth"), keys: qsTr("devices headphones mouse keyboard pair add") },
         { page: "bluetooth", text: qsTr("Add device"), keys: qsTr("pair bluetooth new") },
         { page: "network", text: qsTr("Network & internet"), keys: qsTr("wifi wi-fi ethernet cable ip dns connection") },
@@ -234,7 +235,9 @@ Window {
         { page: "accessibility", text: qsTr("Accessibility"), keys: qsTr("low vision color blindness") },
         { page: "accessibility", text: qsTr("Magnifier"), keys: qsTr("zoom magnify magnifier") },
         { page: "accessibility", text: qsTr("Color filters"), keys: qsTr("grayscale color blindness deuteranopia protanopia tritanopia") },
-        { page: "accessibility", text: qsTr("Sticky keys"), keys: qsTr("sticky keys shift ctrl alt keyboard") }
+        { page: "accessibility", text: qsTr("Sticky keys"), keys: qsTr("sticky keys shift ctrl alt keyboard") },
+        { page: "accessibility", text: qsTr("Animation effects"), keys: qsTr("animations motion reduce movement visual effects") },
+        { page: "accessibility", text: qsTr("Animation duration"), keys: qsTr("animations speed slow fast duration") }
     ]
     readonly property var searchResults: {
         const q = search.text.trim().toLowerCase()
@@ -322,12 +325,9 @@ Window {
                 }
             }
             Keys.onEscapePressed: text = ""
-            Image {
+            Icon {
                 anchors { right: parent.right; rightMargin: 10; verticalCenter: parent.verticalCenter }
-                width: 16
-                height: 16
-                source: Theme.icons + "edit-find"
-                sourceSize: Qt.size(width, height)
+                name: "edit-find"
                 opacity: 0.8
             }
         }
@@ -357,7 +357,7 @@ Window {
                 width: sectionList.width - 16
                 height: 36
                 radius: Theme.radius
-                color: entryMouse.pressed ? Theme.subtlePressed : selected || entryMouse.containsMouse ? Theme.subtleHover : "transparent"
+                color: entryMouse.pressed ? Theme.subtlePressed : selected || entryMouse.containsMouse ? Theme.subtleHover : Theme.subtleRest
 
                 Image {
                     x: 16
@@ -403,13 +403,13 @@ Window {
                 width: parent.width - 8
                 Repeater {
                     model: root.searchResults
-                    delegate: Rectangle {
+                    delegate: Fill {
                         id: result
                         required property var modelData
                         width: results.width
                         height: 40
                         radius: Theme.radius
-                        color: resultMouse.containsMouse ? Theme.subtleHover : "transparent"
+                        color: resultMouse.containsMouse ? Theme.subtleHover : Theme.subtleRest
                         Image {
                             x: 10
                             anchors.verticalCenter: parent.verticalCenter
@@ -468,17 +468,17 @@ Window {
             transform: Translate { id: slide }
             SequentialAnimation {
                 id: enter
-                PauseAnimation { duration: Theme.motion(60) }
+                PauseAnimation { duration: Theme.animated(60) }
                 ParallelAnimation {
                     NumberAnimation {
                         target: slide
                         property: "y"
                         to: 0
-                        duration: Theme.motion(210)
+                        duration: Theme.animated(210)
                         easing.type: Easing.BezierSpline
                         easing.bezierCurve: Theme.decelerate
                     }
-                    NumberAnimation { target: pageLoader; property: "opacity"; to: 1; duration: Theme.motion(130) }
+                    NumberAnimation { target: pageLoader; property: "opacity"; to: 1; duration: Theme.animated(130) }
                 }
             }
         }

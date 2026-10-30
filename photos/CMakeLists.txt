@@ -24,11 +24,9 @@ qt_add_executable(vela-photos src/main.cpp)
 set(PHOTOS_QML_FILES
     qml/Main.qml
     qml/EditPage.qml
-    ${PROJECT_SOURCE_DIR}/settings/qml/Slider.qml
     ${PROJECT_SOURCE_DIR}/notepad/qml/WindowButton.qml
     ${PROJECT_SOURCE_DIR}/notepad/qml/ResizeEdges.qml
     ${PROJECT_SOURCE_DIR}/notepad/qml/FilePicker.qml
-    ${PROJECT_SOURCE_DIR}/explorer/qml/Dialog.qml
     ${PROJECT_SOURCE_DIR}/explorer/qml/ToolButton.qml)
 
 foreach(file IN LISTS PHOTOS_QML_FILES)

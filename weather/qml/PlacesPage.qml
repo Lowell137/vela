@@ -189,13 +189,13 @@ Item {
                         id: actions
                         anchors { right: parent.right; rightMargin: 8; verticalCenter: parent.verticalCenter }
                         ToolButton {
-                            icon: "shape-star"
+                            icon.name: "shape-star"
                             usable: !saved.modelData.isDefault
                             tooltip: qsTr("Set as default place")
                             onClicked: Weather.setDefault(saved.index)
                         }
                         ToolButton {
-                            icon: "edit-delete"
+                            icon.name: "edit-delete"
                             tooltip: qsTr("Remove")
                             onClicked: Weather.remove(saved.index)
                         }

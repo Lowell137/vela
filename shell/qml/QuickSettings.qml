@@ -5,6 +5,7 @@ import QtQuick
 import QtQuick.Effects
 import QtQuick.Shapes
 import Vela.Audio
+import Vela.Bluetooth
 import Vela.Controls
 
 // Quick settings (Win+A, or a click on the taskbar's system icons), like
@@ -27,6 +28,14 @@ Window {
     // It slides in from the taskbar's edge about this far (Windows 11's, measured).
     readonly property real slideDistance: 145
     property bool closing: false
+
+    // The brightness of the display the panel is on; read live while it is open.
+    readonly property var brightnessHere: Brightness.outputs.find(o => o.name === (root.screen ? root.screen.name : ""))
+    Binding {
+        target: Brightness
+        property: "live"
+        value: root.visible
+    }
 
     function open() {
         Menus.notificationCenterOpen = false
@@ -182,14 +191,14 @@ Window {
     // solid; its tiles and slider fade in once it has nearly arrived.
     ParallelAnimation {
         id: appear
-        NumberAnimation { target: panel; property: "opacity"; to: 1; duration: Theme.motion(50) }
-        NumberAnimation { target: slide; property: "y"; to: 0; duration: Theme.motion(200); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
-        NumberAnimation { target: slide; property: "x"; to: 0; duration: Theme.motion(200); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+        NumberAnimation { target: panel; property: "opacity"; to: 1; duration: Theme.animated(50) }
+        NumberAnimation { target: slide; property: "y"; to: 0; duration: Theme.animated(200); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+        NumberAnimation { target: slide; property: "x"; to: 0; duration: Theme.animated(200); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
         SequentialAnimation {
-            PauseAnimation { duration: Theme.motion(120) }
+            PauseAnimation { duration: Theme.animated(120) }
             ParallelAnimation {
-                NumberAnimation { target: content; property: "opacity"; to: 1; duration: Theme.motion(200) }
-                NumberAnimation { target: footer; property: "opacity"; to: 1; duration: Theme.motion(200) }
+                NumberAnimation { target: content; property: "opacity"; to: 1; duration: Theme.animated(200) }
+                NumberAnimation { target: footer; property: "opacity"; to: 1; duration: Theme.animated(200) }
             }
         }
     }
@@ -197,9 +206,9 @@ Window {
     SequentialAnimation {
         id: disappear
         ParallelAnimation {
-            NumberAnimation { target: panel; property: "opacity"; to: 0; duration: Theme.motion(150); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.accelerate }
-            NumberAnimation { target: slide; property: "y"; to: Config.taskbarVertical ? 0 : (Config.taskbarTop || Config.dock ? -root.slideDistance : root.slideDistance); duration: Theme.motion(150); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.accelerate }
-            NumberAnimation { target: slide; property: "x"; to: Config.taskbarLeft ? -root.slideDistance : (Config.taskbarRight ? root.slideDistance : 0); duration: Theme.motion(150); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.accelerate }
+            NumberAnimation { target: panel; property: "opacity"; to: 0; duration: Theme.animated(150); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.accelerate }
+            NumberAnimation { target: slide; property: "y"; to: Config.taskbarVertical ? 0 : (Config.taskbarTop || Config.dock ? -root.slideDistance : root.slideDistance); duration: Theme.animated(150); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.accelerate }
+            NumberAnimation { target: slide; property: "x"; to: Config.taskbarLeft ? -root.slideDistance : (Config.taskbarRight ? root.slideDistance : 0); duration: Theme.animated(150); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.accelerate }
         }
         ScriptAction { script: { root.visible = false; root.closing = false; Menus.quickSettingsOpen = false } }
     }
@@ -1001,17 +1010,17 @@ Window {
                         onContextMenu: root.openSettings("network")
                     }
                     Tile {
-                        visible: Status.bluetoothAvailable
-                        icon: Status.bluetoothEnabled ? "network-bluetooth" : "network-bluetooth-inactive"
+                        visible: Bluetooth.available || Bluetooth.platformBlocked
+                        icon: Bluetooth.powered ? "network-bluetooth" : "network-bluetooth-inactive"
                         label: qsTr("Bluetooth")
-                        checked: Status.bluetoothEnabled
+                        checked: Bluetooth.powered
                         split: true
-                        onToggled: Status.setBluetoothEnabled(!Status.bluetoothEnabled)
-                        onDetails: root.openSettings("bluetooth-settings")
-                        onContextMenu: root.openSettings("bluetooth-settings")
+                        onToggled: Bluetooth.setPowered(!Bluetooth.powered)
+                        onDetails: root.openSettings("bluetooth")
+                        onContextMenu: root.openSettings("bluetooth")
                     }
                     Tile {
-                        visible: Status.wifiAvailable || Status.bluetoothAvailable
+                        visible: Status.wifiAvailable || Bluetooth.available || Bluetooth.platformBlocked
                         icon: "network-flightmode-on"
                         label: qsTr("Airplane mode")
                         checked: Status.airplane
@@ -1059,11 +1068,11 @@ Window {
                 }
 
                 Slider {
-                    visible: Status.brightnessAvailable
+                    visible: root.brightnessHere !== undefined && root.brightnessHere.available
                     icon: "brightness-high"
-                    value: Status.brightness
-                    onMoved: value => Status.setBrightness(value)
-                    onWheeled: direction => Status.setBrightness(Math.max(0, Math.min(1, Status.brightness + direction * 0.02)))
+                    value: root.brightnessHere ? root.brightnessHere.value : 0
+                    onMoved: value => Brightness.setValue(root.brightnessHere.name, value)
+                    onWheeled: direction => Brightness.step(root.brightnessHere.name, direction)
                 }
                 // The arrow opens the sound page: outputs and the mixer.
                 Slider {

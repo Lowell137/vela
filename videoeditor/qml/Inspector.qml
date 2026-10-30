@@ -191,7 +191,7 @@ Rectangle {
                 width: parent.width
                 height: 32
                 Text { anchors.verticalCenter: parent.verticalCenter; text: qsTr("Mute"); color: Theme.text; font.pixelSize: Theme.fontBody }
-                Toggle {
+                Switch {
                     anchors { right: parent.right; verticalCenter: parent.verticalCenter }
                     showLabel: false
                     checked: panel.clip ? panel.clip.muted : false
@@ -224,9 +224,9 @@ Rectangle {
             Row {
                 visible: panel.visual
                 spacing: 4
-                ToolButton { icon: "object-rotate-right"; tooltip: qsTr("Rotate 90°"); onClicked: panel.set("rotate", panel.clip.rotate + 90) }
-                ToolButton { icon: "object-flip-horizontal"; tooltip: qsTr("Flip horizontally"); checked: !!panel.clip && panel.clip.flipH; onClicked: panel.set("flipH", !panel.clip.flipH) }
-                ToolButton { icon: "object-flip-vertical"; tooltip: qsTr("Flip vertically"); checked: !!panel.clip && panel.clip.flipV; onClicked: panel.set("flipV", !panel.clip.flipV) }
+                ToolButton { icon.name: "object-rotate-right"; tooltip: qsTr("Rotate 90°"); onClicked: panel.set("rotate", panel.clip.rotate + 90) }
+                ToolButton { icon.name: "object-flip-horizontal"; tooltip: qsTr("Flip horizontally"); checked: !!panel.clip && panel.clip.flipH; onClicked: panel.set("flipH", !panel.clip.flipH) }
+                ToolButton { icon.name: "object-flip-vertical"; tooltip: qsTr("Flip vertically"); checked: !!panel.clip && panel.clip.flipV; onClicked: panel.set("flipV", !panel.clip.flipV) }
             }
             Heading { visible: panel.visual; text: qsTr("Crop") }
             Flow {
@@ -260,12 +260,12 @@ Rectangle {
                 spacing: 8
                 Button {
                     visible: panel.kind !== "gap"
-                    icon: "edit-cut"
+                    icon.name: "edit-cut"
                     text: qsTr("Split")
                     onClicked: panel.win.split()
                 }
                 Button {
-                    icon: "edit-delete"
+                    icon.name: "edit-delete"
                     text: qsTr("Delete")
                     onClicked: panel.win.removeSelected(true)
                 }

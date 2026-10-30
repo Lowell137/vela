@@ -6,6 +6,7 @@
 #include "../../common/privatefile.h"
 
 extern "C" {
+#include "color.h"
 #include "legacy_names.h"
 }
 
@@ -238,6 +239,7 @@ void Preferences::reload()
     }
     m_endTask = settings.value(QStringLiteral("taskbar/endTask"), true).toBool();
     m_taskView = settings.value(QStringLiteral("taskbar/taskView"), true).toBool();
+    m_taskbarCaffeine = settings.value(QStringLiteral("taskbar/caffeine"), QStringLiteral("on")).toString();
     m_taskbarWindowBounce = settings.value(QStringLiteral("taskbar/windowBounce"), false).toBool();
     m_portalAutofix = settings.value(QStringLiteral("sharing/portalAutofix"), true).toBool();
     m_trayOverflow = settings.value(QStringLiteral("taskbar/trayOverflow"), true).toBool();
@@ -411,7 +413,11 @@ void Preferences::reloadCompositor()
     loadShortcuts();
 
     m_nightLight = flag(QStringLiteral("night-light"), false);
-    m_nightStrength = std::clamp(value(QStringLiteral("night-light-strength"), QStringLiteral("48")).toInt(), 0, 100);
+    {
+        const QByteArray temperature = value(QStringLiteral("night-light-temperature"), {}).toUtf8();
+        const QByteArray strength = value(QStringLiteral("night-light-strength"), {}).toUtf8();
+        m_nightTemperature = vela_night_temperature(temperature.constData(), strength.constData());
+    }
     m_nightNvidiaFix = flag(QStringLiteral("night-light-nvidia-fix"), false);
     m_nightSchedule = value(QStringLiteral("night-light-schedule"), QStringLiteral("no"));
     m_nightFrom = value(QStringLiteral("night-light-from"), QStringLiteral("21:00"));
@@ -426,6 +432,8 @@ void Preferences::reloadCompositor()
     m_colorFilterShortcut = flag(QStringLiteral("color-filters-shortcut"), false);
     m_magnifierStep = value(QStringLiteral("magnifier-step"), QStringLiteral("100")).toInt();
     m_stickyKeys = flag(QStringLiteral("sticky-keys"), false);
+    m_animationEffects = flag(QStringLiteral("animation-effects"), true);
+    m_animationDuration = qBound(50, value(QStringLiteral("animation-duration"), QStringLiteral("100")).toInt(), 300);
     m_mouseSpeed = std::clamp(value(QStringLiteral("mouse-speed"), QStringLiteral("10")).toInt(), 1, 20);
     m_mousePrecision = flag(QStringLiteral("mouse-precision"), true);
     m_mouseLeftHanded = value(QStringLiteral("mouse-primary-button"), QStringLiteral("left")) == QLatin1String("right");
@@ -471,19 +479,36 @@ QString Preferences::compositorValue(const QString& key) const
 
 void Preferences::queryCompositor()
 {
-    // What isn't in the file: the magnifier (it opens and closes) and sun
-    // times.
-    const QJsonObject state = QJsonDocument::fromJson(askCompositor("accessibility")).object();
-    if (state.isEmpty()) {
-        return;
+    // Query the actual compositor process: Settings may not inherit its
+    // environment (VELA_SCANOUT=0 is a session-level override).
+    const QString runtimeDir = QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation);
+    const QString display = qEnvironmentVariable("WAYLAND_DISPLAY", QStringLiteral("wayland-0"));
+    const QString socketPath = runtimeDir + QStringLiteral("/vela-") + display + QStringLiteral(".sock");
+    auto query = [&socketPath](const QByteArray& command) -> QJsonObject {
+        QLocalSocket socket;
+        socket.connectToServer(socketPath);
+        if (!socket.waitForConnected(200)) {
+            return {};
+        }
+        socket.write(command + '\n');
+        if (!socket.waitForBytesWritten(200)) {
+            return {};
+        }
+        QByteArray reply;
+        while (!reply.contains('\n') && socket.waitForReadyRead(200)) {
+            reply += socket.readAll();
+        }
+        return QJsonDocument::fromJson(reply.trimmed()).object();
+    };
+
+    const QJsonObject state = query("accessibility");
+    if (!state.isEmpty()) {
+        m_magnifier = state[QStringLiteral("magnifier")].toBool();
+        m_hasTouchpad = state[QStringLiteral("touchpad")].toBool();
+        m_sunset = state[QStringLiteral("sunset")].toString();
+        m_sunrise = state[QStringLiteral("sunrise")].toString();
     }
-    m_magnifier = state[QStringLiteral("magnifier")].toBool();
-    m_hasTouchpad = state[QStringLiteral("touchpad")].toBool();
-    m_sunset = state[QStringLiteral("sunset")].toString();
-    m_sunrise = state[QStringLiteral("sunrise")].toString();
-    // Settings may not inherit the compositor's environment (VELA_SCANOUT=0
-    // is a session-level override).
-    const QJsonObject policy = QJsonDocument::fromJson(askCompositor("scanout-policy")).object();
+    const QJsonObject policy = query("scanout-policy");
     if (!policy.isEmpty()) {
         m_scanoutOverridden = policy[QStringLiteral("envDisabled")].toBool();
     }
@@ -1358,6 +1383,16 @@ void Preferences::setTaskbarWindowBounce(bool on)
     }
 }
 
+void Preferences::setTaskbarCaffeine(const QString& mode)
+{
+    const QString value = mode == QLatin1String("always") || mode == QLatin1String("never") ? mode : QStringLiteral("on");
+    if (value != m_taskbarCaffeine) {
+        m_taskbarCaffeine = value;
+        setShell(QStringLiteral("taskbar/caffeine"), value);
+        emit taskbarChanged();
+    }
+}
+
 void Preferences::setTaskView(bool on)
 {
     if (on != m_taskView) {
@@ -1626,12 +1661,12 @@ void Preferences::setNightLight(bool on)
     }
 }
 
-void Preferences::setNightStrength(int strength)
+void Preferences::setNightTemperature(int kelvin)
 {
-    strength = std::clamp(strength, 0, 100);
-    if (strength != m_nightStrength) {
-        m_nightStrength = strength;
-        saveCompositor({ { QStringLiteral("night-light-strength"), QString::number(strength) } });
+    kelvin = std::clamp((kelvin + 50) / 100 * 100, VELA_NIGHT_KELVIN_MIN, VELA_NIGHT_KELVIN_MAX);
+    if (kelvin != m_nightTemperature) {
+        m_nightTemperature = kelvin;
+        saveCompositor({ { QStringLiteral("night-light-temperature"), QString::number(kelvin) } });
         emit nightLightChanged();
     }
 }
@@ -1750,6 +1785,25 @@ void Preferences::setStickyKeys(bool on)
     if (on != m_stickyKeys) {
         m_stickyKeys = on;
         saveCompositor({ { QStringLiteral("sticky-keys"), yesNo(on) } });
+        emit accessibilityChanged();
+    }
+}
+
+void Preferences::setAnimationEffects(bool on)
+{
+    if (on != m_animationEffects) {
+        m_animationEffects = on;
+        saveCompositor({ { QStringLiteral("animation-effects"), yesNo(on) } });
+        emit accessibilityChanged();
+    }
+}
+
+void Preferences::setAnimationDuration(int percent)
+{
+    percent = qBound(50, percent, 300);
+    if (percent != m_animationDuration) {
+        m_animationDuration = percent;
+        saveCompositor({ { QStringLiteral("animation-duration"), QString::number(percent) } });
         emit accessibilityChanged();
     }
 }

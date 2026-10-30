@@ -25,11 +25,9 @@ qt_add_executable(vela-mediaplayer
 
 set(MEDIAPLAYER_QML_FILES
     qml/Main.qml
-    ${PROJECT_SOURCE_DIR}/settings/qml/Slider.qml
     ${PROJECT_SOURCE_DIR}/notepad/qml/WindowButton.qml
     ${PROJECT_SOURCE_DIR}/notepad/qml/ResizeEdges.qml
     ${PROJECT_SOURCE_DIR}/notepad/qml/FilePicker.qml
-    ${PROJECT_SOURCE_DIR}/explorer/qml/Dialog.qml
     ${PROJECT_SOURCE_DIR}/explorer/qml/MenuLayer.qml
     ${PROJECT_SOURCE_DIR}/explorer/qml/ToolButton.qml
     ${PROJECT_SOURCE_DIR}/shell/qml/MenuPanel.qml

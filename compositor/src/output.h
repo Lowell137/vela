@@ -19,6 +19,7 @@
 #include <wayland-server-core.h>
 #include <wlr/util/box.h>
 
+struct vela_brightness_output;
 struct vela_nested;
 struct vela_output_frame;
 struct vela_server;
@@ -64,6 +65,8 @@ struct vela_output {
     int last_x, last_y;
     // Only when Vela runs in a window inside another session.
     struct vela_nested *nested;
+    // Its brightness (brightness.h); NULL: none to drive.
+    struct vela_brightness_output *brightness;
     // From the scene to this output's pixels (scene/frame.h).
     struct vela_output_frame *frame;
     struct vela_frame_clock clock;
@@ -72,13 +75,21 @@ struct vela_output {
     struct wlr_output_mode *mode_before_off;
     int custom_before_off[3]; // width, height, mHz (outputs without modes)
     bool latching; // VELA_LATCH=0: draw right away, as before S3
-    bool frame_requested;
+    bool frame_requested; // something changed
+    bool animation_requested; // the animations need their next vblank
     struct wl_event_source *idle_frame; // "frame" right away, if the output was idle
     int latch_fd;
     struct wl_event_source *latch_source;
     bool latch_armed;
     struct vela_frame_plan plan;
     bool planned;
+    // The vblank an empty frame (nothing changed here) stood for: what the
+    // animations show at that moment is on screen already, their next frame is
+    // planned from it. 0: the last frame was drawn.
+    int64_t empty_until;
+    // In on_frame: a frame asked for meanwhile (the animations ask every
+    // output, this one too) is planned after the drawing, by its vblank.
+    bool drawing;
     struct vela_delivery deliveries[VELA_OUTPUT_DELIVERIES];
     int delivery_count;
     // What the cost is made of (VELA_STATS): late wakeup, CPU up to the
@@ -97,6 +108,8 @@ struct vela_output {
 
     struct wl_listener frame_event;
     struct wl_listener request_state;
+    struct wl_listener commit; // retry optional cursor setup after a disabled output is re-enabled
+    bool cursor_setup_attempted;
     struct wl_listener present;
     struct wl_listener destroy;
 };

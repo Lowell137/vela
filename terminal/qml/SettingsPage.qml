@@ -267,7 +267,7 @@ Rectangle {
                     description: qsTr("Also with Ctrl and +, - or 0")
                     Row {
                         spacing: 8
-                        ToolButton { anchors.verticalCenter: parent.verticalCenter; icon: "list-remove"; usable: page.win && page.win.fontSize > 6; onClicked: page.win.fontSize-- }
+                        ToolButton { anchors.verticalCenter: parent.verticalCenter; icon.name: "list-remove"; usable: page.win && page.win.fontSize > 6; onClicked: page.win.fontSize-- }
                         Slider {
                             anchors.verticalCenter: parent.verticalCenter
                             from: 6
@@ -284,7 +284,7 @@ Rectangle {
                             color: Theme.text
                             font.pixelSize: Theme.fontBody
                         }
-                        ToolButton { anchors.verticalCenter: parent.verticalCenter; icon: "list-add"; usable: page.win && page.win.fontSize < 72; onClicked: page.win.fontSize++ }
+                        ToolButton { anchors.verticalCenter: parent.verticalCenter; icon.name: "list-add"; usable: page.win && page.win.fontSize < 72; onClicked: page.win.fontSize++ }
                     }
                 }
                 Card {
@@ -320,7 +320,7 @@ Rectangle {
                     description: qsTr("A .json file: a color scheme, or settings. A .terminal profile from macOS works too")
                     Button {
                         text: qsTr("Choose a file")
-                        icon: "document-open"
+                        icon.name: "document-open"
                         onClicked: importDialog.open()
                     }
                 }
@@ -423,7 +423,7 @@ Rectangle {
                         }
                         ToolButton {
                             anchors { right: parent.right; top: parent.top; margins: 12 }
-                            icon: "edit-delete"
+                            icon.name: "edit-delete"
                             tooltip: qsTr("Remove this profile")
                             usable: page.win.profiles.length > 1
                             onClicked: {
@@ -436,7 +436,7 @@ Rectangle {
                 }
                 Button {
                     text: qsTr("Add a profile")
-                    icon: "list-add"
+                    icon.name: "list-add"
                     onClicked: page.win.setProfiles(page.win.profiles.concat([{ name: qsTr("New profile"), command: page.win.profiles[0].command, directory: "" }]))
                 }
             }

@@ -128,7 +128,7 @@ Window {
             ToolButton {
                 y: 6
                 height: 32
-                icon: "application-menu"
+                icon.name: "application-menu"
                 tooltip: qsTr("Settings")
                 onClicked: {
                     const p = mapToItem(null, width, height + 2)
@@ -196,7 +196,7 @@ Window {
         ToolButton {
             id: add
             anchors { right: parent.right; verticalCenter: parent.verticalCenter }
-            icon: "list-add"
+            icon.name: "list-add"
             tooltip: qsTr("New note")
             onClicked: root.newNote()
         }
@@ -263,7 +263,7 @@ Window {
             ToolButton {
                 id: del
                 anchors { right: parent.right; rightMargin: 8; verticalCenter: parent.verticalCenter }
-                icon: "edit-delete"
+                icon.name: "edit-delete"
                 tooltip: qsTr("Delete note")
                 opacity: cardHover.hovered ? 1 : 0
                 onClicked: {

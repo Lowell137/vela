@@ -474,7 +474,7 @@ Window {
         color: Qt.rgba(0, 0, 0, 0.37)
         opacity: selectionFrame.handles ? 1 : 0
         visible: root.hasSelection && opacity > 0
-        Behavior on opacity { NumberAnimation { duration: Theme.motion(200) } }
+        Behavior on opacity { NumberAnimation { duration: Theme.animated(200) } }
     }
     // The selection's edge, like Windows 11's: a thin dashed line while it is chosen; a violet to
     // pink frame, 3 px, while the words in it are being read; then the dashed line again with
@@ -498,7 +498,7 @@ Window {
             anchors.fill: parent
             preferredRendererType: Shape.CurveRenderer
             opacity: selectionFrame.scanning ? 0 : 1
-            Behavior on opacity { NumberAnimation { duration: Theme.motion(100) } }
+            Behavior on opacity { NumberAnimation { duration: Theme.animated(100) } }
             ShapePath {
                 strokeColor: "white"
                 strokeWidth: 1
@@ -512,7 +512,7 @@ Window {
             anchors.fill: parent
             preferredRendererType: Shape.CurveRenderer
             opacity: selectionFrame.scanning ? 1 : 0
-            Behavior on opacity { NumberAnimation { duration: Theme.motion(100) } }
+            Behavior on opacity { NumberAnimation { duration: Theme.animated(100) } }
             ShapePath {
                 strokeColor: "transparent"
                 fillRule: ShapePath.OddEvenFill
@@ -532,7 +532,7 @@ Window {
             anchors.fill: parent
             preferredRendererType: Shape.CurveRenderer
             opacity: selectionFrame.handles ? 1 : 0
-            Behavior on opacity { NumberAnimation { duration: Theme.motion(100) } }
+            Behavior on opacity { NumberAnimation { duration: Theme.animated(100) } }
             ShapePath {
                 strokeColor: "white"
                 strokeWidth: 4
@@ -982,7 +982,7 @@ Window {
                 radius: 3
                 color: Qt.rgba(0.25, 0.5, 0.95, 0.55)
                 opacity: picked ? 1 : 0
-                Behavior on opacity { NumberAnimation { duration: Theme.motion(80) } }
+                Behavior on opacity { NumberAnimation { duration: Theme.animated(80) } }
             }
         }
         Text {
@@ -1176,7 +1176,7 @@ Window {
                     height: 38
                     radius: Theme.radius
                     color: current || modeMouse.containsMouse ? Theme.subtleHover : "transparent"
-                    Behavior on color { ColorAnimation { duration: Theme.motion(100) } }
+                    Behavior on color { ColorAnimation { duration: Theme.animated(100) } }
                     border.width: current ? 1 : 0
                     border.color: Theme.stroke
                     Image {
@@ -1196,8 +1196,8 @@ Window {
                         color: Theme.accent
                         Behavior on width {
                             SequentialAnimation {
-                                PauseAnimation { duration: modeButton.current ? Theme.motion(100) : 0 }
-                                NumberAnimation { duration: Theme.motion(100); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+                                PauseAnimation { duration: modeButton.current ? Theme.animated(100) : 0 }
+                                NumberAnimation { duration: Theme.animated(100); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
                             }
                         }
                     }
@@ -1374,7 +1374,7 @@ Window {
         property real reveal: root.shapeMenu ? 1 : 0
         Behavior on reveal {
             enabled: root.shapeMenu
-            NumberAnimation { duration: Theme.motion(110); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+            NumberAnimation { duration: Theme.animated(110); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
         }
         visible: reveal > 0
         clip: true

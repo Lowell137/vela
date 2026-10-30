@@ -15,6 +15,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <wayland-server-core.h>
+#include <wlr/render/pass.h>
 #include <wlr/util/box.h>
 
 #include "process.h"
@@ -27,6 +28,7 @@
 struct vela_a11y;
 struct vela_autoscroll;
 struct vela_capture_watch;
+struct vela_brightness;
 struct vela_commands;
 struct vela_icons;
 struct vela_input;
@@ -110,6 +112,7 @@ struct vela_server {
     struct vela_renderer *renderer; // belongs to wlroots: see vela_server_destroy
     struct wlr_renderer *wlr_renderer; // the same, as wlroots sees it
     struct wlr_allocator *allocator;
+    struct wlr_allocator *cursor_allocator; // optional dedicated DRM cursor BOs
     struct wlr_output_layout *output_layout;
     struct vela_scene *scene;
     struct wl_list outputs; // vela_output.link
@@ -140,11 +143,12 @@ struct vela_server {
     bool locked;
 
     // The theme chosen in Settings ("Choose your mode"), sent by the shell:
-    // light shell (acrylic tint) and light apps (title bars).
+    // light shell (acrylic tint) and light apps (title bars), and the accent
+    // (the snap preview; sRGB, opaque).
     bool light_shell;
     bool light_apps;
     // The shell's accent, sent with the theme (the snap preview; sRGB, opaque).
-    float accent[3];
+    struct wlr_render_color accent;
     // The taskbar hides by itself ("taskbar-autohide", from the shell): windows
     // use the space it reserves for the panels.
     bool taskbar_autohide;
@@ -197,16 +201,24 @@ struct vela_server {
     // 100: opaque), when active and when not.
     int window_opacity;
     int window_opacity_inactive;
+    // The title bars' Mica colors, active and inactive (docs/renderer.md
+    // §9.4): computed by the shell from the wallpaper, in the apps' mode, as
+    // Vela's apps compute their content's. Without them the bars keep their
+    // base grays. The version changes with them and with the theme: title
+    // bars redraw.
+    bool has_mica;
+    struct wlr_render_color mica_active;
+    struct wlr_render_color mica_inactive;
+    uint32_t look_version;
     // Title bar text and icons, loaded on first use (decoration.c);
     // text_loaded: tried, even if there is no font.
     struct vela_text *text;
     bool text_loaded;
     struct vela_icons *icons;
-    // Animation time: the moment the frame being prepared will become light
-    // (docs/renderer.md §4.2). It never goes back, even when different outputs
-    // predict different moments; 0 before the first.
-    double animation_now_ms;
     struct wl_list snapshot_animations; // the snapshot animations (snapshot.h)
+    // In vela_server_animate's ticks: the frames they ask for are the
+    // animations', one per vblank (output.c), not those of a change.
+    bool ticking;
 
     // The windows (view.h): in order of recent use, the first is the active
     // one; the protocols that bring them.
@@ -230,7 +242,10 @@ struct vela_server {
     struct wl_listener xwayland_shell_surface;
     uint32_t xwayland_wake_atom; // the root property that wakes the X window manager (xwayland.c)
     uint32_t xwayland_wine_style_atom; // _WINE_HWND_STYLE, interned on Xwayland ready
-    struct wl_event_source *xwayland_wine_timer; // non-blocking property reply polling
+    // _NET_WM_STATE and its FULLSCREEN, MAXIMIZED_VERT and MAXIMIZED_HORZ, for
+    // the state an app sets before mapping (xwayland.c)
+    uint32_t xwayland_state_atoms[4];
+    struct wl_event_source *xwayland_property_timer; // non-blocking property reply polling
     struct wl_event_source *output_check;
     struct vela_seen_output *seen_outputs;
     int seen_output_count;
@@ -241,6 +256,10 @@ struct vela_server {
     // it returns to when the one above closes.
     struct vela_layer_surface *focused_layer;
     struct vela_layer_surface *previous_layer;
+    // Super tap: show the taskbar before Qt finishes mapping Start. A bounded
+    // timer restores fullscreen if no panel ever arrives.
+    bool start_preview;
+    struct wl_event_source *start_preview_timer;
     struct vela_interaction *interaction; // the pointer on windows (interact.h)
     struct vela_autoscroll *autoscroll; // middle-click autoscroll (autoscroll.h)
     struct vela_switcher *switcher; // Alt+Tab (switcher.h)
@@ -251,6 +270,9 @@ struct vela_server {
     struct vela_child shell; // the launched and supervised shell (shell.h)
     int capture_hidden_count; // windows hidden from screen capture (view.c)
     struct vela_child polkit_agent; // the polkit agent (polkit.h)
+    struct vela_child bluetooth; // vela-bluetooth (bluetooth.h)
+    struct vela_child updates; // vela-update-daemon (updates.h)
+    struct vela_brightness *brightness; // every output's brightness (brightness.h)
     struct vela_commands *commands; // the command socket (command.h)
     // wlr-output-management (output_manager.h).
     struct wlr_output_manager_v1 *output_manager;
@@ -284,8 +306,8 @@ void vela_server_destroy(struct vela_server *server);
 // longer waits for its frame.
 void vela_server_output_destroyed(struct vela_server *server, struct vela_output *output);
 
-// Before every frame: animations advance to the moment the frame will become
-// light (docs/renderer.md §4.2).
+// Before every frame: animations show the moment the frame will become light
+// (docs/renderer.md §4.2), and retire on the wall clock.
 void vela_server_animate(struct vela_server *server, int64_t present_ns);
 
 // On every delivered frame (the lock waits for black on every output).
