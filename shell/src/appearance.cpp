@@ -14,6 +14,7 @@
 #include <QFileInfo>
 #include <QGuiApplication>
 #include <QProcess>
+#include <QSaveFile>
 #include <QSettings>
 #include <QStandardPaths>
 #include <QUrl>
@@ -50,6 +51,7 @@ Motion configuredMotion()
     }
     return motion;
 }
+
 
 } // namespace
 
@@ -265,6 +267,13 @@ void Appearance::reload()
             if (line.startsWith("font-family=")) {
                 fontFamily = QString::fromUtf8(line.mid(12)).trimmed();
             }
+            if (line.startsWith("start-icon=")) {
+                theme.insert(QStringLiteral("start-icon"), QString::fromUtf8(line.mid(11)).trimmed());
+            }
+            if (line.startsWith("start-icon-size=")) {
+                theme.insert(QStringLiteral("start-icon-size"), std::clamp(line.mid(16).toInt(), 16, 40));
+            }
+            flagLine(line, "startmenu-all-apps");
             flagLine(line, "taskbar-backdrop");
             flagLine(line, "quicksettings-slider-press-zoom");
             flagLine(line, "taskbar-activate-hop");
@@ -327,4 +336,34 @@ void Appearance::reload()
             emit iconModeChanged();
         }
     });
+}
+
+void Appearance::setConfigFlag(const QString& key, bool on)
+{
+    const QString path = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)
+        + QStringLiteral("/vela/vela.conf");
+    QStringList lines;
+    QFile in(path);
+    if (in.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        lines = QString::fromUtf8(in.readAll()).split(u'\n');
+    }
+    const QString line = key + (on ? QStringLiteral("=yes") : QStringLiteral("=no"));
+    bool found = false;
+    for (QString& l : lines) {
+        if (l.startsWith(key + u'=')) {
+            l = line;
+            found = true;
+        }
+    }
+    if (!found) {
+        if (!lines.isEmpty() && lines.last().isEmpty()) {
+            lines.removeLast();
+        }
+        lines << line << QString();
+    }
+    QSaveFile out(path);
+    if (out.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        out.write(lines.join(u'\n').toUtf8());
+        out.commit();
+    }
 }

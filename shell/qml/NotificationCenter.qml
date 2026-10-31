@@ -55,9 +55,10 @@ Window {
     readonly property var counts: { history.count; return history.appCounts() }
 
     // It comes in from the side of the screen about this far (Windows 11's, measured), and
-    // when the quick settings were open it waits for them to go (they leave in 150 ms).
-    readonly property real slideDistance: 190
+    // when the quick settings were open it waits for them to go (they leave in 130 ms).
+    readonly property real slideDistance: 340
     property int lead: 0
+    property bool closing: false
 
     function open() {
         lead = Menus.quickSettingsOpen ? 100 : 0
@@ -68,6 +69,8 @@ Window {
             Qt.callLater(root.open)
             return
         }
+        disappear.stop()
+        closing = false
         visible = true
         Menus.notificationCenterOpen = true
         column.opacity = 0
@@ -78,13 +81,18 @@ Window {
         updateInput()
     }
     function close() {
-        visible = false
+        if (!visible || closing) {
+            return
+        }
+        closing = true
+        appear.stop()
         Menus.notificationCenterOpen = false
+        disappear.restart()
     }
 
     Connections {
         target: Shell
-        function onNotificationCenterRequested() { root.visible ? root.close() : root.open() }
+        function onNotificationCenterRequested() { root.visible && !root.closing ? root.close() : root.open() }
         function onQuickSettingsRequested() { root.close() }
     }
 
@@ -108,15 +116,21 @@ Window {
         Effects.setInputRegion(root, [Qt.rect(column.x, column.y, column.width, column.height)])
     }
 
-    // Windows 11's, measured: in from the side in about 130 ms, slowing down hard,
-    // solid after two frames.
+    // Windows 11's, measured: in from the side, off the screen, in about 167 ms,
+    // slowing down hard, solid after two frames.
     SequentialAnimation {
         id: appear
         PauseAnimation { duration: Theme.animated(root.lead) }
         ParallelAnimation {
             NumberAnimation { target: column; property: "opacity"; to: 1; duration: Theme.animated(60) }
-            NumberAnimation { target: slide; property: "x"; to: 0; duration: Theme.animated(150); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+            NumberAnimation { target: slide; property: "x"; to: 0; duration: Theme.animated(167); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
         }
+    }
+    // The way out: back to the side, speeding up, about 130 ms, without a fade.
+    SequentialAnimation {
+        id: disappear
+        NumberAnimation { target: slide; property: "x"; to: Config.taskbarLeft ? -root.slideDistance : root.slideDistance; duration: Theme.animated(130); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.accelerate }
+        ScriptAction { script: { root.visible = false; root.closing = false } }
     }
 
     component SmallButton: Item {
@@ -553,11 +567,11 @@ Window {
                                     && day.getDate() === now.getDate()
                             }
                             width: days.cell
-                            height: 36
+                            height: Theme.notificationsDayHeight
                             Rectangle {
                                 anchors.centerIn: parent
-                                width: 32
-                                height: 32
+                                width: Theme.notificationsTodaySize
+                                height: Theme.notificationsTodaySize
                                 radius: Theme.notificationsTodayRadius
                                 color: parent.today ? Theme.accent : Theme.subtleHover
                                 opacity: parent.today || dayMouse.containsMouse ? 1 : 0

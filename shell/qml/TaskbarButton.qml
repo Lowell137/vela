@@ -15,6 +15,7 @@ Item {
     readonly property bool hovered: mouse.containsMouse
     property bool active: false
     property bool running: false
+    property bool indicator: true // the line under the icon
     // An app's button (hops): clicked while the app is open, it bounces.
     property bool hops: false
     property real hop: 0 // px away from the screen's edge
@@ -180,7 +181,7 @@ Item {
     // Indicator under the icon (at the screen's edge side along a vertical
     // taskbar): app open / active (or Start menu open)
     Rectangle {
-        visible: !root.pictured
+        visible: !root.pictured && root.indicator
         property real length: root.progress >= 0 ? 24 : root.active ? 16 : root.running ? 6 : 0
         // x/y, not anchors: anchors switched to undefined at run time keep
         // their old edge when the taskbar's position changes live.

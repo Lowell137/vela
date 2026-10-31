@@ -34,6 +34,8 @@ class Appearance : public QObject {
     Q_PROPERTY(QString iconMode READ iconMode NOTIFY iconModeChanged)
 
 public:
+    // A yes/no of vela.conf, from a shell menu; the file watcher does the rest.
+    Q_INVOKABLE void setConfigFlag(const QString& key, bool on);
     enum class Mode { Apps, Shell };
     explicit Appearance(QObject* parent = nullptr, Mode mode = Mode::Apps);
 

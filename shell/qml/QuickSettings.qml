@@ -26,7 +26,7 @@ Window {
     property string page: ""
 
     // It slides in from the taskbar's edge about this far (Windows 11's, measured).
-    readonly property real slideDistance: 145
+    readonly property real slideDistance: 235
     property bool closing: false
 
     // The brightness of the display the panel is on; read live while it is open.
@@ -49,8 +49,8 @@ Window {
         visible = true
         Menus.quickSettingsOpen = true
         panel.opacity = 0
-        content.opacity = 0
-        footer.opacity = 0
+        content.opacity = 1
+        footer.opacity = 1
         slide.y = Config.taskbarVertical ? 0 : (Config.taskbarTop || Config.dock ? -slideDistance : slideDistance)
         slide.x = Config.taskbarLeft ? -slideDistance : (Config.taskbarRight ? slideDistance : 0)
         appear.restart()
@@ -66,7 +66,7 @@ Window {
         disappear.restart()
     }
     function toggle() {
-        if (visible) {
+        if (visible && !closing) {
             close()
         } else {
             open()
@@ -187,28 +187,20 @@ Window {
         function onYChanged() { root.updateBlur() }
     }
 
-    // Windows 11's, measured: the panel comes up in about 200 ms, slowing down, already
-    // solid; its tiles and slider fade in once it has nearly arrived.
+    // Windows 11's, measured at 30 fps: the panel comes up in about 233 ms, slowing
+    // down, solid and with its tiles from the first frame.
     ParallelAnimation {
         id: appear
         NumberAnimation { target: panel; property: "opacity"; to: 1; duration: Theme.animated(50) }
-        NumberAnimation { target: slide; property: "y"; to: 0; duration: Theme.animated(200); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
-        NumberAnimation { target: slide; property: "x"; to: 0; duration: Theme.animated(200); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
-        SequentialAnimation {
-            PauseAnimation { duration: Theme.animated(120) }
-            ParallelAnimation {
-                NumberAnimation { target: content; property: "opacity"; to: 1; duration: Theme.animated(200) }
-                NumberAnimation { target: footer; property: "opacity"; to: 1; duration: Theme.animated(200) }
-            }
-        }
+        NumberAnimation { target: slide; property: "y"; to: 0; duration: Theme.animated(233); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+        NumberAnimation { target: slide; property: "x"; to: 0; duration: Theme.animated(233); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
     }
-    // The way out: back down and away, speeding up, about 150 ms.
+    // The way out: back down, speeding up, about 130 ms, and gone without a fade.
     SequentialAnimation {
         id: disappear
         ParallelAnimation {
-            NumberAnimation { target: panel; property: "opacity"; to: 0; duration: Theme.animated(150); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.accelerate }
-            NumberAnimation { target: slide; property: "y"; to: Config.taskbarVertical ? 0 : (Config.taskbarTop || Config.dock ? -root.slideDistance : root.slideDistance); duration: Theme.animated(150); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.accelerate }
-            NumberAnimation { target: slide; property: "x"; to: Config.taskbarLeft ? -root.slideDistance : (Config.taskbarRight ? root.slideDistance : 0); duration: Theme.animated(150); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.accelerate }
+            NumberAnimation { target: slide; property: "y"; to: Config.taskbarVertical ? 0 : (Config.taskbarTop || Config.dock ? -root.slideDistance : root.slideDistance); duration: Theme.animated(130); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.accelerate }
+            NumberAnimation { target: slide; property: "x"; to: Config.taskbarLeft ? -root.slideDistance : (Config.taskbarRight ? root.slideDistance : 0); duration: Theme.animated(130); easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.accelerate }
         }
         ScriptAction { script: { root.visible = false; root.closing = false; Menus.quickSettingsOpen = false } }
     }

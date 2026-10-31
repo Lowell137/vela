@@ -21,7 +21,9 @@ extern "C" {
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QJsonDocument>
+#include <QHash>
 #include <QIcon>
+#include <QSet>
 #include <QDirIterator>
 #include <QFile>
 #include <QFileInfo>
@@ -343,6 +345,13 @@ void Preferences::reloadCompositor()
     emit languageChanged();
     m_iconTheme = value(QStringLiteral("icon-theme"), {});
     emit iconThemeChanged();
+    m_startIcon = value(QStringLiteral("start-icon"), {});
+    m_startIconSize = std::clamp(value(QStringLiteral("start-icon-size"), QStringLiteral("24")).toInt(), 16, 40);
+    {
+        const QString v = value(QStringLiteral("startmenu-all-apps"), QStringLiteral("yes"));
+        m_startAllApps = v == QLatin1String("yes") || v == QLatin1String("1");
+    }
+    emit startIconChanged();
     m_visualTheme = value(QStringLiteral("theme"), {});
     m_taskbarBackdrop = flag(QStringLiteral("taskbar-backdrop"), false);
     m_sliderPressZoom = flag(QStringLiteral("quicksettings-slider-press-zoom"), true);
@@ -699,6 +708,74 @@ void Preferences::setIconTheme(const QString& theme)
     // Shell, Settings (Appearance watches vela.conf) and compositor.
     saveCompositor({ { QStringLiteral("icon-theme"), theme.isEmpty() ? QString() : theme } });
     emit iconThemeChanged();
+}
+
+// A name of the icon theme, a path or a file:// URL (the file dialog's); empty: Vela's symbol.
+void Preferences::setStartIcon(const QString& icon)
+{
+    const QUrl url(icon);
+    const QString value = url.isLocalFile() ? url.toLocalFile() : icon.trimmed();
+    // One line of vela.conf.
+    if (value == m_startIcon || value.contains(u'\n')) {
+        return;
+    }
+    m_startIcon = value;
+    saveCompositor({ { QStringLiteral("start-icon"), value } });
+    emit startIconChanged();
+}
+
+void Preferences::setStartIconSize(int size)
+{
+    size = std::clamp(size, 16, 40);
+    if (size != m_startIconSize) {
+        m_startIconSize = size;
+        saveCompositor({ { QStringLiteral("start-icon-size"), QString::number(size) } });
+        emit startIconChanged();
+    }
+}
+
+void Preferences::setStartAllApps(bool on)
+{
+    if (on != m_startAllApps) {
+        m_startAllApps = on;
+        saveCompositor({ { QStringLiteral("startmenu-all-apps"), on ? QStringLiteral("yes") : QStringLiteral("no") } });
+        emit startIconChanged();
+    }
+}
+
+// The icons of the current theme (and hicolor) whose name has `query`, logos first.
+QStringList Preferences::startIconNames(const QString& query) const
+{
+    static QHash<QString, QStringList> cache;
+    const QString themeName = m_iconTheme.isEmpty() ? QStringLiteral("vela") : m_iconTheme;
+    if (!cache.contains(themeName)) {
+        QSet<QString> names;
+        const QStringList roots = QIcon::themeSearchPaths();
+        for (const QString& root : roots) {
+            for (const QString& theme : { themeName, QStringLiteral("hicolor") }) {
+                QDirIterator it(root + u'/' + theme, { QStringLiteral("*.svg"), QStringLiteral("*.png") },
+                    QDir::Files, QDirIterator::Subdirectories);
+                while (it.hasNext()) {
+                    names.insert(QFileInfo(it.next()).completeBaseName());
+                }
+            }
+        }
+        QStringList sorted(names.begin(), names.end());
+        const auto rank = [](const QString& name) {
+            return name.contains(QLatin1String("start-here")) ? 0 : name.contains(QLatin1String("logo")) ? 1 : 2;
+        };
+        std::sort(sorted.begin(), sorted.end(), [&rank](const QString& a, const QString& b) {
+            return rank(a) != rank(b) ? rank(a) < rank(b) : a < b;
+        });
+        cache.insert(themeName, sorted);
+    }
+    QStringList result;
+    for (const QString& name : std::as_const(cache[themeName])) {
+        if (name.contains(query, Qt::CaseInsensitive)) {
+            result << name;
+        }
+    }
+    return result;
 }
 
 void Preferences::setVisualTheme(const QString& theme)

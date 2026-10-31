@@ -177,6 +177,7 @@ QString SystemActions::command(const QString& name) const
         { QStringLiteral("power"), QStringLiteral("power") },
         { QStringLiteral("mobility"), QStringLiteral("power") },
         { QStringLiteral("network"), QStringLiteral("network") },
+        { QStringLiteral("start"), QStringLiteral("start") },
         { QStringLiteral("datetime"), QStringLiteral("datetime") },
         { QStringLiteral("installed-apps"), QStringLiteral("installed-apps") },
         { QStringLiteral("system"), QStringLiteral("about") },

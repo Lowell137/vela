@@ -106,6 +106,7 @@ set(SETTINGS_QML_FILES
     qml/pages/BackgroundPage.qml
     qml/pages/ColorsPage.qml
     qml/pages/TaskbarPage.qml
+    qml/pages/StartPage.qml
     qml/pages/ShortcutsPage.qml
     qml/pages/IconsPage.qml
     qml/pages/FontsPage.qml

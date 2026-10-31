@@ -11,19 +11,32 @@ Item {
     width: 22
     height: 22
 
+    // start-icon= (Settings > Themes): an icon of the theme or a file, instead of the rest.
+    Image {
+        anchors.centerIn: parent
+        width: Theme.taskbarStartIconSize
+        height: Theme.taskbarStartIconSize
+        visible: Theme.taskbarStartIcon !== ""
+        source: Theme.taskbarStartIcon === "" ? ""
+            : Theme.taskbarStartIcon.startsWith("/") ? "file://" + encodeURI(Theme.taskbarStartIcon)
+            : Theme.icons + encodeURIComponent(Theme.taskbarStartIcon)
+        sourceSize: Qt.size(width, height)
+        fillMode: Image.PreserveAspectFit
+    }
+
     // taskbar-orb: the theme's picture of the orb, over the drawn one.
     Image {
         anchors.centerIn: parent
         width: 54
         height: 54
-        visible: source != "" && Theme.taskbarStartGlyph === 1
+        visible: source != "" && Theme.taskbarStartGlyph === 1 && Theme.taskbarStartIcon === ""
         source: Shell.startMenuOpen ? Theme.taskbarOrbPressed : Theme.taskbarOrb
         smooth: true
     }
 
     // taskbar-start-glyph=1: Windows 7's orb, drawn: a glass ball and the flag.
     Item {
-        visible: Theme.taskbarStartGlyph === 1 && Theme.taskbarOrb === ""
+        visible: Theme.taskbarStartGlyph === 1 && Theme.taskbarOrb === "" && Theme.taskbarStartIcon === ""
         anchors.centerIn: parent
         width: 34
         height: 34
@@ -62,8 +75,9 @@ Item {
     // Nyxel's mark: a sparkle made of pixels. Arms and diagonals are squares
     // on a 5x5 grid; the center takes the accent, the diagonals fade.
     Item {
-        visible: Theme.taskbarStartGlyph !== 1
+        visible: Theme.taskbarStartGlyph !== 1 && Theme.taskbarStartIcon === ""
         anchors.fill: parent
+        scale: Theme.taskbarStartIconSize / 24
         Repeater {
             // [column, row, kind]: 0 arm, 1 center, 2 diagonal
             model: [

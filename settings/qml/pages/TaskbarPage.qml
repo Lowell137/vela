@@ -198,20 +198,6 @@ Page {
             }
         }
         Card {
-            icon: "edit-opacity"
-            title: qsTr("Start menu background")
-            description: qsTr("More solid than the theme: %1%. 0 keeps the theme's own look").arg(Prefs.startSolid)
-            trailing: Slider {
-                width: 220
-                from: 0
-                to: 100
-                stepSize: 1
-                live: false
-                value: Prefs.startSolid
-                onReleased: value => Prefs.startSolid = Math.round(value)
-            }
-        }
-        Card {
             icon: "process-stop"
             title: qsTr("End task")
             description: qsTr("In the taskbar buttons' menu, to close an app that isn't responding right away")

@@ -23,6 +23,7 @@ Window {
     // Pinned tiles are in the GridView header rather than its model.
     // -1 means the keyboard selection is in the app model.
     property int selectedPinnedIndex: -1
+    property bool powerFocused: false // Tab: the power button, Enter opens its menu
     property string shortcutError: ""
     // Asked of logind only once: can the computer suspend?
     readonly property bool canSuspend: Shell.canSuspend()
@@ -140,6 +141,11 @@ Window {
         return out
     }
     property int resultIndex: 0
+    // Where the arrows are while searching: the search box, the results, the
+    // filter tabs above them or the selected result's actions beside them.
+    property string searchArea: "results"
+    property int actionIndex: 0
+    onResultIndexChanged: actionIndex = 0
     onResultsChanged: resultIndex = 0
     readonly property var result: results[resultIndex] ?? null
 
@@ -187,9 +193,38 @@ Window {
         return out
     }
     function moveResult(delta) {
-        if (results.length > 0) {
+        if (searchArea === "box") {
+            if (delta > 0) searchArea = "filters"
+        } else if (searchArea === "filters") {
+            searchArea = delta > 0 ? "results" : "box"
+        } else if (searchArea === "actions") {
+            const count = resultActions(result).length
+            actionIndex = Math.max(0, Math.min(count - 1, actionIndex + delta))
+        } else if (delta < 0 && resultIndex === 0) {
+            searchArea = "filters"
+        } else if (results.length > 0) {
             resultIndex = Math.max(0, Math.min(results.length - 1, resultIndex + delta))
         }
+    }
+    // Left or right while searching; false: the search box's caret takes it.
+    function moveSearchSide(right) {
+        if (searchArea === "box") {
+            return false
+        }
+        if (searchArea === "filters") {
+            cycleFilter(right ? 1 : -1)
+            return true
+        }
+        if (searchArea === "actions") {
+            if (!right) searchArea = "results"
+            return true
+        }
+        if (right && search.cursorPosition === search.text.length && resultActions(result).length > 0) {
+            searchArea = "actions"
+            actionIndex = 0
+            return true
+        }
+        return false
     }
     function cycleFilter(delta) {
         const filters = ["all", "apps", "settings", "files"]
@@ -415,6 +450,8 @@ Window {
         grid.currentIndex = 0
         grid.keyNav = false
         selectedPinnedIndex = -1
+        powerFocused = false
+        searchArea = "results"
         shortcutError = ""
         shortcutErrorTimer.stop()
         grid.positionViewAtBeginning()
@@ -447,8 +484,19 @@ Window {
     }
 
     function launchSelection() {
+        // Nothing selected: Enter in the empty search box opens nothing.
+        if (!searching && !grid.keyNav && search.text.length === 0) {
+            return
+        }
         if (searching) {
-            openResult(result)
+            if (searchArea === "filters") {
+                searchArea = "results"
+            } else if (searchArea === "actions") {
+                const entry = resultActions(result)[actionIndex]
+                if (entry) entry.action()
+            } else {
+                openResult(result)
+            }
         } else if (extraIndex >= 0) {
             openExtra(extraIndex)
         } else if (showPinned && selectedPinnedIndex >= 0 && selectedPinnedIndex < pinned.length) {
@@ -462,11 +510,13 @@ Window {
 
     function selectPinned(index) {
         selectedPinnedIndex = index
-        // A long pinned section may itself be taller than the visible grid.
-        const top = Math.floor(index / Theme.startMenuColumns) * grid.cellHeight
-        if (grid.contentY > top) grid.contentY = top
-        else if (grid.contentY + grid.height < top + grid.cellHeight)
-            grid.contentY = top + grid.cellHeight - grid.height
+        // The pinned tiles are the grid's header: it starts at originY.
+        const row = Math.floor(index / Theme.startMenuColumns)
+        const top = grid.originY + row * Theme.startMenuCellHeight
+        if (row === 0) grid.contentY = grid.originY
+        else if (grid.contentY > top) grid.contentY = top
+        else if (grid.contentY + grid.height < top + Theme.startMenuCellHeight)
+            grid.contentY = top + Theme.startMenuCellHeight - grid.height
     }
 
     function selectApp(index) {
@@ -475,8 +525,18 @@ Window {
         grid.positionViewAtIndex(index, GridView.Contain)
     }
 
-    // Navigate between the pinned header and the app model by column.
-    // Left/right wrap inside the current section; up/down cross sections.
+    // Back to the search box: nothing selected, the list at its top.
+    function selectSearch() {
+        grid.keyNav = false
+        selectedPinnedIndex = -1
+        powerFocused = false
+        grid.currentIndex = 0
+        grid.contentY = grid.originY
+    }
+
+    // The arrows, everywhere: search box, pinned tiles, all apps, power button.
+    // Up and down go by column and leave a section at its first and last row,
+    // left and right go tile by tile through both sections.
     function navigate(direction) {
         if (direction === "up" || direction === "down") {
             if (moveExtra(direction === "down" ? 1 : -1)) {
@@ -489,10 +549,29 @@ Window {
         const pinCount = showPinned ? pinned.length : 0
         const appCount = grid.count
         if (pinCount === 0 && appCount === 0) return
+        const columns = Theme.startMenuColumns
+        const selectLast = column => {
+            if (appCount > 0) {
+                const lastRow = Math.floor((appCount - 1) / columns) * columns
+                selectApp(Math.min(lastRow + column, appCount - 1))
+            } else {
+                const lastRow = Math.floor((pinCount - 1) / columns) * columns
+                selectPinned(Math.min(lastRow + column, pinCount - 1))
+            }
+        }
 
+        if (powerFocused) {
+            if (direction === "up" || direction === "left") {
+                powerFocused = false
+                grid.keyNav = true
+                selectLast(direction === "up" ? 0 : columns - 1)
+            }
+            return
+        }
         // No tile is highlighted before keyboard navigation starts, except
         // search results. The first arrow should select, not skip, tile zero.
         if (!grid.keyNav && search.text.length === 0) {
+            if (direction === "up") return
             grid.keyNav = true
             if (pinCount > 0) selectPinned(0)
             else selectApp(0)
@@ -500,45 +579,72 @@ Window {
         }
 
         grid.keyNav = true
-        const columns = Theme.startMenuColumns
         if (selectedPinnedIndex >= 0 && pinCount > 0) {
             const index = selectedPinnedIndex
-            if (direction === "left") selectPinned((index + pinCount - 1) % pinCount)
-            else if (direction === "right") selectPinned((index + 1) % pinCount)
-            else if (direction === "down") {
-                if (index + columns < pinCount) selectPinned(index + columns)
+            const lastRow = Math.floor((pinCount - 1) / columns)
+            const row = Math.floor(index / columns)
+            if (direction === "left") {
+                if (index > 0) selectPinned(index - 1)
+            } else if (direction === "right") {
+                if (index + 1 < pinCount) selectPinned(index + 1)
+                else if (appCount > 0) selectApp(0)
+                else { selectedPinnedIndex = -1; powerFocused = true }
+            } else if (direction === "down") {
+                if (row < lastRow) selectPinned(Math.min(index + columns, pinCount - 1))
                 else if (appCount > 0) selectApp(Math.min(index % columns, appCount - 1))
-                else selectPinned(index % columns)
+                else { selectedPinnedIndex = -1; powerFocused = true }
             } else if (direction === "up") {
-                if (index >= columns) selectPinned(index - columns)
-                else if (appCount > 0) {
-                    const lastRow = Math.floor((appCount - 1) / columns) * columns
-                    selectApp(Math.min(lastRow + index % columns, appCount - 1))
-                } else {
-                    const lastRow = Math.floor((pinCount - 1) / columns) * columns
-                    selectPinned(Math.min(lastRow + index % columns, pinCount - 1))
-                }
+                if (row > 0) selectPinned(index - columns)
+                else selectSearch()
             }
         } else if (appCount > 0) {
             const index = Math.max(0, grid.currentIndex)
-            if (direction === "left") selectApp((index + appCount - 1) % appCount)
-            else if (direction === "right") selectApp((index + 1) % appCount)
-            else if (direction === "down") {
-                if (index + columns < appCount) selectApp(index + columns)
-                else if (pinCount > 0) selectPinned(Math.min(index % columns, pinCount - 1))
-                else selectApp(index % columns)
+            const lastRow = Math.floor((appCount - 1) / columns)
+            const row = Math.floor(index / columns)
+            const lastPinnedRow = pinCount > 0 ? Math.floor((pinCount - 1) / columns) * columns : 0
+            if (direction === "left") {
+                if (index > 0) selectApp(index - 1)
+                else if (pinCount > 0) selectPinned(pinCount - 1)
+            } else if (direction === "right") {
+                if (index + 1 < appCount) selectApp(index + 1)
+                else powerFocused = true
+            } else if (direction === "down") {
+                if (row < lastRow) selectApp(Math.min(index + columns, appCount - 1))
+                else powerFocused = true
             } else if (direction === "up") {
-                if (index >= columns) selectApp(index - columns)
-                else if (pinCount > 0) {
-                    const lastRow = Math.floor((pinCount - 1) / columns) * columns
-                    selectPinned(Math.min(lastRow + index % columns, pinCount - 1))
-                } else {
-                    const lastRow = Math.floor((appCount - 1) / columns) * columns
-                    selectApp(Math.min(lastRow + index % columns, appCount - 1))
-                }
+                if (row > 0) selectApp(index - columns)
+                else if (pinCount > 0) selectPinned(Math.min(lastPinnedRow + index % columns, pinCount - 1))
+                else selectSearch()
             }
+        }
+    }
+
+    // Page Up/Down: three rows. Home/End: the first and the last tile.
+    function navigateKey(key) {
+        if (key === Qt.Key_Home) {
+            grid.keyNav = true
+            powerFocused = false
+            if (showPinned && pinned.length > 0) selectPinned(0)
+            else if (grid.count > 0) selectApp(0)
+        } else if (key === Qt.Key_End) {
+            grid.keyNav = true
+            powerFocused = false
+            if (grid.count > 0) selectApp(grid.count - 1)
+            else if (showPinned && pinned.length > 0) selectPinned(pinned.length - 1)
         } else {
-            selectPinned(0)
+            for (let i = 0; i < 3; ++i) navigate(key === Qt.Key_PageDown ? "down" : "up")
+        }
+    }
+
+    // The menu key, Shift+F10: the selected tile's menu, in the middle of the panel.
+    function openSelectionMenu() {
+        const x = panel.width / 2, y = panel.height / 2
+        if (selectedPinnedIndex >= 0 && selectedPinnedIndex < pinned.length) {
+            openAppMenu(panel, x, y, pinned[selectedPinnedIndex].id, true)
+        } else if (grid.keyNav && grid.currentItem) {
+            openAppMenu(panel, x, y, grid.currentItem.appId, false)
+        } else {
+            openPanelMenu(panel, x, y)
         }
     }
 
@@ -585,7 +691,21 @@ Window {
     onActiveChanged: {
         if (!active && visible && !Menus.isOpen) {
             close()
+        } else if (active && visible) {
+            search.forceActiveFocus() // the arrows work again after a menu
         }
+    }
+
+    // The menu of the panel's empty parts.
+    function openPanelMenu(item, x, y) {
+        const p = screenPoint(item, x, y)
+        Menus.open([
+            { text: qsTr("&All apps"), checkable: true, checked: Theme.startMenuAllApps,
+              action: () => Style.setConfigFlag("startmenu-all-apps", !Theme.startMenuAllApps) },
+            { separator: true },
+            { text: qsTr("&Start settings"), icon: "settings-configure",
+              action: () => { root.close(); System.trigger("start") } }
+        ], p.x, p.y, { screen: root.screen ? root.screen.name : Shell.primaryScreen })
     }
 
     ParallelAnimation {
@@ -602,19 +722,13 @@ Window {
         }
     }
 
+    // Windows 11's, measured at 30 fps: down in about 170 ms, speeding up, without a fade.
     SequentialAnimation {
         id: closeAnimation
-        ParallelAnimation {
-            NumberAnimation {
-                target: panel; property: "offset"; to: panel.slide
-                duration: Theme.normal
-                easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.accelerate
-            }
-            NumberAnimation {
-                target: panel; property: "opacity"; to: 0
-                duration: Theme.normal
-                easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.accelerate
-            }
+        NumberAnimation {
+            target: panel; property: "offset"; to: panel.slide
+            duration: Theme.animated(170)
+            easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.accelerate
         }
         ScriptAction {
             script: {
@@ -688,6 +802,19 @@ Window {
             }
         }
 
+        // Behind everything: a click on the empty parts keeps the arrows working,
+        // a right click opens the panel's menu.
+        MouseArea {
+            anchors.fill: parent
+            acceptedButtons: Qt.LeftButton | Qt.RightButton
+            onPressed: search.forceActiveFocus()
+            onClicked: mouse => {
+                if (mouse.button === Qt.RightButton) {
+                    root.openPanelMenu(this, mouse.x, mouse.y)
+                }
+            }
+        }
+
         // --- search ---
         Rectangle {
             id: searchBox
@@ -698,9 +825,11 @@ Window {
             y: root.seven ? sevenRow.y + sevenLeft.y + sevenLeft.height - 2 - (sevenSearchStrip.height + height) / 2 : 24
             width: root.seven ? sevenLeft.width - 20 : parent.width - 48
             height: root.seven ? 30 : 38
-            radius: root.seven ? 3 : height / 2
+            radius: root.seven ? 3 : Theme.startMenuSearchRadius >= 0 ? Theme.startMenuSearchRadius : height / 2
             color: root.seven ? "transparent" : Theme.control
-            border.width: root.seven ? 0 : search.activeFocus ? 1 : 0
+            border.width: root.seven ? 0 : search.activeFocus && (root.searching
+                ? root.searchArea === "box" || root.searchArea === "results"
+                : !grid.keyNav && !root.powerFocused) ? 1 : 0
             border.color: Theme.accent
 
             BorderImage { // Windows 7's field (AeroThemePlasma's lineedit.svg)
@@ -746,6 +875,8 @@ Window {
                     Apps.query = text
                     FileSearch.query = text
                     root.extraIndex = -1
+                    root.powerFocused = false
+                    root.searchArea = "results"
                     grid.currentIndex = 0
                     root.selectedPinnedIndex = -1
                     grid.keyNav = false
@@ -753,13 +884,29 @@ Window {
                 }
 
                 // The keyboard stays in the search; the arrows move the grid.
-                Keys.onEscapePressed: root.close()
-                Keys.onReturnPressed: root.launchSelection()
-                Keys.onEnterPressed: root.launchSelection()
+                // Esc first comes back to the search box, then closes.
+                Keys.onEscapePressed: {
+                    if (root.searching && root.searchArea !== "box" && root.searchArea !== "results") root.searchArea = "box"
+                    else if (!root.searching && (grid.keyNav || root.powerFocused)) root.selectSearch()
+                    else root.close()
+                }
+                Keys.onPressed: event => {
+                    if (root.searching || text.length > 0) return
+                    if (event.key === Qt.Key_Home || event.key === Qt.Key_End
+                        || event.key === Qt.Key_PageUp || event.key === Qt.Key_PageDown) {
+                        root.navigateKey(event.key)
+                        event.accepted = true
+                    } else if (event.key === Qt.Key_Menu || (event.key === Qt.Key_F10 && (event.modifiers & Qt.ShiftModifier))) {
+                        root.openSelectionMenu()
+                        event.accepted = true
+                    }
+                }
+                Keys.onReturnPressed: root.powerFocused ? root.openPowerMenu() : root.launchSelection()
+                Keys.onEnterPressed: root.powerFocused ? root.openPowerMenu() : root.launchSelection()
                 Keys.onDownPressed: root.searching ? root.moveResult(1) : root.navigate("down")
                 Keys.onUpPressed: root.searching ? root.moveResult(-1) : root.navigate("up")
-                Keys.onTabPressed: root.searching ? root.cycleFilter(1) : root.navigate("right")
-                Keys.onBacktabPressed: root.searching ? root.cycleFilter(-1) : root.navigate("left")
+                Keys.onTabPressed: root.searching ? root.cycleFilter(1) : root.powerFocused = !root.powerFocused
+                Keys.onBacktabPressed: root.searching ? root.cycleFilter(-1) : root.powerFocused = !root.powerFocused
                 // A click in the field is editing again. The default (passive) policy: the
                 // text input grabs the mouse itself, which cancels the other policies.
                 TapHandler {
@@ -767,10 +914,12 @@ Window {
                 }
                 // Left and Right edit text if the search isn't empty.
                 Keys.onLeftPressed: event => {
+                    if (root.searching) { event.accepted = root.moveSearchSide(false); return }
                     if (text.length > 0) { event.accepted = false; return }
                     root.navigate("left")
                 }
                 Keys.onRightPressed: event => {
+                    if (root.searching) { event.accepted = root.moveSearchSide(true); return }
                     if (text.length > 0) { event.accepted = false; return }
                     root.navigate("right")
                 }
@@ -797,7 +946,7 @@ Window {
                 topMargin: 10; leftMargin: 20; rightMargin: 20; bottomMargin: 8
             }
             clip: true
-            model: Apps
+            model: Theme.startMenuAllApps || !root.showPinned ? Apps : null
             cellWidth: Math.floor(width / Theme.startMenuColumns)
             cellHeight: Theme.startMenuCellHeight
             keyNavigationWraps: true
@@ -856,7 +1005,7 @@ Window {
                 }
                 Text {
                     id: allTitle
-                    visible: root.showPinned
+                    visible: root.showPinned && Theme.startMenuAllApps
                     anchors { top: pinnedGrid.bottom; topMargin: 16; left: parent.left; leftMargin: 12 }
                     text: qsTr("All apps")
                     color: Theme.text
@@ -941,7 +1090,7 @@ Window {
 
             Text {
                 anchors.centerIn: parent
-                visible: grid.count === 0 && root.extras.length === 0
+                visible: grid.count === 0 && root.extras.length === 0 && !root.showPinned
                 text: qsTr("No apps found")
                 color: Theme.textSecondary
                 font.pixelSize: Theme.fontBody
@@ -972,7 +1121,7 @@ Window {
                             anchors.fill: parent
                             radius: Theme.radius
                             color: tabMouse.pressed ? Theme.subtlePressed : Theme.subtleHover
-                            opacity: tabMouse.containsMouse ? 1 : 0
+                            opacity: tabMouse.containsMouse || (tab.selected && root.searchArea === "filters") ? 1 : 0
                         }
                         Text {
                             id: tabText
@@ -1156,13 +1305,14 @@ Window {
                     delegate: Item {
                         id: act
                         required property var modelData
+                        required property int index
                         width: ListView.view.width
                         height: 34
                         Rectangle {
                             anchors.fill: parent
                             radius: Theme.radius
                             color: actMouse.pressed ? Theme.subtlePressed : Theme.subtleHover
-                            opacity: actMouse.containsMouse ? 1 : 0
+                            opacity: actMouse.containsMouse || (root.searchArea === "actions" && act.index === root.actionIndex) ? 1 : 0
                         }
                         Image {
                             id: actIcon
@@ -1283,7 +1433,7 @@ Window {
                     anchors.fill: parent
                     radius: Theme.radius
                     color: powerMouse.pressed ? Theme.subtlePressed : Theme.subtleHover
-                    opacity: powerMouse.containsMouse ? 1 : 0
+                    opacity: powerMouse.containsMouse || root.powerFocused ? 1 : 0
                     Behavior on opacity {
                         NumberAnimation { duration: Theme.fast; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
                     }

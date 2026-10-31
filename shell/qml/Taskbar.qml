@@ -320,6 +320,7 @@ Window {
     // classic taskbar, and in the left island.
     component StartBtn: TaskbarButton {
         active: Shell.startMenuOpen
+        indicator: Theme.taskbarStartIndicator
         onClicked: { root.fromHere(); Shell.toggleStartMenu() }
         onRightClicked: root.openWinX(false)
         StartGlyph { anchors.centerIn: parent }

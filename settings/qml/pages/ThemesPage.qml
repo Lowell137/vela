@@ -2,6 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import QtQuick
+import QtQuick.Controls as QQC
+import QtQuick.Dialogs
+import QtCore
 import Vela.Controls
 
 // Personalization > Themes: a theme file (theme= in vela.conf) that changes
@@ -31,6 +34,104 @@ Page {
                 onChosen: index => Prefs.visualTheme = page.choices[index].name
             }
         }
+    }
+
+    // start-icon= of vela.conf: an icon of the theme or a file of the user's.
+    CardGroup {
+        title: qsTr("Start button")
+        Card {
+            title: qsTr("Icon")
+            description: Prefs.startIcon === "" ? qsTr("Vela's symbol") : Prefs.startIcon
+            trailing: Row {
+                spacing: 8
+                Image {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 24
+                    height: 24
+                    visible: Prefs.startIcon !== ""
+                    source: Prefs.startIcon === "" ? ""
+                        : Prefs.startIcon.startsWith("/") ? "file://" + encodeURI(Prefs.startIcon)
+                        : Theme.icons + encodeURIComponent(Prefs.startIcon)
+                    sourceSize: Qt.size(width, height)
+                    fillMode: Image.PreserveAspectFit
+                }
+                Button {
+                    text: qsTr("Choose a file")
+                    onClicked: startIconDialog.open()
+                }
+                Button {
+                    text: qsTr("Reset")
+                    usable: Prefs.startIcon !== ""
+                    onClicked: Prefs.startIcon = ""
+                }
+            }
+        }
+        Card {
+            title: qsTr("Size")
+            description: qsTr("%1 px").arg(Prefs.startIconSize)
+            trailing: Slider {
+                width: 220
+                from: 16
+                to: 40
+                stepSize: 1
+                live: false
+                value: Prefs.startIconSize
+                onReleased: value => Prefs.startIconSize = Math.round(value)
+            }
+        }
+        Card {
+            title: qsTr("From the icon theme")
+            description: qsTr("Search the current icon theme")
+            contentItem: Column {
+                readonly property real avail: parent ? parent.width : 0
+                width: avail
+                spacing: 12
+                TextBox {
+                    id: startIconSearch
+                    width: Math.min(320, parent.width)
+                    placeholderText: qsTr("Search icons")
+                }
+                GridView {
+                    width: parent.width
+                    height: 320
+                    clip: true
+                    cellWidth: 48
+                    cellHeight: 48
+                    boundsBehavior: Flickable.StopAtBounds
+                    QQC.ScrollBar.vertical: QQC.ScrollBar {}
+                    model: { Prefs.iconTheme; return Prefs.startIconNames(startIconSearch.text) }
+                    delegate: Rectangle {
+                        required property string modelData
+                        width: 44
+                        height: 44
+                        radius: Theme.radius
+                        color: modelData === Prefs.startIcon ? Theme.accent
+                            : tileMouse.containsMouse ? Theme.subtleHover : "transparent"
+                        Image {
+                            anchors.centerIn: parent
+                            width: 28
+                            height: 28
+                            source: Theme.icons + encodeURIComponent(parent.modelData)
+                            sourceSize: Qt.size(width, height)
+                            asynchronous: true
+                        }
+                        MouseArea {
+                            id: tileMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            onClicked: Prefs.startIcon = parent.modelData
+                        }
+                    }
+                }
+            }
+        }
+    }
+    FileDialog {
+        id: startIconDialog
+        title: qsTr("Choose an icon")
+        currentFolder: StandardPaths.writableLocation(StandardPaths.PicturesLocation)
+        nameFilters: [qsTr("Images (*.svg *.png *.webp *.jpg *.jpeg)")]
+        onAccepted: Prefs.startIcon = selectedFile.toString()
     }
 
     // The surfaces' own styles (themes/taskbar/, startmenu/, notifications/),

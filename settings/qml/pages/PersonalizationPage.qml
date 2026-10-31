@@ -53,6 +53,12 @@ Page {
             onClicked: root.navigate("window-blur")
         }
         LinkCard {
+            icon: "start-here"
+            title: qsTr("Start")
+            description: qsTr("All apps, background")
+            onClicked: root.navigate("start")
+        }
+        LinkCard {
             icon: "preferences-system-windows"
             title: qsTr("Taskbar")
             description: qsTr("Alignment, taskbar behaviors")

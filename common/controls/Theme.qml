@@ -163,6 +163,8 @@ QtObject {
     // taskbar-start-glyph: 0 Vela's sail, 1 a glass orb with the four-color flag
     // (Windows 7). taskbar-weather=0 hides the weather widget.
     readonly property int taskbarStartGlyph: themed("taskbar-start-glyph", 0)
+    readonly property string taskbarStartIcon: themed("start-icon", "")
+    readonly property int taskbarStartIconSize: themed("start-icon-size", 24)
     // Pictures of a theme (taskbar-orb=asset:aero/orbNormal.png ...): the Start
     // orb, the tile under an open app (stretched, with a 3 px border), and a
     // reflection over the bar. Empty without them: the drawn look.
@@ -184,6 +186,7 @@ QtObject {
     readonly property string taskbarDesktopImage: themed("taskbar-desktop-image", "")
     readonly property string taskbarDesktopImageHover: themed("taskbar-desktop-image-hover", taskbarDesktopImage)
     readonly property bool taskbarTaskView: themed("taskbar-task-view", 1) !== 0
+    readonly property bool taskbarStartIndicator: themed("taskbar-start-indicator", 1) !== 0
     readonly property bool taskbarWeather: themed("taskbar-weather", 1) !== 0
     // The tile under an open app: taskbar-button-fill (open) and -fill-active
     // (the focused one) are the tile's lower color, a glossy gradient up to
@@ -205,6 +208,9 @@ QtObject {
     readonly property int startMenuColumns: themed("startmenu-columns", 6)
     readonly property int startMenuCellHeight: themed("startmenu-cell-height", 96)
     readonly property bool startMenuFooter: themed("startmenu-footer", 1) !== 0
+    // startmenu-all-apps=0: only the pinned apps; the others through the search.
+    readonly property bool startMenuAllApps: themed("startmenu-all-apps", 1) !== 0
+    readonly property int startMenuSearchRadius: themed("startmenu-search-radius", -1) // -1: a pill
     readonly property int quickSettingsWidth: themed("quicksettings-width", 384)
     readonly property int quickSettingsRadius: themed("quicksettings-radius", radiusOverlay)
     readonly property int quickSettingsColumns: themed("quicksettings-columns", 3)
@@ -219,6 +225,8 @@ QtObject {
     readonly property bool quickSettingsMediaCard: themed("quicksettings-media-card", 0) !== 0 // media below, a card of its own
     readonly property bool quickSettingsMediaTop: themed("quicksettings-media-top", 0) !== 0 // the media card above the panel
     readonly property int notificationsWidth: themed("notifications-width", 384)
+    readonly property int notificationsDayHeight: themed("notifications-day-height", 36)
+    readonly property int notificationsTodaySize: themed("notifications-today-size", 32)
     readonly property int notificationsRadius: themed("notifications-radius", radiusOverlay)
     readonly property int notificationsCardRadius: themed("notifications-card-radius", radius)
     // The calendar card: a big clock with seconds on top, weekdays on a strip,

@@ -68,6 +68,9 @@ class Preferences : public QObject {
     // icon-theme= in vela.conf: an icon theme's directory name, "" for the
     // automatic one (Breeze). The apps apply it themselves (applyIconTheme).
     Q_PROPERTY(QString iconTheme READ iconTheme WRITE setIconTheme NOTIFY iconThemeChanged)
+    Q_PROPERTY(QString startIcon READ startIcon WRITE setStartIcon NOTIFY startIconChanged)
+    Q_PROPERTY(int startIconSize READ startIconSize WRITE setStartIconSize NOTIFY startIconChanged)
+    Q_PROPERTY(bool startAllApps READ startAllApps WRITE setStartAllApps NOTIFY startIconChanged)
     // theme= in vela.conf: a theme's file name without .conf (themes/), "" for Vela's own.
     Q_PROPERTY(QString visualTheme READ visualTheme WRITE setVisualTheme NOTIFY visualThemeChanged)
     // taskbar-style=, startmenu-style=, notifications-style= in vela.conf: a
@@ -267,6 +270,12 @@ public:
     Q_INVOKABLE void setWeatherPlace(const QString& city, const QString& lat, const QString& lon);
 
     QString iconTheme() const { return m_iconTheme; }
+    QString startIcon() const { return m_startIcon; }
+    void setStartIcon(const QString& icon);
+    int startIconSize() const { return m_startIconSize; }
+    void setStartIconSize(int size);
+    bool startAllApps() const { return m_startAllApps; }
+    void setStartAllApps(bool on);
     QString visualTheme() const { return m_visualTheme; }
     void setVisualTheme(const QString& theme);
     QVariantMap surfaceStyles() const { return m_surfaceStyles; }
@@ -309,6 +318,7 @@ public:
     // The installed icon themes: [{name, text}], by text; "X-dark"/"X-Dark"
     // are inside "X" (chosen by the mode).
     Q_INVOKABLE QVariantList iconThemes() const;
+    Q_INVOKABLE QStringList startIconNames(const QString& query) const;
 
     QString cursorTheme() const { return m_cursorTheme; }
     void setCursorTheme(const QString& theme);
@@ -516,6 +526,7 @@ signals:
     void appThemeChanged();
     void taskbarChanged();
     void iconThemeChanged();
+    void startIconChanged();
     void visualThemeChanged();
     void animationsChanged();
     void themeScheduleChanged();
@@ -573,6 +584,9 @@ private:
     QString m_weatherUnit = QStringLiteral("c");
     bool m_weatherSystemInfo = true;
     QString m_iconTheme;
+    QString m_startIcon;
+    int m_startIconSize = 24;
+    bool m_startAllApps = true;
     QString m_visualTheme;
     QVariantMap m_surfaceStyles;
     bool m_taskbarBackdrop = false;
