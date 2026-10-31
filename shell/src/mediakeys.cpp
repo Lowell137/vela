@@ -173,7 +173,9 @@ void MediaKeys::update()
         m_selected.clear();
     }
     QVariantMap current;
-    for (const QString& owner : { m_selected, playing, last, paused, any }) {
+    // The card stays on its player, playing or not, until that player is gone.
+    const QString shown = ready.contains(m_shown) ? m_shown : QString();
+    for (const QString& owner : { m_selected, shown, playing, last, paused, any }) {
         if (owner.isEmpty()) {
             continue;
         }

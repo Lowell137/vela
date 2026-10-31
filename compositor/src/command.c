@@ -44,6 +44,7 @@
 #include <wlr/types/wlr_layer_shell_v1.h>
 #include <wlr/types/wlr_output.h>
 #include <wlr/types/wlr_seat.h>
+#include <wlr/types/wlr_xdg_activation_v1.h>
 #include <wlr/util/log.h>
 
 #define MAX_LINE 4096 // a connection sending more is closed
@@ -347,6 +348,13 @@ static bool answer(struct vela_server *server, int fd, const char *line)
         // menu).
         struct wlr_keyboard *keyboard = wlr_seat_get_keyboard(server->seat);
         vela_buffer_appendf(&reply, "%u", keyboard ? wlr_keyboard_get_modifiers(keyboard) : 0);
+    } else if (strcmp(line, "activation-token") == 0) {
+        // For a window to come forward with no input of its own to vouch for it
+        // (a second vela-settings hands its page to the open one).
+        struct wlr_xdg_activation_token_v1 *token = wlr_xdg_activation_token_v1_create(server->activation);
+        if (token) {
+            vela_buffer_append(&reply, wlr_xdg_activation_token_v1_get_name(token));
+        }
     } else if (strcmp(line, "workspaces") == 0) {
         vela_workspaces_json(server, &reply); // for a shell that has just started
     } else if (strcmp(line, "window-rects") == 0) {
@@ -700,7 +708,7 @@ static void run_command(struct vela_server *server, const char *line)
                                                             : VELA_TASKBAR_BOTTOM;
     } else if (strcmp(line, "paste") == 0) {
         vela_input_paste(server->input); // Win+V: the shell has put the item on the clipboard
-    } else if (strcmp(line, "modifiers") == 0 || strcmp(line, "workspaces") == 0
+    } else if (strcmp(line, "modifiers") == 0 || strcmp(line, "workspaces") == 0 || strcmp(line, "activation-token") == 0
         || strcmp(line, "accessibility") == 0 || strcmp(line, "window-rects") == 0
         || strcmp(line, "caffeine status") == 0 || starts_with(line, "caffeine-set ")
         || strcmp(line, "always-on-top status") == 0 || strcmp(line, "pick-window") == 0

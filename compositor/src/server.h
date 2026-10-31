@@ -230,6 +230,7 @@ struct vela_server {
     struct wl_listener new_toplevel;
     struct wl_listener new_capture_request;
     struct wl_listener new_decoration;
+    struct wlr_xdg_activation_v1 *activation;
     struct wl_listener request_activation;
     // Vela's title bar for apps that never ask through xdg-decoration but
     // expect the compositor's bar anyway (kitty): comma-separated app ids

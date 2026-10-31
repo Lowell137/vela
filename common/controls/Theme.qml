@@ -222,8 +222,12 @@ QtObject {
     // Held, a slider's knob zooms a little with a bounce (Settings > Themes,
     // quicksettings-slider-press-zoom= in vela.conf).
     readonly property bool quickSettingsSliderPressZoom: themed("quicksettings-slider-press-zoom", 1) !== 0
-    readonly property bool quickSettingsMediaCard: themed("quicksettings-media-card", 0) !== 0 // media below, a card of its own
-    readonly property bool quickSettingsMediaTop: themed("quicksettings-media-top", 0) !== 0 // the media card above the panel
+    readonly property bool quickSettingsMediaCard: themed("quicksettings-media-card", 1) !== 0 // media below, a card of its own
+    readonly property bool quickSettingsMediaCompact: themed("quicksettings-media-compact", 0) !== 0 // no cover, the controls beside the track
+    readonly property bool quickSettingsFlatFooter: themed("quicksettings-flat-footer", 0) !== 0 // no footer band, a line above the sliders, the mixer's icon
+    readonly property bool quickSettingsInlineArrow: themed("quicksettings-inline-arrow", 0) !== 0 // a split tile's arrow right beside its icon, no divider
+    readonly property bool quickSettingsBorderless: themed("quicksettings-borderless", 0) !== 0 // WindowGlass's borders: only the panels' top edge and the tiles' bottom edge
+    readonly property bool quickSettingsMediaTop: themed("quicksettings-media-top", 1) !== 0 // the media card above the panel
     readonly property int notificationsWidth: themed("notifications-width", 384)
     readonly property int notificationsDayHeight: themed("notifications-day-height", 36)
     readonly property int notificationsTodaySize: themed("notifications-today-size", 32)

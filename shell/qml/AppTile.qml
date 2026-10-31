@@ -13,6 +13,7 @@ Item {
     required property string iconName
     required property string comment
     property bool current: false
+    property bool ring: true
 
     signal activated()
     signal contextRequested(real x, real y) // right button, in the tile's coordinates
@@ -22,8 +23,8 @@ Item {
         anchors.margins: 3
         radius: Theme.radius
         color: mouse.pressed ? Theme.subtlePressed : mouse.containsMouse || root.current ? Theme.subtleHover : Theme.subtleRest
-        border.width: root.current ? 1 : 0
-        border.color: Theme.stroke
+        border.width: root.current && root.ring ? 2 : 0
+        border.color: Theme.accent
     }
 
     Column {

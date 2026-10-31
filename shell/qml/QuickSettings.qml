@@ -37,9 +37,68 @@ Window {
         value: root.visible
     }
 
+    // The arrows: a ring on the nearest control that way (see keyFocusable).
+    // The mouse moving hides the ring, a key brings it back.
+    property Item keyItem: null
+    property bool keyArrow: false // on a split tile: its arrow part
+    property bool keyRing: true
+    function keyItems(item, out) {
+        for (const child of item.children) {
+            if (!child.visible) continue
+            if (child.keyFocusable) out.push(child)
+            keyItems(child, out)
+        }
+        return out
+    }
+    function keyCenter(item) {
+        return item.mapToItem(null, item.width / 2, item.height / 2)
+    }
+    function keyMove(dx, dy) {
+        if (page !== "") return
+        keyRing = true
+        const items = keyItems(footer, keyItems(content, keyItems(mediaCard, [])))
+        if (!keyItem || !items.includes(keyItem)) {
+            keyItem = items.find(i => i.keyTile) ?? items[0] ?? null
+            keyArrow = false
+            return
+        }
+        // Inside what has the ring first: a slider's value, a split tile's arrow.
+        if (dx !== 0 && keyItem.keySlider) {
+            keyItem.wheeled(dx)
+            return
+        }
+        if (keyItem.keyTile && keyItem.split && (dx > 0) !== keyArrow && dx !== 0) {
+            keyArrow = dx > 0
+            return
+        }
+        const from = keyCenter(keyItem)
+        let best = null, bestCost = Infinity
+        for (const item of items) {
+            if (item === keyItem) continue
+            const c = keyCenter(item)
+            const along = (c.x - from.x) * dx + (c.y - from.y) * dy
+            if (along <= 1) continue
+            const cost = along + 3 * (dx !== 0 ? Math.abs(c.y - from.y) : Math.abs(c.x - from.x))
+            if (cost < bestCost) {
+                best = item
+                bestCost = cost
+            }
+        }
+        if (best) {
+            // Coming from the right, into a split tile's arrow.
+            keyArrow = dx < 0 && best.keyTile === true && best.split === true
+            keyItem = best
+        }
+    }
+    function keyActivate() {
+        if (page === "" && keyItem) keyItem.keyPress(keyArrow)
+    }
     function open() {
         Menus.notificationCenterOpen = false
         page = ""
+        keyItem = null
+        keyArrow = false
+        keyRing = true
         if (!Menus.placeOnTargetScreen(root)) {
             Qt.callLater(root.open)
             return
@@ -85,6 +144,7 @@ Window {
     }
     function showPage(name) {
         page = name
+        keyItem = null
         pageIn.restart()
         if (name === "wifi") {
             wifiPage.expanded = ""
@@ -214,6 +274,26 @@ Window {
     // A tile: on (accent color) or off, with the label below. `split`: an
     // arrow on the right opening its page (Wi-Fi); `menu`: the whole tile
     // opens the page (Accessibility).
+    // WindowGlass's BorderBrush: #50808080, 1 px along one edge and its corners.
+    component GlassEdge: Item {
+        property bool atBottom: false
+        property real cornerRadius
+        visible: Theme.quickSettingsBorderless
+        id: edge
+        anchors { left: parent.left; right: parent.right }
+        y: atBottom ? parent.height - height : 0
+        height: cornerRadius
+        clip: true
+        Rectangle {
+            width: parent.width
+            height: parent.parent.height
+            y: edge.atBottom ? parent.height - height : 0
+            radius: edge.cornerRadius
+            color: "transparent"
+            border.width: 1
+            border.color: "#50808080"
+        }
+    }
     component Tile: Item {
         id: tile
         property string icon
@@ -222,9 +302,16 @@ Window {
         property bool usable: true
         property bool split: false
         property bool menu: false
+        readonly property bool keyFocusable: usable
+        readonly property bool keyTile: true
+        function keyPress(arrow) {
+            if (arrow || menu) details()
+            else toggled()
+        }
         // quicksettings-split-gap: the two parts as separate buttons.
         readonly property int gap: split ? Theme.quickSettingsSplitGap : 0
-        readonly property real mainWidth: split ? button.width - 36 - gap : button.width
+        readonly property real detailsWidth: Theme.quickSettingsInlineArrow ? button.width / 2 : 36 // inline: the half with the arrow
+        readonly property real mainWidth: split ? button.width - detailsWidth - gap : button.width
         signal toggled()
         signal details()
         signal contextMenu()
@@ -238,36 +325,39 @@ Window {
             width: parent.width
             height: Theme.quickSettingsTileHeight - 34
             radius: Theme.quickSettingsTileRadius
-            color: tile.gap > 0 ? "transparent" : tile.checked ? Theme.accent : Theme.control
-            border.width: tile.checked || tile.gap > 0 ? 0 : 1
+            color: tile.gap > 0 ? "transparent" : tile.checked ? Theme.accentFill : Theme.control
+            border.width: tile.checked || tile.gap > 0 || Theme.quickSettingsBorderless ? 0 : 1
             border.color: Theme.stroke
             clip: true
 
             Repeater {
-                model: tile.gap > 0 ? [[0, tile.mainWidth], [button.width - 36, 36]] : []
+                model: tile.gap > 0 ? [[0, tile.mainWidth], [button.width - tile.detailsWidth, tile.detailsWidth]] : []
                 delegate: Rectangle {
                     required property var modelData
                     x: modelData[0]
                     width: modelData[1]
                     height: button.height
                     radius: button.radius
-                    color: tile.checked ? Theme.accent : Theme.control
-                    border.width: tile.checked ? 0 : 1
+                    color: tile.checked ? Theme.accentFill : Theme.control
+                    border.width: tile.checked || Theme.quickSettingsBorderless ? 0 : 1
                     border.color: Theme.stroke
                 }
             }
 
+            GlassEdge { atBottom: true; cornerRadius: button.radius; visible: Theme.quickSettingsBorderless && !tile.checked }
             // The two halves (or the whole tile), each with its hover.
             Rectangle {
                 x: 0
-                width: tile.mainWidth
+                // Inline: the whole tile lights up, its arrow has no part of its own to show.
+                width: Theme.quickSettingsInlineArrow ? button.width : tile.mainWidth
                 height: parent.height
                 radius: parent.radius
                 color: tile.checked ? "white" : Theme.overlay
-                opacity: mainMouse.pressed ? 0.06 : mainMouse.containsMouse && tile.usable ? 0.08 : 0
+                opacity: mainMouse.pressed || (Theme.quickSettingsInlineArrow && detailsMouse.pressed) ? 0.06
+                    : (mainMouse.containsMouse || (Theme.quickSettingsInlineArrow && detailsMouse.containsMouse)) && tile.usable ? 0.08 : 0
             }
             Rectangle {
-                visible: tile.split
+                visible: tile.split && !Theme.quickSettingsInlineArrow
                 x: parent.width - 36
                 width: 36
                 height: parent.height
@@ -276,31 +366,31 @@ Window {
                 opacity: detailsMouse.pressed ? 0.06 : detailsMouse.containsMouse && tile.usable ? 0.08 : 0
             }
             Rectangle {
-                visible: tile.split && tile.gap === 0
+                visible: tile.split && tile.gap === 0 && !Theme.quickSettingsInlineArrow
                 x: parent.width - 36
                 y: 10
                 width: 1
                 height: parent.height - 20
-                color: tile.checked ? Qt.rgba(1, 1, 1, 0.35) : Theme.stroke
+                color: tile.checked ? Qt.alpha(Theme.accentText, 0.35) : Theme.stroke
             }
             Image {
-                x: tile.mainWidth / 2 - width / 2
+                x: (tile.split || tile.menu) && Theme.quickSettingsInlineArrow ? button.width / 2 - width - 2 : tile.mainWidth / 2 - width / 2
                 anchors.verticalCenter: parent.verticalCenter
                 width: 18
                 height: 18
-                source: (tile.checked ? Theme.iconsOnAccent : Theme.icons) + encodeURIComponent(tile.icon)
+                source: (tile.checked ? (Theme.light ? Theme.iconsOnAccent : Theme.iconsOnLight) : Theme.icons) + encodeURIComponent(tile.icon)
                 sourceSize: Qt.size(width, height)
             }
             // The ">" arrow.
             Shape {
                 visible: tile.split || tile.menu
-                x: tile.split ? parent.width - 21 : parent.width - 18
+                x: Theme.quickSettingsInlineArrow ? button.width / 2 + 6 : tile.split ? parent.width - 21 : parent.width - 18
                 anchors.verticalCenter: parent.verticalCenter
                 width: 6
                 height: 10
                 preferredRendererType: Shape.CurveRenderer
                 ShapePath {
-                    strokeColor: tile.checked ? "white" : Theme.text
+                    strokeColor: tile.checked ? Theme.accentText : Theme.text
                     strokeWidth: 1.2
                     fillColor: "transparent"
                     capStyle: ShapePath.RoundCap
@@ -330,13 +420,27 @@ Window {
             MouseArea {
                 id: detailsMouse
                 visible: tile.split
-                x: parent.width - 36
-                width: 36
+                x: parent.width - tile.detailsWidth
+                width: tile.detailsWidth
                 height: parent.height
                 hoverEnabled: true
                 enabled: tile.usable
                 onClicked: tile.details()
             }
+        }
+        Rectangle {
+            readonly property bool arrowPart: root.keyArrow && tile.split
+            visible: root.keyRing && root.keyItem === tile
+            readonly property bool inline: Theme.quickSettingsInlineArrow
+            // Inline: the whole tile, or just around the arrow beside the icon.
+            x: arrowPart ? (inline ? button.width / 2 - 2 : button.width - tile.detailsWidth - 3) : -3
+            y: arrowPart && inline ? (button.height - height) / 2 : -3
+            width: arrowPart ? (inline ? 22 : tile.detailsWidth + 6) : (inline ? button.width : tile.mainWidth) + 6
+            height: arrowPart && inline ? 28 : button.height + 6
+            radius: arrowPart && inline ? Theme.radius : Theme.quickSettingsTileRadius + 3
+            color: "transparent"
+            border.width: 2
+            border.color: Theme.accent
         }
         Text {
             anchors { top: button.bottom; topMargin: 6; horizontalCenter: parent.horizontalCenter }
@@ -364,6 +468,12 @@ Window {
         property bool details: false
         // What it plays now, 0-1 (docs/audio.md §7.1); below 0: no bar.
         property real level: -1
+        readonly property bool keyFocusable: true
+        readonly property bool keySlider: true
+        function keyPress(arrow) {
+            if (details) detailsClicked()
+            else iconClicked()
+        }
         signal moved(real value)
         signal wheeled(int direction)
         signal iconClicked()
@@ -380,6 +490,14 @@ Window {
         }
         width: parent.width
         height: 36
+        Rectangle {
+            anchors { fill: parent; margins: -3 }
+            visible: root.keyRing && root.keyItem === slider
+            radius: Theme.radius + 3
+            color: "transparent"
+            border.width: 2
+            border.color: Theme.accent
+        }
 
         Item {
             id: iconButton
@@ -433,7 +551,7 @@ Window {
                 width: track.thick ? knob.x + knob.width / 2 : parent.width * slider.shown
                 height: track.thick ? 10 : 4
                 radius: height / 2
-                color: slider.muted ? Theme.textSecondary : Theme.accent
+                color: slider.muted ? Theme.textSecondary : Theme.accentFill
             }
             // The level: a thin bar under the track.
             Rectangle {
@@ -462,7 +580,7 @@ Window {
                     NumberAnimation { duration: Theme.fast; easing.type: Easing.OutBack }
                 }
                 color: Theme.popup
-                border.width: 1
+                border.width: Theme.quickSettingsBorderless ? 0 : 1
                 // The panels' soft edge, held or not: it doesn't light up.
                 border.color: Theme.stroke
                 // Thick: the fill's end under the glass. Opaque, so the fill's
@@ -500,7 +618,7 @@ Window {
                     Behavior on width { NumberAnimation { duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate } }
                     height: width
                     radius: width / 2
-                    color: slider.muted ? Theme.textSecondary : Theme.accent
+                    color: slider.muted ? Theme.textSecondary : Theme.accentFill
                 }
             }
             Rectangle {
@@ -545,9 +663,18 @@ Window {
         Item {
             id: detailsButton
             anchors.right: parent.right
-            width: slider.details ? 36 : 0
+            width: slider.details ? (Theme.quickSettingsFlatFooter ? 52 : 36) : 0
             height: 36
             visible: slider.details
+            Image {
+                visible: Theme.quickSettingsFlatFooter
+                x: 6
+                anchors.verticalCenter: parent.verticalCenter
+                width: 20
+                height: 20
+                source: Theme.icons + "volume-mixer"
+                sourceSize: Qt.size(width, height)
+            }
             Rectangle {
                 anchors.fill: parent
                 radius: Theme.radius
@@ -555,7 +682,8 @@ Window {
                 opacity: detailsMouse.containsMouse ? 1 : 0
             }
             Shape {
-                anchors.centerIn: parent
+                x: Theme.quickSettingsFlatFooter ? 34 : (parent.width - width) / 2
+                anchors.verticalCenter: parent.verticalCenter
                 width: 6
                 height: 10
                 preferredRendererType: Shape.CurveRenderer
@@ -724,8 +852,10 @@ Window {
         property string icon
         property string label
         property bool usable: true
+        readonly property bool keyFocusable: usable
+        function keyPress(arrow) { clicked() }
         signal clicked()
-        width: 44
+        width: Theme.quickSettingsMediaCompact ? 40 : 44
         height: 36
         opacity: usable ? 1 : 0.4
         Accessible.role: Accessible.Button
@@ -734,8 +864,15 @@ Window {
         Rectangle {
             anchors.fill: parent
             radius: Theme.radius
-            color: Theme.subtleHover
-            opacity: mediaMouse.containsMouse && mediaButton.usable ? 1 : 0
+            color: Qt.alpha(Theme.text, mediaMouse.containsMouse && mediaButton.usable ? 0.12 : Theme.quickSettingsMediaCompact ? 0 : 0.06)
+        }
+        Rectangle {
+            anchors { fill: parent; margins: -3 }
+            visible: root.keyRing && root.keyItem === mediaButton
+            radius: Theme.radius + 3
+            color: "transparent"
+            border.width: 2
+            border.color: Theme.accent
         }
         // Solid glyphs in the text color, like Windows' (the icon theme's
         // media icons are thin and grey).
@@ -745,7 +882,7 @@ Window {
             height: 20
             preferredRendererType: Shape.CurveRenderer
             ShapePath {
-                fillColor: Theme.text
+                fillColor: Theme.quickSettingsMediaCompact ? Theme.accentFill : Theme.text
                 strokeColor: "transparent"
                 PathSvg {
                     path: ({
@@ -769,20 +906,70 @@ Window {
     component MediaPanel: Rectangle {
         id: media
         readonly property var player: Media.current
+        readonly property bool compact: Theme.quickSettingsMediaCompact
         visible: player.service !== undefined
         width: parent.width
-        height: 128
+        height: compact ? 76 : 128
         radius: Theme.radius
         color: Theme.control
         border.width: 1
         border.color: Theme.stroke
+        transform: Translate { x: media.swipe }
+        opacity: 1 - Math.min(0.6, Math.abs(swipe) / Math.max(1, width))
+
+        // Held and dragged sideways: the previous / next player.
+        property real swipe: 0
+        property int swipeTo: 0
+        NumberAnimation {
+            id: swipeBack
+            target: media
+            property: "swipe"
+            to: 0
+            duration: Theme.normal
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: Theme.decelerate
+        }
+        NumberAnimation {
+            id: swipeOut
+            target: media
+            property: "swipe"
+            to: -media.swipeTo * media.width
+            duration: Theme.fast
+            onFinished: {
+                Media.cycle(media.swipeTo)
+                media.swipe = media.swipeTo * media.width
+                swipeBack.restart()
+            }
+        }
+        MouseArea {
+            anchors.fill: parent
+            enabled: media.player.count > 1
+            preventStealing: true
+            property real startX: 0
+            // x moves with the card: adding the swipe gives where the pointer really is.
+            onPressed: mouse => {
+                swipeBack.stop()
+                swipeOut.stop()
+                startX = mouse.x + media.swipe
+            }
+            onPositionChanged: mouse => media.swipe = mouse.x + media.swipe - startX
+            onReleased: {
+                if (Math.abs(media.swipe) > media.width * 0.2) {
+                    media.swipeTo = media.swipe < 0 ? 1 : -1
+                    swipeOut.restart()
+                } else {
+                    swipeBack.restart()
+                }
+            }
+            onCanceled: swipeBack.restart()
+        }
 
         Image {
             id: mediaApp
             x: 12
-            y: 12
-            width: 16
-            height: 16
+            y: media.compact ? 0 : 12
+            width: media.compact ? 20 : 16
+            height: width
             source: Theme.icons + encodeURIComponent(Apps.iconForAppId(media.player.desktopEntry || "audio-x-generic"))
             sourceSize: Qt.size(width, height)
         }
@@ -790,49 +977,71 @@ Window {
             anchors { left: mediaApp.right; leftMargin: 8; right: mediaSwitch.visible ? mediaSwitch.left : cover.left; rightMargin: 12; verticalCenter: mediaApp.verticalCenter }
             text: media.player.identity || ""
             color: Theme.text
-            font.pixelSize: Theme.fontCaption
+            font.pixelSize: media.compact ? Theme.fontBody + 2 : Theme.fontCaption
             elide: Text.ElideRight
         }
         // Several players: the previous / next one, and which.
         Row {
             id: mediaSwitch
             visible: media.player.count > 1
-            anchors { right: cover.left; rightMargin: 12; verticalCenter: mediaApp.verticalCenter }
-            spacing: 4
+            anchors { right: media.compact ? media.right : cover.left; rightMargin: 12; verticalCenter: mediaApp.verticalCenter }
+            spacing: 8
             Text {
                 anchors.verticalCenter: parent.verticalCenter
                 text: media.player.index + "/" + media.player.count
                 color: Theme.textSecondary
                 font.pixelSize: Theme.fontCaption
             }
-            Repeater {
-                model: [{ t: "\u2039", d: -1, n: qsTr("Previous player") }, { t: "\u203a", d: 1, n: qsTr("Next player") }]
+            // The next player; a swipe on the card goes both ways.
+            Rectangle {
+                id: nextPlayer
+                anchors.verticalCenter: parent.verticalCenter
+                width: 24
+                height: 24
+                radius: 6
+                color: Qt.alpha(Theme.text, switchMouse.containsMouse ? 0.12 : 0.06)
+                border.width: Theme.quickSettingsBorderless ? 0 : 1
+                border.color: Theme.stroke
+                readonly property bool keyFocusable: true
+                function keyPress(arrow) { Media.cycle(1) }
+                Accessible.role: Accessible.Button
+                Accessible.name: qsTr("Next player")
+                Accessible.onPressAction: Media.cycle(1)
                 Rectangle {
-                    width: 20
-                    height: 20
-                    radius: Theme.radius
-                    color: switchMouse.containsMouse ? Theme.subtleHover : "transparent"
-                    Accessible.role: Accessible.Button
-                    Accessible.name: modelData.n
-                    Accessible.onPressAction: Media.cycle(modelData.d)
-                    Text {
-                        anchors.centerIn: parent
-                        text: modelData.t
-                        color: Theme.text
-                        font.pixelSize: Theme.fontBody
+                    anchors { fill: parent; margins: -3 }
+                    visible: root.keyRing && root.keyItem === nextPlayer
+                    radius: 9
+                    color: "transparent"
+                    border.width: 2
+                    border.color: Theme.accent
+                }
+                Shape {
+                    anchors.centerIn: parent
+                    width: 6
+                    height: 10
+                    preferredRendererType: Shape.CurveRenderer
+                    ShapePath {
+                        strokeColor: Theme.text
+                        strokeWidth: 1.2
+                        fillColor: "transparent"
+                        capStyle: ShapePath.RoundCap
+                        joinStyle: ShapePath.RoundJoin
+                        startX: 1; startY: 1
+                        PathLine { x: 5; y: 5 }
+                        PathLine { x: 1; y: 9 }
                     }
-                    MouseArea {
-                        id: switchMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        onClicked: Media.cycle(modelData.d)
-                    }
+                }
+                MouseArea {
+                    id: switchMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    onClicked: Media.cycle(1)
                 }
             }
         }
         Text {
             id: mediaTitle
-            anchors { left: mediaApp.left; right: cover.left; rightMargin: 12; top: mediaApp.bottom; topMargin: 8 }
+            anchors { left: mediaApp.left; right: media.compact ? mediaControls.left : cover.left; rightMargin: 12; top: mediaApp.bottom; topMargin: media.compact ? 16 : 8 }
             text: media.player.title || media.player.identity || ""
             color: Theme.text
             font.pixelSize: Theme.fontBody
@@ -850,6 +1059,7 @@ Window {
         // background); until it's there, or without one, a note.
         Rectangle {
             id: cover
+            visible: !media.compact
             anchors { right: parent.right; rightMargin: 12; top: parent.top; topMargin: 12 }
             width: 64
             height: 64
@@ -876,8 +1086,15 @@ Window {
             }
         }
         Row {
-            anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom; bottomMargin: 8 }
-            spacing: 12
+            id: mediaControls
+            anchors {
+                horizontalCenter: media.compact ? undefined : parent.horizontalCenter
+                right: media.compact ? parent.right : undefined
+                rightMargin: 4
+                bottom: parent.bottom
+                bottomMargin: media.compact ? 0 : 8
+            }
+            spacing: media.compact ? 0 : 12
             MediaButton {
                 icon: "previous"
                 label: qsTr("Previous")
@@ -910,10 +1127,20 @@ Window {
         width: panel.width
         height: mediaInCard.height + 24
         radius: Theme.quickSettingsRadius
+        clip: true
+        HoverHandler {
+            property point last
+            onPointChanged: {
+                const p = point.scenePosition
+                if (p.x !== last.x || p.y !== last.y) root.keyRing = false
+                last = p
+            }
+        }
         color: Theme.quickSettingsSurface
-        border.width: 1
+        border.width: Theme.quickSettingsBorderless ? 0 : 1
         border.color: Theme.notificationsGlass ? "#B3101820" : Theme.stroke
         AeroGlass { radius: parent.radius }
+        GlassEdge { cornerRadius: parent.radius }
         opacity: panel.opacity
         transform: Translate { x: slide.x; y: slide.y }
         onVisibleChanged: root.updateBlur()
@@ -939,9 +1166,10 @@ Window {
                 : root.page === "caffeine" ? caffeinePage.height : accessPage.height) + 32
         radius: Theme.quickSettingsRadius
         color: Theme.quickSettingsSurface
-        border.width: 1
+        border.width: Theme.quickSettingsBorderless ? 0 : 1
         border.color: Theme.notificationsGlass ? "#B3101820" : Theme.stroke
         AeroGlass { z: 1; radius: parent.radius }
+        GlassEdge { z: 1; cornerRadius: parent.radius }
         transform: Translate { id: slide }
         focus: true
         clip: true
@@ -950,6 +1178,22 @@ Window {
                 root.showPage("")
             } else {
                 root.close()
+            }
+        }
+        Keys.onLeftPressed: root.keyMove(-1, 0)
+        Keys.onRightPressed: root.keyMove(1, 0)
+        Keys.onUpPressed: root.keyMove(0, -1)
+        Keys.onDownPressed: root.keyMove(0, 1)
+        Keys.onReturnPressed: root.keyActivate()
+        Keys.onEnterPressed: root.keyActivate()
+        Keys.onSpacePressed: root.keyActivate()
+        HoverHandler {
+            property point last
+            onPointChanged: {
+                // Only a real move: a surface sliding under a still pointer reports too.
+                const p = point.scenePosition
+                if (p.x !== last.x || p.y !== last.y) root.keyRing = false
+                last = p
             }
         }
         onHeightChanged: root.updateBlur()
@@ -1059,6 +1303,13 @@ Window {
                     }
                 }
 
+                Rectangle {
+                    visible: Theme.quickSettingsFlatFooter
+                    x: -16
+                    width: parent.width + 32
+                    height: 1
+                    color: Theme.stroke
+                }
                 Slider {
                     visible: root.brightnessHere !== undefined && root.brightnessHere.available
                     icon: "brightness-high"
@@ -1621,7 +1872,7 @@ Window {
             visible: root.page === ""
             anchors { left: parent.left; right: parent.right; bottom: parent.bottom; margins: 1 }
             height: 48
-            color: Theme.footer
+            color: Theme.quickSettingsFlatFooter ? "transparent" : Theme.footer
             bottomLeftRadius: Theme.radiusOverlay - 1
             bottomRightRadius: Theme.radiusOverlay - 1
 
@@ -1643,14 +1894,25 @@ Window {
                 }
             }
             Item {
+                id: settingsButton
                 anchors { right: parent.right; rightMargin: 8; verticalCenter: parent.verticalCenter }
                 width: 36
                 height: 36
+                readonly property bool keyFocusable: true
+                function keyPress(arrow) { root.openSettings("settings") }
                 Rectangle {
                     anchors.fill: parent
                     radius: Theme.radius
                     color: Theme.subtleHover
                     opacity: settingsMouse.containsMouse ? 1 : 0
+                }
+                Rectangle {
+                    anchors { fill: parent; margins: -3 }
+                    visible: root.keyRing && root.keyItem === settingsButton
+                    radius: Theme.radius + 3
+                    color: "transparent"
+                    border.width: 2
+                    border.color: Theme.accent
                 }
                 Image {
                     anchors.centerIn: parent

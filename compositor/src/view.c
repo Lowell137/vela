@@ -1943,8 +1943,8 @@ void vela_views_init(struct vela_server *server)
     struct wlr_xdg_decoration_manager_v1 *decorations = wlr_xdg_decoration_manager_v1_create(display);
     vela_listen(&decorations->events.new_toplevel_decoration, &server->new_decoration, handle_new_decoration);
 
-    struct wlr_xdg_activation_v1 *activation = wlr_xdg_activation_v1_create(display);
-    vela_listen(&activation->events.request_activate, &server->request_activation, handle_request_activation);
+    server->activation = wlr_xdg_activation_v1_create(display);
+    vela_listen(&server->activation->events.request_activate, &server->request_activation, handle_request_activation);
 }
 
 void vela_views_finish(struct vela_server *server)

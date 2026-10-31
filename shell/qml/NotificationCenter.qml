@@ -196,7 +196,7 @@ Window {
             height: Math.min(Screen.height - Theme.taskbarHeight - calendar.height - 60, header.height + Math.max(list.contentHeight, 64) + 24)
             radius: Theme.notificationsRadius
             color: Theme.notificationsSurface
-            border.width: 1
+            border.width: Theme.quickSettingsBorderless ? 0 : 1
             border.color: Theme.notificationsGlass ? "#B3101820" : Theme.stroke
             AeroGlass { z: 1; radius: parent.radius }
             onHeightChanged: root.updateBlur()
@@ -408,7 +408,7 @@ Window {
             height: calendarContent.height + 32 - 12 * (1 - root.fold)
             radius: Theme.notificationsRadius
             color: Theme.notificationsSurface
-            border.width: 1
+            border.width: Theme.quickSettingsBorderless ? 0 : 1
             border.color: Theme.notificationsGlass ? "#B3101820" : Theme.stroke
             AeroGlass { z: 1; radius: parent.radius }
 

@@ -145,6 +145,17 @@ Window {
     // filter tabs above them or the selected result's actions beside them.
     property string searchArea: "results"
     property int actionIndex: 0
+    // The arrows move this tab's ring; Enter makes it the filter, like Windows 11.
+    property string filterFocus: "all"
+    onSearchAreaChanged: {
+        if (searchArea === "filters") filterFocus = searchFilter
+        resultFocused = searchArea === "results"
+    }
+    // While typing the first result is only marked; an arrow puts the ring on it.
+    property bool resultFocused: false
+    // The focus rings show for the keyboard: the mouse moving hides them, a key brings them back.
+    property bool keyRing: true
+    onSearchFilterChanged: filterFocus = searchFilter
     onResultIndexChanged: actionIndex = 0
     onResultsChanged: resultIndex = 0
     readonly property var result: results[resultIndex] ?? null
@@ -193,7 +204,11 @@ Window {
         return out
     }
     function moveResult(delta) {
-        if (searchArea === "box") {
+        keyRing = true
+        if (results.length === 0) {
+            // No list to land on: down reaches the tabs, up leaves them for the box.
+            searchArea = delta > 0 || searchArea === "results" ? "filters" : "box"
+        } else if (searchArea === "box") {
             if (delta > 0) searchArea = "filters"
         } else if (searchArea === "filters") {
             searchArea = delta > 0 ? "results" : "box"
@@ -202,17 +217,22 @@ Window {
             actionIndex = Math.max(0, Math.min(count - 1, actionIndex + delta))
         } else if (delta < 0 && resultIndex === 0) {
             searchArea = "filters"
+        } else if (!resultFocused && delta > 0) {
+            resultFocused = true
         } else if (results.length > 0) {
+            resultFocused = true
             resultIndex = Math.max(0, Math.min(results.length - 1, resultIndex + delta))
         }
     }
     // Left or right while searching; false: the search box's caret takes it.
     function moveSearchSide(right) {
+        keyRing = true
         if (searchArea === "box") {
             return false
         }
         if (searchArea === "filters") {
-            cycleFilter(right ? 1 : -1)
+            const filters = ["all", "apps", "settings", "files"]
+            filterFocus = filters[(filters.indexOf(filterFocus) + (right ? 1 : -1) + filters.length) % filters.length]
             return true
         }
         if (searchArea === "actions") {
@@ -452,6 +472,7 @@ Window {
         selectedPinnedIndex = -1
         powerFocused = false
         searchArea = "results"
+        resultFocused = false
         shortcutError = ""
         shortcutErrorTimer.stop()
         grid.positionViewAtBeginning()
@@ -490,7 +511,8 @@ Window {
         }
         if (searching) {
             if (searchArea === "filters") {
-                searchArea = "results"
+                searchFilter = filterFocus
+                if (results.length > 0) searchArea = "results"
             } else if (searchArea === "actions") {
                 const entry = resultActions(result)[actionIndex]
                 if (entry) entry.action()
@@ -538,6 +560,7 @@ Window {
     // Up and down go by column and leave a section at its first and last row,
     // left and right go tile by tile through both sections.
     function navigate(direction) {
+        keyRing = true
         if (direction === "up" || direction === "down") {
             if (moveExtra(direction === "down" ? 1 : -1)) {
                 grid.keyNav = true
@@ -621,6 +644,7 @@ Window {
 
     // Page Up/Down: three rows. Home/End: the first and the last tile.
     function navigateKey(key) {
+        keyRing = true
         if (key === Qt.Key_Home) {
             grid.keyNav = true
             powerFocused = false
@@ -751,6 +775,15 @@ Window {
 
     Rectangle {
         id: panel
+        HoverHandler {
+            property point last
+            onPointChanged: {
+                // Only a real move: a surface sliding under a still pointer reports too.
+                const p = point.scenePosition
+                if (p.x !== last.x || p.y !== last.y) root.keyRing = false
+                last = p
+            }
+        }
 
         // 10 above and 22 below (12 of gap from the taskbar); the other way
         // round with the taskbar at the top.
@@ -828,7 +861,7 @@ Window {
             radius: root.seven ? 3 : Theme.startMenuSearchRadius >= 0 ? Theme.startMenuSearchRadius : height / 2
             color: root.seven ? "transparent" : Theme.control
             border.width: root.seven ? 0 : search.activeFocus && (root.searching
-                ? root.searchArea === "box" || root.searchArea === "results"
+                ? root.searchArea === "box" || (root.searchArea === "results" && !root.resultFocused)
                 : !grid.keyNav && !root.powerFocused) ? 1 : 0
             border.color: Theme.accent
 
@@ -877,6 +910,7 @@ Window {
                     root.extraIndex = -1
                     root.powerFocused = false
                     root.searchArea = "results"
+                    root.resultFocused = false
                     grid.currentIndex = 0
                     root.selectedPinnedIndex = -1
                     grid.keyNav = false
@@ -905,8 +939,8 @@ Window {
                 Keys.onEnterPressed: root.powerFocused ? root.openPowerMenu() : root.launchSelection()
                 Keys.onDownPressed: root.searching ? root.moveResult(1) : root.navigate("down")
                 Keys.onUpPressed: root.searching ? root.moveResult(-1) : root.navigate("up")
-                Keys.onTabPressed: root.searching ? root.cycleFilter(1) : root.powerFocused = !root.powerFocused
-                Keys.onBacktabPressed: root.searching ? root.cycleFilter(-1) : root.powerFocused = !root.powerFocused
+                Keys.onTabPressed: { root.keyRing = true; root.searching ? root.cycleFilter(1) : root.powerFocused = !root.powerFocused }
+                Keys.onBacktabPressed: { root.keyRing = true; root.searching ? root.cycleFilter(-1) : root.powerFocused = !root.powerFocused }
                 // A click in the field is editing again. The default (passive) policy: the
                 // text input grabs the mouse itself, which cancels the other policies.
                 TapHandler {
@@ -967,6 +1001,7 @@ Window {
                 height: grid.cellHeight
                 current: root.extraIndex < 0 && root.selectedPinnedIndex < 0 && index === grid.currentIndex
                     && (search.text.length > 0 || grid.keyNav)
+                ring: root.keyRing
                 onActivated: root.launch(index)
                 onContextRequested: (x, y) => root.openAppMenu(tile, x, y, tile.appId, false)
             }
@@ -994,6 +1029,7 @@ Window {
                             iconName: modelData.iconName
                             comment: ""
                             current: grid.keyNav && root.showPinned && root.selectedPinnedIndex === index
+                            ring: root.keyRing
                             onActivated: {
                                 if (Apps.launchId(modelData.id)) {
                                     root.close()
@@ -1107,7 +1143,7 @@ Window {
             // The tabs: what the results are.
             Row {
                 id: filterTabs
-                spacing: 4
+                spacing: 8
                 Repeater {
                     model: [{ id: "all", text: qsTr("All") }, { id: "apps", text: qsTr("Apps") },
                         { id: "settings", text: qsTr("Settings") }, { id: "files", text: qsTr("Files") }]
@@ -1115,29 +1151,31 @@ Window {
                         id: tab
                         required property var modelData
                         readonly property bool selected: root.searchFilter === modelData.id
-                        width: tabText.implicitWidth + 20
+                        width: tabText.implicitWidth + 24
                         height: 30
                         Rectangle {
                             anchors.fill: parent
-                            radius: Theme.radius
-                            color: tabMouse.pressed ? Theme.subtlePressed : Theme.subtleHover
-                            opacity: tabMouse.containsMouse || (tab.selected && root.searchArea === "filters") ? 1 : 0
+                            radius: height / 2
+                            color: tab.selected ? Theme.accentFill
+                                : tabMouse.pressed ? Theme.subtlePressed : tabMouse.containsMouse ? Qt.alpha(Theme.text, 0.16) : Qt.alpha(Theme.text, 0.08)
+                            border.width: tab.selected ? 0 : 1
+                            border.color: Qt.alpha(Theme.text, 0.1)
+                        }
+                        // Outside the tab, with a gap, so the tab shows whole inside it.
+                        Rectangle {
+                            anchors { fill: parent; margins: -3 }
+                            visible: root.keyRing && root.filterFocus === tab.modelData.id && root.searchArea === "filters"
+                            radius: height / 2
+                            color: "transparent"
+                            border.width: 2
+                            border.color: Theme.accent
                         }
                         Text {
                             id: tabText
                             anchors.centerIn: parent
                             text: tab.modelData.text
-                            color: tab.selected ? Theme.text : Theme.textSecondary
+                            color: tab.selected ? Theme.accentText : Theme.text
                             font.pixelSize: Theme.fontBody
-                            font.weight: tab.selected ? Font.DemiBold : Font.Normal
-                        }
-                        Rectangle {
-                            visible: tab.selected
-                            anchors { bottom: parent.bottom; horizontalCenter: parent.horizontalCenter }
-                            width: 16
-                            height: 3
-                            radius: 1.5
-                            color: Theme.accent
                         }
                         MouseArea {
                             id: tabMouse
@@ -1152,8 +1190,10 @@ Window {
             // At the left the results, the best match first and larger.
             ListView {
                 id: resultList
-                anchors { top: filterTabs.bottom; bottom: parent.bottom; left: parent.left; topMargin: 12 }
-                width: Math.round(parent.width * 0.5)
+                // 3 px wider each side, and below, so the clip keeps the ring.
+                anchors { top: filterTabs.bottom; bottom: parent.bottom; left: parent.left; topMargin: 12; leftMargin: -3 }
+                width: Math.round(parent.width * 0.5) + 6
+                bottomMargin: 3
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
                 model: root.results
@@ -1170,7 +1210,7 @@ Window {
 
                     Text {
                         visible: row.titled
-                        leftPadding: 8
+                        leftPadding: 11
                         topPadding: row.index === 0 ? 0 : 10
                         bottomPadding: 4
                         text: row.best ? qsTr("Best match")
@@ -1182,7 +1222,8 @@ Window {
                         font.weight: Font.DemiBold
                     }
                     Item {
-                        width: parent.width
+                        x: 3
+                        width: parent.width - 6
                         height: row.best ? 56 : 36
 
                         Rectangle {
@@ -1190,6 +1231,16 @@ Window {
                             radius: Theme.radius
                             color: rowMouse.pressed ? Theme.subtlePressed : Theme.subtleHover
                             opacity: rowMouse.containsMouse || root.resultIndex === row.index ? 1 : 0
+                        }
+                        // Outside the row, with a gap, like Windows 11's keyboard focus.
+                        Rectangle {
+                            anchors { fill: parent; margins: -3 }
+                            z: 1
+                            visible: root.keyRing && root.resultFocused && root.searchArea === "results" && root.resultIndex === row.index
+                            radius: Theme.radius + 3
+                            color: "transparent"
+                            border.width: 2
+                            border.color: Theme.accent
                         }
                         // The selection's accent bar, like Windows 11's lists.
                         Rectangle {
@@ -1250,7 +1301,7 @@ Window {
             Rectangle {
                 id: detail
                 visible: root.result !== null
-                anchors { top: resultList.top; bottom: parent.bottom; left: resultList.right; right: parent.right; leftMargin: 12 }
+                anchors { top: resultList.top; bottom: parent.bottom; left: resultList.right; right: parent.right; leftMargin: 9 }
                 radius: Theme.radiusCard
                 color: Theme.card
                 border.width: 1
@@ -1313,6 +1364,8 @@ Window {
                             radius: Theme.radius
                             color: actMouse.pressed ? Theme.subtlePressed : Theme.subtleHover
                             opacity: actMouse.containsMouse || (root.searchArea === "actions" && act.index === root.actionIndex) ? 1 : 0
+                            border.width: root.keyRing && root.searchArea === "actions" && act.index === root.actionIndex ? 2 : 0
+                            border.color: Theme.accent
                         }
                         Image {
                             id: actIcon
@@ -1434,6 +1487,8 @@ Window {
                     radius: Theme.radius
                     color: powerMouse.pressed ? Theme.subtlePressed : Theme.subtleHover
                     opacity: powerMouse.containsMouse || root.powerFocused ? 1 : 0
+                    border.width: root.keyRing && root.powerFocused ? 2 : 0
+                    border.color: Theme.accent
                     Behavior on opacity {
                         NumberAnimation { duration: Theme.fast; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
                     }

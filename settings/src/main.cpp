@@ -57,6 +57,23 @@ QString socketPath()
         + qEnvironmentVariable("WAYLAND_DISPLAY", QStringLiteral("wayland-0")) + QStringLiteral(".sock");
 }
 
+QByteArray activationToken()
+{
+    QLocalSocket socket;
+    socket.connectToServer(QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation) + QStringLiteral("/vela-")
+        + qEnvironmentVariable("WAYLAND_DISPLAY", QStringLiteral("wayland-0")) + QStringLiteral(".sock"));
+    if (!socket.waitForConnected(200)) {
+        return {};
+    }
+    socket.write("activation-token\n");
+    socket.waitForBytesWritten(200);
+    QByteArray reply;
+    while (!reply.contains('\n') && socket.waitForReadyRead(200)) {
+        reply += socket.readAll();
+    }
+    return reply.trimmed();
+}
+
 // A window is already open: it gets the page (and the token to come to the
 // front) and we exit.
 bool forwardToRunningInstance(const QString& page)
@@ -66,7 +83,13 @@ bool forwardToRunningInstance(const QString& page)
     if (!socket.waitForConnected(300)) {
         return false;
     }
-    socket.write("page " + page.toUtf8() + ' ' + qgetenv("XDG_ACTIVATION_TOKEN") + '\n');
+    QByteArray token = qgetenv("XDG_ACTIVATION_TOKEN");
+    if (token.isEmpty()) {
+        // Started without a token (the shell's menus): the open window has had
+        // no input lately, so its own request would be refused.
+        token = activationToken();
+    }
+    socket.write("page " + page.toUtf8() + ' ' + token + '\n');
     socket.waitForBytesWritten(300);
     return true;
 }
