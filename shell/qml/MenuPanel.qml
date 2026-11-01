@@ -42,11 +42,17 @@ Item {
     signal pinToggled() // the entries must be rebuilt (a file was pinned or unpinned)
 
     // --- sizes ---
-    readonly property int padding: 4
+    // A submenu's is thinner, as on Windows 11 (measured).
+    readonly property int padding: !Theme.menuSeven && level > 0 ? 3 : 4
     readonly property int rowHeight: 32
     readonly property int separatorHeight: 9
     readonly property int headerHeight: 30
-    readonly property int iconRowHeight: 44
+    // Windows 11's, measured at 100%: 56x48 buttons, 65 apart, a line below.
+    readonly property int iconRowHeight: Theme.menuSeven ? 44 : 59
+    readonly property int iconButtonWidth: Theme.menuSeven ? 36 : 56
+    readonly property int iconButtonHeight: Theme.menuSeven ? 36 : 48
+    readonly property int iconButtonSpacing: Theme.menuSeven ? 4 : 9
+    readonly property int iconRowMargin: Theme.menuSeven ? 8 : 6
     readonly property bool hasIcons: entries.some(e => !e.separator && !e.header && !e.iconRow && (e.icon || e.checked !== undefined))
     readonly property real textLeft: hasIcons ? 44 : 16
 
@@ -90,7 +96,12 @@ Item {
         let widest = 0
         let shortcut = 0
         let extra = 0
+        let iconRow = 0
         for (const e of entries) {
+            if (e.iconRow && !Theme.menuSeven) {
+                const count = e.iconRow.length
+                iconRow = 2 * iconRowMargin + count * iconButtonWidth + (count - 1) * iconButtonSpacing
+            }
             if (e.separator || e.iconRow) {
                 continue
             }
@@ -102,7 +113,7 @@ Item {
                 extra = 28
             }
         }
-        return textLeft + widest + shortcut + extra + 20
+        return Math.max(iconRow, textLeft + widest + shortcut + extra + 20)
     }
     readonly property real contentHeight: {
         let h = 2 * padding
@@ -160,15 +171,53 @@ Item {
         opacity: 0.7
     }
 
-    // It comes in fading and sliding slightly from the side it starts from.
+    // Windows 11's, measured at 30 fps: it fades in where it will stay, in about
+    // 100 ms, and does not slide.
     opacity: 0
-    property real slide: above ? 8 : -8
-    transform: Translate { y: panel.slide }
     Component.onCompleted: appear.start()
-    ParallelAnimation {
-        id: appear
-        NumberAnimation { target: panel; property: "opacity"; to: 1; duration: Theme.fast; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
-        NumberAnimation { target: panel; property: "slide"; to: 0; duration: Theme.normal; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.decelerate }
+    NumberAnimation { id: appear; target: panel; property: "opacity"; to: 1; duration: Theme.animated(100) }
+
+    // --- the icon row's tooltip: above the button, outside the clipped panel ---
+    function iconHovered(button, entry, inside) {
+        tip.visible = false
+        tipTimer.stop()
+        if (inside && !Theme.menuSeven && entry.text) {
+            tip.button = button
+            tipText.text = entry.shortcut ? qsTr("%1 (%2)").arg(entry.text).arg(entry.shortcut) : entry.text
+            tipTimer.restart()
+        }
+    }
+    Timer {
+        id: tipTimer
+        interval: 600 // as ToolButton's
+        onTriggered: {
+            const host = panel.parent
+            if (!host) return
+            tip.parent = host
+            const p = tip.button.mapToItem(host, tip.button.width / 2, 0)
+            tip.x = Math.max(4, Math.min(host.width - tip.width - 4, p.x - tip.width / 2))
+            tip.y = Math.max(4, panel.y - tip.height - 4)
+            tip.visible = true
+        }
+    }
+    Rectangle {
+        id: tip
+        property Item button: null
+        objectName: "tooltip"
+        visible: false
+        z: 1000
+        width: tipText.implicitWidth + 16
+        height: tipText.implicitHeight + 10
+        radius: Theme.radius
+        color: Theme.flyout
+        border.width: 1
+        border.color: Theme.stroke
+        Text {
+            id: tipText
+            anchors.centerIn: parent
+            color: Theme.text
+            font.pixelSize: Theme.fontCaption
+        }
     }
 
     // --- keyboard ---
@@ -269,7 +318,8 @@ Item {
         radius: Theme.menuSeven ? 3 : Theme.radiusOverlay
         color: Theme.menuSeven ? "#F2F2F2" : panel.fill
         border.width: 1
-        border.color: Theme.menuSeven ? "#979797" : Theme.stroke
+        // A submenu has a dark edge in the dark theme, as on Windows 11 (measured).
+        border.color: Theme.menuSeven ? "#979797" : level > 0 && !Theme.light ? Qt.rgba(0, 0, 0, 0.3) : Theme.stroke
         Rectangle { // Windows 7's gutter line between the icons and the text
             visible: Theme.menuSeven
             x: panel.textLeft - 8
@@ -311,45 +361,78 @@ Item {
                 Rectangle {
                     visible: row.entry.separator === true
                     anchors.verticalCenter: parent.verticalCenter
-                    x: Theme.menuSeven ? panel.textLeft - 4 : 0
-                    width: parent.width - x - (Theme.menuSeven ? 4 : 0)
+                    x: Theme.menuSeven ? panel.textLeft - 4 : 4
+                    width: parent.width - x - 4
                     height: 1
                     color: Theme.menuSeven ? "#E2E3E3" : Theme.stroke
+                }
+
+                // The line under the icon row.
+                Rectangle {
+                    visible: !!row.entry.iconRow && !Theme.menuSeven
+                    anchors.bottom: parent.bottom
+                    anchors.bottomMargin: 3
+                    width: parent.width
+                    height: 1
+                    color: Theme.stroke
                 }
 
                 // The icon row of file menus: Cut, Copy, Rename...
                 Row {
                     visible: !!row.entry.iconRow
-                    x: 8
-                    anchors.verticalCenter: parent.verticalCenter
-                    spacing: 4
+                    x: panel.iconRowMargin
+                    y: Theme.menuSeven ? (parent.height - height) / 2 : 2
+                    spacing: panel.iconButtonSpacing
                     Repeater {
                         model: row.entry.iconRow || []
                         delegate: Item {
                             id: iconButton
                             required property var modelData
+                            required property int index
                             readonly property bool usable: modelData.enabled !== false
-                            width: 36
-                            height: 36
+                            width: panel.iconButtonWidth
+                            height: panel.iconButtonHeight
                             Rectangle {
                                 anchors.fill: parent
                                 radius: Theme.radius
                                 color: iconMouse.pressed ? Theme.subtlePressed : Theme.subtleHover
                                 opacity: iconMouse.containsMouse && iconButton.usable ? 1 : 0
                             }
+                            Rectangle { // between the buttons
+                                visible: !Theme.menuSeven && iconButton.index < row.entry.iconRow.length - 1
+                                x: parent.width + 4
+                                y: 7
+                                width: 1
+                                height: 35
+                                color: Theme.stroke
+                            }
                             Image {
-                                anchors.centerIn: parent
+                                x: (parent.width - width) / 2
+                                y: Theme.menuSeven ? (parent.height - height) / 2 : 7
                                 width: 16
                                 height: 16
                                 opacity: iconButton.usable ? 1 : 0.4
                                 source: (Theme.menuSeven ? Theme.iconsOnLight : Theme.icons) + encodeURIComponent(iconButton.modelData.icon)
                                 sourceSize: Qt.size(width, height)
                             }
+                            Text {
+                                visible: !Theme.menuSeven
+                                x: 2
+                                y: 38 - height / 2
+                                width: parent.width - 4
+                                horizontalAlignment: Text.AlignHCenter
+                                elide: Text.ElideRight
+                                opacity: iconButton.usable ? 1 : 0.4
+                                text: iconButton.modelData.text || ""
+                                color: Theme.text
+                                font.pixelSize: Theme.fontCaption
+                            }
                             MouseArea {
                                 id: iconMouse
                                 anchors.fill: parent
                                 hoverEnabled: true
                                 enabled: iconButton.usable
+                                onContainsMouseChanged: panel.iconHovered(iconButton, iconButton.modelData, containsMouse)
                                 onClicked: panel.activated(iconButton.modelData, -1)
                             }
                         }
@@ -372,9 +455,11 @@ Item {
                     anchors.fill: parent
 
                     Rectangle {
-                        x: 4
-                        width: parent.width - 8
-                        height: parent.height
+                        // Windows 11's is 28 high in a 32 row, 6 from the edge (measured).
+                        x: Theme.menuSeven ? 4 : 6
+                        y: Theme.menuSeven ? 0 : 2
+                        width: parent.width - 2 * x
+                        height: parent.height - 2 * y
                         radius: Theme.menuSeven ? 3 : Theme.radius
                         color: rowMouse.pressed ? Theme.subtlePressed : Theme.subtleHover
                         border.width: Theme.menuSeven ? 1 : 0

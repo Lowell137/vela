@@ -72,9 +72,10 @@ Item {
             return
         }
         const panel = openLevel(parentPanel.level + 1, parentPanel.entries[index].children, {
-            anchorX: parentPanel.x + parentPanel.width - 4,
-            altX: parentPanel.x + 4,
-            anchorY: parentPanel.y + rowY - 4,
+            // Windows 11's overlaps its parent by 8 and starts at the row's top (measured).
+            anchorX: parentPanel.x + parentPanel.width - (Theme.menuSeven ? 4 : 8),
+            altX: parentPanel.x + (Theme.menuSeven ? 4 : 8),
+            anchorY: parentPanel.y + rowY - (Theme.menuSeven ? 4 : 0),
             keyboardMode: parentPanel.keyboardMode
         }, keyboard)
         panel.parentIndex = index

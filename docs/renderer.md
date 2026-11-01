@@ -1033,9 +1033,14 @@ Like Windows 11's menus (WinUI), in the dark theme:
   for submenus; check marks and bullets for choice items;
 - highlight: a rounded rectangle (4) inset from the menu's edges; disabled items
   in gray;
-- thin full-width separators between groups;
-- in file menus (§14.9) a **row of icons** at the top or bottom (near the click
-  point): Cut, Copy, Rename, Share, Delete;
+- thin separators between groups, 4 px from the edges;
+- a row's highlight is 28 high inside its 32 and starts 6 px from the edge;
+- in file menus (§14.9) a **row of icons with labels** at the top: Cut, Copy,
+  Rename, Share (only when it applies), Delete. Buttons are 56x48, 65 apart, with
+  a vertical line between them and a full-width line under the row; resting on
+  one shows a tooltip with its shortcut;
+- submenus overlap their parent by 8 px, start at the row's top and, in the dark
+  theme, have a dark edge;
 - sharp at every scale like everything else (§3).
 
 ### 14.3 Behavior
@@ -1044,8 +1049,8 @@ Like Windows 11's menus (WinUI), in the dark theme:
   there's no room it flips to the left or upwards. From the taskbar it rises
   upwards, above the button. With the Menu key or Shift+F10 it opens on the
   focused element.
-- **Animation**: it enters with a fade and a short slide from the side it opens
-  from, on the output's real frames (§4.2); it exits immediately.
+- **Animation**: it fades in where it will stay, in about 100 ms, without a slide
+  (Windows 11's, measured at 30 fps), on the output's real frames (§4.2); it exits immediately.
 - **Submenus**: they open on hover after a short delay (400 ms, like Windows), on
   click or with the right arrow; they stay open if the mouse goes there
   diagonally across other items.

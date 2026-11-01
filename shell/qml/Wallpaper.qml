@@ -225,11 +225,11 @@ Window {
         const files = items.filter(i => !i.isTrash).map(i => i.path)
         const single = files.length === 1 ? items.find(i => !i.isTrash) : null
         const entries = [{ iconRow: [
-            { icon: "edit-cut", text: qsTr("Cut"), action: () => Desktop.cut(files) },
-            { icon: "edit-copy", text: qsTr("Copy"), action: () => Desktop.copy(files) },
-            { icon: "edit-rename", text: qsTr("Rename"), enabled: !!single, action: () => icons.startRename(single.path) },
-            { icon: "document-share", text: qsTr("Share"), enabled: items.some(i => !i.isDir && !i.isTrash), action: () => Menus.share(items.filter(i => !i.isDir && !i.isTrash).map(i => i.path), root.screen ? root.screen.name : Shell.primaryScreen) },
-            { icon: "edit-delete", text: qsTr("Delete"), action: () => Desktop.trash(files) }
+            { icon: "edit-cut", text: qsTr("Cut"), shortcut: qsTr("Ctrl+X"), action: () => Desktop.cut(files) },
+            { icon: "edit-copy", text: qsTr("Copy"), shortcut: qsTr("Ctrl+C"), action: () => Desktop.copy(files) },
+            { icon: "edit-rename", text: qsTr("Rename"), shortcut: qsTr("F2"), enabled: !!single, action: () => icons.startRename(single.path) },
+            ...(items.some(i => !i.isDir && !i.isTrash) ? [{ icon: "document-share", text: qsTr("Share"), action: () => Menus.share(items.filter(i => !i.isDir && !i.isTrash).map(i => i.path), root.screen ? root.screen.name : Shell.primaryScreen) }] : []),
+            { icon: "edit-delete", text: qsTr("Delete"), shortcut: qsTr("Del"), action: () => Desktop.trash(files) }
         ] }]
         entries.push({ text: qsTr("&Open"), icon: "document-open", shortcut: qsTr("Enter"), action: () => Desktop.openOnScreen(files, root.screen ? root.screen.name : Shell.primaryScreen) })
         if (single && !single.isDir && !single.isApp) {
