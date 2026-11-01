@@ -1615,27 +1615,35 @@ FileOps::UndoStep FileOps::applyStep(const UndoStep& step)
     return inverse;
 }
 
-QVariantList FileOps::galleryImages() const
+void FileOps::loadGallery()
 {
-    struct Picture {
-        QString path;
-        QDateTime modified;
-    };
-    QList<Picture> pictures;
-    const QStringList globs { QStringLiteral("*.jpg"), QStringLiteral("*.jpeg"), QStringLiteral("*.png"),
-        QStringLiteral("*.webp"), QStringLiteral("*.gif"), QStringLiteral("*.bmp") };
-    QDirIterator it(QStandardPaths::writableLocation(QStandardPaths::PicturesLocation), globs, QDir::Files, QDirIterator::Subdirectories);
-    while (it.hasNext() && pictures.size() < 20000) {
-        it.next();
-        pictures.append({ it.filePath(), it.fileInfo().lastModified() });
-    }
-    std::sort(pictures.begin(), pictures.end(), [](const Picture& a, const Picture& b) { return a.modified > b.modified; });
-    QVariantList out;
-    for (const Picture& picture : std::as_const(pictures).first(std::min<qsizetype>(pictures.size(), 500))) {
-        out.append(QVariantMap { { QStringLiteral("path"), picture.path },
-            { QStringLiteral("month"), QLocale().toString(picture.modified.date(), QStringLiteral("MMMM yyyy")) } });
-    }
-    return out;
+    QPointer<FileOps> self(this);
+    const QString root = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation);
+    QThreadPool::globalInstance()->start([self, root] {
+        struct Picture {
+            QString path;
+            QDateTime modified;
+        };
+        QList<Picture> pictures;
+        const QStringList globs { QStringLiteral("*.jpg"), QStringLiteral("*.jpeg"), QStringLiteral("*.png"),
+            QStringLiteral("*.webp"), QStringLiteral("*.gif"), QStringLiteral("*.bmp") };
+        QDirIterator it(root, globs, QDir::Files, QDirIterator::Subdirectories);
+        while (it.hasNext() && pictures.size() < 20000 && self) {
+            it.next();
+            pictures.append({ it.filePath(), it.fileInfo().lastModified() });
+        }
+        std::sort(pictures.begin(), pictures.end(), [](const Picture& a, const Picture& b) { return a.modified > b.modified; });
+        QVariantList out;
+        for (const Picture& picture : std::as_const(pictures).first(std::min<qsizetype>(pictures.size(), 2000))) {
+            out.append(QVariantMap { { QStringLiteral("path"), picture.path },
+                { QStringLiteral("month"), QLocale().toString(picture.modified.date(), QStringLiteral("MMMM yyyy")) } });
+        }
+        QMetaObject::invokeMethod(qApp, [self, out] {
+            if (self) {
+                emit self->galleryReady(out);
+            }
+        });
+    });
 }
 
 QVariantList FileOps::networkLocations() const

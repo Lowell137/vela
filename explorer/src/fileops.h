@@ -123,8 +123,9 @@ public:
     Q_INVOKABLE bool rotateImage(const QString& path, int degrees); // false: nothing changed
     // Asks for the administrator's password (polkit), as Windows asks through UAC.
     Q_INVOKABLE void takeOwnership(const QStringList& paths);
-    // Gallery: the newest pictures under Pictures, [{path, month}].
-    Q_INVOKABLE QVariantList galleryImages() const;
+    // Gallery: looks for the newest pictures under Pictures in the background;
+    // galleryReady brings them, [{path, month}].
+    Q_INVOKABLE void loadGallery();
     // Network: what is mounted, [{name, path}]; mounting goes through gio.
     Q_INVOKABLE QVariantList networkLocations() const;
     Q_INVOKABLE void mapNetworkDrive(const QString& address);
@@ -167,6 +168,7 @@ signals:
     void clipboardChanged();
     void undoChanged();
     void networkChanged();
+    void galleryReady(const QVariantList& images);
     void jobsChanged();
     // The destination already has something with the same name: the view asks.
     void conflict(int count, const QString& firstName, const QString& directory);
