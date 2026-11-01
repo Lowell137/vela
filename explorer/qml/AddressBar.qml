@@ -29,6 +29,7 @@ Item {
     readonly property var crumbs: {
         const loc = tab.location
         if (loc === "home:") return [{ label: qsTr("Home"), location: "home:", icon: "user-home" }]
+        if (loc === "gallery:") return [{ label: qsTr("Gallery"), location: "gallery:", icon: "folder-gallery" }]
         if (loc === "network:") return [{ label: qsTr("Network"), location: "network:", icon: "network-workgroup" }]
         if (loc === "thispc:") return [{ label: qsTr("This PC"), location: "thispc:", icon: "computer" }]
         if (loc === Places.trash) return [{ label: qsTr("Recycle Bin"), location: Places.trash, icon: "user-trash" }]
@@ -58,7 +59,7 @@ Item {
         ToolButton { icon.name: "go-previous"; icon.width: 12; icon.height: 12; tooltip: qsTr("Back (Alt+Left Arrow)"); usable: bar.tab.canGoBack; onClicked: bar.tab.back(); width: 32 }
         ToolButton { icon.name: "go-next"; icon.width: 12; icon.height: 12; tooltip: qsTr("Forward (Alt+Right Arrow)"); usable: bar.tab.canGoForward; onClicked: bar.tab.forward(); width: 32 }
         ToolButton { icon.name: "go-up"; icon.width: 12; icon.height: 12; tooltip: qsTr("Up (Alt+Up Arrow)"); usable: bar.tab.canGoUp; onClicked: bar.tab.up(); width: 32 }
-        ToolButton { icon.name: bar.tab.loading ? "window-close" : "view-refresh"; icon.width: 12; icon.height: 12; tooltip: qsTr("Refresh (F5)"); onClicked: bar.tab.refresh(); width: 32 }
+        ToolButton { icon.name: bar.tab.loading ? "window-close" : "view-refresh"; icon.width: 12; icon.height: 12; tooltip: qsTr("Refresh (F5)"); onClicked: bar.tab.loading ? bar.tab.stopLoading() : bar.tab.refresh(); width: 32 }
     }
 
     Fill {

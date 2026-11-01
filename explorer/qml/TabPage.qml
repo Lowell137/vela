@@ -18,8 +18,8 @@ Item {
     readonly property bool isFolder: location.startsWith("/")
     readonly property bool isTrash: location === Places.trash
     readonly property bool writable: isFolder && !isTrash
-    readonly property string title: location === "home:" ? qsTr("Home") : location === "thispc:" ? qsTr("This PC") : location === "network:" ? qsTr("Network") : Places.displayName(location)
-    readonly property string icon: location === "home:" ? "user-home" : location === "thispc:" ? "computer" : location === "network:" ? "network-workgroup" : Places.iconFor(location)
+    readonly property string title: location === "home:" ? qsTr("Home") : location === "thispc:" ? qsTr("This PC") : location === "network:" ? qsTr("Network") : location === "gallery:" ? qsTr("Gallery") : Places.displayName(location)
+    readonly property string icon: location === "home:" ? "user-home" : location === "thispc:" ? "computer" : location === "network:" ? "network-workgroup" : location === "gallery:" ? "folder-gallery" : Places.iconFor(location)
     readonly property var model: isFolder ? folder : null
     readonly property bool loading: isFolder && folder.loading
     readonly property bool showHidden: win.showHidden
@@ -43,6 +43,7 @@ Item {
         }
         renamingPath = ""
         location = loc
+        clearFilters()
         if (isFolder) {
             folder.path = loc
             if (select) folder.selectPath(select)
@@ -74,7 +75,17 @@ Item {
         }
     }
     function openInNewTab(loc) { win.newTab(loc, "") }
-    function search(text) { if (isFolder) folder.search = text }
+    function search(text) {
+        if (!isFolder) return
+        if (text === "") clearFilters()
+        folder.search = text
+    }
+    function clearFilters() {
+        folder.filterKind = ""
+        folder.filterDate = ""
+        folder.filterSize = ""
+    }
+    function stopLoading() { folder.stop() }
     // The file chooser's type filter (globs), and "folders only".
     function setPickFilter(globs) { folder.nameFilters = globs }
     function focusView() { keys.forceActiveFocus() }
@@ -275,6 +286,33 @@ Item {
             { text: qsTr("D&escending"), radio: true, checked: folder.sortDescending, action: () => folder.sortBy(folder.sortColumn, true) }
         ]
     }
+    // File Explorer's groups, as headers in Details: it opens that view.
+    function groupEntries() {
+        const group = (text, value, column, descending) => ({ text: text, radio: true, checked: win.groupBy === value, action: () => {
+            win.groupBy = value
+            win.setViewMode(page.location, "details")
+            folder.sortBy(column, descending)
+        } })
+        return [
+            group(qsTr("&Name"), "name", 0, false), group(qsTr("&Date modified"), "date", 1, true),
+            group(qsTr("&Type"), "type", 2, false), group(qsTr("Si&ze"), "size", 3, true),
+            { separator: true },
+            { text: qsTr("(N&one)"), radio: true, checked: win.groupBy === "", action: () => win.groupBy = "" }
+        ]
+    }
+    // File Explorer's Search options.
+    function searchEntries() {
+        const choice = (property, text, value) => ({ text: text, radio: true, checked: folder[property] === value,
+            action: () => folder[property] = folder[property] === value ? "" : value })
+        const kind = (t, v) => choice("filterKind", t, v), date = (t, v) => choice("filterDate", t, v), size = (t, v) => choice("filterSize", t, v)
+        return [
+            { text: qsTr("&Kind"), children: [kind(qsTr("Document"), "document"), kind(qsTr("Folder"), "folder"), kind(qsTr("Picture"), "image"), kind(qsTr("Music"), "audio"), kind(qsTr("Video"), "video")] },
+            { text: qsTr("&Date modified"), children: [date(qsTr("Today"), "today"), date(qsTr("Yesterday"), "yesterday"), date(qsTr("This week"), "thisweek"), date(qsTr("Last week"), "lastweek"),
+                date(qsTr("This month"), "thismonth"), date(qsTr("Last month"), "lastmonth"), date(qsTr("This year"), "thisyear"), date(qsTr("Last year"), "lastyear")] },
+            { text: qsTr("&Size"), children: [size(qsTr("Empty"), "empty"), size(qsTr("Tiny"), "tiny"), size(qsTr("Small"), "small"), size(qsTr("Medium"), "medium"),
+                size(qsTr("Large"), "large"), size(qsTr("Huge"), "huge"), size(qsTr("Gigantic"), "gigantic")] }
+        ]
+    }
     function viewEntries() {
         const mode = (text, value, shortcut, icon) => ({ text: text, icon: icon, radio: true, checked: viewMode === value, shortcut: shortcut, action: () => win.setViewMode(page.location, value) })
         return [
@@ -302,13 +340,21 @@ Item {
     }
     function moreEntries() {
         return [
+            ...(Ops.undoText !== "" ? [{ text: qsTr("&Undo ") + Ops.undoText, icon: "edit-undo", shortcut: "Ctrl+Z", action: () => Ops.undo() }] : []),
+            ...(Ops.redoText !== "" ? [{ text: qsTr("Re&do ") + Ops.redoText, icon: "edit-redo", shortcut: "Ctrl+Y", action: () => Ops.redo() }] : []),
+            Places.isPinned(page.location)
+                ? { text: qsTr("Unpin from &Quick access"), icon: "window-unpin", enabled: page.isFolder, action: () => Places.unpin(page.location) }
+                : { text: qsTr("Pin to &Quick access"), icon: "window-pin", enabled: page.isFolder, action: () => Places.pin(page.location) },
+            { separator: true },
             { text: qsTr("Select &all"), icon: "edit-select-all", shortcut: "Ctrl+A", action: () => folder.selectAll() },
             { text: qsTr("Select &none"), icon: "edit-select-none", action: () => folder.clearSelection() },
             { text: qsTr("&Invert selection"), icon: "edit-select-invert", action: () => folder.invertSelection() },
             { separator: true },
             { text: qsTr("Open in &Terminal"), icon: "utilities-terminal", enabled: page.isFolder, action: () => System.openTerminal(page.location) },
             { text: qsTr("P&roperties"), icon: "document-properties", shortcut: qsTr("Alt+Enter"),
-              action: () => Ops.showProperties(folder.selectionCount > 0 ? folder.selectedPaths() : [page.location]) }
+              action: () => Ops.showProperties(folder.selectionCount > 0 ? folder.selectedPaths() : [page.location]) },
+            { text: qsTr("Map network dri&ve"), icon: "network-map", action: () => win.askMapDrive() },
+            { text: qsTr("&Options"), icon: "preferences-folder", action: () => win.showOptions() }
         ]
     }
 
@@ -383,6 +429,21 @@ Item {
             // Files doesn't move (the double click is the one that goes in).
             entries.push({ text: qsTr("Extract &here"), icon: "archive-extract", action: () => Ops.extractAll(single) })
         }
+        if (single !== "" && !singleDir && Ops.isExecutable(single)) {
+            entries.push({ text: qsTr("Run as &administrator"), icon: "system-run-admin", action: () => Ops.runAsAdmin(single) })
+        }
+        if (files.length > 0 && Ops.canPrint()) {
+            entries.push({ text: qsTr("Pr&int"), icon: "document-print", action: () => Ops.print(files) })
+        }
+        const urls = paths.map(p => "file://" + p.split("/").map(encodeURIComponent).join("/"))
+        const sendTo = [{ text: qsTr("&Compressed folder"), icon: "archive-insert", action: () => win.askCompress(paths) }]
+        const documents = Places.quickAccess.find(q => q.icon === "folder-documents")
+        if (documents) sendTo.push({ text: documents.name.replace(/&/g, "&&"), icon: documents.icon, action: () => Ops.drop(urls, documents.path, 1) })
+        Places.drives.filter(d => d.mounted && d.removable).forEach(d =>
+            sendTo.push({ text: d.name.replace(/&/g, "&&"), icon: d.icon, action: () => Ops.drop(urls, d.path, 1) }))
+        entries.push({ text: qsTr("Se&nd to"), icon: "document-send", children: sendTo })
+        entries.push({ text: qsTr("Ta&ke ownership"), icon: "system-run-admin", action: () => win.confirm(qsTr("Take ownership?"),
+            qsTr("You become the owner of the selected items and everything inside them."), qsTr("Take ownership"), () => Ops.takeOwnership(paths)) })
         entries.push(
             // Windows' "Compress": the dialog takes the archive's name and
             // the format (ZIP or tar.gz); the desktop's menu keeps its list
@@ -433,6 +494,7 @@ Item {
         const entries = [
             { text: qsTr("&View"), icon: "view-list-icons", children: viewEntries() },
             { text: qsTr("S&ort by"), icon: "view-sort", children: sortEntries() },
+            { text: qsTr("&Group by"), icon: "view-group", children: groupEntries() },
             { text: qsTr("R&efresh"), icon: "view-refresh", action: () => page.refresh() },
             { separator: true }
         ]
@@ -505,6 +567,7 @@ Item {
             else if (ctrl && event.key === Qt.Key_X) page.cutSelection()
             else if (ctrl && event.key === Qt.Key_V) page.paste()
             else if (ctrl && event.key === Qt.Key_Z) Ops.undo()
+            else if (ctrl && event.key === Qt.Key_Y) Ops.redo()
             else if (ctrl && event.key === Qt.Key_H) win.showHidden = !win.showHidden
             else if (event.key === Qt.Key_Delete) page.deleteSelection(shift)
             else if (event.key === Qt.Key_F2) page.renameSelection()
@@ -632,6 +695,7 @@ Item {
             sourceComponent: page.location === "home:" ? homeComponent
                 : page.location === "thispc:" ? thisPcComponent
                 : page.location === "network:" ? networkComponent
+                : page.location === "gallery:" ? galleryComponent
                 : page.viewMode === "details" ? detailsComponent : iconComponent
         }
         // The preview or details pane, on the right (widened by dragging its
@@ -655,7 +719,7 @@ Item {
         }
         PreviewPane {
             id: sidePane
-            visible: page.win.pane !== "" && page.location !== "home:" && page.location !== "thispc:" && page.location !== "network:"
+            visible: page.win.pane !== "" && page.location !== "home:" && page.location !== "thispc:" && page.location !== "network:" && page.location !== "gallery:"
             anchors { right: parent.right; top: parent.top; bottom: statusBar.top }
             width: page.win.paneWidth
             tab: page
@@ -665,19 +729,8 @@ Item {
         Component { id: homeComponent; HomePage { tab: page } }
         Component { id: thisPcComponent; ThisPcPage { tab: page } }
         Component { id: detailsComponent; DetailsView { tab: page } }
-        // Browsing the network isn't there yet: it says so instead of showing an error.
-        Component {
-            id: networkComponent
-            Item {
-                Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    y: 24
-                    text: qsTr("Network browsing isn't available yet.")
-                    color: Theme.textSecondary
-                    font.pixelSize: Theme.fontCaption
-                }
-            }
-        }
+        Component { id: networkComponent; NetworkPage { tab: page } }
+        Component { id: galleryComponent; GalleryPage {} }
         Component { id: iconComponent; IconView { tab: page; mode: page.viewMode } }
 
         Rectangle {

@@ -20,9 +20,19 @@ Item {
     readonly property int cellHeight: mode === "extralarge" ? 330 : mode === "large" ? 150 : mode === "medium" ? 116 : tile ? 60 : 30
     readonly property int columns: Math.max(1, Math.floor((grid.width - grid.leftMargin) / cellWidth))
 
+    readonly property bool sideways: mode === "list"
+    readonly property int perColumn: Math.max(1, Math.floor(grid.height / cellHeight))
+
     function step(key) {
         const c = model.currentIndex
         const n = model.count
+        if (sideways) {
+            if (key === Qt.Key_Up) return Math.max(0, c - 1)
+            if (key === Qt.Key_Down) return Math.min(n - 1, c + 1)
+            if (key === Qt.Key_Left) return c - perColumn >= 0 ? c - perColumn : c
+            if (key === Qt.Key_Right) return Math.min(n - 1, c + perColumn)
+            return c
+        }
         const rows = Math.max(1, Math.floor(grid.height / cellHeight) - 1)
         if (key === Qt.Key_Left) return Math.max(0, c - 1)
         if (key === Qt.Key_Right) return Math.min(n - 1, c + 1)
@@ -44,6 +54,7 @@ Item {
         model: view.model
         cellWidth: view.cellWidth
         cellHeight: view.cellHeight
+        flow: view.sideways ? GridView.FlowTopToBottom : GridView.FlowLeftToRight
         clip: true
         boundsBehavior: Flickable.StopAtBounds
         interactive: false // dragging selects
@@ -88,8 +99,11 @@ Item {
                 const c1 = Math.min(view.columns - 1, Math.floor(x1 / view.cellWidth))
                 const rows = []
                 for (let r = r0; r <= r1; ++r) {
-                    for (let c = c0; c <= c1; ++c) {
-                        const i = r * view.columns + c
+                    const lastColumn = view.sideways ? Math.floor((x1 + grid.contentX) / view.cellWidth) : c1
+                    const firstColumn = view.sideways ? Math.max(0, Math.floor((x0 + grid.contentX) / view.cellWidth)) : c0
+                    for (let c = firstColumn; c <= lastColumn; ++c) {
+                        if (view.sideways && r >= view.perColumn) continue
+                        const i = view.sideways ? c * view.perColumn + r : r * view.columns + c
                         if (i < view.model.count) rows.push(i)
                     }
                 }
@@ -292,6 +306,11 @@ Item {
         onWheel: event => {
             if (event.modifiers & Qt.ControlModifier) {
                 view.tab.zoom(event.angleDelta.y > 0 ? 1 : -1)
+                return
+            }
+            if (view.sideways) {
+                const delta = event.pixelDelta.y !== 0 ? -event.pixelDelta.y : -event.angleDelta.y / 120 * view.cellWidth
+                grid.contentX = Math.max(0, Math.min(Math.max(0, grid.contentWidth - grid.width), grid.contentX + delta))
                 return
             }
             scrollBar.scrollBy(event.pixelDelta.y !== 0 ? -event.pixelDelta.y : -event.angleDelta.y / 120 * view.cellHeight)

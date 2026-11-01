@@ -225,6 +225,7 @@ Flickable {
         }
         Entry { icon: "user-trash"; label: qsTr("Recycle Bin"); location: Places.trash; pinned: true }
         GroupLine {}
+        Entry { icon: "folder-gallery"; label: qsTr("Gallery"); location: "gallery:" }
         Entry { icon: "computer"; label: qsTr("This PC"); location: "thispc:"; expandable: true; expanded: pane.computerOpen }
         Repeater {
             model: Places.drives

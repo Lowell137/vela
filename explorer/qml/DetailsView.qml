@@ -55,8 +55,11 @@ Item {
         return c
     }
     function ensureVisible(row) { list.positionViewAtIndex(row, ListView.Contain) }
+    readonly property string group: tab.win && tab.win.groupBy ? tab.win.groupBy : ""
     function rowRect(row) {
-        const p = list.contentItem.mapToItem(view, 0, row * rowHeight)
+        // With groups, the headers push the rows down.
+        const shown = group !== "" ? list.itemAtIndex(row) : null
+        const p = list.contentItem.mapToItem(view, 0, shown ? shown.y : row * rowHeight)
         return Qt.rect(p.x, p.y, list.width, rowHeight)
     }
 
@@ -138,6 +141,26 @@ Item {
         rightMargin: 8
         bottomMargin: 24
         interactive: false // dragging selects; scrolling is by wheel and scroll bar
+        section.property: ({ name: "name", date: "groupDate", type: "type", size: "groupSize" })[view.group] || ""
+        section.criteria: view.group === "name" ? ViewSection.FirstCharacter : ViewSection.FullString
+        section.delegate: Item {
+            required property string section
+            width: list.width - 8
+            height: 36
+            Text {
+                id: groupName
+                x: 18
+                y: 10
+                text: parent.section
+                color: Theme.text
+                font.pixelSize: Theme.fontCaption
+            }
+            Rectangle {
+                anchors { left: groupName.right; leftMargin: 8; right: parent.right; verticalCenter: groupName.verticalCenter }
+                height: 1
+                color: Theme.filesLine
+            }
+        }
 
         // The empty space: click, right button, rubber band, dropped files.
         MouseArea {
@@ -170,7 +193,15 @@ Item {
                 const first = Math.max(0, Math.floor(Math.min(start.y, y) / view.rowHeight))
                 const last = Math.min(view.model.count - 1, Math.floor(Math.max(start.y, y) / view.rowHeight))
                 const rows = []
-                for (let r = first; r <= last; ++r) rows.push(r)
+                if (view.group !== "") {
+                    const top = Math.min(start.y, y), bottom = Math.max(start.y, y)
+                    for (let r = 0; r < view.model.count; ++r) {
+                        const item = list.itemAtIndex(r)
+                        if (item && item.y < bottom && item.y + item.height > top) rows.push(r)
+                    }
+                } else {
+                    for (let r = first; r <= last; ++r) rows.push(r)
+                }
                 view.model.selectRows(view.base(rows, base), false)
             }
             onReleased: { banding = false; band.width = 0 }

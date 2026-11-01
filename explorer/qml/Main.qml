@@ -40,6 +40,7 @@ Window {
         property string viewModes: "{}" // folder -> view
         property bool showHidden: false
         property bool showExtensions: true
+        property string groupBy: "" // "", "name", "date", "type" or "size"
         property bool itemChecks: false
         property bool compactView: false
         property bool navVisible: true
@@ -49,6 +50,7 @@ Window {
     }
     property alias showHidden: settings.showHidden
     property alias showExtensions: settings.showExtensions
+    property alias groupBy: settings.groupBy
     property alias itemChecks: settings.itemChecks
     property alias compactView: settings.compactView
     property alias navVisible: settings.navVisible
@@ -459,6 +461,41 @@ Window {
         confirmDialog.buttons = [{ text: yes, accent: true, value: "yes" }, { text: qsTr("Cancel"), value: "cancel" }]
         confirmAction = action
         confirmDialog.open()
+    }
+
+    function showOptions() { optionsDialog.open() }
+    function askMapDrive() {
+        mapAddress.text = ""
+        mapDialog.open()
+        mapAddress.forceActiveFocus()
+    }
+    Dialog {
+        id: optionsDialog
+        title: qsTr("Folder Options")
+        buttons: [{ text: qsTr("OK"), accent: true, value: "ok" }]
+        content: Column {
+            spacing: 10
+            CheckBox { text: qsTr("Show hidden files and folders"); checked: root.showHidden; onToggled: on => root.showHidden = on }
+            CheckBox { text: qsTr("Show file name extensions"); checked: root.showExtensions; onToggled: on => root.showExtensions = on }
+            CheckBox { text: qsTr("Use check boxes to select items"); checked: root.itemChecks; onToggled: on => root.itemChecks = on }
+            CheckBox { text: qsTr("Decrease space between items (compact view)"); checked: root.compactView; onToggled: on => root.compactView = on }
+            CheckBox { text: qsTr("Show the navigation pane"); checked: root.navVisible; onToggled: on => root.navVisible = on }
+        }
+    }
+    Dialog {
+        id: mapDialog
+        title: qsTr("Map Network Drive")
+        buttons: [{ text: qsTr("Connect"), accent: true, value: "connect" }, { text: qsTr("Cancel"), value: "cancel" }]
+        onChosen: value => { if (value === "connect") Ops.mapNetworkDrive(mapAddress.text) }
+        content: Row {
+            spacing: 12
+            Text { anchors.verticalCenter: parent.verticalCenter; text: qsTr("Address"); color: Theme.text; font.pixelSize: Theme.fontBody }
+            TextBox {
+                id: mapAddress
+                width: 320
+                Keys.onReturnPressed: mapDialog.close("connect")
+            }
+        }
     }
 
     // Rename several: one name for all, numbered "(1)", "(2)"...

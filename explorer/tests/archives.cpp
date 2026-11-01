@@ -100,6 +100,24 @@ private slots:
         m_dir.reset();
     }
 
+    // Redo takes an undo back: the folder goes away, returns and goes away again.
+    void redoReversesUndo()
+    {
+        const QString folder = m_ops->createFolder(path("."));
+        QVERIFY(QFileInfo(folder).isDir());
+        QCOMPARE(m_ops->redoText(), QString());
+        m_ops->undo();
+        if (QFileInfo::exists(folder)) {
+            QSKIP("no Recycle Bin on this disk");
+        }
+        QVERIFY(!m_ops->redoText().isEmpty());
+        m_ops->redo();
+        QVERIFY(QFileInfo(folder).isDir());
+        QVERIFY(m_ops->redoText().isEmpty());
+        m_ops->undo();
+        QVERIFY(!QFileInfo::exists(folder));
+    }
+
     // The double click and Enter extract next to the archive and Files goes
     // in: the returned folder must be it, with the content unpacked.
     void extractReturnsTheFolderAndUnpacks()

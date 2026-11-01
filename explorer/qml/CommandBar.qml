@@ -109,6 +109,14 @@ Item {
         }
         Item { width: 11; height: 24; Rectangle { anchors.horizontalCenter: parent.horizontalCenter; width: 1; height: 24; anchors.verticalCenter: parent.verticalCenter; color: Theme.divider } }
         ToolButton {
+            id: searchOptions
+            visible: !!bar.tab.model && bar.tab.model.search !== ""
+            icon.name: "search-filter"
+            text: qsTr("Search options")
+            menu: true
+            onClicked: bar.openMenu(bar.tab.searchEntries(), searchOptions)
+        }
+        ToolButton {
             id: moreButton
             icon.name: "view-more-horizontal-symbolic"
             icon.width: 20 // File Explorer's dots are 16 wide

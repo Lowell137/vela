@@ -97,6 +97,8 @@ set(FILES_QML_FILES
     qml/ProgressPanel.qml
     qml/ToolButton.qml
     qml/ItemCheck.qml
+    qml/GalleryPage.qml
+    qml/NetworkPage.qml
     qml/FileIcon.qml
     qml/RenameField.qml
     qml/TagDots.qml

@@ -143,6 +143,8 @@ QHash<int, QByteArray> FolderModel::roleNames() const
         { ModifiedRole, "modified" },
         { ModifiedTextRole, "modifiedText" },
         { TypeRole, "type" },
+        { GroupDateRole, "groupDate" },
+        { GroupSizeRole, "groupSize" },
         { IconRole, "iconName" },
         { ThumbnailRole, "hasThumbnail" },
         { SelectedRole, "selected" },
@@ -170,6 +172,32 @@ QVariant FolderModel::data(const QModelIndex& index, int role) const
     case ModifiedRole: return e.modified;
     case ModifiedTextRole: return QLocale().toString(e.modified, QStringLiteral("dd/MM/yyyy HH:mm"));
     case TypeRole: return e.type;
+    case GroupDateRole: {
+        const QDate today = QDate::currentDate();
+        const QDate day = e.modified.date();
+        const qint64 days = day.daysTo(today);
+        const int weekday = today.dayOfWeek();
+        const char* group = days <= 0 ? "Today"
+            : days == 1 ? "Yesterday"
+            : days < weekday ? "Earlier this week"
+            : days < weekday + 7 ? "Last week"
+            : day.year() == today.year() && day.month() == today.month() ? "Earlier this month"
+            : day.addMonths(1).month() == today.month() && day.addMonths(1).year() == today.year() ? "Last month"
+            : "A long time ago";
+        return QCoreApplication::translate("Files", group);
+    }
+    case GroupSizeRole: {
+        constexpr qint64 mb = 1024 * 1024;
+        const char* group = e.isDir ? "Unspecified"
+            : e.size == 0 ? "Empty"
+            : e.size < 16 * 1024 ? "Tiny"
+            : e.size < mb ? "Small"
+            : e.size < 128 * mb ? "Medium"
+            : e.size < 1024 * mb ? "Large"
+            : e.size < 4096 * mb ? "Huge"
+            : "Gigantic";
+        return QCoreApplication::translate("Files", group);
+    }
     case IconRole: {
         // "image-png|image-x-generic": the first one the theme has
         // (remembered).
@@ -227,6 +255,43 @@ void FolderModel::setSearch(const QString& search)
     m_search = search;
     emit searchChanged();
     start(false);
+}
+
+void FolderModel::stop()
+{
+    m_generation->fetch_add(1);
+    m_incoming.clear();
+    if (m_loading) {
+        m_loading = false;
+        emit loadingChanged();
+    }
+}
+
+void FolderModel::setFilterKind(const QString& kind)
+{
+    if (kind != m_filterKind) {
+        m_filterKind = kind;
+        emit viewChanged();
+        resort();
+    }
+}
+
+void FolderModel::setFilterDate(const QString& date)
+{
+    if (date != m_filterDate) {
+        m_filterDate = date;
+        emit viewChanged();
+        resort();
+    }
+}
+
+void FolderModel::setFilterSize(const QString& size)
+{
+    if (size != m_filterSize) {
+        m_filterSize = size;
+        emit viewChanged();
+        resort();
+    }
 }
 
 void FolderModel::reload()
@@ -536,6 +601,42 @@ bool FolderModel::isFiltered(const Entry& e) const
 {
     if (e.hidden && !m_showHidden) {
         return true;
+    }
+    if (!m_filterKind.isEmpty()) {
+        const bool document = e.icon.contains(QLatin1String("text-")) || e.icon.contains(QLatin1String("x-office"))
+            || e.icon.contains(QLatin1String("application-pdf")) || e.icon.contains(QLatin1String("application-vnd"));
+        const bool match = m_filterKind == QLatin1String("folder") ? e.isDir
+            : e.isDir ? false
+            : m_filterKind == QLatin1String("document") ? document
+            : e.icon.contains(m_filterKind + u'-');
+        if (!match) {
+            return true;
+        }
+    }
+    if (!m_filterDate.isEmpty()) {
+        const QDate today = QDate::currentDate();
+        const QDate day = e.modified.date();
+        const qint64 days = day.daysTo(today);
+        const QDate lastMonth = today.addMonths(-1);
+        const bool match = m_filterDate == QLatin1String("today") ? days == 0
+            : m_filterDate == QLatin1String("yesterday") ? days == 1
+            : m_filterDate == QLatin1String("thisweek") ? days >= 0 && days < today.dayOfWeek()
+            : m_filterDate == QLatin1String("lastweek") ? days >= today.dayOfWeek() && days < today.dayOfWeek() + 7
+            : m_filterDate == QLatin1String("thismonth") ? day.year() == today.year() && day.month() == today.month()
+            : m_filterDate == QLatin1String("lastmonth") ? day.year() == lastMonth.year() && day.month() == lastMonth.month()
+            : m_filterDate == QLatin1String("thisyear") ? day.year() == today.year()
+            : day.year() == today.year() - 1;
+        if (!match) {
+            return true;
+        }
+    }
+    if (!m_filterSize.isEmpty()) {
+        constexpr qint64 mb = 1024 * 1024;
+        const char* group = e.isDir ? "" : e.size == 0 ? "empty" : e.size < 16 * 1024 ? "tiny" : e.size < mb ? "small"
+            : e.size < 128 * mb ? "medium" : e.size < 1024 * mb ? "large" : e.size < 4096 * mb ? "huge" : "gigantic";
+        if (m_filterSize != QLatin1String(group)) {
+            return true;
+        }
     }
     if (m_dirsOnly) {
         return !e.isDir;

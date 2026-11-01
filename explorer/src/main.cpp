@@ -116,6 +116,8 @@ int main(int argc, char* argv[])
         start = QFileInfo(externalTransfer.directory).absoluteFilePath();
     } else if (args.size() == 2 && args.first() == QLatin1String("--pick") && picker.load(args.at(1))) {
         start = picker.startFolder();
+    } else if (!args.isEmpty() && QStringList { QStringLiteral("thispc:"), QStringLiteral("gallery:"), QStringLiteral("network:") }.contains(args.first())) {
+        start = args.first();
     } else if (!args.isEmpty()) {
         const QUrl url = QUrl::fromUserInput(args.first(), QDir::currentPath(), QUrl::AssumeLocalFile);
         const QFileInfo info(url.isLocalFile() ? url.toLocalFile() : args.first());

@@ -27,6 +27,7 @@ class FileOps : public QObject {
     Q_CLASSINFO("D-Bus Interface", "org.vela.Files.Transfers")
     Q_PROPERTY(bool canPaste READ canPaste NOTIFY clipboardChanged)
     Q_PROPERTY(QString undoText READ undoText NOTIFY undoChanged)
+    Q_PROPERTY(QString redoText READ redoText NOTIFY undoChanged)
     // [{id, title, done, total, current, finished, error}]
     Q_PROPERTY(QVariantList jobs READ jobs NOTIFY jobsChanged)
     Q_PROPERTY(QAbstractItemModel* jobModel READ jobModel CONSTANT)
@@ -39,6 +40,7 @@ public:
     bool canPaste() const;
     QSet<QString> cutPaths() const;
     QString undoText() const;
+    QString redoText() const;
     QVariantList jobs() const;
     QAbstractItemModel* jobModel() const;
     int activeJobCount() const;
@@ -100,6 +102,7 @@ public:
     Q_INVOKABLE QString extractAll(const QString& path);
 
     Q_INVOKABLE void undo();
+    Q_INVOKABLE void redo();
     Q_INVOKABLE void cancelJob(int id);
     Q_INVOKABLE void dismissJob(int id);
 
@@ -118,6 +121,18 @@ public:
     // What File Explorer offers on a selected picture.
     Q_INVOKABLE void setWallpaper(const QString& path);
     Q_INVOKABLE bool rotateImage(const QString& path, int degrees); // false: nothing changed
+    // Asks for the administrator's password (polkit), as Windows asks through UAC.
+    Q_INVOKABLE void takeOwnership(const QStringList& paths);
+    // Gallery: the newest pictures under Pictures, [{path, month}].
+    Q_INVOKABLE QVariantList galleryImages() const;
+    // Network: what is mounted, [{name, path}]; mounting goes through gio.
+    Q_INVOKABLE QVariantList networkLocations() const;
+    Q_INVOKABLE void mapNetworkDrive(const QString& address);
+    Q_INVOKABLE void disconnectNetwork(const QString& path);
+    Q_INVOKABLE void runAsAdmin(const QString& path);
+    Q_INVOKABLE bool isExecutable(const QString& path) const;
+    Q_INVOKABLE bool canPrint() const;
+    Q_INVOKABLE void print(const QStringList& paths);
     Q_INVOKABLE void chooseApp(const QString& path);
     Q_INVOKABLE void newShortcut(const QString& directory);
 
@@ -151,6 +166,7 @@ signals:
     void peekReady(const QString& path, const QVariantMap& result);
     void clipboardChanged();
     void undoChanged();
+    void networkChanged();
     void jobsChanged();
     // The destination already has something with the same name: the view asks.
     void conflict(int count, const QString& firstName, const QString& directory);
@@ -180,6 +196,7 @@ private:
     void publishJob(int id, bool snapshot = false) const;
     void publishRemoved(int id) const;
     void pushUndo(UndoStep step);
+    UndoStep applyStep(const UndoStep& step); // returns what takes it back
     void startTransfer(const Transfer& transfer, const QString& policy);
     void requestTransfer(const Transfer& transfer);
     void dropInternal(const QStringList& urls, const QString& directory, int action, bool fromDesktop);
@@ -188,6 +205,7 @@ private:
 
     AppModel* m_apps;
     QList<UndoStep> m_undo;
+    QList<UndoStep> m_redo;
     QList<std::shared_ptr<Job>> m_jobs;
     TransferJobsModel* m_jobModel = nullptr;
     int m_nextJob = 1;

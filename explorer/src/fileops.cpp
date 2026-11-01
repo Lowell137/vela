@@ -40,6 +40,8 @@
 #include <QSettings>
 #include <QScreen>
 #include <QStandardPaths>
+
+#include <unistd.h>
 #include <QWindow>
 #include <QThreadPool>
 #include <QStorageInfo>
@@ -1535,6 +1537,7 @@ QString FileOps::extractAll(const QString& path)
 
 void FileOps::pushUndo(UndoStep step)
 {
+    m_redo.clear();
     m_undo.append(std::move(step));
     if (m_undo.size() > 30) {
         m_undo.removeFirst();
@@ -1547,24 +1550,56 @@ QString FileOps::undoText() const
     return m_undo.isEmpty() ? QString() : m_undo.last().label;
 }
 
+QString FileOps::redoText() const
+{
+    return m_redo.isEmpty() ? QString() : m_redo.last().label;
+}
+
 void FileOps::undo()
 {
     if (m_undo.isEmpty()) {
         return;
     }
-    const UndoStep step = m_undo.takeLast();
+    const UndoStep inverse = applyStep(m_undo.takeLast());
+    if (!inverse.moves.isEmpty() || !inverse.created.isEmpty() || !inverse.trashed.isEmpty()) {
+        m_redo.append(inverse);
+    }
     emit undoChanged();
+}
+
+void FileOps::redo()
+{
+    if (m_redo.isEmpty()) {
+        return;
+    }
+    const UndoStep inverse = applyStep(m_redo.takeLast());
+    if (!inverse.moves.isEmpty() || !inverse.created.isEmpty() || !inverse.trashed.isEmpty()) {
+        m_undo.append(inverse);
+    }
+    emit undoChanged();
+}
+
+FileOps::UndoStep FileOps::applyStep(const UndoStep& step)
+{
+    UndoStep inverse;
+    inverse.label = step.label;
     for (const auto& [current, original] : step.moves) {
         if (!QFileInfo::exists(original)) {
             QDir().mkpath(QFileInfo(original).absolutePath());
-            if (!QFile::rename(current, original)) {
+            if (QFile::rename(current, original)) {
+                inverse.moves.append({ original, current });
+            } else {
                 // Between different disks: brought back by copying.
                 startTransfer({ { current }, QFileInfo(original).absolutePath(), true }, QStringLiteral("keep"));
             }
         }
     }
     for (const QString& path : step.created) {
-        QFile::moveToTrash(path);
+        QString inTrash;
+        if (QFile::moveToTrash(path, &inTrash)) {
+            inverse.trashed.append(inTrash);
+            inverse.originals.append(path);
+        }
     }
     for (qsizetype i = 0; i < step.trashed.size(); ++i) {
         // From the Recycle Bin (…/Trash/files/name) back to its place, without
@@ -1574,8 +1609,96 @@ void FileOps::undo()
             const QFileInfo info(inTrash);
             QFile::remove(info.absoluteDir().absoluteFilePath(
                 QStringLiteral("../info/") + info.fileName() + QStringLiteral(".trashinfo")));
+            inverse.created.append(step.originals.at(i));
         }
     }
+    return inverse;
+}
+
+QVariantList FileOps::galleryImages() const
+{
+    struct Picture {
+        QString path;
+        QDateTime modified;
+    };
+    QList<Picture> pictures;
+    const QStringList globs { QStringLiteral("*.jpg"), QStringLiteral("*.jpeg"), QStringLiteral("*.png"),
+        QStringLiteral("*.webp"), QStringLiteral("*.gif"), QStringLiteral("*.bmp") };
+    QDirIterator it(QStandardPaths::writableLocation(QStandardPaths::PicturesLocation), globs, QDir::Files, QDirIterator::Subdirectories);
+    while (it.hasNext() && pictures.size() < 20000) {
+        it.next();
+        pictures.append({ it.filePath(), it.fileInfo().lastModified() });
+    }
+    std::sort(pictures.begin(), pictures.end(), [](const Picture& a, const Picture& b) { return a.modified > b.modified; });
+    QVariantList out;
+    for (const Picture& picture : std::as_const(pictures).first(std::min<qsizetype>(pictures.size(), 500))) {
+        out.append(QVariantMap { { QStringLiteral("path"), picture.path },
+            { QStringLiteral("month"), QLocale().toString(picture.modified.date(), QStringLiteral("MMMM yyyy")) } });
+    }
+    return out;
+}
+
+QVariantList FileOps::networkLocations() const
+{
+    QVariantList out;
+    const QStringList kinds { QStringLiteral("cifs"), QStringLiteral("smb3"), QStringLiteral("nfs"), QStringLiteral("nfs4"),
+        QStringLiteral("fuse.sshfs"), QStringLiteral("davfs") };
+    for (const QStorageInfo& volume : QStorageInfo::mountedVolumes()) {
+        if (kinds.contains(QString::fromLatin1(volume.fileSystemType()))) {
+            out.append(QVariantMap { { QStringLiteral("name"), volume.displayName() }, { QStringLiteral("path"), volume.rootPath() } });
+        }
+    }
+    const QDir gvfs(QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation) + QStringLiteral("/gvfs"));
+    for (const QFileInfo& share : gvfs.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot)) {
+        out.append(QVariantMap { { QStringLiteral("name"), share.fileName() }, { QStringLiteral("path"), share.absoluteFilePath() } });
+    }
+    return out;
+}
+
+void FileOps::mapNetworkDrive(const QString& address)
+{
+    const QString text = address.trimmed();
+    if (text.isEmpty()) {
+        return;
+    }
+    const QString uri = text.contains(QLatin1String("://")) ? text : QStringLiteral("smb://") + text;
+    const QString failure = QCoreApplication::translate("Files", "Couldn't connect to \"%1\".").arg(text);
+    auto* process = new QProcess(this);
+    connect(process, &QProcess::finished, this, [this, process, failure](int code, QProcess::ExitStatus status) {
+        const QString err = QString::fromUtf8(process->readAllStandardError()).trimmed();
+        process->deleteLater();
+        if (status != QProcess::NormalExit || code != 0) {
+            emit failed(err.isEmpty() ? failure : failure + u' ' + err);
+        }
+        emit networkChanged();
+    });
+    connect(process, &QProcess::errorOccurred, this, [this, process, failure](QProcess::ProcessError error) {
+        if (error == QProcess::FailedToStart) {
+            process->deleteLater();
+            emit failed(failure);
+        }
+    });
+    process->start(QStringLiteral("gio"), { QStringLiteral("mount"), uri });
+}
+
+void FileOps::disconnectNetwork(const QString& path)
+{
+    const QString failure = QCoreApplication::translate("Files", "Couldn't disconnect \"%1\".").arg(QFileInfo(path).fileName());
+    auto* process = new QProcess(this);
+    connect(process, &QProcess::finished, this, [this, process, failure](int code, QProcess::ExitStatus status) {
+        process->deleteLater();
+        if (status != QProcess::NormalExit || code != 0) {
+            emit failed(failure);
+        }
+        emit networkChanged();
+    });
+    connect(process, &QProcess::errorOccurred, this, [this, process, failure](QProcess::ProcessError error) {
+        if (error == QProcess::FailedToStart) {
+            process->deleteLater();
+            emit failed(failure);
+        }
+    });
+    process->start(QStringLiteral("gio"), { QStringLiteral("mount"), QStringLiteral("-u"), path });
 }
 
 static void sendShellFileDialog(const QByteArray& action, const QStringList& paths)
@@ -1795,6 +1918,54 @@ QString FileOps::previewText(const QString& path) const
     QString text = QString::fromUtf8(file.read(32 * 1024));
     text.replace(u'\t', QStringLiteral("    "));
     return text.isEmpty() ? QStringLiteral(" ") : text;
+}
+
+void FileOps::takeOwnership(const QStringList& paths)
+{
+    if (paths.isEmpty()) {
+        return;
+    }
+    const QString failure = QCoreApplication::translate("Files", "Couldn't take ownership.");
+    auto* process = new QProcess(this);
+    connect(process, &QProcess::finished, this, [this, process, failure](int code, QProcess::ExitStatus status) {
+        process->deleteLater();
+        if (status != QProcess::NormalExit || code != 0) {
+            emit failed(failure);
+        }
+    });
+    connect(process, &QProcess::errorOccurred, this, [this, process, failure](QProcess::ProcessError error) {
+        if (error == QProcess::FailedToStart) {
+            process->deleteLater();
+            emit failed(failure);
+        }
+    });
+    const QString owner = QString::number(getuid()) + u':' + QString::number(getgid());
+    process->start(QStringLiteral("pkexec"), QStringList { QStringLiteral("chown"), QStringLiteral("-R"), owner, QStringLiteral("--") } + paths);
+}
+
+void FileOps::runAsAdmin(const QString& path)
+{
+    if (!runDetached(QStringLiteral("pkexec"), { path }, QFileInfo(path).absolutePath())) {
+        emit failed(QCoreApplication::translate("Files", "Couldn't run \"%1\" as administrator.").arg(QFileInfo(path).fileName()));
+    }
+}
+
+bool FileOps::isExecutable(const QString& path) const
+{
+    const QFileInfo info(path);
+    return info.isFile() && info.isExecutable();
+}
+
+bool FileOps::canPrint() const
+{
+    return !QStandardPaths::findExecutable(QStringLiteral("lp")).isEmpty();
+}
+
+void FileOps::print(const QStringList& paths)
+{
+    if (!runDetached(QStringLiteral("lp"), QStringList { QStringLiteral("--") } + paths, QString())) {
+        emit failed(QCoreApplication::translate("Files", "Couldn't print."));
+    }
 }
 
 bool FileOps::isImage(const QString& path) const

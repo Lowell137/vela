@@ -24,6 +24,10 @@ class FolderModel : public QAbstractListModel {
     Q_PROPERTY(QString path READ path WRITE setPath NOTIFY pathChanged)
     Q_PROPERTY(QString search READ search WRITE setSearch NOTIFY searchChanged)
     Q_PROPERTY(bool loading READ loading NOTIFY loadingChanged)
+    // File Explorer's search options; "" is any.
+    Q_PROPERTY(QString filterKind READ filterKind WRITE setFilterKind NOTIFY viewChanged)
+    Q_PROPERTY(QString filterDate READ filterDate WRITE setFilterDate NOTIFY viewChanged)
+    Q_PROPERTY(QString filterSize READ filterSize WRITE setFilterSize NOTIFY viewChanged)
     Q_PROPERTY(bool exists READ exists NOTIFY pathChanged)
     Q_PROPERTY(int count READ count NOTIFY countChanged)
     Q_PROPERTY(bool showHidden READ showHidden WRITE setShowHidden NOTIFY viewChanged)
@@ -58,6 +62,8 @@ public:
         LocationRole, // the folder containing it (search results)
         CutRole, // cut (on the clipboard): shown faded
         TagsRole, // "red,blue": the file's tags
+        GroupDateRole, // File Explorer's groups: "Today", "Last week"...
+        GroupSizeRole, // "Small", "Large"...
     };
 
     struct Entry {
@@ -98,7 +104,15 @@ public:
     bool sortDescending() const { return m_sortDescending; }
     Q_INVOKABLE void sortBy(int column, bool descending);
 
+    QString filterKind() const { return m_filterKind; }
+    QString filterDate() const { return m_filterDate; }
+    QString filterSize() const { return m_filterSize; }
+    void setFilterKind(const QString& kind);
+    void setFilterDate(const QString& date);
+    void setFilterSize(const QString& size);
+
     Q_INVOKABLE void reload();
+    Q_INVOKABLE void stop(); // what has arrived stays, the rest is dropped
     Q_INVOKABLE QString pathAt(int row) const;
     Q_INVOKABLE bool isDirAt(int row) const;
     Q_INVOKABLE int indexOf(const QString& path) const;
@@ -156,6 +170,9 @@ private:
     bool m_loading = false;
     bool m_exists = true;
     bool m_showHidden = false;
+    QString m_filterKind;
+    QString m_filterDate;
+    QString m_filterSize;
     QStringList m_nameFilters;
     QList<QRegularExpression> m_filterPatterns;
     bool m_dirsOnly = false;
