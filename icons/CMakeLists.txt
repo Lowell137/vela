@@ -8,6 +8,11 @@ foreach(icon IN LISTS VELA_ICON_FILES)
     string(REPLACE "#212121" "#f3f3f6" content "${content}")
     file(WRITE ${VELA_DARK_DIR}/${icon} "${content}")
 endforeach()
+# File Explorer's icons have their own dark drawings.
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/vela-dark/ DESTINATION ${VELA_DARK_DIR})
+# The Windows icons, drawn for each size, are the same in both themes.
+file(GLOB VELA_FIXED_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/vela/*x*)
+file(COPY ${VELA_FIXED_DIRS} DESTINATION ${VELA_DARK_DIR})
 file(READ ${CMAKE_CURRENT_SOURCE_DIR}/vela/index.theme index)
 string(REPLACE "Name=Vela" "Name=Vela (dark)" index "${index}")
 string(REPLACE "Inherits=Reversal-orange,Reversal-blue,Reversal-green,Fluent,breeze," "Inherits=Reversal-orange-dark,Reversal-blue-dark,Reversal-green-dark,Fluent-dark,Fluent,breeze-dark,breeze," index "${index}")

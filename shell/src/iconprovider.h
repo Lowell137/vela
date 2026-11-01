@@ -187,7 +187,7 @@ public:
         // and the icon, shrunk on screen, would get blurry (especially at
         // fractional scales such as 125%).
         QPixmap pixmap;
-        if (extent < m_designSize) {
+        if (extent < m_designSize && !icon.availableSizes().contains(QSize(extent, extent))) {
             pixmap = icon.pixmap(QSize(m_designSize, m_designSize), 1.0)
                          .scaled(extent, extent, Qt::KeepAspectRatio, Qt::SmoothTransformation);
         } else {
