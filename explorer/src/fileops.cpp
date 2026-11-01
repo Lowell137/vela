@@ -25,6 +25,9 @@
 #include <QFileInfo>
 #include <QGuiApplication>
 #include <QImageReader>
+#include <QImageWriter>
+#include <QSaveFile>
+#include <QTransform>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -1612,6 +1615,42 @@ static void sendShellFileDialog(const QByteArray& action, const QStringList& pat
 void FileOps::showProperties(const QStringList& paths)
 {
     sendShellFileDialog("properties", paths);
+}
+
+void FileOps::setWallpaper(const QString& path)
+{
+    // The keys of Settings > Personalization > Background (settings/src/preferences.cpp).
+    QSettings settings(QStringLiteral("Vela"), QStringLiteral("vela-shell"));
+    QStringList recent = settings.value(QStringLiteral("appearance/recentWallpapers")).toStringList();
+    recent.removeAll(path);
+    recent.prepend(path);
+    while (recent.size() > 5) {
+        recent.removeLast();
+    }
+    settings.setValue(QStringLiteral("appearance/wallpaper"), path);
+    settings.setValue(QStringLiteral("appearance/recentWallpapers"), recent);
+}
+
+bool FileOps::rotateImage(const QString& path, int degrees)
+{
+    QImageReader reader(path);
+    reader.setAutoTransform(true); // an EXIF orientation is not kept: apply it
+    const QByteArray format = reader.format();
+    const QImage image = reader.read();
+    if (image.isNull() || !QImageWriter::supportedImageFormats().contains(format)) {
+        return false;
+    }
+    QSaveFile file(path); // the original stays if anything fails
+    if (!file.open(QIODevice::WriteOnly)) {
+        return false;
+    }
+    QImageWriter writer(&file, format);
+    writer.setQuality(100);
+    if (!writer.write(image.transformed(QTransform().rotate(degrees)))) {
+        file.cancelWriting();
+        return false;
+    }
+    return file.commit();
 }
 
 void FileOps::share(const QStringList& paths)

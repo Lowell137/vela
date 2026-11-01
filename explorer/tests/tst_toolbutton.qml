@@ -51,7 +51,7 @@ Item {
         }
 
         function test_size_and_content() {
-            compare(copy.width, 32)
+            compare(copy.width, 40)
             compare(copy.height, 32)
             verify(sort.width > 60)
             const content = sort.contentItem.children[0]

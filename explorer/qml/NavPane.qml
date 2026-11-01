@@ -12,14 +12,29 @@ import Vela.Controls
 Flickable {
     id: pane
     property string current // the open location, to highlight it
+    property string focused // the entry last clicked, with File Explorer's focus ring
     signal navigate(string location)
     signal openInNewTab(string location)
     signal openVolume(string volume) // an unmounted drive: mounted and opened
     signal contextMenu(var entries, real x, real y)
 
+    property bool computerOpen: false
     contentHeight: column.height + 16
     clip: true
     boundsBehavior: Flickable.StopAtBounds
+
+    // A line between the groups: 17 below one, 15 above the next.
+    component GroupLine: Item {
+        width: parent.width
+        height: 33
+        Rectangle {
+            x: 8
+            y: 17
+            width: parent.width - 16
+            height: 1
+            color: Theme.filesLine
+        }
+    }
 
     component Entry: Fill {
         id: entry
@@ -27,6 +42,8 @@ Flickable {
         property string label
         property string location
         property bool pinned: false
+        property bool expandable: false
+        property bool expanded: false
         property string volume: "" // unmounted drive (udisks)
         property string device: "" // mounted removable drive: it can be ejected
         property bool droppable: location.startsWith("/")
@@ -38,12 +55,34 @@ Flickable {
         width: column.width
         height: 32
         radius: Theme.radius
-        color: drop.containsDrag && pinDrop === 0 ? Theme.selectionHover : selected ? Theme.selection : mouse.containsMouse ? Theme.subtleHover : Theme.subtleRest
+        color: drop.containsDrag && pinDrop === 0 ? Theme.selectionHover : selected ? (pane.focused === location ? Theme.filesItemSelected : Theme.filesNavSelected) : mouse.containsMouse ? Theme.subtleHover : Theme.subtleRest
+        border.width: selected && pane.focused === location ? 1 : 0
+        border.color: Theme.filesFocus
+        animated: false
 
         onSelectedChanged: navIndicator.track(entry, selected)
         Component.onCompleted: navIndicator.track(entry, selected)
+        // The tree's arrow, in the gutter: opens and closes what is below.
+        Item {
+            visible: entry.expandable
+            x: 2 + entry.indent
+            width: 28
+            height: parent.height
+            z: 2
+            Chevron {
+                anchors.centerIn: parent
+                down: entry.expanded
+                color: Theme.textSecondary
+            }
+            MouseArea {
+                anchors.fill: parent
+                onClicked: pane.computerOpen = !pane.computerOpen
+            }
+        }
+        // File Explorer's, measured: 34 and 55 from the pane's edge (the gutter is
+        // its tree's), rows touching, a 12 pin.
         Image {
-            x: 12 + entry.indent
+            x: 32 + entry.indent
             anchors.verticalCenter: parent.verticalCenter
             width: 16
             height: 16
@@ -51,20 +90,21 @@ Flickable {
             sourceSize: Qt.size(width, height)
         }
         Text {
-            x: 38 + entry.indent
+            x: 53 + entry.indent
             width: parent.width - x - (entry.pinned ? 28 : 8)
             anchors.verticalCenter: parent.verticalCenter
             text: entry.label
             color: Theme.text
-            font.pixelSize: Theme.fontBody
+            font.pixelSize: Theme.fontCaption
             elide: Text.ElideRight
         }
-        Text {
+        Image {
             visible: entry.pinned
-            anchors { right: parent.right; rightMargin: 10; verticalCenter: parent.verticalCenter }
-            text: "\u{1F4CC}"
-            font.pixelSize: 10
-            opacity: 0.55
+            anchors { right: parent.right; rightMargin: 2; verticalCenter: parent.verticalCenter }
+            width: 16 // Windows' own 16 pixel drawing
+            height: 16
+            source: "image://fileicon/view-pin"
+            sourceSize: Qt.size(width, height)
         }
         Rectangle {
             visible: entry.pinDrop !== 0
@@ -103,6 +143,7 @@ Flickable {
                 } else if (entry.volume !== "") {
                     pane.openVolume(entry.volume)
                 } else {
+                    pane.focused = entry.location
                     pane.navigate(entry.location)
                 }
             }
@@ -166,13 +207,11 @@ Flickable {
 
     Column {
         id: column
-        x: 8
-        y: 8
-        width: pane.width - 16
-        spacing: 2
+        x: 2
+        y: 0
+        width: pane.width - 19
+        spacing: 0
 
-        Entry { icon: "folder"; label: qsTr("Home"); location: "home:" }
-        Item { width: 1; height: 8 }
         Repeater {
             model: Places.quickAccess
             delegate: Entry {
@@ -184,8 +223,9 @@ Flickable {
                 opacity: dragging ? 0.5 : 1
             }
         }
-        Rectangle { width: parent.width; height: 1; color: Theme.divider }
-        Entry { icon: "computer"; label: qsTr("This PC"); location: "thispc:" }
+        Entry { icon: "user-trash"; label: qsTr("Recycle Bin"); location: Places.trash; pinned: true }
+        GroupLine {}
+        Entry { icon: "computer"; label: qsTr("This PC"); location: "thispc:"; expandable: true; expanded: pane.computerOpen }
         Repeater {
             model: Places.drives
             delegate: Entry {
@@ -196,14 +236,15 @@ Flickable {
                 volume: modelData.volume || ""
                 device: modelData.mounted && modelData.removable ? modelData.device : ""
                 opacity: modelData.mounted ? 1 : 0.7
+                visible: pane.computerOpen
                 indent: 16
             }
         }
-        Entry { icon: "user-home"; label: Places.userName; location: Places.home; indent: 16 }
-        Rectangle { width: parent.width; height: 1; color: Theme.divider }
-        Entry { icon: "user-trash"; label: qsTr("Recycle Bin"); location: Places.trash }
+        Entry { icon: "user-home"; label: Places.userName; location: Places.home; indent: 16; visible: pane.computerOpen }
+        Entry { icon: "network-workgroup"; label: qsTr("Network"); location: "network:" }
     }
 
     // The open location's pill: it slides between entries.
-    NavIndicator { id: navIndicator; animated: Theme.filesPillAnimation }
+    // File Explorer marks the selected row with its fill alone: no accent bar.
+    NavIndicator { id: navIndicator; visible: false; animated: Theme.filesPillAnimation }
 }

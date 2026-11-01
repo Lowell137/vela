@@ -18,9 +18,10 @@ Item {
     readonly property bool isFolder: location.startsWith("/")
     readonly property bool isTrash: location === Places.trash
     readonly property bool writable: isFolder && !isTrash
-    readonly property string title: location === "home:" ? qsTr("Home") : location === "thispc:" ? qsTr("This PC") : Places.displayName(location)
-    readonly property string icon: location === "home:" ? "folder" : location === "thispc:" ? "computer" : Places.iconFor(location)
+    readonly property string title: location === "home:" ? qsTr("Home") : location === "thispc:" ? qsTr("This PC") : location === "network:" ? qsTr("Network") : Places.displayName(location)
+    readonly property string icon: location === "home:" ? "user-home" : location === "thispc:" ? "computer" : location === "network:" ? "network-workgroup" : Places.iconFor(location)
     readonly property var model: isFolder ? folder : null
+    readonly property bool loading: isFolder && folder.loading
     readonly property bool showHidden: win.showHidden
     readonly property string viewMode: isFolder ? win.viewModeFor(location) : "details"
     property bool viewFocused: keys.activeFocus
@@ -108,6 +109,7 @@ Item {
     property int pendingSingle: -1
     function pressItem(row, button, modifiers) {
         focusView()
+        nav.focused = ""
         if (button === Qt.RightButton || button === Qt.MiddleButton) {
             if (!folder.isSelected(row)) { folder.select(row); anchorRow = row }
             return
@@ -219,7 +221,7 @@ Item {
         win.confirm(qsTr("Empty the Recycle Bin?"), qsTr("All the items in the Recycle Bin will be permanently deleted."), qsTr("Empty"), () => Ops.emptyTrash())
     }
     function zoom(delta) {
-        const modes = ["details", "small", "medium", "large"]
+        const modes = ["details", "list", "small", "medium", "large", "extralarge"]
         const i = Math.max(0, Math.min(modes.length - 1, modes.indexOf(viewMode) + delta))
         win.setViewMode(location, modes[i])
     }
@@ -276,16 +278,25 @@ Item {
     function viewEntries() {
         const mode = (text, value, shortcut, icon) => ({ text: text, icon: icon, radio: true, checked: viewMode === value, shortcut: shortcut, action: () => win.setViewMode(page.location, value) })
         return [
-            mode(qsTr("&Large icons"), "large", qsTr("Ctrl+Shift+2"), "view-list-icons"),
-            mode(qsTr("&Medium icons"), "medium", qsTr("Ctrl+Shift+3"), "view-list-icons"),
-            mode(qsTr("&Small icons"), "small", qsTr("Ctrl+Shift+4"), "view-list-text"),
+            mode(qsTr("E&xtra large icons"), "extralarge", qsTr("Ctrl+Shift+1"), "view-extra-large"),
+            mode(qsTr("&Large icons"), "large", qsTr("Ctrl+Shift+2"), "view-large"),
+            mode(qsTr("&Medium icons"), "medium", qsTr("Ctrl+Shift+3"), "view-medium"),
+            mode(qsTr("&Small icons"), "small", qsTr("Ctrl+Shift+4"), "view-small"),
+            mode(qsTr("L&ist"), "list", qsTr("Ctrl+Shift+5"), "view-list-text"),
             mode(qsTr("&Details"), "details", qsTr("Ctrl+Shift+6"), "view-list-details"),
+            mode(qsTr("&Tiles"), "tiles", qsTr("Ctrl+Shift+7"), "view-tiles"),
+            mode(qsTr("&Content"), "content", qsTr("Ctrl+Shift+8"), "view-content"),
+            { separator: true },
+            { text: qsTr("C&ompact view"), icon: "view-compact", checked: win.compactView, action: () => win.compactView = !win.compactView },
             { separator: true },
             { text: qsTr("S&how"), icon: "view-visible", children: [
-                { text: qsTr("&Preview pane"), checked: win.pane === "preview", shortcut: "Alt+P", action: () => win.togglePane("preview") },
+                { text: qsTr("&Navigation pane"), icon: "view-nav-pane", checked: win.navVisible, action: () => win.navVisible = !win.navVisible },
+                { text: qsTr("&Preview pane"), icon: "view-preview", checked: win.pane === "preview", shortcut: "Alt+P", action: () => win.togglePane("preview") },
                 { text: qsTr("&Details pane"), checked: win.pane === "details", shortcut: qsTr("Alt+Shift+P"), action: () => win.togglePane("details") },
                 { separator: true },
-                { text: qsTr("&Hidden items"), checked: page.showHidden, shortcut: "Ctrl+H", action: () => win.showHidden = !win.showHidden }
+                { text: qsTr("Item &check boxes"), icon: "view-checkboxes", checked: win.itemChecks, action: () => win.itemChecks = !win.itemChecks },
+                { text: qsTr("File name e&xtensions"), icon: "view-extensions", checked: win.showExtensions, action: () => win.showExtensions = !win.showExtensions },
+                { text: qsTr("&Hidden items"), icon: "view-hidden", checked: page.showHidden, shortcut: "Ctrl+H", action: () => win.showHidden = !win.showHidden }
             ] }
         ]
     }
@@ -321,11 +332,11 @@ Item {
         const singleDir = single !== "" && folder.isDirAt(folder.indexOf(single))
         const files = paths.filter(p => !folder.isDirAt(folder.indexOf(p)))
         const entries = [{ iconRow: [
-            { icon: "edit-cut", text: qsTr("Cut"), action: () => Ops.cut(paths) },
-            { icon: "edit-copy", text: qsTr("Copy"), action: () => Ops.copy(paths) },
-            { icon: "edit-rename", text: qsTr("Rename"), enabled: writable, action: () => single !== "" ? page.renamingPath = single : page.renameSelection() },
-            { icon: "document-share", text: qsTr("Share"), enabled: files.length > 0, action: () => Ops.share(files) },
-            { icon: "edit-delete", text: qsTr("Delete"), action: () => Ops.trash(paths) }
+            { icon: "edit-cut", text: qsTr("Cut"), shortcut: qsTr("Ctrl+X"), action: () => Ops.cut(paths) },
+            { icon: "edit-copy", text: qsTr("Copy"), shortcut: qsTr("Ctrl+C"), action: () => Ops.copy(paths) },
+            { icon: "edit-rename", text: qsTr("Rename"), shortcut: qsTr("F2"), enabled: writable, action: () => single !== "" ? page.renamingPath = single : page.renameSelection() },
+            ...(files.length > 0 ? [{ icon: "document-share", text: qsTr("Share"), action: () => Ops.share(files) }] : []),
+            { icon: "edit-delete", text: qsTr("Delete"), shortcut: qsTr("Del"), action: () => Ops.trash(paths) }
         ] }]
         entries.push({ text: qsTr("&Open"), icon: "document-open", shortcut: qsTr("Enter"), action: () => page.openSelection() })
         if (singleDir) {
@@ -482,6 +493,9 @@ Item {
             else if (!page.isFolder) event.accepted = false
             else if (ctrl && shift && event.key === Qt.Key_N) Ops.createFolder(page.location)
             else if (ctrl && shift && event.key === Qt.Key_C) Ops.copyAsPath(folder.selectedPaths())
+            // By the physical key: Shift turns the digit into another symbol on many layouts.
+            else if (ctrl && shift && event.nativeScanCode >= 10 && event.nativeScanCode <= 17)
+                win.setViewMode(page.location, ["extralarge", "large", "medium", "small", "list", "details", "tiles", "content"][event.nativeScanCode - 10])
             else if (ctrl && shift && event.key === Qt.Key_2) win.setViewMode(page.location, "large")
             else if (ctrl && shift && event.key === Qt.Key_3) win.setViewMode(page.location, "medium")
             else if (ctrl && shift && event.key === Qt.Key_4) win.setViewMode(page.location, "small")
@@ -545,6 +559,28 @@ Item {
     }
 
     // --- look ---
+    // The bands, measured on File Explorer: address row 48, a line, command
+    // bar 45, a line, then the panes and a 24 status bar.
+    Rectangle {
+        anchors { left: parent.left; right: parent.right; top: parent.top; bottom: addressBar.bottom }
+        color: Theme.filesToolbar
+    }
+    Rectangle {
+        id: addressLine
+        anchors { left: parent.left; right: parent.right; top: addressBar.bottom }
+        height: 1
+        color: Theme.filesLine
+    }
+    Rectangle {
+        anchors.fill: commandBar
+        color: Theme.filesCommandBar
+    }
+    Rectangle {
+        id: commandLine
+        anchors { left: parent.left; right: parent.right; top: commandBar.bottom }
+        height: 1
+        color: Theme.filesLine
+    }
     AddressBar {
         id: addressBar
         tab: page
@@ -553,20 +589,22 @@ Item {
     CommandBar {
         id: commandBar
         tab: page
-        anchors { left: parent.left; right: parent.right; top: addressBar.bottom }
+        height: 45
+        anchors { left: parent.left; right: parent.right; top: addressLine.bottom }
     }
     Rectangle {
-        anchors { left: parent.left; right: parent.right; top: commandBar.bottom; bottom: parent.bottom }
-        color: Theme.layer
-        topLeftRadius: Theme.radiusOverlay
-        topRightRadius: Theme.radiusOverlay
-        border.width: 1
+        anchors { left: parent.left; right: parent.right; top: commandLine.bottom; bottom: parent.bottom }
+        color: Theme.filesContent
+        topLeftRadius: Theme.light ? Theme.radiusOverlay : 0
+        topRightRadius: Theme.light ? Theme.radiusOverlay : 0
+        border.width: Theme.light ? 1 : 0
         border.color: Theme.layerStroke
 
         NavPane {
             id: nav
             anchors { left: parent.left; top: parent.top; bottom: statusBar.top }
-            width: page.win.navWidth
+            visible: page.win.navVisible
+            width: visible ? page.win.navWidth : 0
             current: page.location
             onNavigate: location => page.navigate(location)
             onOpenInNewTab: location => page.openInNewTab(location)
@@ -578,7 +616,7 @@ Item {
             id: splitter
             anchors { left: nav.right; top: parent.top; bottom: statusBar.top }
             width: 1
-            color: Theme.divider
+            color: Theme.filesSplitter
             MouseArea {
                 anchors { fill: parent; leftMargin: -4; rightMargin: -4 }
                 cursorShape: Qt.SplitHCursor
@@ -593,6 +631,7 @@ Item {
             anchors { left: splitter.right; right: sidePane.visible ? paneSplitter.left : parent.right; top: parent.top; bottom: statusBar.top }
             sourceComponent: page.location === "home:" ? homeComponent
                 : page.location === "thispc:" ? thisPcComponent
+                : page.location === "network:" ? networkComponent
                 : page.viewMode === "details" ? detailsComponent : iconComponent
         }
         // The preview or details pane, on the right (widened by dragging its
@@ -602,7 +641,7 @@ Item {
             visible: sidePane.visible
             anchors { right: sidePane.left; top: parent.top; bottom: statusBar.top }
             width: 1
-            color: Theme.divider
+            color: Theme.filesSplitter
             MouseArea {
                 anchors { fill: parent; leftMargin: -4; rightMargin: -4 }
                 cursorShape: Qt.SplitHCursor
@@ -616,7 +655,7 @@ Item {
         }
         PreviewPane {
             id: sidePane
-            visible: page.win.pane !== "" && page.location !== "home:" && page.location !== "thispc:"
+            visible: page.win.pane !== "" && page.location !== "home:" && page.location !== "thispc:" && page.location !== "network:"
             anchors { right: parent.right; top: parent.top; bottom: statusBar.top }
             width: page.win.paneWidth
             tab: page
@@ -626,10 +665,28 @@ Item {
         Component { id: homeComponent; HomePage { tab: page } }
         Component { id: thisPcComponent; ThisPcPage { tab: page } }
         Component { id: detailsComponent; DetailsView { tab: page } }
+        // Browsing the network isn't there yet: it says so instead of showing an error.
+        Component {
+            id: networkComponent
+            Item {
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    y: 24
+                    text: qsTr("Network browsing isn't available yet.")
+                    color: Theme.textSecondary
+                    font.pixelSize: Theme.fontCaption
+                }
+            }
+        }
         Component { id: iconComponent; IconView { tab: page; mode: page.viewMode } }
 
+        Rectangle {
+            anchors.fill: statusBar
+            color: Theme.filesStatus
+        }
         StatusBar {
             id: statusBar
+            height: 24
             anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
             model: page.model
             viewMode: page.viewMode

@@ -16,7 +16,7 @@ Window {
     minimumWidth: 640
     minimumHeight: 420
     visible: true
-    color: Theme.background
+    color: Theme.filesStrip // File Explorer keeps its colors when it loses the focus
     title: picking ? (Pick.title !== "" ? Pick.title : qsTr("File Explorer"))
         : current ? current.title + qsTr(" - File Explorer") : qsTr("File Explorer")
 
@@ -39,11 +39,24 @@ Window {
         id: settings
         property string viewModes: "{}" // folder -> view
         property bool showHidden: false
-        property real navWidth: 240
+        property bool showExtensions: true
+        property bool itemChecks: false
+        property bool compactView: false
+        property bool navVisible: true
+        property real navWidth: 205
         property string pane: "" // on the right: "", "preview" or "details"
-        property real paneWidth: 320
+        property real paneWidth: 313
     }
     property alias showHidden: settings.showHidden
+    property alias showExtensions: settings.showExtensions
+    property alias itemChecks: settings.itemChecks
+    property alias compactView: settings.compactView
+    property alias navVisible: settings.navVisible
+    // With "File name extensions" off, a file shows its name without them.
+    function displayName(name, isDir) {
+        const dot = name.lastIndexOf(".")
+        return showExtensions || isDir || dot <= 0 ? name : name.slice(0, dot)
+    }
     property alias navWidth: settings.navWidth
     property alias pane: settings.pane
     property alias paneWidth: settings.paneWidth
@@ -89,6 +102,14 @@ Window {
             return
         }
         currentIndex = Math.min(currentIndex, tabs.length - 1)
+    }
+    function moveTab(from, to) {
+        if (from === to) return
+        const open = current
+        const copy = tabs.slice()
+        copy.splice(to, 0, copy.splice(from, 1)[0])
+        tabs = copy
+        currentIndex = tabs.indexOf(open)
     }
     onCurrentIndexChanged: if (current) current.focusView()
     Component.onCompleted: newTab(StartLocation, StartSelection)
@@ -137,8 +158,11 @@ Window {
     Item {
         id: strip
         anchors { left: parent.left; right: parent.right; top: parent.top }
-        height: root.visibility === Window.FullScreen ? 0 : 40
+        height: root.visibility === Window.FullScreen ? 0 : 38
         visible: height > 0
+
+        Rectangle { anchors.fill: parent; color: Theme.filesStrip }
+        Rectangle { anchors { left: parent.left; right: parent.right; bottom: parent.bottom } height: 1; color: Theme.filesTabLine }
 
         // The bar's free part moves the window; a double click maximizes it.
         DragHandler {
@@ -162,8 +186,13 @@ Window {
             visible: !root.picking
             x: 8
             anchors.bottom: parent.bottom
-            spacing: 2
+            spacing: -1 // File Explorer: a tab every 239
             // Room is left for "+", the window buttons and a piece of bar to drag.
+            // A tab dragged along the bar: the others make room, the order changes on release.
+            property int dragFrom: -1
+            property real dragOffset: 0
+            readonly property int dropIndex: dragFrom < 0 ? -1
+                : Math.max(0, Math.min(root.tabs.length - 1, dragFrom + Math.round(dragOffset / (tabWidth + spacing))))
             readonly property real tabWidth: Math.max(100, Math.min(240, (strip.width - x - 40 - 3 * 46 - 48) / Math.max(1, root.tabs.length)))
 
             Repeater {
@@ -174,12 +203,87 @@ Window {
                     required property int index
                     readonly property bool active: root.currentIndex === index
                     width: tabRow.tabWidth
-                    height: 34
+                    height: 32
+                    z: tabRow.dragFrom === index ? 2 : active ? 1 : 0 // its line and curves lie over its neighbors
+                    transform: Translate {
+                        x: tabRow.dragFrom < 0 ? 0
+                            : tabRow.dragFrom === tabButton.index ? tabRow.dragOffset
+                            : tabButton.index > tabRow.dragFrom && tabButton.index <= tabRow.dropIndex ? -(tabRow.tabWidth + tabRow.spacing)
+                            : tabButton.index < tabRow.dragFrom && tabButton.index >= tabRow.dropIndex ? tabRow.tabWidth + tabRow.spacing
+                            : 0
+                        // WinUI's reorder hint settles in 200 ms.
+                        Behavior on x {
+                            enabled: tabRow.dragFrom >= 0 && tabRow.dragFrom !== tabButton.index
+                            NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+                        }
+                    }
                     radius: 0
                     topLeftRadius: Theme.radiusOverlay
                     topRightRadius: Theme.radiusOverlay
-                    color: active ? Theme.layer : tabMouse.containsMouse ? Theme.subtleHover : Theme.subtleRest
+                    // WinUI's TabView: its states change at once, without a fade.
+                    animated: false
+                    color: active ? Theme.filesActiveTab : tabMouse.pressed ? Theme.filesTabPressed : tabMouse.containsMouse ? Theme.filesTabHover : "transparent"
+                    Repeater {
+                        model: tabButton.active ? [-1, 1] : []
+                        // The curve into the toolbar: only the tab's color, so it
+                        // shows nothing of its own over a neighbor.
+                        delegate: Canvas {
+                            required property int modelData
+                            readonly property color fill: Theme.filesActiveTab
+                            onFillChanged: requestPaint()
+                            width: Theme.radiusOverlay
+                            height: width
+                            x: modelData < 0 ? -width : tabButton.width
+                            anchors.bottom: parent.bottom
+                            onPaint: {
+                                const ctx = getContext("2d")
+                                const r = width
+                                ctx.clearRect(0, 0, r, r)
+                                ctx.fillStyle = fill
+                                ctx.beginPath()
+                                if (modelData < 0) {
+                                    ctx.moveTo(r, r)
+                                    ctx.lineTo(0, r)
+                                    ctx.arc(0, 0, r, Math.PI / 2, 0, true)
+                                } else {
+                                    ctx.moveTo(0, r)
+                                    ctx.lineTo(r, r)
+                                    ctx.arc(r, 0, r, Math.PI / 2, Math.PI, false)
+                                }
+                                ctx.closePath()
+                                ctx.fill()
+                                // File Explorer's line follows the curve.
+                                ctx.strokeStyle = Theme.filesTabLine
+                                ctx.lineWidth = 1
+                                ctx.beginPath()
+                                if (modelData < 0)
+                                    ctx.arc(0, 0, r - 0.5, Math.PI / 2, 0, true)
+                                else
+                                    ctx.arc(r, 0, r - 0.5, Math.PI / 2, Math.PI, false)
+                                ctx.stroke()
+                            }
+                        }
+                    }
+                    // The tab's line: under a tab at rest, and on the open tab's side.
+                    Rectangle {
+                        visible: !tabButton.active
+                        anchors { left: parent.left; right: parent.right; bottom: parent.bottom; leftMargin: root.currentIndex === tabButton.index - 1 ? Theme.radiusOverlay : 0 }
+                        height: 1
+                        color: Theme.filesTabLine
+                    }
+                    Repeater {
+                        model: tabButton.active ? [-1, tabButton.width] : []
+                        delegate: Rectangle {
+                            required property int modelData
+                            x: modelData
+                            y: Theme.radiusOverlay
+                            width: 1
+                            height: tabButton.height - 2 * Theme.radiusOverlay
+                            color: Theme.filesTabLine
+                        }
+                    }
                     Image {
+                        visible: !tabButton.modelData.loading
                         x: 12
                         anchors.verticalCenter: parent.verticalCenter
                         width: 16
@@ -187,13 +291,39 @@ Window {
                         source: "image://fileicon/" + encodeURIComponent(tabButton.modelData.icon)
                         sourceSize: Qt.size(width, height)
                     }
+                    // File Explorer's while a folder loads: a turning ring in place of the icon.
+                    Canvas {
+                        visible: !!tabButton.modelData.loading
+                        x: 12
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 16
+                        height: 16
+                        onPaint: {
+                            const ctx = getContext("2d")
+                            ctx.clearRect(0, 0, width, height)
+                            ctx.strokeStyle = Theme.accent
+                            ctx.lineWidth = 1.5
+                            ctx.lineCap = "round"
+                            ctx.beginPath()
+                            ctx.arc(8, 8, 6.5, 0, Math.PI / 2, false)
+                            ctx.stroke()
+                        }
+                        RotationAnimator on rotation {
+                            running: !!tabButton.modelData.loading
+                            from: 0
+                            to: 360
+                            duration: 1000
+                            loops: Animation.Infinite
+                        }
+                    }
                     Text {
                         x: 36
-                        width: parent.width - 72
+                        width: parent.width - x - 37
                         anchors.verticalCenter: parent.verticalCenter
                         text: tabButton.modelData.title
-                        color: Theme.text
-                        font.pixelSize: Theme.fontCaption + 1
+                        color: tabButton.active ? Theme.text : Theme.textSecondary
+                        font.pixelSize: Theme.fontCaption
+                        font.weight: tabButton.active ? Font.DemiBold : Font.Normal
                         elide: Text.ElideRight
                     }
                     MouseArea {
@@ -201,7 +331,34 @@ Window {
                         anchors.fill: parent
                         hoverEnabled: true
                         acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
+                        preventStealing: true
+                        property real pressX: 0
+                        property bool moved: false
+                        onPressed: mouse => {
+                            pressX = mapToItem(tabRow, mouse.x, 0).x
+                            moved = false
+                        }
+                        onPositionChanged: mouse => {
+                            if (!(pressedButtons & Qt.LeftButton)) return
+                            const dx = mapToItem(tabRow, mouse.x, 0).x - pressX
+                            if (!moved && Math.abs(dx) < 4) return
+                            if (!moved) {
+                                moved = true
+                                root.currentIndex = tabButton.index
+                                tabRow.dragFrom = tabButton.index
+                            }
+                            tabRow.dragOffset = dx
+                        }
+                        onReleased: {
+                            if (!moved) return
+                            const from = tabRow.dragFrom, to = tabRow.dropIndex
+                            tabRow.dragFrom = -1
+                            tabRow.dragOffset = 0
+                            root.moveTab(from, to)
+                        }
+                        onCanceled: { tabRow.dragFrom = -1; tabRow.dragOffset = 0 }
                         onClicked: mouse => {
+                            if (moved) return
                             if (mouse.button === Qt.MiddleButton) {
                                 root.closeTab(tabButton.index)
                             } else if (mouse.button === Qt.RightButton) {
@@ -222,12 +379,20 @@ Window {
                         }
                     }
                     ToolButton {
-                        anchors { right: parent.right; rightMargin: 6; verticalCenter: parent.verticalCenter }
-                        width: 24
+                        anchors { right: parent.right; rightMargin: 5; verticalCenter: parent.verticalCenter }
+                        width: 32
                         height: 24
                         icon.name: "window-close"
-                        visible: tabMouse.containsMouse || tabButton.active || hovered
+                        icon.width: 13 // the glyph comes out 9 wide, as measured on Windows
+                        icon.height: 13
                         onClicked: root.closeTab(tabButton.index)
+                    }
+                    // WinUI's separator: between two tabs at rest, 8 from the top and the bottom.
+                    Rectangle {
+                        anchors { right: parent.right; top: parent.top; bottom: parent.bottom; topMargin: 8; bottomMargin: 8 }
+                        width: 1
+                        color: Theme.divider
+                        visible: !tabButton.active && !tabMouse.containsMouse && root.currentIndex !== tabButton.index + 1 && tabButton.index + 1 < root.tabs.length
                     }
                     // Dragging files onto a tab opens it.
                     DropArea {
@@ -236,11 +401,14 @@ Window {
                     }
                 }
             }
+            Item { width: 9; height: 1 } // File Explorer: "+" starts 7 after the tab
             ToolButton {
                 anchors.verticalCenter: parent.verticalCenter
                 width: 32
-                height: 28
-                icon.name: "list-add"
+                height: 24
+                icon.name: "tab-new"
+                icon.width: 12 // the glyph comes out 10 wide, as measured on Windows
+                icon.height: 12
                 onClicked: root.newTab("home:", "")
             }
         }

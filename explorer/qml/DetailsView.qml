@@ -11,12 +11,13 @@ Item {
     id: view
     property var tab
     property var model: tab.model
-    readonly property int rowHeight: 32
+    // File Explorer's, measured: rows 28 apart, a 24 highlight, a 29 header.
+    readonly property int rowHeight: tab.win && tab.win.compactView ? 22 : 28
     readonly property bool searching: model.search !== ""
 
     // The columns: resizable widths.
     property real nameWidth: Math.max(220, width * 0.38)
-    property real dateWidth: 160
+    property real dateWidth: 144
     property real typeWidth: 170
     property real sizeWidth: 100
     property real pathWidth: 260
@@ -30,7 +31,7 @@ Item {
         return c
     }
     function columnX(index) {
-        let x = 16
+        let x = 22
         for (let i = 0; i < index; ++i) x += columns[i].width
         return x
     }
@@ -63,7 +64,7 @@ Item {
     Item {
         id: header
         width: parent.width
-        height: 32
+        height: 29
         Repeater {
             model: view.columns
             delegate: Item {
@@ -83,17 +84,18 @@ Item {
                     width: parent.width - 28
                     anchors.verticalCenter: parent.verticalCenter
                     text: column.modelData.title
-                    color: Theme.textSecondary
+                    color: Theme.text
                     font.pixelSize: Theme.fontCaption
                     elide: Text.ElideRight
                 }
+                // At the top, in the middle of the column.
                 Text {
                     visible: view.model.sortColumn === column.modelData.key
-                    anchors { right: parent.right; rightMargin: 10; verticalCenter: parent.verticalCenter }
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    y: view.model.sortDescending ? -6 : -3
                     text: view.model.sortDescending ? "⌄" : "⌃"
                     color: Theme.textSecondary
                     font.pixelSize: 11
-                    topPadding: view.model.sortDescending ? -4 : 4
                 }
                 MouseArea {
                     id: headerMouse
@@ -105,9 +107,10 @@ Item {
                 }
                 // The right border: drag to widen.
                 Rectangle {
-                    anchors { right: parent.right; top: parent.top; bottom: parent.bottom; topMargin: 8; bottomMargin: 8 }
+                    anchors { right: parent.right; top: parent.top }
                     width: 1
-                    color: Theme.divider
+                    height: 25
+                    color: Theme.filesColumnLine
                 }
                 MouseArea {
                     anchors { right: parent.right; rightMargin: -4; top: parent.top; bottom: parent.bottom }
@@ -200,26 +203,25 @@ Item {
             width: list.width - 8
             height: view.rowHeight
             // A recycled row takes its new file's state at once.
-            ListView.onPooled: fill.animated = false
-            ListView.onReused: fill.animated = true
 
             Fill {
                 id: fill
                 objectName: "rowFill"
-                x: 4
-                width: parent.width - 4
-                height: parent.height - 2
-                y: 1
-                radius: Theme.radius
-                color: rowDrop.containsDrag ? Theme.selectionHover
-                    : row.selected ? (rowMouse.containsMouse ? Theme.selectionHover : Theme.selection)
-                    : rowMouse.containsMouse ? Theme.subtleHover : Theme.subtleRest
+                x: 14
+                width: parent.width - 6
+                height: parent.height - 4
+                y: 2
+                radius: 0
+                animated: false
+                color: rowDrop.containsDrag ? Theme.filesItemSelectedHover
+                    : row.selected ? (rowMouse.containsMouse ? Theme.filesItemSelectedHover : Theme.filesItemSelected)
+                    : rowMouse.containsMouse ? Theme.filesItemHover : "transparent"
                 border.width: view.model.currentIndex === row.index && view.tab.viewFocused ? 1 : 0
-                border.color: Theme.focusRing
+                border.color: Theme.filesFocus
             }
 
             FileIcon {
-                x: view.columnX(0) + 4
+                x: view.columnX(0) - 4
                 anchors.verticalCenter: parent.verticalCenter
                 size: 16
                 path: row.path
@@ -231,25 +233,25 @@ Item {
             }
             TagDots {
                 tags: row.tags
-                x: view.columnX(0) + 30 + 6
+                x: view.columnX(0) + 16 + 6
                 y: parent.height - height - 3
                 dot: 7
             }
             Text {
                 visible: view.tab.renamingPath !== row.path
-                x: view.columnX(0) + 30
-                width: view.columns[0].width - 34
+                x: view.columnX(0) + 16
+                width: view.columns[0].width - 20
                 anchors.verticalCenter: parent.verticalCenter
-                text: row.name
+                text: view.tab.win && view.tab.win.displayName ? view.tab.win.displayName(row.name, row.isDir) : row.name
                 color: Theme.text
                 opacity: row.isCut ? 0.6 : 1
-                font.pixelSize: Theme.fontBody
+                font.pixelSize: Theme.fontCaption
                 elide: Text.ElideRight
             }
             Loader {
                 active: view.tab.renamingPath === row.path
-                x: view.columnX(0) + 26
-                width: view.columns[0].width - 30
+                x: view.columnX(0) + 12
+                width: view.columns[0].width - 16
                 anchors.verticalCenter: parent.verticalCenter
                 sourceComponent: RenameField {
                     path: row.path
@@ -271,8 +273,8 @@ Item {
                         : modelData.key === 3 ? row.sizeText
                         : view.tab.isTrash ? Ops.originalLocation(row.path).replace(/\/[^\/]*$/, "") : row.location
                     horizontalAlignment: modelData.key === 3 ? Text.AlignRight : Text.AlignLeft
-                    color: Theme.textSecondary
-                    font.pixelSize: Theme.fontCaption + 1
+                    color: Theme.text
+                    font.pixelSize: Theme.fontCaption
                     elide: modelData.key === -1 ? Text.ElideMiddle : Text.ElideRight
                 }
             }
@@ -331,12 +333,21 @@ Item {
         }
 
         Text {
+            // File Explorer's while the folder is still being read.
+            visible: view.model.count === 0 && view.model.loading
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: 24
+            text: qsTr("Working on it...")
+            color: Theme.text
+            font.pixelSize: Theme.fontCaption
+        }
+        Text {
             visible: view.model.count === 0 && !view.model.loading
             anchors.horizontalCenter: parent.horizontalCenter
             y: 24
             text: view.searching ? qsTr("No items match your search.") : view.model.exists ? qsTr("This folder is empty.") : qsTr("Can't find this folder.")
             color: Theme.textSecondary
-            font.pixelSize: Theme.fontBody
+            font.pixelSize: Theme.fontCaption
         }
     }
 

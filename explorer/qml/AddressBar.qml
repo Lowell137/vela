@@ -28,7 +28,8 @@ Item {
     // The path pieces: [{label, location, icon}].
     readonly property var crumbs: {
         const loc = tab.location
-        if (loc === "home:") return [{ label: qsTr("Home"), location: "home:", icon: "folder" }]
+        if (loc === "home:") return [{ label: qsTr("Home"), location: "home:", icon: "user-home" }]
+        if (loc === "network:") return [{ label: qsTr("Network"), location: "network:", icon: "network-workgroup" }]
         if (loc === "thispc:") return [{ label: qsTr("This PC"), location: "thispc:", icon: "computer" }]
         if (loc === Places.trash) return [{ label: qsTr("Recycle Bin"), location: Places.trash, icon: "user-trash" }]
         const out = []
@@ -51,24 +52,32 @@ Item {
 
     Row {
         id: buttons
-        x: 8
+        x: 11
         anchors.verticalCenter: parent.verticalCenter
-        spacing: 2
-        ToolButton { icon.name: "go-previous"; tooltip: qsTr("Back (Alt+Left Arrow)"); usable: bar.tab.canGoBack; onClicked: bar.tab.back(); width: 36 }
-        ToolButton { icon.name: "go-next"; tooltip: qsTr("Forward (Alt+Right Arrow)"); usable: bar.tab.canGoForward; onClicked: bar.tab.forward(); width: 36 }
-        ToolButton { icon.name: "go-up"; tooltip: qsTr("Up (Alt+Up Arrow)"); usable: bar.tab.canGoUp; onClicked: bar.tab.up(); width: 36 }
-        ToolButton { icon.name: "view-refresh"; tooltip: qsTr("Refresh (F5)"); onClicked: bar.tab.refresh(); width: 36 }
+        spacing: 16
+        ToolButton { icon.name: "go-previous"; icon.width: 12; icon.height: 12; tooltip: qsTr("Back (Alt+Left Arrow)"); usable: bar.tab.canGoBack; onClicked: bar.tab.back(); width: 32 }
+        ToolButton { icon.name: "go-next"; icon.width: 12; icon.height: 12; tooltip: qsTr("Forward (Alt+Right Arrow)"); usable: bar.tab.canGoForward; onClicked: bar.tab.forward(); width: 32 }
+        ToolButton { icon.name: "go-up"; icon.width: 12; icon.height: 12; tooltip: qsTr("Up (Alt+Up Arrow)"); usable: bar.tab.canGoUp; onClicked: bar.tab.up(); width: 32 }
+        ToolButton { icon.name: bar.tab.loading ? "window-close" : "view-refresh"; icon.width: 12; icon.height: 12; tooltip: qsTr("Refresh (F5)"); onClicked: bar.tab.refresh(); width: 32 }
     }
 
     Fill {
         id: address
-        anchors { left: buttons.right; leftMargin: 8; right: searchBox.left; rightMargin: 8; verticalCenter: parent.verticalCenter }
+        anchors { left: buttons.right; leftMargin: 14; right: searchBox.left; rightMargin: 8; verticalCenter: parent.verticalCenter }
         height: 32
         radius: Theme.radius
         color: bar.editing ? Theme.field : addressMouse.containsMouse ? Theme.controlHover : Theme.control
         border.width: 1
-        border.color: bar.editing ? Theme.accent : Theme.controlStroke
+        border.color: bar.editing ? Theme.stroke : Theme.light ? Theme.controlStroke : "transparent"
         clip: true
+        Rectangle {
+            visible: bar.editing
+            z: 2
+            anchors { left: parent.left; right: parent.right; bottom: parent.bottom; leftMargin: 1; rightMargin: 1 }
+            height: 2
+            radius: 1
+            color: Theme.accent
+        }
 
         MouseArea {
             id: addressMouse
@@ -116,7 +125,7 @@ Item {
                                     anchors.verticalCenter: parent.verticalCenter
                                     text: crumb.modelData.label
                                     color: Theme.text
-                                    font.pixelSize: Theme.fontBody
+                                    font.pixelSize: Theme.fontCaption
                                 }
                             }
                             MouseArea {
@@ -180,7 +189,7 @@ Item {
             color: Theme.text
             selectionColor: Theme.accent
             selectedTextColor: "white"
-            font.pixelSize: Theme.fontBody
+            font.pixelSize: Theme.fontCaption
             selectByMouse: true
             clip: true
             Keys.onEscapePressed: { bar.editing = false; bar.tab.focusView() }
@@ -201,13 +210,21 @@ Item {
     // Search: in this folder and its subfolders.
     Fill {
         id: searchBox
-        anchors { right: parent.right; rightMargin: 12; verticalCenter: parent.verticalCenter }
-        width: Math.min(280, bar.width * 0.25)
+        anchors { right: parent.right; rightMargin: 11; verticalCenter: parent.verticalCenter }
+        width: 230
         height: 32
         radius: Theme.radius
         color: search.activeFocus ? Theme.field : searchMouse.containsMouse ? Theme.controlHover : Theme.control
         border.width: 1
-        border.color: search.activeFocus ? Theme.accent : Theme.controlStroke
+        border.color: search.activeFocus ? Theme.stroke : Theme.light ? Theme.controlStroke : "transparent"
+        // WinUI's focused field: an accent line along the bottom edge.
+        Rectangle {
+            visible: search.activeFocus
+            anchors { left: parent.left; right: parent.right; bottom: parent.bottom; leftMargin: 1; rightMargin: 1 }
+            height: 2
+            radius: 1
+            color: Theme.accent
+        }
         opacity: bar.tab.isFolder ? 1 : 0.5
         MouseArea {
             id: searchMouse
@@ -220,7 +237,7 @@ Item {
             anchors { left: parent.left; leftMargin: 10; verticalCenter: parent.verticalCenter; right: parent.right; rightMargin: 32 }
             text: qsTr("Search ") + bar.tab.title
             color: Theme.textSecondary
-            font.pixelSize: Theme.fontBody
+            font.pixelSize: Theme.fontCaption
             elide: Text.ElideRight
         }
         TextInput {
@@ -231,7 +248,7 @@ Item {
             color: Theme.text
             selectionColor: Theme.accent
             selectedTextColor: "white"
-            font.pixelSize: Theme.fontBody
+            font.pixelSize: Theme.fontCaption
             selectByMouse: true
             clip: true
             onTextChanged: searchDelay.restart()
@@ -246,7 +263,7 @@ Item {
         Icon {
             anchors { right: parent.right; rightMargin: 10; verticalCenter: parent.verticalCenter }
             name: "edit-find"
-            opacity: 0.8
+            size: 12 // File Explorer's: 11 wide
         }
     }
 }

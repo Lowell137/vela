@@ -115,6 +115,9 @@ public:
     Q_INVOKABLE void showProperties(const QStringList& paths);
     // Also Share, "Choose another app" and New > Shortcut.
     Q_INVOKABLE void share(const QStringList& paths);
+    // What File Explorer offers on a selected picture.
+    Q_INVOKABLE void setWallpaper(const QString& path);
+    Q_INVOKABLE bool rotateImage(const QString& path, int degrees); // false: nothing changed
     Q_INVOKABLE void chooseApp(const QString& path);
     Q_INVOKABLE void newShortcut(const QString& directory);
 

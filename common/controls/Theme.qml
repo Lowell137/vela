@@ -58,7 +58,27 @@ QtObject {
     // Files: the files and navigation area, the selection, the scroll bars.
     readonly property color layer: light ? Qt.rgba(1, 1, 1, 0.5) : Qt.rgba(0.227, 0.227, 0.227, 0.30)
     readonly property color layerStroke: light ? Qt.rgba(0, 0, 0, 0.06) : Qt.rgba(0, 0, 0, 0.10)
-    readonly property color selection: light ? Qt.rgba(0, 0, 0, 0.06) : Qt.rgba(1, 1, 1, 0.10)
+    // Files' bands in the dark theme, measured on Windows 11's File Explorer.
+    readonly property color filesStrip: light ? Style.mica : "#202020" // the title bar behind the tabs
+    // WinUI's LayerOnMicaBaseAlt: a tab at rest under the pointer, and pressed.
+    readonly property color filesTabHover: light ? Qt.rgba(1, 1, 1, 0.6) : "#2d2d2d" // measured
+    readonly property color filesTabLine: light ? divider : "#1d1d1d" // under the tabs at rest, beside the open one
+    readonly property color filesTabPressed: light ? Qt.rgba(1, 1, 1, 0.7) : "#733A3A3A"
+    // File Explorer's list, measured: square rows, states without a fade.
+    readonly property color filesItemHover: light ? subtleHover : "#2d2d2d"
+    readonly property color filesItemSelected: light ? selection : "#505050"
+    readonly property color filesItemSelectedHover: light ? selectionHover : "#5c5c5c"
+    readonly property color filesNavSelected: light ? selection : "#333333"
+    readonly property color filesFocus: light ? focusRing : "#c3c3c3"
+    readonly property color filesToolbar: light ? "transparent" : "#2c2c2c" // the address row and the active tab
+    readonly property color filesActiveTab: light ? layer : filesToolbar
+    readonly property color filesCommandBar: light ? "transparent" : "#191919"
+    readonly property color filesContent: light ? layer : "#191919"
+    readonly property color filesStatus: light ? "transparent" : "#1c1c1c"
+    readonly property color filesLine: light ? divider : "#3a3a3a" // under the address row and the command bar
+    readonly property color filesSplitter: light ? divider : "#2b2b2b"
+    readonly property color filesColumnLine: light ? divider : "#626262" // between the Details headers
+    readonly property color selection: light ? Qt.rgba(0, 0, 0, 0.06) : Qt.rgba(1, 1, 1, 0.113)
     readonly property color selectionHover: light ? Qt.rgba(0, 0, 0, 0.09) : Qt.rgba(1, 1, 1, 0.13)
     readonly property color scrollTrack: light ? Qt.rgba(0, 0, 0, 0.04) : Qt.rgba(1, 1, 1, 0.05)
     readonly property color scrollThumb: light ? Qt.rgba(0, 0, 0, 0.35) : Qt.rgba(1, 1, 1, 0.35)

@@ -41,7 +41,7 @@ Item {
                 : pane.info && pane.info.isDir ? qsTr("Select a file to preview.")
                 : qsTr("Select a file to preview.")
             color: Theme.textSecondary
-            font.pixelSize: Theme.fontBody
+            font.pixelSize: Theme.fontCaption
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
         }

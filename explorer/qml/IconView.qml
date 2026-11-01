@@ -13,9 +13,11 @@ Item {
     property var model: tab.model
     property string mode: "large" // large, medium, small
 
-    readonly property int iconSize: mode === "large" ? 96 : mode === "medium" ? 48 : 16
-    readonly property int cellWidth: mode === "large" ? 128 : mode === "medium" ? 100 : 260
-    readonly property int cellHeight: mode === "large" ? 150 : mode === "medium" ? 104 : 30
+    readonly property bool tile: mode === "tiles" || mode === "content"
+    readonly property int iconSize: mode === "extralarge" ? 256 : mode === "large" ? 96 : mode === "medium" || tile ? 48 : 16
+    readonly property int cellWidth: mode === "extralarge" ? 280 : mode === "large" ? 128 : mode === "medium" ? 81
+        : mode === "content" ? Math.max(260, grid.width - grid.leftMargin - 8) : 260
+    readonly property int cellHeight: mode === "extralarge" ? 330 : mode === "large" ? 150 : mode === "medium" ? 116 : tile ? 60 : 30
     readonly property int columns: Math.max(1, Math.floor((grid.width - grid.leftMargin) / cellWidth))
 
     function step(key) {
@@ -35,8 +37,8 @@ Item {
     GridView {
         id: grid
         anchors.fill: parent
-        anchors.topMargin: 8
-        leftMargin: 12
+        anchors.topMargin: 6
+        leftMargin: 14
         rightMargin: 8
         bottomMargin: 24
         model: view.model
@@ -116,29 +118,33 @@ Item {
             required property bool hasThumbnail
             required property var modified
             required property string tags
+            required property string type
+            required property string sizeText
             width: view.cellWidth
             height: view.cellHeight
-            readonly property bool small: view.mode === "small"
+            readonly property bool small: view.mode === "small" || view.mode === "list" || view.tile
             // A recycled cell takes its new file's state at once.
-            GridView.onPooled: fill.animated = false
-            GridView.onReused: fill.animated = true
 
             Fill {
                 id: fill
                 objectName: "cellFill"
-                anchors { fill: parent; margins: 2 }
-                radius: Theme.radius
-                color: cellDrop.containsDrag ? Theme.selectionHover
-                    : cell.selected ? (cellMouse.containsMouse ? Theme.selectionHover : Theme.selection)
-                    : cellMouse.containsMouse ? Theme.subtleHover : Theme.subtleRest
+                x: cell.small ? 2 : 0
+                y: cell.small ? 2 : 0
+                width: cell.small ? parent.width - 4 : parent.width - 7
+                height: cell.small ? parent.height - 4 : icon.y + icon.height + 7 + nameText.contentHeight
+                radius: 0
+                animated: false
+                color: cellDrop.containsDrag ? Theme.filesItemSelectedHover
+                    : cell.selected ? (cellMouse.containsMouse ? Theme.filesItemSelectedHover : Theme.filesItemSelected)
+                    : cellMouse.containsMouse ? Theme.filesItemHover : "transparent"
                 border.width: view.model.currentIndex === cell.index && view.tab.viewFocused ? 1 : 0
-                border.color: Theme.focusRing
+                border.color: Theme.filesFocus
             }
 
             FileIcon {
                 id: icon
-                x: cell.small ? 10 : (parent.width - width) / 2
-                y: cell.small ? (parent.height - height) / 2 : 8
+                x: cell.small ? 10 : (parent.width - 7 - width) / 2
+                y: cell.small ? (parent.height - height) / 2 : 4
                 size: view.iconSize
                 path: cell.path
                 iconName: cell.iconName
@@ -153,18 +159,42 @@ Item {
                 y: icon.y + icon.height - height + 2
             }
             Text {
+                id: nameText
                 visible: view.tab.renamingPath !== cell.path
-                x: cell.small ? 34 : 6
-                y: cell.small ? (parent.height - height) / 2 : icon.y + icon.height + 6
-                width: cell.small ? parent.width - 40 : parent.width - 12
-                text: cell.name
+                x: view.tile ? 68 : cell.small ? 34 : 4
+                y: view.tile ? 14 : cell.small ? (parent.height - height) / 2 : icon.y + icon.height + 4
+                width: view.tile ? parent.width - 76 : cell.small ? parent.width - 40 : parent.width - 15
+                text: view.tab.win && view.tab.win.displayName ? view.tab.win.displayName(cell.name, cell.isDir) : cell.name
                 color: Theme.text
                 opacity: cell.isCut ? 0.6 : 1
-                font.pixelSize: cell.small ? Theme.fontBody : Theme.fontCaption + 1
+                font.pixelSize: Theme.fontCaption
+                lineHeightMode: Text.FixedHeight
+                lineHeight: 15
                 horizontalAlignment: cell.small ? Text.AlignLeft : Text.AlignHCenter
-                wrapMode: cell.small ? Text.NoWrap : Text.Wrap
-                maximumLineCount: cell.small ? 1 : 2
-                elide: cell.small ? Text.ElideRight : Text.ElideMiddle
+                wrapMode: cell.small ? Text.NoWrap : Text.WrapAnywhere
+                maximumLineCount: cell.small ? 1 : 4
+                elide: Text.ElideRight
+            }
+            // Tiles and Content: what kind of file, under its name.
+            Text {
+                visible: view.tile
+                x: 68
+                y: 30
+                width: parent.width - 76
+                text: cell.sizeText !== "" ? cell.type + " · " + cell.sizeText : cell.type
+                color: Theme.textSecondary
+                font.pixelSize: Theme.fontCaption
+                elide: Text.ElideRight
+            }
+            ItemCheck {
+                x: 4
+                y: 4
+                z: 2
+                
+                row: cell.index
+                checked: cell.selected
+                tab: view.tab
+                hovered: cellMouse.containsMouse
             }
             Loader {
                 active: view.tab.renamingPath === cell.path
@@ -233,12 +263,21 @@ Item {
         }
 
         Text {
+            // File Explorer's while the folder is still being read.
+            visible: view.model.count === 0 && view.model.loading
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: 24
+            text: qsTr("Working on it...")
+            color: Theme.text
+            font.pixelSize: Theme.fontCaption
+        }
+        Text {
             visible: view.model.count === 0 && !view.model.loading
             anchors.horizontalCenter: parent.horizontalCenter
             y: 24
             text: view.model.search !== "" ? qsTr("No items match your search.") : view.model.exists ? qsTr("This folder is empty.") : qsTr("Can't find this folder.")
             color: Theme.textSecondary
-            font.pixelSize: Theme.fontBody
+            font.pixelSize: Theme.fontCaption
         }
     }
 

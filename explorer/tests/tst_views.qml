@@ -60,7 +60,7 @@ Item {
         }
 
         function expected(item) {
-            return item.selected ? Theme.selection : Theme.subtleRest
+            return item.selected ? Theme.filesItemSelected : Qt.rgba(0, 0, 0, 0)
         }
 
         function scrollAndCheck(view, flickable, name, step, perScreen) {

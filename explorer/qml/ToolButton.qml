@@ -17,7 +17,7 @@ T.ToolButton {
     property bool menu: false // with the little arrow: opens a menu
     property string tooltip
 
-    implicitWidth: implicitContentWidth + leftPadding + rightPadding
+    implicitWidth: text !== "" ? implicitContentWidth + leftPadding + rightPadding : 40 // File Explorer's, measured
     implicitHeight: 32
     leftPadding: text !== "" ? 10 : 8
     rightPadding: leftPadding
@@ -64,12 +64,13 @@ T.ToolButton {
                 anchors.verticalCenter: parent.verticalCenter
                 text: button.text
                 color: Theme.text
-                font.pixelSize: Theme.fontBody
+                font.pixelSize: Theme.fontCaption
             }
             Chevron {
                 visible: button.menu
                 anchors.verticalCenter: parent.verticalCenter
                 down: true
+                scale: 0.7 // File Explorer's: 6 wide
                 color: Theme.textSecondary
             }
         }

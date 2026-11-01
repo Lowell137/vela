@@ -39,7 +39,7 @@ Rectangle {
         color: Theme.text
         selectionColor: Theme.accent
         selectedTextColor: "white"
-        font.pixelSize: Theme.fontBody
+        font.pixelSize: Theme.fontCaption
         selectByMouse: true
         wrapMode: field.centered ? TextInput.WrapAnywhere : TextInput.NoWrap
         horizontalAlignment: field.centered ? TextInput.AlignHCenter : TextInput.AlignLeft
