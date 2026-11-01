@@ -22,8 +22,7 @@ Style sheet: `docs/icons-style-sheet.html`. Licenses:
   Only the SVGs in use are included.
 - vinceliuice/Fluent-icon-theme (GPL-3.0): not copied; an optional separate package
   that `vela` inherits when installed (AUR `fluent-icon-theme-git`).
-- Windows 11 icons (Microsoft, not under this project's GPL and not MIT): `NNxNN/places/*.png` and part of `scalable/actions`, extracted from an installed Windows 11 (imageres.dll, shell32.dll, Segoe Fluent Icons, File Explorer's assets). No license to redistribute them has been recorded.
-- No Segoe fonts are included.
+- No Windows icons or Segoe fonts are used.
 
 ## Not in Breeze (fall back to the generic icon unless we draw them)
 
